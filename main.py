@@ -350,8 +350,8 @@ def sync_profile(profile_id: str) -> bool:
         for folder_data in folder_data_list:
             grp = folder_data["group"]
             name = grp["group"].strip()
-            do = grp["action"]["do"]
-            status = grp["action"]["status"]
+            do = grp["action"].get("do", 0)  # Default to 0 (block) if not specified
+            status = grp["action"].get("status", 1)  # Default to 1 (enabled) if not specified
             hostnames = [r["PK"] for r in folder_data.get("rules", []) if r.get("PK")]
 
             folder_id = create_folder(profile_id, name, do, status)
