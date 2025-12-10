@@ -13,10 +13,12 @@ It does three things:
 Nothing fancy, just works.
 """
 
+import argparse
+import json
 import os
 import logging
 import time
-from typing import Dict, List, Optional, Any, Set
+from typing import Dict, List, Optional, Any, Set, Sequence
 
 import httpx
 from dotenv import load_dotenv
@@ -40,11 +42,8 @@ log = logging.getLogger("control-d-sync")
 API_BASE = "https://api.controld.com/profiles"
 TOKEN = os.getenv("TOKEN")
 
-# Accept either a single profile id or a comma-separated list
-PROFILE_IDS = [p.strip() for p in os.getenv("PROFILE", "").split(",") if p.strip()]
-
-# URLs of the JSON block-lists we want to import
-FOLDER_URLS = [
+# Default folder sources
+DEFAULT_FOLDER_URLS = [
     "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/controld/apple-private-relay-allow-folder.json",
     "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/controld/badware-hoster-folder.json",
     "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/controld/meta-tracker-allow-folder.json",
@@ -78,16 +77,17 @@ FOLDER_CREATION_DELAY = 2  # seconds to wait after creating a folder
 # --------------------------------------------------------------------------- #
 # 2. Clients
 # --------------------------------------------------------------------------- #
-# Control-D API client (with auth)
-_api = httpx.Client(
-    headers={
-        "Accept": "application/json",
-        "Authorization": f"Bearer {TOKEN}",
-    },
-    timeout=30,
-)
+def _api_client() -> httpx.Client:
+    """Lazily build Control D API client."""
+    return httpx.Client(
+        headers={
+            "Accept": "application/json",
+            "Authorization": f"Bearer {TOKEN}",
+        },
+        timeout=30,
+    )
 
-# GitHub raw client (no auth, no headers)
+# GitHub raw client (no auth, no headers) – single instance
 _gh = httpx.Client(timeout=30)
 
 # --------------------------------------------------------------------------- #
@@ -97,24 +97,24 @@ _gh = httpx.Client(timeout=30)
 _cache: Dict[str, Dict] = {}
 
 
-def _api_get(url: str) -> httpx.Response:
+def _api_get(client: httpx.Client, url: str) -> httpx.Response:
     """GET helper for Control-D API with retries."""
-    return _retry_request(lambda: _api.get(url))
+    return _retry_request(lambda: client.get(url))
 
 
-def _api_delete(url: str) -> httpx.Response:
+def _api_delete(client: httpx.Client, url: str) -> httpx.Response:
     """DELETE helper for Control-D API with retries."""
-    return _retry_request(lambda: _api.delete(url))
+    return _retry_request(lambda: client.delete(url))
 
 
-def _api_post(url: str, data: Dict) -> httpx.Response:
+def _api_post(client: httpx.Client, url: str, data: Dict) -> httpx.Response:
     """POST helper for Control-D API with retries."""
-    return _retry_request(lambda: _api.post(url, data=data))
+    return _retry_request(lambda: client.post(url, data=data))
 
 
-def _api_post_form(url: str, data: Dict) -> httpx.Response:
+def _api_post_form(client: httpx.Client, url: str, data: Dict) -> httpx.Response:
     """POST helper for form data with retries."""
-    return _retry_request(lambda: _api.post(url, data=data, headers={"Content-Type": "application/x-www-form-urlencoded"}))
+    return _retry_request(lambda: client.post(url, data=data, headers={"Content-Type": "application/x-www-form-urlencoded"}))
 
 
 def _retry_request(request_func, max_retries=MAX_RETRIES, delay=RETRY_DELAY):
@@ -144,10 +144,10 @@ def _gh_get(url: str) -> Dict:
     return _cache[url]
 
 
-def list_existing_folders(profile_id: str) -> Dict[str, str]:
+def list_existing_folders(client: httpx.Client, profile_id: str) -> Dict[str, str]:
     """Return folder-name -> folder-id mapping."""
     try:
-        data = _api_get(f"{API_BASE}/{profile_id}/groups").json()
+        data = _api_get(client, f"{API_BASE}/{profile_id}/groups").json()
         folders = data.get("body", {}).get("groups", [])
         return {
             f["group"].strip(): f["PK"]
@@ -159,14 +159,14 @@ def list_existing_folders(profile_id: str) -> Dict[str, str]:
         return {}
 
 
-def get_all_existing_rules(profile_id: str) -> Set[str]:
+def get_all_existing_rules(client: httpx.Client, profile_id: str) -> Set[str]:
     """Get all existing rules from all folders in the profile."""
     all_rules = set()
 
     try:
         # Get rules from root folder (no folder_id)
         try:
-            data = _api_get(f"{API_BASE}/{profile_id}/rules").json()
+            data = _api_get(client, f"{API_BASE}/{profile_id}/rules").json()
             root_rules = data.get("body", {}).get("rules", [])
             for rule in root_rules:
                 if rule.get("PK"):
@@ -178,12 +178,12 @@ def get_all_existing_rules(profile_id: str) -> Set[str]:
             log.warning(f"Failed to get root folder rules: {e}")
 
         # Get all folders (including ones we're not managing)
-        folders = list_existing_folders(profile_id)
+        folders = list_existing_folders(client, profile_id)
 
         # Get rules from each folder
         for folder_name, folder_id in folders.items():
             try:
-                data = _api_get(f"{API_BASE}/{profile_id}/rules/{folder_id}").json()
+                data = _api_get(client, f"{API_BASE}/{profile_id}/rules/{folder_id}").json()
                 folder_rules = data.get("body", {}).get("rules", [])
                 for rule in folder_rules:
                     if rule.get("PK"):
@@ -209,10 +209,10 @@ def fetch_folder_data(url: str) -> Dict[str, Any]:
     return js
 
 
-def delete_folder(profile_id: str, name: str, folder_id: str) -> bool:
+def delete_folder(client: httpx.Client, profile_id: str, name: str, folder_id: str) -> bool:
     """Delete a single folder by its ID. Returns True if successful."""
     try:
-        _api_delete(f"{API_BASE}/{profile_id}/groups/{folder_id}")
+        _api_delete(client, f"{API_BASE}/{profile_id}/groups/{folder_id}")
         log.info("Deleted folder '%s' (ID %s)", name, folder_id)
         return True
     except httpx.HTTPError as e:
@@ -220,7 +220,7 @@ def delete_folder(profile_id: str, name: str, folder_id: str) -> bool:
         return False
 
 
-def create_folder(profile_id: str, name: str, do: int, status: int) -> Optional[str]:
+def create_folder(client: httpx.Client, profile_id: str, name: str, do: int, status: int) -> Optional[str]:
     """
     Create a new folder and return its ID.
     The API returns the full list of groups, so we look for the one we just added.
@@ -229,10 +229,11 @@ def create_folder(profile_id: str, name: str, do: int, status: int) -> Optional[
         _api_post(
             f"{API_BASE}/{profile_id}/groups",
             data={"name": name, "do": do, "status": status},
+        client,
         )
 
         # Re-fetch the list and pick the folder we just created
-        data = _api_get(f"{API_BASE}/{profile_id}/groups").json()
+        data = _api_get(client, f"{API_BASE}/{profile_id}/groups").json()
         for grp in data["body"]["groups"]:
             if grp["group"].strip() == name.strip():
                 log.info("Created folder '%s' (ID %s)", name, grp["PK"])
@@ -254,6 +255,7 @@ def push_rules(
     status: int,
     hostnames: List[str],
     existing_rules: Set[str],
+    client: httpx.Client,
 ) -> bool:
     """Push hostnames in batches to the given folder, skipping duplicates. Returns True if successful."""
     if not hostnames:
@@ -289,6 +291,7 @@ def push_rules(
 
         try:
             _api_post_form(
+                client,
                 f"{API_BASE}/{profile_id}/rules",
                 data=data,
             )
@@ -319,12 +322,18 @@ def push_rules(
 # --------------------------------------------------------------------------- #
 # 4. Main workflow
 # --------------------------------------------------------------------------- #
-def sync_profile(profile_id: str) -> bool:
+def sync_profile(
+    profile_id: str,
+    folder_urls: Sequence[str],
+    dry_run: bool = False,
+    no_delete: bool = False,
+    plan_accumulator: Optional[List[Dict[str, Any]]] = None,
+) -> bool:
     """One-shot sync: delete old, create new, push rules. Returns True if successful."""
     try:
         # Fetch all folder data first
         folder_data_list = []
-        for url in FOLDER_URLS:
+        for url in folder_urls:
             try:
                 folder_data_list.append(fetch_folder_data(url))
             except (httpx.HTTPError, KeyError) as e:
@@ -335,15 +344,45 @@ def sync_profile(profile_id: str) -> bool:
             log.error("No valid folder data found")
             return False
 
-        # Get existing folders and delete target folders
-        existing_folders = list_existing_folders(profile_id)
+        # Build plan entries
+        plan_entry = {"profile": profile_id, "folders": []}
         for folder_data in folder_data_list:
-            name = folder_data["group"]["group"].strip()
-            if name in existing_folders:
-                delete_folder(profile_id, name, existing_folders[name])
+            grp = folder_data["group"]
+            name = grp["group"].strip()
+            hostnames = [r["PK"] for r in folder_data.get("rules", []) if r.get("PK")]
+            plan_entry["folders"].append(
+                {
+                    "name": name,
+                    "rules": len(hostnames),
+                    "action": grp["action"].get("do"),
+                    "status": grp["action"].get("status"),
+                }
+            )
+
+        if plan_accumulator is not None:
+            plan_accumulator.append(plan_entry)
+
+        if dry_run:
+            for folder_data in folder_data_list:
+                grp = folder_data["group"]
+                name = grp["group"].strip()
+                hostnames = [r["PK"] for r in folder_data.get("rules", []) if r.get("PK")]
+                log.info("DRY-RUN plan for '%s': action=%s status=%s rules=%d", name, grp["action"].get("do"), grp["action"].get("status"), len(hostnames))
+            log.info("Dry-run complete: no API calls were made.")
+            return True
+
+        client = _api_client()
+
+        # Get existing folders and delete target folders
+        existing_folders = list_existing_folders(client, profile_id)
+        if not no_delete:
+            for folder_data in folder_data_list:
+                name = folder_data["group"]["group"].strip()
+                if name in existing_folders:
+                    delete_folder(client, profile_id, name, existing_folders[name])
 
         # Get all existing rules AFTER deleting target folders
-        existing_rules = get_all_existing_rules(profile_id)
+        existing_rules = get_all_existing_rules(client, profile_id)
 
         # Create new folders and push rules
         success_count = 0
@@ -354,13 +393,10 @@ def sync_profile(profile_id: str) -> bool:
             status = grp["action"].get("status", 1)  # Default to 1 (enabled) if not specified
             hostnames = [r["PK"] for r in folder_data.get("rules", []) if r.get("PK")]
 
-            folder_id = create_folder(profile_id, name, do, status)
-            if folder_id and push_rules(profile_id, name, folder_id, do, status, hostnames, existing_rules):
+            folder_id = create_folder(client, profile_id, name, do, status)
+            if folder_id and push_rules(profile_id, name, folder_id, do, status, hostnames, existing_rules, client):
                 success_count += 1
                 # Note: existing_rules is updated within push_rules function
-
-            # Optional: Refresh existing rules after each folder (more thorough but slower)
-            # existing_rules = get_all_existing_rules(profile_id)
 
         log.info(f"Sync complete: {success_count}/{len(folder_data_list)} folders processed successfully")
         return success_count == len(folder_data_list)
@@ -373,19 +409,68 @@ def sync_profile(profile_id: str) -> bool:
 # --------------------------------------------------------------------------- #
 # 5. Entry-point
 # --------------------------------------------------------------------------- #
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Control D folder sync")
+    parser.add_argument(
+        "--profiles",
+        help="Comma-separated list of profile IDs (overrides PROFILE env)",
+        default=None,
+    )
+    parser.add_argument(
+        "--folder-url",
+        action="append",
+        help="Folder JSON URL(s) to sync (can be used multiple times; overrides defaults)",
+        default=None,
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Plan only: fetch folder JSON and print intended actions; no API calls",
+    )
+    parser.add_argument(
+        "--no-delete",
+        action="store_true",
+        help="Safety: do not delete existing folders; only add new/overwriting content",
+    )
+    parser.add_argument(
+        "--plan-json",
+        help="Write plan (per profile/folder/rule counts) to JSON file",
+        default=None,
+    )
+    return parser.parse_args()
+
+
 def main():
-    if not TOKEN or not PROFILE_IDS:
-        log.error("TOKEN and/or PROFILE missing - check your .env file")
+    args = parse_args()
+
+    profiles_arg = args.profiles or os.getenv("PROFILE", "")
+    profile_ids = [p.strip() for p in profiles_arg.split(",") if p.strip()]
+
+    folder_urls = args.folder_url if args.folder_url else DEFAULT_FOLDER_URLS
+
+    if not profile_ids and not args.dry_run:
+        log.error("PROFILE missing and --dry-run not set. Provide --profiles or set PROFILE env.")
         exit(1)
 
+    if not TOKEN and not args.dry_run:
+        log.error("TOKEN missing and --dry-run not set. Set TOKEN env for live sync.")
+        exit(1)
+
+    plan: List[Dict[str, Any]] = []
     success_count = 0
-    for profile_id in PROFILE_IDS:
+    for profile_id in (profile_ids or ["dry-run-placeholder"]):
         log.info("Starting sync for profile %s", profile_id)
-        if sync_profile(profile_id):
+        if sync_profile(profile_id, folder_urls, dry_run=args.dry_run, no_delete=args.no_delete, plan_accumulator=plan):
             success_count += 1
 
-    log.info(f"All profiles processed: {success_count}/{len(PROFILE_IDS)} successful")
-    exit(0 if success_count == len(PROFILE_IDS) else 1)
+    if args.plan_json:
+        with open(args.plan_json, "w", encoding="utf-8") as f:
+            json.dump(plan, f, indent=2)
+        log.info("Plan written to %s", args.plan_json)
+
+    total = len(profile_ids or ["dry-run-placeholder"])
+    log.info(f"All profiles processed: {success_count}/{total} successful")
+    exit(0 if success_count == total else 1)
 
 
 if __name__ == "__main__":

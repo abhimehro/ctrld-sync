@@ -36,14 +36,14 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
    uv sync
    ```
 
-2. **Configure secrets**  
+2. **Configure secrets**
    Create a `.env` file (or set GitHub secrets) with:
    ```py
    TOKEN=your_control_d_api_token
    PROFILE=your_profile_id  # or comma-separated list of profile ids (e.g. your_id_1,your_id_2)
    ```
 
-3. **Configure Folders**  
+3. **Configure Folders**
    Edit the `FOLDER_URLS` list in `main.py` to include the URLs of the JSON block-lists you want to sync.
 
 > [!NOTE]
@@ -52,11 +52,12 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
 
 4. **Run locally**
    ```bash
-   uv run python main.py
+   uv run python main.py --dry-run            # plan only, no API calls
+   uv run python main.py --profiles your_id   # live run (requires TOKEN)
    ```
 
-5. **Run in CI**  
-   The included GitHub Actions workflow runs daily at 02:00 UTC and on demand.
+5. **Run in CI**
+The included GitHub Actions workflow (`.github/workflows/ci.yml`) runs a dry-run daily at 02:00 UTC and on PRs, writes `plan.json`, and uploads it as an artifact for review.
 
 ### Configure GitHub Actions
 
@@ -65,8 +66,8 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
 3. Go to the Repo Settings.
 4. Under "Secrets and variables > Actions" create the following secrets like above, under "Repository secrets":
    - `TOKEN`: your Control D API token
-   - `PROFILE`: your Control D profile ID(s) 
+   - `PROFILE`: your Control D profile ID(s)
 
 ## Requirements
-- Python 3.12+  
+- Python 3.12+
 - `uv` (for dependency management)
