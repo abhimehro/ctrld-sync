@@ -15,10 +15,11 @@ Nothing fancy, just works.
 
 import argparse
 import json
-import os
 import logging
+import os
 import time
-from typing import Dict, List, Optional, Any, Set, Sequence
+from concurrent.futures import ThreadPoolExecutor
+from typing import Any, Dict, List, Optional, Sequence, Set
 
 import httpx
 from dotenv import load_dotenv
@@ -73,6 +74,7 @@ BATCH_SIZE = 500
 MAX_RETRIES = 3
 RETRY_DELAY = 1  # seconds
 FOLDER_CREATION_DELAY = 2  # seconds to wait after creating a folder
+MAX_WORKERS = 10  # Parallel threads for fetching data
 
 # --------------------------------------------------------------------------- #
 # 2. Clients
@@ -180,20 +182,30 @@ def get_all_existing_rules(client: httpx.Client, profile_id: str) -> Set[str]:
         # Get all folders (including ones we're not managing)
         folders = list_existing_folders(client, profile_id)
 
-        # Get rules from each folder
-        for folder_name, folder_id in folders.items():
+        # Helper for parallel execution
+        def fetch_folder_rules(item):
+            folder_name, folder_id = item
+            local_rules = set()
             try:
                 data = _api_get(client, f"{API_BASE}/{profile_id}/rules/{folder_id}").json()
                 folder_rules = data.get("body", {}).get("rules", [])
                 for rule in folder_rules:
                     if rule.get("PK"):
-                        all_rules.add(rule["PK"])
+                        local_rules.add(rule["PK"])
 
                 log.debug(f"Found {len(folder_rules)} rules in folder '{folder_name}'")
-
+                return local_rules
             except httpx.HTTPError as e:
                 log.warning(f"Failed to get rules from folder '{folder_name}': {e}")
-                continue
+                return set()
+
+        # Get rules from each folder in parallel
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            # We map the fetch function over the items
+            results = executor.map(fetch_folder_rules, folders.items())
+
+            for rules in results:
+                all_rules.update(rules)
 
         log.info(f"Total existing rules across all folders: {len(all_rules)}")
         return all_rules
@@ -227,9 +239,9 @@ def create_folder(client: httpx.Client, profile_id: str, name: str, do: int, sta
     """
     try:
         _api_post(
+            client,
             f"{API_BASE}/{profile_id}/groups",
             data={"name": name, "do": do, "status": status},
-        client,
         )
 
         # Re-fetch the list and pick the folder we just created
@@ -333,12 +345,20 @@ def sync_profile(
     try:
         # Fetch all folder data first
         folder_data_list = []
-        for url in folder_urls:
-            try:
-                folder_data_list.append(fetch_folder_data(url))
-            except (httpx.HTTPError, KeyError) as e:
-                log.error(f"Failed to fetch folder data from {url}: {e}")
-                continue
+
+        # Parallel fetch to speed up startup
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            # We want to preserve order, although technically not strictly required,
+            # it's good practice.
+            futures = [executor.submit(fetch_folder_data, url) for url in folder_urls]
+
+            for i, future in enumerate(futures):
+                try:
+                    folder_data_list.append(future.result())
+                except (httpx.HTTPError, KeyError) as e:
+                    # Log which URL failed
+                    log.error(f"Failed to fetch folder data from {folder_urls[i]}: {e}")
+                    continue
 
         if not folder_data_list:
             log.error("No valid folder data found")
