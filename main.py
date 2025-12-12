@@ -227,9 +227,9 @@ def create_folder(client: httpx.Client, profile_id: str, name: str, do: int, sta
     """
     try:
         _api_post(
+            client,
             f"{API_BASE}/{profile_id}/groups",
             data={"name": name, "do": do, "status": status},
-        client,
         )
 
         # Re-fetch the list and pick the folder we just created
@@ -458,15 +458,49 @@ def main():
 
     plan: List[Dict[str, Any]] = []
     success_count = 0
+    sync_results = []
+
     for profile_id in (profile_ids or ["dry-run-placeholder"]):
         log.info("Starting sync for profile %s", profile_id)
-        if sync_profile(profile_id, folder_urls, dry_run=args.dry_run, no_delete=args.no_delete, plan_accumulator=plan):
+        status = sync_profile(
+            profile_id,
+            folder_urls,
+            dry_run=args.dry_run,
+            no_delete=args.no_delete,
+            plan_accumulator=plan,
+        )
+
+        if status:
             success_count += 1
+
+        # Calculate stats for this profile from the plan
+        entry = next((p for p in plan if p["profile"] == profile_id), None)
+        folder_count = len(entry["folders"]) if entry else 0
+        rule_count = sum(f["rules"] for f in entry["folders"]) if entry else 0
+
+        sync_results.append({
+            "profile": profile_id,
+            "folders": folder_count,
+            "rules": rule_count,
+            "status": "✅ Success" if status else "❌ Failed",
+        })
 
     if args.plan_json:
         with open(args.plan_json, "w", encoding="utf-8") as f:
             json.dump(plan, f, indent=2)
         log.info("Plan written to %s", args.plan_json)
+
+    # Print Summary Table
+    print("\n" + "=" * 80)
+    print(f"{'SYNC SUMMARY':^80}")
+    print("=" * 80)
+    print(f"{'Profile ID':<25} | {'Folders':<10} | {'Rules':<10} | {'Status':<15}")
+    print("-" * 80)
+    for res in sync_results:
+        print(
+            f"{res['profile']:<25} | {res['folders']:<10} | {res['rules']:<10,} | {res['status']:<15}"
+        )
+    print("=" * 80 + "\n")
 
     total = len(profile_ids or ["dry-run-placeholder"])
     log.info(f"All profiles processed: {success_count}/{total} successful")
