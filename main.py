@@ -18,6 +18,7 @@ import json
 import os
 import logging
 import time
+import concurrent.futures
 from typing import Dict, List, Optional, Any, Set, Sequence
 
 import httpx
@@ -227,9 +228,9 @@ def create_folder(client: httpx.Client, profile_id: str, name: str, do: int, sta
     """
     try:
         _api_post(
+            client,
             f"{API_BASE}/{profile_id}/groups",
             data={"name": name, "do": do, "status": status},
-        client,
         )
 
         # Re-fetch the list and pick the folder we just created
@@ -333,12 +334,19 @@ def sync_profile(
     try:
         # Fetch all folder data first
         folder_data_list = []
-        for url in folder_urls:
+
+        def safe_fetch(url):
             try:
-                folder_data_list.append(fetch_folder_data(url))
+                return fetch_folder_data(url)
             except (httpx.HTTPError, KeyError) as e:
                 log.error(f"Failed to fetch folder data from {url}: {e}")
-                continue
+                return None
+
+        # Fetch folder data in parallel to speed up startup
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            results = executor.map(safe_fetch, folder_urls)
+
+        folder_data_list = [r for r in results if r is not None]
 
         if not folder_data_list:
             log.error("No valid folder data found")
