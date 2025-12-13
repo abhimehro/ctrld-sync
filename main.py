@@ -482,6 +482,12 @@ def main():
     for profile_id in (profile_ids or ["dry-run-placeholder"]):
         # Skip validation for dry-run placeholder
         if profile_id != "dry-run-placeholder" and not validate_profile_id(profile_id):
+            sync_results.append({
+                "profile": profile_id,
+                "folders": 0,
+                "rules": 0,
+                "status": "❌ Invalid Profile ID",
+            })
             continue
 
         log.info("Starting sync for profile %s", profile_id)
