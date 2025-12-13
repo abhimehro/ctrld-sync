@@ -494,11 +494,11 @@ def main():
     print("\n" + "=" * 80)
     print(f"{'SYNC SUMMARY':^80}")
     print("=" * 80)
-    print(f"{'Profile ID':<25} | {'Folders':<10} | {'Rules':<10} | {'Status':<15}")
+    print(f"{'Profile ID':<25} | {'Folders':>10} | {'Rules':>10} | {'Status':<15}")
     print("-" * 80)
     for res in sync_results:
         print(
-            f"{res['profile']:<25} | {res['folders']:<10} | {res['rules']:<10,} | {res['status']:<15}"
+            f"{res['profile']:<25} | {res['folders']:>10} | {res['rules']:>10,} | {res['status']:<15}"
         )
     print("=" * 80 + "\n")
 
