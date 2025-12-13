@@ -19,6 +19,7 @@ import os
 import logging
 import time
 import concurrent.futures
+import re
 from typing import Dict, List, Optional, Any, Set, Sequence
 
 import httpx
@@ -96,6 +97,22 @@ _gh = httpx.Client(timeout=30)
 # --------------------------------------------------------------------------- #
 # simple in-memory cache: url -> decoded JSON
 _cache: Dict[str, Dict] = {}
+
+
+def validate_folder_url(url: str) -> bool:
+    """Validate that the folder URL is safe (HTTPS only)."""
+    if not url.startswith("https://"):
+        log.warning(f"Skipping unsafe or invalid URL: {url}")
+        return False
+    return True
+
+
+def validate_profile_id(profile_id: str) -> bool:
+    """Validate that the profile ID contains only safe characters."""
+    if not re.match(r"^[a-zA-Z0-9_-]+$", profile_id):
+        log.error(f"Invalid profile ID format: {profile_id}")
+        return False
+    return True
 
 
 def _api_get(client: httpx.Client, url: str) -> httpx.Response:
@@ -335,6 +352,17 @@ def sync_profile(
         # Fetch all folder data first
         folder_data_list = []
 
+        # Validate URLs first
+        valid_urls = [url for url in folder_urls if validate_folder_url(url)]
+        
+        invalid_count = len(folder_urls) - len(valid_urls)
+        if invalid_count > 0:
+            log.warning(f"Filtered out {invalid_count} invalid URL(s)")
+        
+        if not valid_urls:
+            log.error("No valid folder URLs to fetch")
+            return False
+
         def safe_fetch(url):
             try:
                 return fetch_folder_data(url)
@@ -343,9 +371,9 @@ def sync_profile(
                 return None
 
         # Fetch folder data in parallel to speed up startup
-        max_workers = min(10, len(folder_urls)) if folder_urls else 1
+        max_workers = min(10, len(valid_urls))
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            results = executor.map(safe_fetch, folder_urls)
+            results = executor.map(safe_fetch, valid_urls)
 
         folder_data_list = [r for r in results if r is not None]
 
@@ -467,15 +495,53 @@ def main():
 
     plan: List[Dict[str, Any]] = []
     success_count = 0
+    sync_results = []
+
     for profile_id in (profile_ids or ["dry-run-placeholder"]):
+        # Skip validation for dry-run placeholder
+        if profile_id != "dry-run-placeholder" and not validate_profile_id(profile_id):
+            continue
+
         log.info("Starting sync for profile %s", profile_id)
-        if sync_profile(profile_id, folder_urls, dry_run=args.dry_run, no_delete=args.no_delete, plan_accumulator=plan):
+        status = sync_profile(
+            profile_id,
+            folder_urls,
+            dry_run=args.dry_run,
+            no_delete=args.no_delete,
+            plan_accumulator=plan,
+        )
+
+        if status:
             success_count += 1
+
+        # Calculate stats for this profile from the plan
+        entry = next((p for p in plan if p["profile"] == profile_id), None)
+        folder_count = len(entry["folders"]) if entry else 0
+        rule_count = sum(f["rules"] for f in entry["folders"]) if entry else 0
+
+        sync_results.append({
+            "profile": profile_id,
+            "folders": folder_count,
+            "rules": rule_count,
+            "status": "✅ Success" if status else "❌ Failed",
+        })
 
     if args.plan_json:
         with open(args.plan_json, "w", encoding="utf-8") as f:
             json.dump(plan, f, indent=2)
         log.info("Plan written to %s", args.plan_json)
+
+    # Print Summary Table
+    print("\n" + "=" * 80)
+    print(f"{'SYNC SUMMARY':^80}")
+    print("=" * 80)
+    print(f"{'Profile ID':<25} | {'Folders':>10} | {'Rules':>10} | {'Status':<15}")
+    print("-" * 80)
+    for res in sync_results:
+        print(
+            f"{res['profile']:<25} | {res['folders']:>10} | {res['rules']:>10,} | {res['status']:<15}"
+        )
+    print("=" * 80 + "\n")
 
     total = len(profile_ids or ["dry-run-placeholder"])
     log.info(f"All profiles processed: {success_count}/{total} successful")
