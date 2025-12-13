@@ -355,7 +355,7 @@ def sync_profile(
             for i, future in enumerate(futures):
                 try:
                     folder_data_list.append(future.result())
-                except (httpx.HTTPError, KeyError) as e:
+                except Exception as e:
                     # Log which URL failed
                     log.error(f"Failed to fetch folder data from {folder_urls[i]}: {e}")
                     continue
