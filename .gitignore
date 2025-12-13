@@ -204,3 +204,6 @@ __marimo__/
 
 # Firebase Studio
 .idx
+
+# Generated artifacts
+plan.json
