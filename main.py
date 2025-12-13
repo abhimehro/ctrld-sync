@@ -114,7 +114,6 @@ def validate_folder_url(url: str) -> bool:
     ALLOWED_DOMAINS = {
         "github.com",
         "githubusercontent.com",
-        "raw.githubusercontent.com",
     }
     
     try:
@@ -124,6 +123,17 @@ def validate_folder_url(url: str) -> bool:
         if not host:
             log.warning(f"Skipping invalid URL (no hostname): {url}")
             return False
+        
+        # First, check if the hostname is an IP address
+        # If it is, ensure it's not a private IP (reject all direct IP access)
+        try:
+            ip = ipaddress.ip_address(host)
+            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+                log.warning(f"Skipping URL with private/internal IP address: {url}")
+                return False
+        except ValueError:
+            # Not an IP address, it's a domain name - continue with domain validation
+            pass
         
         # Check if host is in allowlist (including subdomains)
         host_lower = host.lower()
@@ -136,17 +146,6 @@ def validate_folder_url(url: str) -> bool:
         if not is_allowed:
             log.warning(f"Skipping URL from untrusted domain: {url} (host: {host})")
             return False
-        
-        # Additional safety: check if the hostname is an IP address
-        # If it is, ensure it's not a private IP
-        try:
-            ip = ipaddress.ip_address(host)
-            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
-                log.warning(f"Skipping URL with private/internal IP address: {url}")
-                return False
-        except ValueError:
-            # Not an IP address, which is fine - it's a domain name
-            pass
         
         return True
         
