@@ -144,11 +144,10 @@ def validate_folder_url(url: str) -> bool:
         
         # Check if host is in allowlist (including subdomains)
         host_lower = host.lower()
-        is_allowed = False
-        for allowed_domain in ALLOWED_DOMAINS:
-            if host_lower == allowed_domain or host_lower.endswith(f".{allowed_domain}"):
-                is_allowed = True
-                break
+        is_allowed = any(
+            host_lower == allowed_domain or host_lower.endswith(f".{allowed_domain}")
+            for allowed_domain in ALLOWED_DOMAINS
+        )
         
         if not is_allowed:
             log.warning(f"Skipping URL from untrusted domain: {url} (host: {host})")
