@@ -18,6 +18,7 @@ import json
 import os
 import logging
 import time
+import re
 from typing import Dict, List, Optional, Any, Set, Sequence
 
 import httpx
@@ -95,6 +96,22 @@ _gh = httpx.Client(timeout=30)
 # --------------------------------------------------------------------------- #
 # simple in-memory cache: url -> decoded JSON
 _cache: Dict[str, Dict] = {}
+
+
+def validate_folder_url(url: str) -> bool:
+    """Validate that the folder URL is safe (HTTPS only)."""
+    if not url.startswith("https://"):
+        log.warning(f"Skipping unsafe or invalid URL: {url}")
+        return False
+    return True
+
+
+def validate_profile_id(profile_id: str) -> bool:
+    """Validate that the profile ID contains only safe characters."""
+    if not re.match(r"^[a-zA-Z0-9_-]+$", profile_id):
+        log.error(f"Invalid profile ID format: {profile_id}")
+        return False
+    return True
 
 
 def _api_get(client: httpx.Client, url: str) -> httpx.Response:
@@ -227,9 +244,9 @@ def create_folder(client: httpx.Client, profile_id: str, name: str, do: int, sta
     """
     try:
         _api_post(
+            client,
             f"{API_BASE}/{profile_id}/groups",
             data={"name": name, "do": do, "status": status},
-        client,
         )
 
         # Re-fetch the list and pick the folder we just created
@@ -334,6 +351,8 @@ def sync_profile(
         # Fetch all folder data first
         folder_data_list = []
         for url in folder_urls:
+            if not validate_folder_url(url):
+                continue
             try:
                 folder_data_list.append(fetch_folder_data(url))
             except (httpx.HTTPError, KeyError) as e:
@@ -459,6 +478,10 @@ def main():
     plan: List[Dict[str, Any]] = []
     success_count = 0
     for profile_id in (profile_ids or ["dry-run-placeholder"]):
+        # Skip validation for dry-run placeholder
+        if profile_id != "dry-run-placeholder" and not validate_profile_id(profile_id):
+            continue
+
         log.info("Starting sync for profile %s", profile_id)
         if sync_profile(profile_id, folder_urls, dry_run=args.dry_run, no_delete=args.no_delete, plan_accumulator=plan):
             success_count += 1
