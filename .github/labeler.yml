@@ -5,8 +5,8 @@ documentation:
   - 'docs/**/*'
 
 configuration:
-  - '*.yml'
-  - '*.yaml'
+  - '**/*.yml'
+  - '**/*.yaml'
   - '.github/**/*'
 
 scripts:
