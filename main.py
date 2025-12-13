@@ -354,6 +354,14 @@ def sync_profile(
 
         # Validate URLs first
         valid_urls = [url for url in folder_urls if validate_folder_url(url)]
+        
+        invalid_count = len(folder_urls) - len(valid_urls)
+        if invalid_count > 0:
+            log.warning(f"Filtered out {invalid_count} invalid URL(s)")
+        
+        if not valid_urls:
+            log.error("No valid folder URLs to fetch")
+            return False
 
         def safe_fetch(url):
             try:
@@ -363,7 +371,7 @@ def sync_profile(
                 return None
 
         # Fetch folder data in parallel to speed up startup
-        max_workers = min(10, len(valid_urls)) if valid_urls else 1
+        max_workers = min(10, len(valid_urls))
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             results = executor.map(safe_fetch, valid_urls)
 
