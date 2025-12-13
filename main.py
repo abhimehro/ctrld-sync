@@ -125,39 +125,38 @@ def validate_folder_url(url: str) -> bool:
             return False
         
         # First, check if the hostname is an IP address
-        # If it is, ensure it's not a private IP (reject all direct IP access)
-        try:
-            ip = ipaddress.ip_address(host)
-            if (
-                ip.is_private
-                or ip.is_loopback
-                or ip.is_link_local
-                or ip.is_reserved
-                or ip.is_multicast
-                or ip.is_unspecified
-            ):
-                log.warning(f"Skipping URL with private/internal IP address: {url}")
-                return False
-        except ValueError:
-            # Not an IP address, it's a domain name - continue with domain validation
-            pass
-        
-        # Check if host is in allowlist (including subdomains)
-        host_lower = host.lower()
-        is_allowed = any(
-            host_lower == allowed_domain or host_lower.endswith(f".{allowed_domain}")
-            for allowed_domain in ALLOWED_DOMAINS
-        )
-        
-        if not is_allowed:
-            log.warning(f"Skipping URL from untrusted domain: {url} (host: {host})")
-            return False
-        
-        return True
-        
     except Exception as e:
-        log.warning(f"Error validating URL {url}: {e}")
+        log.warning(f"Parsing error while validating URL {url}: {e}")
         return False
+    
+    if not host:
+        log.warning(f"Skipping invalid URL (no hostname): {url}")
+        return False
+    
+    # First, check if the hostname is an IP address
+    # If it is, ensure it's not a private IP (reject all direct IP access)
+    try:
+        ip = ipaddress.ip_address(host)
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+            log.warning(f"Skipping URL with private/internal IP address: {url}")
+            return False
+    except ValueError:
+        # Not an IP address, it's a domain name - continue with domain validation
+        pass
+    
+    # Check if host is in allowlist (including subdomains)
+    host_lower = host.lower()
+    is_allowed = False
+    for allowed_domain in ALLOWED_DOMAINS:
+        if host_lower == allowed_domain or host_lower.endswith(f".{allowed_domain}"):
+            is_allowed = True
+            break
+    
+    if not is_allowed:
+        log.warning(f"Skipping URL from untrusted domain: {url} (host: {host}) [rejected for security reasons]")
+        return False
+    
+    return True
 
 
 def validate_profile_id(profile_id: str) -> bool:
