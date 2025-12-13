@@ -19,6 +19,7 @@ import os
 import logging
 import time
 import re
+import concurrent.futures
 from typing import Dict, List, Optional, Any, Set, Sequence
 
 import httpx
@@ -363,14 +364,20 @@ def sync_profile(
     try:
         # Fetch all folder data first
         folder_data_list = []
-        for url in folder_urls:
-            if not validate_folder_url(url):
-                continue
-            try:
-                folder_data_list.append(fetch_folder_data(url))
-            except (httpx.HTTPError, KeyError) as e:
-                log.error(f"Failed to fetch folder data from {url}: {e}")
-                continue
+
+        # Parallelize fetching of folder data
+        valid_urls = [url for url in folder_urls if validate_folder_url(url)]
+
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future_to_url = {executor.submit(fetch_folder_data, url): url for url in valid_urls}
+
+            for future in concurrent.futures.as_completed(future_to_url):
+                url = future_to_url[future]
+                try:
+                    folder_data_list.append(future.result())
+                except (httpx.HTTPError, KeyError) as e:
+                    log.error(f"Failed to fetch folder data from {url}: {e}")
+                    continue
 
         if not folder_data_list:
             log.error("No valid folder data found")
