@@ -15,11 +15,11 @@ Nothing fancy, just works.
 
 import argparse
 import json
-import logging
 import os
+import logging
 import time
-from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Dict, List, Optional, Sequence, Set
+import re
+from typing import Dict, List, Optional, Any, Set, Sequence
 
 import httpx
 from dotenv import load_dotenv
@@ -74,7 +74,6 @@ BATCH_SIZE = 500
 MAX_RETRIES = 3
 RETRY_DELAY = 1  # seconds
 FOLDER_CREATION_DELAY = 2  # seconds to wait after creating a folder
-MAX_WORKERS = 10  # Parallel threads for fetching data
 
 # --------------------------------------------------------------------------- #
 # 2. Clients
@@ -97,6 +96,22 @@ _gh = httpx.Client(timeout=30)
 # --------------------------------------------------------------------------- #
 # simple in-memory cache: url -> decoded JSON
 _cache: Dict[str, Dict] = {}
+
+
+def validate_folder_url(url: str) -> bool:
+    """Validate that the folder URL is safe (HTTPS only)."""
+    if not url.startswith("https://"):
+        log.warning(f"Skipping unsafe or invalid URL: {url}")
+        return False
+    return True
+
+
+def validate_profile_id(profile_id: str) -> bool:
+    """Validate that the profile ID contains only safe characters."""
+    if not re.match(r"^[a-zA-Z0-9_-]+$", profile_id):
+        log.error(f"Invalid profile ID format: {profile_id}")
+        return False
+    return True
 
 
 def _api_get(client: httpx.Client, url: str) -> httpx.Response:
@@ -182,30 +197,20 @@ def get_all_existing_rules(client: httpx.Client, profile_id: str) -> Set[str]:
         # Get all folders (including ones we're not managing)
         folders = list_existing_folders(client, profile_id)
 
-        # Helper for parallel execution
-        def fetch_folder_rules(item):
-            folder_name, folder_id = item
-            local_rules = set()
+        # Get rules from each folder
+        for folder_name, folder_id in folders.items():
             try:
                 data = _api_get(client, f"{API_BASE}/{profile_id}/rules/{folder_id}").json()
                 folder_rules = data.get("body", {}).get("rules", [])
                 for rule in folder_rules:
                     if rule.get("PK"):
-                        local_rules.add(rule["PK"])
+                        all_rules.add(rule["PK"])
 
                 log.debug(f"Found {len(folder_rules)} rules in folder '{folder_name}'")
-                return local_rules
+
             except httpx.HTTPError as e:
                 log.warning(f"Failed to get rules from folder '{folder_name}': {e}")
-                return set()
-
-        # Get rules from each folder in parallel
-        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-            # We map the fetch function over the items
-            results = executor.map(fetch_folder_rules, folders.items())
-
-            for rules in results:
-                all_rules.update(rules)
+                continue
 
         log.info(f"Total existing rules across all folders: {len(all_rules)}")
         return all_rules
@@ -345,20 +350,14 @@ def sync_profile(
     try:
         # Fetch all folder data first
         folder_data_list = []
-
-        # Parallel fetch to speed up startup
-        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-            # We want to preserve order, although technically not strictly required,
-            # it's good practice.
-            futures = [executor.submit(fetch_folder_data, url) for url in folder_urls]
-
-            for i, future in enumerate(futures):
-                try:
-                    folder_data_list.append(future.result())
-                except Exception as e:
-                    # Log which URL failed
-                    log.error(f"Failed to fetch folder data from {folder_urls[i]}: {e}")
-                    continue
+        for url in folder_urls:
+            if not validate_folder_url(url):
+                continue
+            try:
+                folder_data_list.append(fetch_folder_data(url))
+            except (httpx.HTTPError, KeyError) as e:
+                log.error(f"Failed to fetch folder data from {url}: {e}")
+                continue
 
         if not folder_data_list:
             log.error("No valid folder data found")
@@ -478,15 +477,53 @@ def main():
 
     plan: List[Dict[str, Any]] = []
     success_count = 0
+    sync_results = []
+
     for profile_id in (profile_ids or ["dry-run-placeholder"]):
+        # Skip validation for dry-run placeholder
+        if profile_id != "dry-run-placeholder" and not validate_profile_id(profile_id):
+            continue
+
         log.info("Starting sync for profile %s", profile_id)
-        if sync_profile(profile_id, folder_urls, dry_run=args.dry_run, no_delete=args.no_delete, plan_accumulator=plan):
+        status = sync_profile(
+            profile_id,
+            folder_urls,
+            dry_run=args.dry_run,
+            no_delete=args.no_delete,
+            plan_accumulator=plan,
+        )
+
+        if status:
             success_count += 1
+
+        # Calculate stats for this profile from the plan
+        entry = next((p for p in plan if p["profile"] == profile_id), None)
+        folder_count = len(entry["folders"]) if entry else 0
+        rule_count = sum(f["rules"] for f in entry["folders"]) if entry else 0
+
+        sync_results.append({
+            "profile": profile_id,
+            "folders": folder_count,
+            "rules": rule_count,
+            "status": "✅ Success" if status else "❌ Failed",
+        })
 
     if args.plan_json:
         with open(args.plan_json, "w", encoding="utf-8") as f:
             json.dump(plan, f, indent=2)
         log.info("Plan written to %s", args.plan_json)
+
+    # Print Summary Table
+    print("\n" + "=" * 80)
+    print(f"{'SYNC SUMMARY':^80}")
+    print("=" * 80)
+    print(f"{'Profile ID':<25} | {'Folders':>10} | {'Rules':>10} | {'Status':<15}")
+    print("-" * 80)
+    for res in sync_results:
+        print(
+            f"{res['profile']:<25} | {res['folders']:>10} | {res['rules']:>10,} | {res['status']:<15}"
+        )
+    print("=" * 80 + "\n")
 
     total = len(profile_ids or ["dry-run-placeholder"])
     log.info(f"All profiles processed: {success_count}/{total} successful")
