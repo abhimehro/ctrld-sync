@@ -203,4 +203,7 @@ __marimo__/
 .streamlit/secrets.toml
 
 # Firebase Studio
-.idxplan.json
+.idx
+
+# Generated artifacts
+plan.json
