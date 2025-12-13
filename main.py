@@ -102,8 +102,22 @@ _cache: Dict[str, Dict] = {}
 
 def validate_folder_url(url: str) -> bool:
     """
-    Validate that the folder URL is safe (HTTPS only, trusted domains).
-    Blocks SSRF attacks by allowing only trusted domains and blocking private IPs.
+    Validates that the folder URL is safe for use by enforcing strict security boundaries.
+
+    Validation behavior:
+    1. Only HTTPS URLs are allowed.
+    2. Only URLs with hostnames matching the following domains (or their subdomains) are allowed:
+       - github.com
+       - githubusercontent.com
+    3. URLs with direct IP addresses (both IPv4 and IPv6) are blocked.
+    4. The following types of IP addresses are explicitly rejected:
+       - Private (e.g., 10.0.0.0/8, 192.168.0.0/16)
+       - Loopback (e.g., 127.0.0.1, ::1)
+       - Link-local (e.g., 169.254.0.0/16, fe80::/10)
+       - Reserved addresses
+    5. Subdomain matching is supported for allowed domains (e.g., raw.githubusercontent.com is allowed).
+
+    This helps prevent SSRF attacks by restricting access to trusted, public resources only.
     """
     # Check HTTPS protocol
     if not url.startswith("https://"):
