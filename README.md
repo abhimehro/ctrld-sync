@@ -69,5 +69,5 @@ The included GitHub Actions workflow (`.github/workflows/ci.yml`) runs a dry-run
    - `PROFILE`: your Control D profile ID(s)
 
 ## Requirements
-- Python 3.12+
+- Python 3.13+
 - `uv` (for dependency management)
