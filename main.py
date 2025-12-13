@@ -128,7 +128,14 @@ def validate_folder_url(url: str) -> bool:
         # If it is, ensure it's not a private IP (reject all direct IP access)
         try:
             ip = ipaddress.ip_address(host)
-            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+            if (
+                ip.is_private
+                or ip.is_loopback
+                or ip.is_link_local
+                or ip.is_reserved
+                or ip.is_multicast
+                or ip.is_unspecified
+            ):
                 log.warning(f"Skipping URL with private/internal IP address: {url}")
                 return False
         except ValueError:
