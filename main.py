@@ -41,7 +41,20 @@ log = logging.getLogger("control-d-sync")
 # 1. Constants – tweak only here
 # --------------------------------------------------------------------------- #
 API_BASE = "https://api.controld.com/profiles"
-TOKEN = os.getenv("TOKEN")
+
+
+def _clean_env_kv(value: Optional[str], key: str) -> Optional[str]:
+    """Allow TOKEN/PROFILE values to be provided as either raw values or KEY=value."""
+    if not value:
+        return value
+    v = value.strip()
+    m = re.match(rf"^{re.escape(key)}\s*=\s*(.+)$", v)
+    if m:
+        return m.group(1).strip()
+    return v
+
+
+TOKEN = _clean_env_kv(os.getenv("TOKEN"), "TOKEN")
 
 # Default folder sources
 DEFAULT_FOLDER_URLS = [
@@ -367,14 +380,15 @@ def sync_profile(
         plan_entry = {"profile": profile_id, "folders": []}
         for folder_data in folder_data_list:
             grp = folder_data["group"]
+            action = grp.get("action") or {}
             name = grp["group"].strip()
             hostnames = [r["PK"] for r in folder_data.get("rules", []) if r.get("PK")]
             plan_entry["folders"].append(
                 {
                     "name": name,
                     "rules": len(hostnames),
-                    "action": grp["action"].get("do"),
-                    "status": grp["action"].get("status"),
+                    "action": action.get("do"),
+                    "status": action.get("status"),
                 }
             )
 
@@ -384,9 +398,16 @@ def sync_profile(
         if dry_run:
             for folder_data in folder_data_list:
                 grp = folder_data["group"]
+                action = grp.get("action") or {}
                 name = grp["group"].strip()
                 hostnames = [r["PK"] for r in folder_data.get("rules", []) if r.get("PK")]
-                log.info("DRY-RUN plan for '%s': action=%s status=%s rules=%d", name, grp["action"].get("do"), grp["action"].get("status"), len(hostnames))
+                log.info(
+                    "DRY-RUN plan for '%s': action=%s status=%s rules=%d",
+                    name,
+                    action.get("do"),
+                    action.get("status"),
+                    len(hostnames),
+                )
             log.info("Dry-run complete: no API calls were made.")
             return True
 
@@ -407,9 +428,16 @@ def sync_profile(
         success_count = 0
         for folder_data in folder_data_list:
             grp = folder_data["group"]
+            action = grp.get("action") or {}
             name = grp["group"].strip()
-            do = grp["action"].get("do", 0)  # Default to 0 (block) if not specified
-            status = grp["action"].get("status", 1)  # Default to 1 (enabled) if not specified
+
+            do = action.get("do")
+            status = action.get("status")
+            if do is None:
+                do = 0  # block
+            if status is None:
+                status = 1  # enabled
+
             hostnames = [r["PK"] for r in folder_data.get("rules", []) if r.get("PK")]
 
             folder_id = create_folder(client, profile_id, name, do, status)
@@ -462,7 +490,7 @@ def parse_args() -> argparse.Namespace:
 def main():
     args = parse_args()
 
-    profiles_arg = args.profiles or os.getenv("PROFILE", "")
+    profiles_arg = _clean_env_kv(args.profiles or os.getenv("PROFILE", ""), "PROFILE") or ""
     profile_ids = [p.strip() for p in profiles_arg.split(",") if p.strip()]
 
     folder_urls = args.folder_url if args.folder_url else DEFAULT_FOLDER_URLS
