@@ -543,7 +543,6 @@ def main():
         )
     print("=" * 80 + "\n")
 
-
     total = len(profile_ids or ["dry-run-placeholder"])
     log.info(f"All profiles processed: {success_count}/{total} successful")
     exit(0 if success_count == total else 1)
