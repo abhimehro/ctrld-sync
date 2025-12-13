@@ -343,7 +343,8 @@ def sync_profile(
                 return None
 
         # Fetch folder data in parallel to speed up startup
-        with concurrent.futures.ThreadPoolExecutor() as executor:
+        max_workers = min(10, len(folder_urls)) if folder_urls else 1
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             results = executor.map(safe_fetch, folder_urls)
 
         folder_data_list = [r for r in results if r is not None]
