@@ -19,7 +19,9 @@ import os
 import logging
 import time
 import re
+import ipaddress
 from typing import Dict, List, Optional, Any, Set, Sequence
+from urllib.parse import urlparse
 
 import httpx
 from dotenv import load_dotenv
@@ -99,11 +101,58 @@ _cache: Dict[str, Dict] = {}
 
 
 def validate_folder_url(url: str) -> bool:
-    """Validate that the folder URL is safe (HTTPS only)."""
+    """
+    Validate that the folder URL is safe (HTTPS only, trusted domains).
+    Blocks SSRF attacks by allowing only trusted domains and blocking private IPs.
+    """
+    # Check HTTPS protocol
     if not url.startswith("https://"):
-        log.warning(f"Skipping unsafe or invalid URL: {url}")
+        log.warning(f"Skipping unsafe or invalid URL (not HTTPS): {url}")
         return False
-    return True
+    
+    # Allowlist of trusted domains
+    ALLOWED_DOMAINS = {
+        "github.com",
+        "githubusercontent.com",
+        "raw.githubusercontent.com",
+    }
+    
+    try:
+        parsed = urlparse(url)
+        host = parsed.hostname
+        
+        if not host:
+            log.warning(f"Skipping invalid URL (no hostname): {url}")
+            return False
+        
+        # Check if host is in allowlist (including subdomains)
+        host_lower = host.lower()
+        is_allowed = False
+        for allowed_domain in ALLOWED_DOMAINS:
+            if host_lower == allowed_domain or host_lower.endswith(f".{allowed_domain}"):
+                is_allowed = True
+                break
+        
+        if not is_allowed:
+            log.warning(f"Skipping URL from untrusted domain: {url} (host: {host})")
+            return False
+        
+        # Additional safety: check if the hostname is an IP address
+        # If it is, ensure it's not a private IP
+        try:
+            ip = ipaddress.ip_address(host)
+            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+                log.warning(f"Skipping URL with private/internal IP address: {url}")
+                return False
+        except ValueError:
+            # Not an IP address, which is fine - it's a domain name
+            pass
+        
+        return True
+        
+    except Exception as e:
+        log.warning(f"Error validating URL {url}: {e}")
+        return False
 
 
 def validate_profile_id(profile_id: str) -> bool:
