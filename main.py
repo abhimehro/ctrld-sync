@@ -508,6 +508,7 @@ def main():
     sync_results = []
 
     for profile_id in (profile_ids or ["dry-run-placeholder"]):
+        start_time = time.time()
         # Skip validation for dry-run placeholder
         if profile_id != "dry-run-placeholder" and not validate_profile_id(profile_id):
             sync_results.append({
@@ -515,6 +516,7 @@ def main():
                 "folders": 0,
                 "rules": 0,
                 "status": "❌ Invalid Profile ID",
+                "duration": 0.0,
             })
             continue
 
@@ -526,6 +528,8 @@ def main():
             no_delete=args.no_delete,
             plan_accumulator=plan,
         )
+        end_time = time.time()
+        duration = end_time - start_time
 
         if status:
             success_count += 1
@@ -540,6 +544,7 @@ def main():
             "folders": folder_count,
             "rules": rule_count,
             "status": "✅ Success" if status else "❌ Failed",
+            "duration": duration,
         })
 
     if args.plan_json:
@@ -548,16 +553,52 @@ def main():
         log.info("Plan written to %s", args.plan_json)
 
     # Print Summary Table
-    print("\n" + "=" * 80)
-    print(f"{'SYNC SUMMARY':^80}")
-    print("=" * 80)
-    print(f"{'Profile ID':<25} | {'Folders':>10} | {'Rules':>10} | {'Status':<15}")
-    print("-" * 80)
+    # Determine the width for the Profile ID column (min 25)
+    max_profile_len = max((len(r["profile"]) for r in sync_results), default=25)
+    profile_col_width = max(25, max_profile_len)
+
+    # Calculate total width for the table
+    # Profile ID + " | " + Folders + " | " + Rules + " | " + Duration + " | " + Status
+    # Widths: profile_col_width + 3 + 10 + 3 + 10 + 3 + 10 + 3 + 15 = profile_col_width + 57
+    table_width = profile_col_width + 57
+
+    print("\n" + "=" * table_width)
+    print(f"{'SYNC SUMMARY':^{table_width}}")
+    print("=" * table_width)
+
+    # Header
+    print(
+        f"{'Profile ID':<{profile_col_width}} | {'Folders':>10} | {'Rules':>10} | {'Duration':>10} | {'Status':<15}"
+    )
+    print("-" * table_width)
+
+    # Rows
+    total_folders = 0
+    total_rules = 0
+    total_duration = 0.0
+
     for res in sync_results:
         print(
-            f"{res['profile']:<25} | {res['folders']:>10} | {res['rules']:>10,} | {res['status']:<15}"
+            f"{res['profile']:<{profile_col_width}} | "
+            f"{res['folders']:>10} | "
+            f"{res['rules']:>10,} | "
+            f"{res['duration']:>9.1f}s | "
+            f"{res['status']:<15}"
         )
-    print("=" * 80 + "\n")
+        total_folders += res['folders']
+        total_rules += res['rules']
+        total_duration += res['duration']
+
+    print("-" * table_width)
+
+    # Total Row
+    print(
+        f"{'TOTAL':<{profile_col_width}} | "
+        f"{total_folders:>10} | "
+        f"{total_rules:>10,} | "
+        f"{total_duration:>9.1f}s | "
+    )
+    print("=" * table_width + "\n")
 
     total = len(profile_ids or ["dry-run-placeholder"])
     log.info(f"All profiles processed: {success_count}/{total} successful")
