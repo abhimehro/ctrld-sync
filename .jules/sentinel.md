@@ -4,3 +4,10 @@
 **Prevention:**
 1. Always validate external inputs against a strict allowlist (e.g., regex for IDs, protocol check for URLs).
 2. Use linters/static analysis to catch syntax errors before runtime.
+
+## 2024-12-15 - [Sensitive Data Exposure in Logs]
+**Vulnerability:** The application was logging full HTTP error response bodies at `ERROR` level. API error responses can often contain sensitive data like tokens, PII, or internal debug info.
+**Learning:** Default logging configurations can lead to data leaks if raw response bodies are logged without sanitization or level checks.
+**Prevention:**
+1. Log potentially sensitive data (like raw HTTP bodies) only at `DEBUG` level.
+2. At `INFO`/`ERROR` levels, log only safe summaries or status codes.
