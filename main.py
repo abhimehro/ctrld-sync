@@ -482,14 +482,14 @@ def sync_profile(
     try:
         # Fetch all folder data first
         folder_data_list = []
-        urls_to_fetch = [url for url in folder_urls if validate_folder_url(url)]
+
+        # Parallelize fetching of folder data
+        valid_urls = [url for url in folder_urls if validate_folder_url(url)]
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            # Submit all tasks
-            future_to_url = {executor.submit(fetch_folder_data, url): url for url in urls_to_fetch}
+            future_to_url = {executor.submit(fetch_folder_data, url): url for url in valid_urls}
 
-            # Iterate in the order of submission to preserve folder order
-            for future in future_to_url:
+            for future in concurrent.futures.as_completed(future_to_url):
                 url = future_to_url[future]
                 try:
                     folder_data_list.append(future.result())
