@@ -721,12 +721,14 @@ def main():
     table_width = profile_col_width + 57
 
     print("\n" + "=" * table_width)
-    print(f"{'SYNC SUMMARY':^{table_width}}")
+    print(f"{Colors.HEADER}{'SYNC SUMMARY':^{table_width}}{Colors.ENDC}")
     print("=" * table_width)
 
     # Header
     print(
+        f"{Colors.BOLD}"
         f"{'Profile ID':<{profile_col_width}} | {'Folders':>10} | {'Rules':>10} | {'Duration':>10} | {'Status':<15}"
+        f"{Colors.ENDC}"
     )
     print("-" * table_width)
 
@@ -744,7 +746,7 @@ def main():
             f"{res['folders']:>10} | "
             f"{res['rules']:>10,} | "
             f"{res['duration']:>9.1f}s | "
-            f"{res['status']:<15}"
+            f"{status_color}{res['status']:<15}{Colors.ENDC}"
         )
         total_folders += res['folders']
         total_rules += res['rules']
@@ -754,10 +756,12 @@ def main():
 
     # Total Row
     print(
+        f"{Colors.BOLD}"
         f"{'TOTAL':<{profile_col_width}} | "
         f"{total_folders:>10} | "
         f"{total_rules:>10,} | "
         f"{total_duration:>9.1f}s | "
+        f"{Colors.ENDC}"
     )
     print("=" * table_width + "\n")
 
