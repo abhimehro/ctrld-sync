@@ -17,6 +17,7 @@ import argparse
 import json
 import os
 import logging
+import sys
 import time
 import re
 import concurrent.futures
@@ -30,11 +31,74 @@ from dotenv import load_dotenv
 # --------------------------------------------------------------------------- #
 load_dotenv()
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)-8s | %(message)s",
-    datefmt="%H:%M:%S",
-)
+# Determine if we should use colors
+# We use colors if stdout is a TTY (for print) or stderr is a TTY (for logging, which usually goes to stderr by default)
+# For simplicity in this script, we'll check both or just assume if one is interactive, we want colors.
+# However, logging usually goes to stderr (via StreamHandler defaults), so let's check that for the formatter.
+USE_COLORS = sys.stderr.isatty() and sys.stdout.isatty()
+
+class Colors:
+    if USE_COLORS:
+        HEADER = '\033[95m'
+        BLUE = '\033[94m'
+        CYAN = '\033[96m'
+        GREEN = '\033[92m'
+        WARNING = '\033[93m'
+        FAIL = '\033[91m'
+        ENDC = '\033[0m'
+        BOLD = '\033[1m'
+        UNDERLINE = '\033[4m'
+    else:
+        HEADER = ''
+        BLUE = ''
+        CYAN = ''
+        GREEN = ''
+        WARNING = ''
+        FAIL = ''
+        ENDC = ''
+        BOLD = ''
+        UNDERLINE = ''
+
+class ColoredFormatter(logging.Formatter):
+    """Custom formatter to add colors to log levels."""
+
+    LEVEL_COLORS = {
+        logging.DEBUG: Colors.BLUE,
+        logging.INFO: Colors.CYAN,
+        logging.WARNING: Colors.WARNING,
+        logging.ERROR: Colors.FAIL,
+        logging.CRITICAL: Colors.FAIL + Colors.BOLD,
+    }
+
+    def __init__(self, fmt=None, datefmt=None, style='%', validate=True):
+        super().__init__(fmt, datefmt, style, validate)
+        # Delegate formatter for the final message
+        self.delegate_formatter = logging.Formatter("%(asctime)s | %(levelname)s | %(message)s", datefmt="%H:%M:%S")
+
+    def format(self, record):
+        # Save original levelname to restore later
+        original_levelname = record.levelname
+
+        # Determine color
+        color = self.LEVEL_COLORS.get(record.levelno, Colors.ENDC)
+
+        # Pad manually.
+        # If using colors, we wrap the PADDED string with color codes.
+        # This ensures the visible length is 8 characters.
+        padded_level = f"{original_levelname:<8}"
+        record.levelname = f"{color}{padded_level}{Colors.ENDC}"
+
+        # Format the message
+        result = self.delegate_formatter.format(record)
+
+        # Restore original levelname
+        record.levelname = original_levelname
+        return result
+
+# Setup logging
+handler = logging.StreamHandler()
+handler.setFormatter(ColoredFormatter())
+logging.basicConfig(level=logging.INFO, handlers=[handler])
 logging.getLogger("httpx").setLevel(logging.WARNING)
 log = logging.getLogger("control-d-sync")
 
@@ -123,8 +187,37 @@ def validate_folder_url(url: str) -> bool:
 def validate_profile_id(profile_id: str) -> bool:
     """Validate that the profile ID contains only safe characters."""
     if not re.match(r"^[a-zA-Z0-9_-]+$", profile_id):
-        log.error(f"Invalid profile ID format: {profile_id}")
+        # Do not log the actual profile ID as it might be a pasted token
+        log.error("Invalid profile ID format (contains unsafe characters)")
         return False
+    return True
+
+
+def validate_folder_data(data: Dict[str, Any], url: str) -> bool:
+    """
+    Validate the structure of the fetched folder data to prevent crashes.
+    Expected structure:
+    {
+        "group": { "group": "Name", ... },
+        "rules": [ ... ]
+    }
+    """
+    if not isinstance(data, dict):
+        log.error(f"Invalid data from {url}: Root must be a JSON object.")
+        return False
+
+    if "group" not in data:
+        log.error(f"Invalid data from {url}: Missing 'group' key.")
+        return False
+
+    if not isinstance(data["group"], dict):
+        log.error(f"Invalid data from {url}: 'group' must be an object.")
+        return False
+
+    if "group" not in data["group"]:
+        log.error(f"Invalid data from {url}: Missing 'group.group' (folder name).")
+        return False
+
     return True
 
 
@@ -159,7 +252,9 @@ def _retry_request(request_func, max_retries=MAX_RETRIES, delay=RETRY_DELAY):
             if attempt == max_retries - 1:
                 # Log the response content if available
                 if hasattr(e, 'response') and e.response is not None:
-                    log.error(f"Response content: {e.response.text}")
+                    # Security: Log full response only at DEBUG level to avoid leaking sensitive data
+                    log.debug(f"Response content: {e.response.text}")
+                    log.error("Request failed with response body (hidden at INFO level). Enable DEBUG to view.")
                 raise
             wait_time = delay * (2 ** attempt)
             log.warning(f"Request failed (attempt {attempt + 1}/{max_retries}): {e}. Retrying in {wait_time}s...")
@@ -238,6 +333,28 @@ def fetch_folder_data(url: str) -> Dict[str, Any]:
     """Return folder data from GitHub JSON."""
     js = _gh_get(url)
     return js
+
+
+def warm_up_cache(urls: Sequence[str]) -> None:
+    """Fetch all folder data in parallel to warm up the cache."""
+    urls = list(set(urls))
+    urls_to_fetch = [u for u in urls if u not in _cache and validate_folder_url(u)]
+
+    if not urls_to_fetch:
+        return
+
+    log.info(f"Warming up cache for {len(urls_to_fetch)} URLs...")
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        # We start all downloads. _gh_get puts them in _cache.
+        futures = {executor.submit(_gh_get, url): url for url in urls_to_fetch}
+
+        for future in concurrent.futures.as_completed(futures):
+            url = futures[future]
+            try:
+                future.result()
+            except Exception as e:
+                # We log warning but don't stop. sync_profile will try again and fail/log error.
+                log.warning(f"Failed to pre-fetch {url}: {e}")
 
 
 def delete_folder(client: httpx.Client, profile_id: str, name: str, folder_id: str) -> bool:
@@ -340,7 +457,8 @@ def push_rules(
         except httpx.HTTPError as e:
             log.error(f"Failed to push batch {i} for folder '{folder_name}': {e}")
             if hasattr(e, 'response') and e.response is not None:
-                log.error(f"Response content: {e.response.text}")
+                # Security: Log full response only at DEBUG level
+                log.debug(f"Response content: {e.response.text}")
 
     if successful_batches == total_batches:
         log.info("Folder '%s' – finished (%d new rules added)", folder_name, len(filtered_hostnames))
@@ -510,11 +628,14 @@ def main():
         log.error("TOKEN missing and --dry-run not set. Set TOKEN env for live sync.")
         exit(1)
 
+    warm_up_cache(folder_urls)
+
     plan: List[Dict[str, Any]] = []
     success_count = 0
     sync_results = []
 
     for profile_id in (profile_ids or ["dry-run-placeholder"]):
+        start_time = time.time()
         # Skip validation for dry-run placeholder
         if profile_id != "dry-run-placeholder" and not validate_profile_id(profile_id):
             sync_results.append({
@@ -522,6 +643,7 @@ def main():
                 "folders": 0,
                 "rules": 0,
                 "status": "❌ Invalid Profile ID",
+                "duration": 0.0,
             })
             continue
 
@@ -533,6 +655,8 @@ def main():
             no_delete=args.no_delete,
             plan_accumulator=plan,
         )
+        end_time = time.time()
+        duration = end_time - start_time
 
         if status:
             success_count += 1
@@ -547,6 +671,7 @@ def main():
             "folders": folder_count,
             "rules": rule_count,
             "status": "✅ Success" if status else "❌ Failed",
+            "duration": duration,
         })
 
     if args.plan_json:
@@ -555,16 +680,55 @@ def main():
         log.info("Plan written to %s", args.plan_json)
 
     # Print Summary Table
-    print("\n" + "=" * 80)
-    print(f"{'SYNC SUMMARY':^80}")
-    print("=" * 80)
-    print(f"{'Profile ID':<25} | {'Folders':>10} | {'Rules':>10} | {'Status':<15}")
-    print("-" * 80)
+    # Determine the width for the Profile ID column (min 25)
+    max_profile_len = max((len(r["profile"]) for r in sync_results), default=25)
+    profile_col_width = max(25, max_profile_len)
+
+    # Calculate total width for the table
+    # Profile ID + " | " + Folders + " | " + Rules + " | " + Duration + " | " + Status
+    # Widths: profile_col_width + 3 + 10 + 3 + 10 + 3 + 10 + 3 + 15 = profile_col_width + 57
+    table_width = profile_col_width + 57
+
+    print("\n" + "=" * table_width)
+    print(f"{'SYNC SUMMARY':^{table_width}}")
+    print("=" * table_width)
+
+    # Header
+    print(
+        f"{'Profile ID':<{profile_col_width}} | {'Folders':>10} | {'Rules':>10} | {'Duration':>10} | {'Status':<15}"
+    )
+    print("-" * table_width)
+
+    # Rows
+    total_folders = 0
+    total_rules = 0
+    total_duration = 0.0
+
     for res in sync_results:
+        status_text = res['status']
+        status_color = Colors.GREEN if "Success" in status_text else Colors.FAIL
+
         print(
-            f"{res['profile']:<25} | {res['folders']:>10} | {res['rules']:>10,} | {res['status']:<15}"
+            f"{res['profile']:<{profile_col_width}} | "
+            f"{res['folders']:>10} | "
+            f"{res['rules']:>10,} | "
+            f"{res['duration']:>9.1f}s | "
+            f"{res['status']:<15}"
         )
-    print("=" * 80 + "\n")
+        total_folders += res['folders']
+        total_rules += res['rules']
+        total_duration += res['duration']
+
+    print("-" * table_width)
+
+    # Total Row
+    print(
+        f"{'TOTAL':<{profile_col_width}} | "
+        f"{total_folders:>10} | "
+        f"{total_rules:>10,} | "
+        f"{total_duration:>9.1f}s | "
+    )
+    print("=" * table_width + "\n")
 
     total = len(profile_ids or ["dry-run-placeholder"])
     log.info(f"All profiles processed: {success_count}/{total} successful")

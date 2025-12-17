@@ -1,0 +1,18 @@
+# Label PRs based on changed file paths
+
+documentation:
+  - '**/*.md'
+
+configuration:
+  - '**/*.yml'
+  - '**/*.yaml'
+  - '.github/**/*'
+
+scripts:
+  - '**/*.sh'
+  - '**/*.bash'
+
+python:
+  - '**/*.py'
+  - 'pyproject.toml'
+  - 'uv.lock'
