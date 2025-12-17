@@ -504,15 +504,35 @@ def sync_profile(
             grp = folder_data["group"]
             action = grp.get("action") or {}
             name = grp["group"].strip()
-            hostnames = [r["PK"] for r in folder_data.get("rules", []) if r.get("PK")]
-            plan_entry["folders"].append(
-                {
-                    "name": name,
-                    "rules": len(hostnames),
-                    "action": action.get("do"),
-                    "status": action.get("status"),
-                }
-            )
+            # New: support multiple rule groups per folder
+            if "rule_groups" in folder_data:
+                # Multi-action format
+                total_rules = sum(len(rg.get("rules", [])) for rg in folder_data["rule_groups"])
+                plan_entry["folders"].append(
+                    {
+                        "name": name,
+                        "rules": total_rules,
+                        "rule_groups": [
+                            {
+                                "rules": len(rg.get("rules", [])),
+                                "action": rg.get("action", {}).get("do"),
+                                "status": rg.get("action", {}).get("status"),
+                            }
+                            for rg in folder_data["rule_groups"]
+                        ],
+                    }
+                )
+            else:
+                # Legacy single-action format
+                hostnames = [r["PK"] for r in folder_data.get("rules", []) if r.get("PK")]
+                plan_entry["folders"].append(
+                    {
+                        "name": name,
+                        "rules": len(hostnames),
+                        "action": grp.get("action", {}).get("do"),
+                        "status": grp.get("action", {}).get("status"),
+                    }
+                )
 
         if plan_accumulator is not None:
             plan_accumulator.append(plan_entry)
@@ -522,14 +542,16 @@ def sync_profile(
                 grp = folder_data["group"]
                 action = grp.get("action") or {}
                 name = grp["group"].strip()
-                hostnames = [r["PK"] for r in folder_data.get("rules", []) if r.get("PK")]
-                log.info(
-                    "DRY-RUN plan for '%s': action=%s status=%s rules=%d",
-                    name,
-                    action.get("do"),
-                    action.get("status"),
-                    len(hostnames),
-                )
+                if "rule_groups" in folder_data:
+                    # Multi-action format
+                    for i, rule_group in enumerate(folder_data["rule_groups"]):
+                        hostnames = [r["PK"] for r in rule_group.get("rules", []) if r.get("PK")]
+                        action = rule_group.get("action", {})
+                        log.info("DRY-RUN plan for '%s' (group %d): action=%s status=%s rules=%d", name, i + 1, action.get("do"), action.get("status"), len(hostnames))
+                else:
+                    # Legacy single-action format
+                    hostnames = [r["PK"] for r in folder_data.get("rules", []) if r.get("PK")]
+                    log.info("DRY-RUN plan for '%s': action=%s status=%s rules=%d", name, grp.get("action", {}).get("do"), grp.get("action", {}).get("status"), len(hostnames))
             log.info("Dry-run complete: no API calls were made.")
             return True
 
@@ -552,20 +574,32 @@ def sync_profile(
             grp = folder_data["group"]
             action = grp.get("action") or {}
             name = grp["group"].strip()
+            # The main action for the folder itself (can be a default)
+            main_do = grp.get("action", {}).get("do", 0)
+            main_status = grp.get("action", {}).get("status", 1)
 
-            do = action.get("do")
-            status = action.get("status")
-            if do is None:
-                do = 0  # block
-            if status is None:
-                status = 1  # enabled
+            folder_id = create_folder(client, profile_id, name, main_do, main_status)
+            if not folder_id:
+                continue
 
-            hostnames = [r["PK"] for r in folder_data.get("rules", []) if r.get("PK")]
+            folder_success = True
+            if "rule_groups" in folder_data:
+                # Multi-action: push each rule group with its own action
+                for rule_group in folder_data["rule_groups"]:
+                    action = rule_group.get("action", {})
+                    do = action.get("do", 0)
+                    status = action.get("status", 1)
+                    hostnames = [r["PK"] for r in rule_group.get("rules", []) if r.get("PK")]
+                    if not push_rules(profile_id, name, folder_id, do, status, hostnames, existing_rules, client):
+                        folder_success = False
+            else:
+                # Legacy single-action: push all rules with the main action
+                hostnames = [r["PK"] for r in folder_data.get("rules", []) if r.get("PK")]
+                if not push_rules(profile_id, name, folder_id, main_do, main_status, hostnames, existing_rules, client):
+                    folder_success = False
 
-            folder_id = create_folder(client, profile_id, name, do, status)
-            if folder_id and push_rules(profile_id, name, folder_id, do, status, hostnames, existing_rules, client):
+            if folder_success:
                 success_count += 1
-                # Note: existing_rules is updated within push_rules function
 
         log.info(f"Sync complete: {success_count}/{len(folder_data_list)} folders processed successfully")
         return success_count == len(folder_data_list)
