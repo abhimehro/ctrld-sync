@@ -252,7 +252,9 @@ def _retry_request(request_func, max_retries=MAX_RETRIES, delay=RETRY_DELAY):
             if attempt == max_retries - 1:
                 # Log the response content if available
                 if hasattr(e, 'response') and e.response is not None:
-                    log.error(f"Response content: {e.response.text}")
+                    # Security: Log full response only at DEBUG level to avoid leaking sensitive data
+                    log.debug(f"Response content: {e.response.text}")
+                    log.error("Request failed with response body (hidden at INFO level). Enable DEBUG to view.")
                 raise
             wait_time = delay * (2 ** attempt)
             log.warning(f"Request failed (attempt {attempt + 1}/{max_retries}): {e}. Retrying in {wait_time}s...")
@@ -455,7 +457,8 @@ def push_rules(
         except httpx.HTTPError as e:
             log.error(f"Failed to push batch {i} for folder '{folder_name}': {e}")
             if hasattr(e, 'response') and e.response is not None:
-                log.error(f"Response content: {e.response.text}")
+                # Security: Log full response only at DEBUG level
+                log.debug(f"Response content: {e.response.text}")
 
     if successful_batches == total_batches:
         log.info("Folder '%s' – finished (%d new rules added)", folder_name, len(filtered_hostnames))
