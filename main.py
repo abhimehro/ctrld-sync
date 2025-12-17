@@ -187,7 +187,8 @@ def validate_folder_url(url: str) -> bool:
 def validate_profile_id(profile_id: str) -> bool:
     """Validate that the profile ID contains only safe characters."""
     if not re.match(r"^[a-zA-Z0-9_-]+$", profile_id):
-        log.error(f"Invalid profile ID format: {profile_id}")
+        # Do not log the actual profile ID as it might be a pasted token
+        log.error("Invalid profile ID format (contains unsafe characters)")
         return False
     return True
 
