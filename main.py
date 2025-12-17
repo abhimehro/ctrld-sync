@@ -127,6 +127,34 @@ def validate_profile_id(profile_id: str) -> bool:
     return True
 
 
+def validate_folder_data(data: Dict[str, Any], url: str) -> bool:
+    """
+    Validate the structure of the fetched folder data to prevent crashes.
+    Expected structure:
+    {
+        "group": { "group": "Name", ... },
+        "rules": [ ... ]
+    }
+    """
+    if not isinstance(data, dict):
+        log.error(f"Invalid data from {url}: Root must be a JSON object.")
+        return False
+
+    if "group" not in data:
+        log.error(f"Invalid data from {url}: Missing 'group' key.")
+        return False
+
+    if not isinstance(data["group"], dict):
+        log.error(f"Invalid data from {url}: 'group' must be an object.")
+        return False
+
+    if "group" not in data["group"]:
+        log.error(f"Invalid data from {url}: Missing 'group.group' (folder name).")
+        return False
+
+    return True
+
+
 def _api_get(client: httpx.Client, url: str) -> httpx.Response:
     """GET helper for Control-D API with retries."""
     return _retry_request(lambda: client.get(url))
@@ -367,7 +395,9 @@ def sync_profile(
             if not validate_folder_url(url):
                 continue
             try:
-                folder_data_list.append(fetch_folder_data(url))
+                data = fetch_folder_data(url)
+                if validate_folder_data(data, url):
+                    folder_data_list.append(data)
             except (httpx.HTTPError, KeyError) as e:
                 log.error(f"Failed to fetch folder data from {url}: {e}")
                 continue
