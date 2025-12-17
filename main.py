@@ -479,24 +479,20 @@ def sync_profile(
     try:
         # Fetch all folder data first
         folder_data_list = []
+        urls_to_fetch = [url for url in folder_urls if validate_folder_url(url)]
 
-        # Helper to fetch safely in threads
-        def _fetch_safe(url: str) -> Optional[Dict[str, Any]]:
-            if not validate_folder_url(url):
-                return None
-            try:
-                return fetch_folder_data(url)
-            except (httpx.HTTPError, KeyError) as e:
-                log.error(f"Failed to fetch folder data from {url}: {e}")
-                return None
-
-        # Use ThreadPoolExecutor for parallel fetching
-        # We use map to preserve the order of results corresponding to folder_urls
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            results = executor.map(_fetch_safe, folder_urls)
-            for res in results:
-                if res:
-                    folder_data_list.append(res)
+            # Submit all tasks
+            future_to_url = {executor.submit(fetch_folder_data, url): url for url in urls_to_fetch}
+
+            # Iterate in the order of submission to preserve folder order
+            for future in future_to_url:
+                url = future_to_url[future]
+                try:
+                    folder_data_list.append(future.result())
+                except (httpx.HTTPError, KeyError) as e:
+                    log.error(f"Failed to fetch folder data from {url}: {e}")
+                    continue
 
         if not folder_data_list:
             log.error("No valid folder data found")
