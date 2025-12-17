@@ -19,6 +19,7 @@ import os
 import logging
 import time
 import re
+import concurrent.futures
 from typing import Dict, List, Optional, Any, Set, Sequence
 
 import httpx
@@ -237,6 +238,28 @@ def fetch_folder_data(url: str) -> Dict[str, Any]:
     """Return folder data from GitHub JSON."""
     js = _gh_get(url)
     return js
+
+
+def warm_up_cache(urls: Sequence[str]) -> None:
+    """Fetch all folder data in parallel to warm up the cache."""
+    urls = list(set(urls))
+    urls_to_fetch = [u for u in urls if u not in _cache and validate_folder_url(u)]
+
+    if not urls_to_fetch:
+        return
+
+    log.info(f"Warming up cache for {len(urls_to_fetch)} URLs...")
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        # We start all downloads. _gh_get puts them in _cache.
+        futures = {executor.submit(_gh_get, url): url for url in urls_to_fetch}
+
+        for future in concurrent.futures.as_completed(futures):
+            url = futures[future]
+            try:
+                future.result()
+            except Exception as e:
+                # We log warning but don't stop. sync_profile will try again and fail/log error.
+                log.warning(f"Failed to pre-fetch {url}: {e}")
 
 
 def delete_folder(client: httpx.Client, profile_id: str, name: str, folder_id: str) -> bool:
@@ -502,6 +525,8 @@ def main():
     if not TOKEN and not args.dry_run:
         log.error("TOKEN missing and --dry-run not set. Set TOKEN env for live sync.")
         exit(1)
+
+    warm_up_cache(folder_urls)
 
     plan: List[Dict[str, Any]] = []
     success_count = 0
