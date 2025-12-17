@@ -42,6 +42,7 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
    TOKEN=your_control_d_api_token
    PROFILE=your_profile_id  # or comma-separated list of profile ids (e.g. your_id_1,your_id_2)
    ```
+   For GitHub Actions, set `TOKEN` and `PROFILE` secrets to the raw values (not the full `TOKEN=...` / `PROFILE=...` lines).
 
 3. **Configure Folders**
    Edit the `FOLDER_URLS` list in `main.py` to include the URLs of the JSON block-lists you want to sync.
