@@ -17,6 +17,7 @@ import argparse
 import json
 import os
 import logging
+import sys
 import time
 import re
 import concurrent.futures
@@ -30,11 +31,74 @@ from dotenv import load_dotenv
 # --------------------------------------------------------------------------- #
 load_dotenv()
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)-8s | %(message)s",
-    datefmt="%H:%M:%S",
-)
+# Determine if we should use colors
+# We use colors if stdout is a TTY (for print) or stderr is a TTY (for logging, which usually goes to stderr by default)
+# For simplicity in this script, we'll check both or just assume if one is interactive, we want colors.
+# However, logging usually goes to stderr (via StreamHandler defaults), so let's check that for the formatter.
+USE_COLORS = sys.stderr.isatty() and sys.stdout.isatty()
+
+class Colors:
+    if USE_COLORS:
+        HEADER = '\033[95m'
+        BLUE = '\033[94m'
+        CYAN = '\033[96m'
+        GREEN = '\033[92m'
+        WARNING = '\033[93m'
+        FAIL = '\033[91m'
+        ENDC = '\033[0m'
+        BOLD = '\033[1m'
+        UNDERLINE = '\033[4m'
+    else:
+        HEADER = ''
+        BLUE = ''
+        CYAN = ''
+        GREEN = ''
+        WARNING = ''
+        FAIL = ''
+        ENDC = ''
+        BOLD = ''
+        UNDERLINE = ''
+
+class ColoredFormatter(logging.Formatter):
+    """Custom formatter to add colors to log levels."""
+
+    LEVEL_COLORS = {
+        logging.DEBUG: Colors.BLUE,
+        logging.INFO: Colors.CYAN,
+        logging.WARNING: Colors.WARNING,
+        logging.ERROR: Colors.FAIL,
+        logging.CRITICAL: Colors.FAIL + Colors.BOLD,
+    }
+
+    def __init__(self, fmt=None, datefmt=None, style='%', validate=True):
+        super().__init__(fmt, datefmt, style, validate)
+        # Delegate formatter for the final message
+        self.delegate_formatter = logging.Formatter("%(asctime)s | %(levelname)s | %(message)s", datefmt="%H:%M:%S")
+
+    def format(self, record):
+        # Save original levelname to restore later
+        original_levelname = record.levelname
+
+        # Determine color
+        color = self.LEVEL_COLORS.get(record.levelno, Colors.ENDC)
+
+        # Pad manually.
+        # If using colors, we wrap the PADDED string with color codes.
+        # This ensures the visible length is 8 characters.
+        padded_level = f"{original_levelname:<8}"
+        record.levelname = f"{color}{padded_level}{Colors.ENDC}"
+
+        # Format the message
+        result = self.delegate_formatter.format(record)
+
+        # Restore original levelname
+        record.levelname = original_levelname
+        return result
+
+# Setup logging
+handler = logging.StreamHandler()
+handler.setFormatter(ColoredFormatter())
+logging.basicConfig(level=logging.INFO, handlers=[handler])
 logging.getLogger("httpx").setLevel(logging.WARNING)
 log = logging.getLogger("control-d-sync")
 
@@ -603,14 +667,17 @@ def main():
         log.info("Plan written to %s", args.plan_json)
 
     # Print Summary Table
-    print("\n" + "=" * 80)
-    print(f"{'SYNC SUMMARY':^80}")
-    print("=" * 80)
-    print(f"{'Profile ID':<25} | {'Folders':>10} | {'Rules':>10} | {'Status':<15}")
+    print(f"\n{Colors.HEADER}" + "=" * 80 + f"{Colors.ENDC}")
+    print(f"{Colors.BOLD}{'SYNC SUMMARY':^80}{Colors.ENDC}")
+    print(f"{Colors.HEADER}" + "=" * 80 + f"{Colors.ENDC}")
+    print(f"{Colors.BOLD}{'Profile ID':<25} | {'Folders':>10} | {'Rules':>10} | {'Status':<15}{Colors.ENDC}")
     print("-" * 80)
     for res in sync_results:
+        status_text = res['status']
+        status_color = Colors.GREEN if "Success" in status_text else Colors.FAIL
+
         print(
-            f"{res['profile']:<25} | {res['folders']:>10} | {res['rules']:>10,} | {res['status']:<15}"
+            f"{res['profile']:<25} | {res['folders']:>10} | {res['rules']:>10,} | {status_color}{status_text:<15}{Colors.ENDC}"
         )
     print("=" * 80 + "\n")
 
