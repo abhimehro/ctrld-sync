@@ -744,7 +744,7 @@ def main():
             f"{res['folders']:>10} | "
             f"{res['rules']:>10,} | "
             f"{res['duration']:>9.1f}s | "
-            f"{res['status']:<15}"
+            f"{status_color}{res['status']:<15}{Colors.ENDC}"
         )
         total_folders += res['folders']
         total_rules += res['rules']
