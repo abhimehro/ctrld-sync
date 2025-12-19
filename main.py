@@ -697,11 +697,17 @@ def main():
         folder_count = len(entry["folders"]) if entry else 0
         rule_count = sum(f["rules"] for f in entry["folders"]) if entry else 0
 
+        status_text = "✅ Success"
+        if not status:
+            status_text = "❌ Failed"
+        elif args.dry_run:
+            status_text = "✅ Planned"
+
         sync_results.append({
             "profile": profile_id,
             "folders": folder_count,
             "rules": rule_count,
-            "status": "✅ Success" if status else "❌ Failed",
+            "status": status_text,
             "duration": duration,
         })
 
@@ -720,8 +726,11 @@ def main():
     # Widths: profile_col_width + 3 + 10 + 3 + 10 + 3 + 10 + 3 + 15 = profile_col_width + 57
     table_width = profile_col_width + 57
 
+    title_text = "DRY RUN SUMMARY" if args.dry_run else "SYNC SUMMARY"
+    title_color = Colors.CYAN if args.dry_run else Colors.HEADER
+
     print("\n" + "=" * table_width)
-    print(f"{Colors.HEADER}{'SYNC SUMMARY':^{table_width}}{Colors.ENDC}")
+    print(f"{title_color}{title_text:^{table_width}}{Colors.ENDC}")
     print("=" * table_width)
 
     # Header
@@ -739,7 +748,9 @@ def main():
 
     for res in sync_results:
         status_text = res['status']
-        status_color = Colors.GREEN if "Success" in status_text else Colors.FAIL
+        # Check for success in both normal and dry-run modes
+        is_success = "Success" in status_text or "Planned" in status_text
+        status_color = Colors.GREEN if is_success else Colors.FAIL
 
         print(
             f"{res['profile']:<{profile_col_width}} | "
@@ -755,13 +766,18 @@ def main():
     print("-" * table_width)
 
     # Total Row
+    total = len(profile_ids or ["dry-run-placeholder"])
+    all_success = (success_count == total)
+    total_status_text = "✅ Ready" if (args.dry_run and all_success) else ("✅ All Good" if all_success else "❌ Errors")
+    total_status_color = Colors.GREEN if all_success else Colors.FAIL
+
     print(
         f"{Colors.BOLD}"
         f"{'TOTAL':<{profile_col_width}} | "
         f"{total_folders:>10} | "
         f"{total_rules:>10,} | "
         f"{total_duration:>9.1f}s | "
-        f"{Colors.ENDC}"
+        f"{total_status_color}{total_status_text:<15}{Colors.ENDC}"
     )
     print("=" * table_width + "\n")
 
