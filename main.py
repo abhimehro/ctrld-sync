@@ -330,6 +330,8 @@ def get_all_existing_rules(client: httpx.Client, profile_id: str) -> Set[str]:
 def fetch_folder_data(url: str) -> Dict[str, Any]:
     """Return folder data from GitHub JSON."""
     js = _gh_get(url)
+    if not validate_folder_data(js, url):
+        raise ValueError(f"Invalid folder data from {url}")
     return js
 
 
@@ -490,7 +492,7 @@ def sync_profile(
                 url = future_to_url[future]
                 try:
                     folder_data_list.append(future.result())
-                except (httpx.HTTPError, KeyError) as e:
+                except (httpx.HTTPError, KeyError, ValueError) as e:
                     log.error(f"Failed to fetch folder data from {url}: {e}")
                     continue
 
