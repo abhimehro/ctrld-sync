@@ -697,11 +697,10 @@ def main():
         folder_count = len(entry["folders"]) if entry else 0
         rule_count = sum(f["rules"] for f in entry["folders"]) if entry else 0
 
-        status_text = "✅ Success"
-        if not status:
-            status_text = "❌ Failed"
-        elif args.dry_run:
-            status_text = "✅ Planned"
+        if args.dry_run:
+            status_text = "✅ Planned" if status else "❌ Failed (Dry)"
+        else:
+            status_text = "✅ Success" if status else "❌ Failed"
 
         sync_results.append({
             "profile": profile_id,
@@ -748,9 +747,17 @@ def main():
 
     for res in sync_results:
         status_text = res['status']
-        # Check for success in both normal and dry-run modes
-        is_success = "Success" in status_text or "Planned" in status_text
-        status_color = Colors.GREEN if is_success else Colors.FAIL
+
+        # Determine success/failure explicitly based on known status values
+        success_statuses = {"✅ Success", "✅ Planned"}
+        # failure_statuses = {"❌ Failed", "❌ Invalid Profile ID", "❌ Failed (Dry)"}
+
+        if status_text in success_statuses:
+            is_success = True
+            status_color = Colors.GREEN
+        else:
+            is_success = False
+            status_color = Colors.FAIL
 
         print(
             f"{res['profile']:<{profile_col_width}} | "
@@ -768,7 +775,18 @@ def main():
     # Total Row
     total = len(profile_ids or ["dry-run-placeholder"])
     all_success = (success_count == total)
-    total_status_text = "✅ Ready" if (args.dry_run and all_success) else ("✅ All Good" if all_success else "❌ Errors")
+
+    if args.dry_run:
+        if all_success:
+            total_status_text = "✅ Ready"
+        else:
+            total_status_text = "❌ Errors"
+    else:
+        if all_success:
+            total_status_text = "✅ All Good"
+        else:
+            total_status_text = "❌ Errors"
+
     total_status_color = Colors.GREEN if all_success else Colors.FAIL
 
     print(
