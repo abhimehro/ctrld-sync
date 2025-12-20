@@ -673,7 +673,8 @@ def main():
                 "profile": profile_id,
                 "folders": 0,
                 "rules": 0,
-                "status": "❌ Invalid Profile ID",
+                "status_label": "❌ Invalid Profile ID",
+                "success": False,
                 "duration": 0.0,
             })
             continue
@@ -706,7 +707,8 @@ def main():
             "profile": profile_id,
             "folders": folder_count,
             "rules": rule_count,
-            "status": status_text,
+            "status_label": status_text,
+            "success": status,
             "duration": duration,
         })
 
@@ -746,25 +748,15 @@ def main():
     total_duration = 0.0
 
     for res in sync_results:
-        status_text = res['status']
-
-        # Determine success/failure explicitly based on known status values
-        success_statuses = {"✅ Success", "✅ Planned"}
-        # failure_statuses = {"❌ Failed", "❌ Invalid Profile ID", "❌ Failed (Dry)"}
-
-        if status_text in success_statuses:
-            is_success = True
-            status_color = Colors.GREEN
-        else:
-            is_success = False
-            status_color = Colors.FAIL
+        # Use boolean success field for color logic
+        status_color = Colors.GREEN if res['success'] else Colors.FAIL
 
         print(
             f"{res['profile']:<{profile_col_width}} | "
             f"{res['folders']:>10} | "
             f"{res['rules']:>10,} | "
             f"{res['duration']:>9.1f}s | "
-            f"{status_color}{res['status']:<15}{Colors.ENDC}"
+            f"{status_color}{res['status_label']:<15}{Colors.ENDC}"
         )
         total_folders += res['folders']
         total_rules += res['rules']
