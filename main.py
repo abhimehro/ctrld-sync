@@ -108,6 +108,14 @@ log = logging.getLogger("control-d-sync")
 API_BASE = "https://api.controld.com/profiles"
 
 
+def sanitize_for_log(text: Any) -> str:
+    """
+    Sanitize text for logging to prevent log injection/terminal manipulation.
+    Replaces control characters and non-printable characters using repr().
+    """
+    return repr(str(text))
+
+
 def _clean_env_kv(value: Optional[str], key: str) -> Optional[str]:
     """Allow TOKEN/PROFILE values to be provided as either raw values or KEY=value."""
     if not value:
@@ -179,7 +187,7 @@ _cache: Dict[str, Dict] = {}
 def validate_folder_url(url: str) -> bool:
     """Validate that the folder URL is safe (HTTPS only)."""
     if not url.startswith("https://"):
-        log.warning(f"Skipping unsafe or invalid URL: {url}")
+        log.warning(f"Skipping unsafe or invalid URL: {sanitize_for_log(url)}")
         return False
     return True
 
@@ -203,19 +211,19 @@ def validate_folder_data(data: Dict[str, Any], url: str) -> bool:
     }
     """
     if not isinstance(data, dict):
-        log.error(f"Invalid data from {url}: Root must be a JSON object.")
+        log.error(f"Invalid data from {sanitize_for_log(url)}: Root must be a JSON object.")
         return False
 
     if "group" not in data:
-        log.error(f"Invalid data from {url}: Missing 'group' key.")
+        log.error(f"Invalid data from {sanitize_for_log(url)}: Missing 'group' key.")
         return False
 
     if not isinstance(data["group"], dict):
-        log.error(f"Invalid data from {url}: 'group' must be an object.")
+        log.error(f"Invalid data from {sanitize_for_log(url)}: 'group' must be an object.")
         return False
 
     if "group" not in data["group"]:
-        log.error(f"Invalid data from {url}: Missing 'group.group' (folder name).")
+        log.error(f"Invalid data from {sanitize_for_log(url)}: Missing 'group.group' (folder name).")
         return False
 
     return True
@@ -279,7 +287,7 @@ def list_existing_folders(client: httpx.Client, profile_id: str) -> Dict[str, st
             if f.get("group") and f.get("PK")
         }
     except (httpx.HTTPError, KeyError) as e:
-        log.error(f"Failed to list existing folders: {e}")
+        log.error(f"Failed to list existing folders: {sanitize_for_log(e)}")
         return {}
 
 
@@ -299,7 +307,7 @@ def get_all_existing_rules(client: httpx.Client, profile_id: str) -> Set[str]:
             log.debug(f"Found {len(root_rules)} rules in root folder")
 
         except httpx.HTTPError as e:
-            log.warning(f"Failed to get root folder rules: {e}")
+            log.warning(f"Failed to get root folder rules: {sanitize_for_log(e)}")
 
         # Get all folders (including ones we're not managing)
         folders = list_existing_folders(client, profile_id)
@@ -313,17 +321,17 @@ def get_all_existing_rules(client: httpx.Client, profile_id: str) -> Set[str]:
                     if rule.get("PK"):
                         all_rules.add(rule["PK"])
 
-                log.debug(f"Found {len(folder_rules)} rules in folder '{folder_name}'")
+                log.debug(f"Found {len(folder_rules)} rules in folder {sanitize_for_log(folder_name)}")
 
             except httpx.HTTPError as e:
-                log.warning(f"Failed to get rules from folder '{folder_name}': {e}")
+                log.warning(f"Failed to get rules from folder {sanitize_for_log(folder_name)}: {sanitize_for_log(e)}")
                 continue
 
         log.info(f"Total existing rules across all folders: {len(all_rules)}")
         return all_rules
 
     except Exception as e:
-        log.error(f"Failed to get existing rules: {e}")
+        log.error(f"Failed to get existing rules: {sanitize_for_log(e)}")
         return set()
 
 
@@ -352,17 +360,17 @@ def warm_up_cache(urls: Sequence[str]) -> None:
                 future.result()
             except Exception as e:
                 # We log warning but don't stop. sync_profile will try again and fail/log error.
-                log.warning(f"Failed to pre-fetch {url}: {e}")
+                log.warning(f"Failed to pre-fetch {sanitize_for_log(url)}: {sanitize_for_log(e)}")
 
 
 def delete_folder(client: httpx.Client, profile_id: str, name: str, folder_id: str) -> bool:
     """Delete a single folder by its ID. Returns True if successful."""
     try:
         _api_delete(client, f"{API_BASE}/{profile_id}/groups/{folder_id}")
-        log.info("Deleted folder '%s' (ID %s)", name, folder_id)
+        log.info("Deleted folder %s (ID %s)", sanitize_for_log(name), folder_id)
         return True
     except httpx.HTTPError as e:
-        log.error(f"Failed to delete folder '{name}' (ID {folder_id}): {e}")
+        log.error(f"Failed to delete folder {sanitize_for_log(name)} (ID {folder_id}): {sanitize_for_log(e)}")
         return False
 
 
@@ -382,14 +390,14 @@ def create_folder(client: httpx.Client, profile_id: str, name: str, do: int, sta
         data = _api_get(client, f"{API_BASE}/{profile_id}/groups").json()
         for grp in data["body"]["groups"]:
             if grp["group"].strip() == name.strip():
-                log.info("Created folder '%s' (ID %s)", name, grp["PK"])
+                log.info("Created folder %s (ID %s)", sanitize_for_log(name), grp["PK"])
                 time.sleep(FOLDER_CREATION_DELAY)
                 return str(grp["PK"])
 
-        log.error(f"Folder '{name}' was not found after creation")
+        log.error(f"Folder {sanitize_for_log(name)} was not found after creation")
         return None
     except (httpx.HTTPError, KeyError) as e:
-        log.error(f"Failed to create folder '{name}': {e}")
+        log.error(f"Failed to create folder {sanitize_for_log(name)}: {sanitize_for_log(e)}")
         return None
 
 
@@ -405,7 +413,7 @@ def push_rules(
 ) -> bool:
     """Push hostnames in batches to the given folder, skipping duplicates. Returns True if successful."""
     if not hostnames:
-        log.info("Folder '%s' - no rules to push", folder_name)
+        log.info("Folder %s - no rules to push", sanitize_for_log(folder_name))
         return True
 
     # Filter out duplicates
@@ -414,10 +422,10 @@ def push_rules(
     duplicates_count = original_count - len(filtered_hostnames)
 
     if duplicates_count > 0:
-        log.info(f"Folder '{folder_name}': skipping {duplicates_count} duplicate rules")
+        log.info(f"Folder {sanitize_for_log(folder_name)}: skipping {duplicates_count} duplicate rules")
 
     if not filtered_hostnames:
-        log.info(f"Folder '{folder_name}' - no new rules to push after filtering duplicates")
+        log.info(f"Folder {sanitize_for_log(folder_name)} - no new rules to push after filtering duplicates")
         return True
 
     successful_batches = 0
@@ -442,8 +450,8 @@ def push_rules(
                 data=data,
             )
             log.info(
-                "Folder '%s' – batch %d: added %d rules",
-                folder_name,
+                "Folder %s – batch %d: added %d rules",
+                sanitize_for_log(folder_name),
                 i,
                 len(batch),
             )
@@ -453,15 +461,15 @@ def push_rules(
             existing_rules.update(batch)
 
         except httpx.HTTPError as e:
-            log.error(f"Failed to push batch {i} for folder '{folder_name}': {e}")
+            log.error(f"Failed to push batch {i} for folder {sanitize_for_log(folder_name)}: {sanitize_for_log(e)}")
             if hasattr(e, 'response') and e.response is not None:
                 log.debug(f"Response content: {e.response.text}")
 
     if successful_batches == total_batches:
-        log.info("Folder '%s' – finished (%d new rules added)", folder_name, len(filtered_hostnames))
+        log.info("Folder %s – finished (%d new rules added)", sanitize_for_log(folder_name), len(filtered_hostnames))
         return True
     else:
-        log.error(f"Folder '%s' – only {successful_batches}/{total_batches} batches succeeded")
+        log.error(f"Folder %s – only {successful_batches}/{total_batches} batches succeeded", sanitize_for_log(folder_name))
         return False
 
 
@@ -491,7 +499,7 @@ def sync_profile(
                 try:
                     folder_data_list.append(future.result())
                 except (httpx.HTTPError, KeyError) as e:
-                    log.error(f"Failed to fetch folder data from {url}: {e}")
+                    log.error(f"Failed to fetch folder data from {sanitize_for_log(url)}: {sanitize_for_log(e)}")
                     continue
 
         if not folder_data_list:
@@ -605,7 +613,7 @@ def sync_profile(
         return success_count == len(folder_data_list)
 
     except Exception as e:
-        log.error(f"Unexpected error during sync for profile {profile_id}: {e}")
+        log.error(f"Unexpected error during sync for profile {profile_id}: {sanitize_for_log(e)}")
         return False
 
 
