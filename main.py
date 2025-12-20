@@ -111,9 +111,14 @@ API_BASE = "https://api.controld.com/profiles"
 def sanitize_for_log(text: Any) -> str:
     """
     Sanitize text for logging to prevent log injection/terminal manipulation.
-    Replaces control characters and non-printable characters using repr().
+    Escapes control and non-printable characters using repr(), but strips
+    surrounding quotes for readability.
     """
-    return repr(str(text))
+    safe = repr(str(text))
+    # repr() typically wraps the string in matching quotes; remove them
+    if len(safe) >= 2 and safe[0] == safe[-1] and safe[0] in ("'", '"'):
+        return safe[1:-1]
+    return safe
 
 
 def _clean_env_kv(value: Optional[str], key: str) -> Optional[str]:
@@ -338,8 +343,6 @@ def get_all_existing_rules(client: httpx.Client, profile_id: str) -> Set[str]:
 def fetch_folder_data(url: str) -> Dict[str, Any]:
     """Return folder data from GitHub JSON."""
     js = _gh_get(url)
-    if not validate_folder_data(js, url):
-        raise ValueError(f"Invalid folder data from {url}")
     return js
 
 
@@ -471,7 +474,12 @@ def push_rules(
         log.info("Folder %s – finished (%d new rules added)", sanitize_for_log(folder_name), len(filtered_hostnames))
         return True
     else:
-        log.error(f"Folder %s – only {successful_batches}/{total_batches} batches succeeded", sanitize_for_log(folder_name))
+        log.error(
+            "Folder %s – only %d/%d batches succeeded",
+            sanitize_for_log(folder_name),
+            successful_batches,
+            total_batches,
+        )
         return False
 
 
