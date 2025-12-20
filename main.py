@@ -385,29 +385,42 @@ def delete_folder(client: httpx.Client, profile_id: str, name: str, folder_id: s
 def create_folder(client: httpx.Client, profile_id: str, name: str, do: int, status: int) -> Optional[str]:
     """
     Create a new folder and return its ID.
-    The API returns the full list of groups, so we look for the one we just added.
+    Includes retry logic to handle API eventual consistency.
     """
     try:
+        # 1. Send the Create Request
         _api_post(
             client,
             f"{API_BASE}/{profile_id}/groups",
             data={"name": name, "do": do, "status": status},
         )
 
-        # Re-fetch the list and pick the folder we just created
-        data = _api_get(client, f"{API_BASE}/{profile_id}/groups").json()
-        for grp in data["body"]["groups"]:
-            if grp["group"].strip() == name.strip():
-                log.info("Created folder %s (ID %s)", sanitize_for_log(name), grp["PK"])
-                time.sleep(FOLDER_CREATION_DELAY)
-                return str(grp["PK"])
+        # 2. Poll for the new folder
+        # We try MAX_RETRIES + 1 times to give the API time to propagate changes
+        for attempt in range(MAX_RETRIES + 1):
+            try:
+                data = _api_get(client, f"{API_BASE}/{profile_id}/groups").json()
+                groups = data.get("body", {}).get("groups", [])
+                
+                for grp in groups:
+                    if grp["group"].strip() == name.strip():
+                        log.info("Created folder %s (ID %s)", sanitize_for_log(name), grp["PK"])
+                        return str(grp["PK"])
+            except Exception as e:
+                log.warning(f"Error fetching groups on attempt {attempt}: {e}")
 
-        log.error(f"Folder {sanitize_for_log(name)} was not found after creation")
+            # If not found and we have retries left, wait and try again
+            if attempt < MAX_RETRIES:
+                wait_time = FOLDER_CREATION_DELAY * (attempt + 1)
+                log.info(f"Folder '{name}' not found yet. Retrying in {wait_time}s...")
+                time.sleep(wait_time)
+
+        log.error(f"Folder {sanitize_for_log(name)} was not found after creation and retries.")
         return None
+
     except (httpx.HTTPError, KeyError) as e:
         log.error(f"Failed to create folder {sanitize_for_log(name)}: {sanitize_for_log(e)}")
         return None
-
 
 def push_rules(
     profile_id: str,
