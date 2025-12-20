@@ -142,9 +142,9 @@ DEFAULT_FOLDER_URLS = [
 ]
 
 BATCH_SIZE = 500
-MAX_RETRIES = 10           # <--- INCREASED for stability
-RETRY_DELAY = 1            # seconds
-FOLDER_CREATION_DELAY = 2  # seconds to wait after creating a folder
+MAX_RETRIES = 10
+RETRY_DELAY = 1            
+FOLDER_CREATION_DELAY = 5  # <--- CHANGED: Increased from 2 to 5 for patience
 
 # --------------------------------------------------------------------------- #
 # 2. Clients
@@ -543,19 +543,20 @@ def sync_profile(
                         delete_folder(client, profile_id, name, existing_folders[name])
                         deletion_occurred = True
                 
-                # CRITICAL FIX: Wait for server-side deletion to propagate
+                # CRITICAL FIX: Increased wait time for massive folders to clear
                 if deletion_occurred:
-                    log.info("Waiting 30s for deletions to propagate to prevent name collisions...")
-                    time.sleep(30)
+                    log.info("Waiting 60s for deletions to propagate (prevents 'Badware Hoster' zombie state)...")
+                    time.sleep(60)
 
             existing_rules = get_all_existing_rules(client, profile_id)
 
-        # Create new folders and push rules in parallel
+        # Create new folders and push rules
         success_count = 0
         existing_rules_lock = threading.Lock()
 
-        # CRITICAL FIX: Reduced concurrency to ensure stability
-        max_workers = 2 
+        # CRITICAL FIX: Switch to Serial Processing (1 worker)
+        # This prevents API rate limits and ensures stability for large folders.
+        max_workers = 1 
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_to_folder = {
@@ -584,6 +585,7 @@ def sync_profile(
     except Exception as e:
         log.error(f"Unexpected error during sync for profile {profile_id}: {sanitize_for_log(e)}")
         return False
+        
 # --------------------------------------------------------------------------- #
 # 5. Entry-point
 # --------------------------------------------------------------------------- #
@@ -754,4 +756,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
