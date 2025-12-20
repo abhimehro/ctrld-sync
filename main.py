@@ -166,6 +166,7 @@ BATCH_SIZE = 500
 MAX_RETRIES = 3
 RETRY_DELAY = 1  # seconds
 FOLDER_CREATION_DELAY = 2  # seconds to wait after creating a folder
+MAX_BATCH_WORKERS = 5  # Number of parallel workers for pushing batches
 
 # --------------------------------------------------------------------------- #
 # 2. Clients
@@ -422,6 +423,41 @@ def create_folder(client: httpx.Client, profile_id: str, name: str, do: int, sta
         log.error(f"Failed to create folder {sanitize_for_log(name)}: {sanitize_for_log(e)}")
         return None
 
+
+def _push_batch(
+    client: httpx.Client,
+    url: str,
+    data: Dict,
+    folder_name: str,
+    batch_index: int,
+    batch_size: int,
+    batch_items: List[str],
+    existing_rules: Set[str],
+    existing_rules_lock: Optional[threading.Lock],
+) -> bool:
+    """Helper to push a single batch of rules."""
+    try:
+        _api_post_form(client, url, data)
+        log.info(
+            "Folder %s – batch %d: added %d rules",
+            sanitize_for_log(folder_name),
+            batch_index,
+            batch_size,
+        )
+        # Update existing_rules set with the newly added rules
+        if existing_rules_lock:
+            with existing_rules_lock:
+                existing_rules.update(batch_items)
+        else:
+            existing_rules.update(batch_items)
+        return True
+    except httpx.HTTPError as e:
+        log.error(f"Failed to push batch {batch_index} for folder {sanitize_for_log(folder_name)}: {sanitize_for_log(e)}")
+        if hasattr(e, 'response') and e.response is not None:
+            log.debug(f"Response content: {e.response.text}")
+        return False
+
+
 def push_rules(
     profile_id: str,
     folder_name: str,
@@ -459,46 +495,41 @@ def push_rules(
         log.info(f"Folder {sanitize_for_log(folder_name)} - no new rules to push after filtering duplicates")
         return True
 
-    successful_batches = 0
     total_batches = len(range(0, len(filtered_hostnames), BATCH_SIZE))
+    url = f"{API_BASE}/{profile_id}/rules"
+    futures = []
 
-    for i, start in enumerate(range(0, len(filtered_hostnames), BATCH_SIZE), 1):
-        batch = filtered_hostnames[start : start + BATCH_SIZE]
+    # Use a small number of threads for batch processing to avoid overwhelming the system
+    # if many folders are being processed concurrently.
+    with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_BATCH_WORKERS) as executor:
+        for i, start in enumerate(range(0, len(filtered_hostnames), BATCH_SIZE), 1):
+            batch = filtered_hostnames[start : start + BATCH_SIZE]
 
-        data = {
-            "do": str(do),
-            "status": str(status),
-            "group": str(folder_id),
-        }
+            data = {
+                "do": str(do),
+                "status": str(status),
+                "group": str(folder_id),
+            }
 
-        for j, hostname in enumerate(batch):
-            data[f"hostnames[{j}]"] = hostname
+            for j, hostname in enumerate(batch):
+                data[f"hostnames[{j}]"] = hostname
 
-        try:
-            _api_post_form(
-                client,
-                f"{API_BASE}/{profile_id}/rules",
-                data=data,
+            futures.append(
+                executor.submit(
+                    _push_batch,
+                    client,
+                    url,
+                    data,
+                    folder_name,
+                    i,
+                    len(batch),
+                    batch,
+                    existing_rules,
+                    existing_rules_lock,
+                )
             )
-            log.info(
-                "Folder %s – batch %d: added %d rules",
-                sanitize_for_log(folder_name),
-                i,
-                len(batch),
-            )
-            successful_batches += 1
 
-            # Update existing_rules set with the newly added rules
-            if existing_rules_lock:
-                with existing_rules_lock:
-                    existing_rules.update(batch)
-            else:
-                existing_rules.update(batch)
-
-        except httpx.HTTPError as e:
-            log.error(f"Failed to push batch {i} for folder {sanitize_for_log(folder_name)}: {sanitize_for_log(e)}")
-            if hasattr(e, 'response') and e.response is not None:
-                log.debug(f"Response content: {e.response.text}")
+    successful_batches = sum(1 for f in futures if f.result())
 
     if successful_batches == total_batches:
         log.info("Folder %s – finished (%d new rules added)", sanitize_for_log(folder_name), len(filtered_hostnames))
