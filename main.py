@@ -343,6 +343,8 @@ def get_all_existing_rules(client: httpx.Client, profile_id: str) -> Set[str]:
 def fetch_folder_data(url: str) -> Dict[str, Any]:
     """Return folder data from GitHub JSON."""
     js = _gh_get(url)
+    if not validate_folder_data(js, url):
+        raise ValueError(f"Invalid folder data from {url}")
     return js
 
 
