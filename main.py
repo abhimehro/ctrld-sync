@@ -413,9 +413,15 @@ def push_rules(
     # Filter out duplicates
     original_count = len(hostnames)
 
-    # We read existing_rules. Technically should lock if strict, but for filtering duplicates
-    # slightly stale data just means we might try to add a duplicate (which is fine).
-    filtered_hostnames = [h for h in hostnames if h not in existing_rules]
+    # Take a safe snapshot of existing_rules. Slightly stale data is acceptable, but we
+    # still avoid reading the shared set while it may be mutated by other threads.
+    if existing_rules_lock is not None:
+        with existing_rules_lock:
+            rules_snapshot = set(existing_rules)
+    else:
+        rules_snapshot = existing_rules
+
+    filtered_hostnames = [h for h in hostnames if h not in rules_snapshot]
     duplicates_count = original_count - len(filtered_hostnames)
 
     if duplicates_count > 0:
@@ -477,37 +483,41 @@ def push_rules(
 def _process_single_folder(
     folder_data: Dict[str, Any],
     profile_id: str,
-    client: httpx.Client,
     existing_rules: Set[str],
     existing_rules_lock: threading.Lock,
 ) -> bool:
-    """Helper to process a single folder: create and push rules."""
+    """Helper to process a single folder: create and push rules.
+
+    Creates its own httpx.Client to ensure thread safety.
+    """
     grp = folder_data["group"]
     name = grp["group"].strip()
 
-    # The main action for the folder itself (can be a default)
-    main_do = grp.get("action", {}).get("do", 0)
-    main_status = grp.get("action", {}).get("status", 1)
+    # Create a fresh client for this thread
+    with _api_client() as client:
+        # The main action for the folder itself (can be a default)
+        main_do = grp.get("action", {}).get("do", 0)
+        main_status = grp.get("action", {}).get("status", 1)
 
-    folder_id = create_folder(client, profile_id, name, main_do, main_status)
-    if not folder_id:
-        return False
+        folder_id = create_folder(client, profile_id, name, main_do, main_status)
+        if not folder_id:
+            return False
 
-    folder_success = True
-    if "rule_groups" in folder_data:
-        # Multi-action: push each rule group with its own action
-        for rule_group in folder_data["rule_groups"]:
-            action = rule_group.get("action", {})
-            do = action.get("do", 0)
-            status = action.get("status", 1)
-            hostnames = [r["PK"] for r in rule_group.get("rules", []) if r.get("PK")]
-            if not push_rules(profile_id, name, folder_id, do, status, hostnames, existing_rules, client, existing_rules_lock):
+        folder_success = True
+        if "rule_groups" in folder_data:
+            # Multi-action: push each rule group with its own action
+            for rule_group in folder_data["rule_groups"]:
+                action = rule_group.get("action", {})
+                do = action.get("do", 0)
+                status = action.get("status", 1)
+                hostnames = [r["PK"] for r in rule_group.get("rules", []) if r.get("PK")]
+                if not push_rules(profile_id, name, folder_id, do, status, hostnames, existing_rules, client, existing_rules_lock):
+                    folder_success = False
+        else:
+            # Legacy single-action: push all rules with the main action
+            hostnames = [r["PK"] for r in folder_data.get("rules", []) if r.get("PK")]
+            if not push_rules(profile_id, name, folder_id, main_do, main_status, hostnames, existing_rules, client, existing_rules_lock):
                 folder_success = False
-    else:
-        # Legacy single-action: push all rules with the main action
-        hostnames = [r["PK"] for r in folder_data.get("rules", []) if r.get("PK")]
-        if not push_rules(profile_id, name, folder_id, main_do, main_status, hostnames, existing_rules, client, existing_rules_lock):
-            folder_success = False
 
     return folder_success
 
@@ -602,24 +612,24 @@ def sync_profile(
             log.info("Dry-run complete: no API calls were made.")
             return True
 
-        client = _api_client()
+        # Initial client for getting existing state
+        with _api_client() as client:
+            # Get existing folders and delete target folders
+            existing_folders = list_existing_folders(client, profile_id)
+            if not no_delete:
+                for folder_data in folder_data_list:
+                    name = folder_data["group"]["group"].strip()
+                    if name in existing_folders:
+                        delete_folder(client, profile_id, name, existing_folders[name])
 
-        # Get existing folders and delete target folders
-        existing_folders = list_existing_folders(client, profile_id)
-        if not no_delete:
-            for folder_data in folder_data_list:
-                name = folder_data["group"]["group"].strip()
-                if name in existing_folders:
-                    delete_folder(client, profile_id, name, existing_folders[name])
-
-        # Get all existing rules AFTER deleting target folders
-        existing_rules = get_all_existing_rules(client, profile_id)
+            # Get all existing rules AFTER deleting target folders
+            existing_rules = get_all_existing_rules(client, profile_id)
 
         # Create new folders and push rules in parallel
         success_count = 0
         existing_rules_lock = threading.Lock()
 
-        # We can use a reasonable number of threads, e.g., 5, to avoid hitting rate limits too hard.
+        # We can use a reasonable number of threads, e.g., 10, to avoid hitting rate limits too hard.
         # Since these operations are IO bound (waiting for API), more threads help.
         max_workers = 10
 
@@ -629,7 +639,6 @@ def sync_profile(
                     _process_single_folder,
                     folder_data,
                     profile_id,
-                    client,
                     existing_rules,
                     existing_rules_lock
                 ): folder_data
