@@ -344,7 +344,7 @@ def fetch_folder_data(url: str) -> Dict[str, Any]:
     """Return folder data from GitHub JSON."""
     js = _gh_get(url)
     if not validate_folder_data(js, url):
-        raise ValueError(f"Invalid folder data from {url}")
+        raise ValueError(f"Invalid folder data from {sanitize_for_log(url)}")
     return js
 
 
