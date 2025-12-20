@@ -490,7 +490,7 @@ def sync_profile(
             log.error("No valid folder data found")
             return False
 
-        # Build plan entries (RESTORED FULL LOGIC)
+        # Build plan entries
         plan_entry = {"profile": profile_id, "folders": []}
         for folder_data in folder_data_list:
             grp = folder_data["group"]
@@ -536,10 +536,17 @@ def sync_profile(
         with _api_client() as client:
             existing_folders = list_existing_folders(client, profile_id)
             if not no_delete:
+                deletion_occurred = False
                 for folder_data in folder_data_list:
                     name = folder_data["group"]["group"].strip()
                     if name in existing_folders:
                         delete_folder(client, profile_id, name, existing_folders[name])
+                        deletion_occurred = True
+                
+                # CRITICAL FIX: Wait for server-side deletion to propagate
+                if deletion_occurred:
+                    log.info("Waiting 30s for deletions to propagate to prevent name collisions...")
+                    time.sleep(30)
 
             existing_rules = get_all_existing_rules(client, profile_id)
 
@@ -547,8 +554,8 @@ def sync_profile(
         success_count = 0
         existing_rules_lock = threading.Lock()
 
-        # STABILITY FIX: Keep this at 4 to prevent API overload
-        max_workers = 4
+        # CRITICAL FIX: Reduced concurrency to ensure stability
+        max_workers = 2 
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_to_folder = {
@@ -577,7 +584,6 @@ def sync_profile(
     except Exception as e:
         log.error(f"Unexpected error during sync for profile {profile_id}: {sanitize_for_log(e)}")
         return False
-
 # --------------------------------------------------------------------------- #
 # 5. Entry-point
 # --------------------------------------------------------------------------- #
@@ -748,3 +754,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
