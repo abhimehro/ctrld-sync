@@ -746,7 +746,8 @@ def main():
                 "profile": profile_id,
                 "folders": 0,
                 "rules": 0,
-                "status": "❌ Invalid Profile ID",
+                "status_label": "❌ Invalid Profile ID",
+                "success": False,
                 "duration": 0.0,
             })
             continue
@@ -770,11 +771,17 @@ def main():
         folder_count = len(entry["folders"]) if entry else 0
         rule_count = sum(f["rules"] for f in entry["folders"]) if entry else 0
 
+        if args.dry_run:
+            status_text = "✅ Planned" if status else "❌ Failed (Dry)"
+        else:
+            status_text = "✅ Success" if status else "❌ Failed"
+
         sync_results.append({
             "profile": profile_id,
             "folders": folder_count,
             "rules": rule_count,
-            "status": "✅ Success" if status else "❌ Failed",
+            "status_label": status_text,
+            "success": status,
             "duration": duration,
         })
 
@@ -793,8 +800,11 @@ def main():
     # Widths: profile_col_width + 3 + 10 + 3 + 10 + 3 + 10 + 3 + 15 = profile_col_width + 57
     table_width = profile_col_width + 57
 
+    title_text = "DRY RUN SUMMARY" if args.dry_run else "SYNC SUMMARY"
+    title_color = Colors.CYAN if args.dry_run else Colors.HEADER
+
     print("\n" + "=" * table_width)
-    print(f"{Colors.HEADER}{'SYNC SUMMARY':^{table_width}}{Colors.ENDC}")
+    print(f"{title_color}{title_text:^{table_width}}{Colors.ENDC}")
     print("=" * table_width)
 
     # Header
@@ -811,15 +821,15 @@ def main():
     total_duration = 0.0
 
     for res in sync_results:
-        status_text = res['status']
-        status_color = Colors.GREEN if "Success" in status_text else Colors.FAIL
+        # Use boolean success field for color logic
+        status_color = Colors.GREEN if res['success'] else Colors.FAIL
 
         print(
             f"{res['profile']:<{profile_col_width}} | "
             f"{res['folders']:>10} | "
             f"{res['rules']:>10,} | "
             f"{res['duration']:>9.1f}s | "
-            f"{status_color}{res['status']:<15}{Colors.ENDC}"
+            f"{status_color}{res['status_label']:<15}{Colors.ENDC}"
         )
         total_folders += res['folders']
         total_rules += res['rules']
@@ -828,13 +838,29 @@ def main():
     print("-" * table_width)
 
     # Total Row
+    total = len(profile_ids or ["dry-run-placeholder"])
+    all_success = (success_count == total)
+
+    if args.dry_run:
+        if all_success:
+            total_status_text = "✅ Ready"
+        else:
+            total_status_text = "❌ Errors"
+    else:
+        if all_success:
+            total_status_text = "✅ All Good"
+        else:
+            total_status_text = "❌ Errors"
+
+    total_status_color = Colors.GREEN if all_success else Colors.FAIL
+
     print(
         f"{Colors.BOLD}"
         f"{'TOTAL':<{profile_col_width}} | "
         f"{total_folders:>10} | "
         f"{total_rules:>10,} | "
         f"{total_duration:>9.1f}s | "
-        f"{Colors.ENDC}"
+        f"{total_status_color}{total_status_text:<15}{Colors.ENDC}"
     )
     print("=" * table_width + "\n")
 
