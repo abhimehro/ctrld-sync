@@ -21,6 +21,7 @@ import sys
 import time
 import re
 import concurrent.futures
+import threading
 from typing import Dict, List, Optional, Any, Set, Sequence
 
 import httpx
@@ -404,6 +405,7 @@ def push_rules(
     hostnames: List[str],
     existing_rules: Set[str],
     client: httpx.Client,
+    existing_rules_lock: Optional[threading.Lock] = None,
 ) -> bool:
     """Push hostnames in batches to the given folder, skipping duplicates. Returns True if successful."""
     if not hostnames:
@@ -412,7 +414,16 @@ def push_rules(
 
     # Filter out duplicates
     original_count = len(hostnames)
-    filtered_hostnames = [h for h in hostnames if h not in existing_rules]
+
+    # Take a safe snapshot of existing_rules. Slightly stale data is acceptable, but we
+    # still avoid reading the shared set while it may be mutated by other threads.
+    if existing_rules_lock is not None:
+        with existing_rules_lock:
+            rules_snapshot = set(existing_rules)
+    else:
+        rules_snapshot = existing_rules
+
+    filtered_hostnames = [h for h in hostnames if h not in rules_snapshot]
     duplicates_count = original_count - len(filtered_hostnames)
 
     if duplicates_count > 0:
@@ -452,7 +463,11 @@ def push_rules(
             successful_batches += 1
 
             # Update existing_rules set with the newly added rules
-            existing_rules.update(batch)
+            if existing_rules_lock:
+                with existing_rules_lock:
+                    existing_rules.update(batch)
+            else:
+                existing_rules.update(batch)
 
         except httpx.HTTPError as e:
             log.error(f"Failed to push batch {i} for folder '{folder_name}': {e}")
@@ -465,6 +480,48 @@ def push_rules(
     else:
         log.error(f"Folder '%s' – only {successful_batches}/{total_batches} batches succeeded")
         return False
+
+
+def _process_single_folder(
+    folder_data: Dict[str, Any],
+    profile_id: str,
+    existing_rules: Set[str],
+    existing_rules_lock: threading.Lock,
+) -> bool:
+    """Helper to process a single folder: create and push rules.
+
+    Creates its own httpx.Client to ensure thread safety.
+    """
+    grp = folder_data["group"]
+    name = grp["group"].strip()
+
+    # Create a fresh client for this thread
+    with _api_client() as client:
+        # The main action for the folder itself (can be a default)
+        main_do = grp.get("action", {}).get("do", 0)
+        main_status = grp.get("action", {}).get("status", 1)
+
+        folder_id = create_folder(client, profile_id, name, main_do, main_status)
+        if not folder_id:
+            return False
+
+        folder_success = True
+        if "rule_groups" in folder_data:
+            # Multi-action: push each rule group with its own action
+            for rule_group in folder_data["rule_groups"]:
+                action = rule_group.get("action", {})
+                do = action.get("do", 0)
+                status = action.get("status", 1)
+                hostnames = [r["PK"] for r in rule_group.get("rules", []) if r.get("PK")]
+                if not push_rules(profile_id, name, folder_id, do, status, hostnames, existing_rules, client, existing_rules_lock):
+                    folder_success = False
+        else:
+            # Legacy single-action: push all rules with the main action
+            hostnames = [r["PK"] for r in folder_data.get("rules", []) if r.get("PK")]
+            if not push_rules(profile_id, name, folder_id, main_do, main_status, hostnames, existing_rules, client, existing_rules_lock):
+                folder_success = False
+
+    return folder_success
 
 
 # --------------------------------------------------------------------------- #
@@ -557,51 +614,47 @@ def sync_profile(
             log.info("Dry-run complete: no API calls were made.")
             return True
 
-        client = _api_client()
+        # Initial client for getting existing state
+        with _api_client() as client:
+            # Get existing folders and delete target folders
+            existing_folders = list_existing_folders(client, profile_id)
+            if not no_delete:
+                for folder_data in folder_data_list:
+                    name = folder_data["group"]["group"].strip()
+                    if name in existing_folders:
+                        delete_folder(client, profile_id, name, existing_folders[name])
 
-        # Get existing folders and delete target folders
-        existing_folders = list_existing_folders(client, profile_id)
-        if not no_delete:
-            for folder_data in folder_data_list:
-                name = folder_data["group"]["group"].strip()
-                if name in existing_folders:
-                    delete_folder(client, profile_id, name, existing_folders[name])
+            # Get all existing rules AFTER deleting target folders
+            existing_rules = get_all_existing_rules(client, profile_id)
 
-        # Get all existing rules AFTER deleting target folders
-        existing_rules = get_all_existing_rules(client, profile_id)
-
-        # Create new folders and push rules
+        # Create new folders and push rules in parallel
         success_count = 0
-        for folder_data in folder_data_list:
-            grp = folder_data["group"]
-            action = grp.get("action") or {}
-            name = grp["group"].strip()
-            # The main action for the folder itself (can be a default)
-            main_do = grp.get("action", {}).get("do", 0)
-            main_status = grp.get("action", {}).get("status", 1)
+        existing_rules_lock = threading.Lock()
 
-            folder_id = create_folder(client, profile_id, name, main_do, main_status)
-            if not folder_id:
-                continue
+        # We can use a reasonable number of threads, e.g., 10, to avoid hitting rate limits too hard.
+        # Since these operations are IO bound (waiting for API), more threads help.
+        max_workers = 10
 
-            folder_success = True
-            if "rule_groups" in folder_data:
-                # Multi-action: push each rule group with its own action
-                for rule_group in folder_data["rule_groups"]:
-                    action = rule_group.get("action", {})
-                    do = action.get("do", 0)
-                    status = action.get("status", 1)
-                    hostnames = [r["PK"] for r in rule_group.get("rules", []) if r.get("PK")]
-                    if not push_rules(profile_id, name, folder_id, do, status, hostnames, existing_rules, client):
-                        folder_success = False
-            else:
-                # Legacy single-action: push all rules with the main action
-                hostnames = [r["PK"] for r in folder_data.get("rules", []) if r.get("PK")]
-                if not push_rules(profile_id, name, folder_id, main_do, main_status, hostnames, existing_rules, client):
-                    folder_success = False
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_folder = {
+                executor.submit(
+                    _process_single_folder,
+                    folder_data,
+                    profile_id,
+                    existing_rules,
+                    existing_rules_lock
+                ): folder_data
+                for folder_data in folder_data_list
+            }
 
-            if folder_success:
-                success_count += 1
+            for future in concurrent.futures.as_completed(future_to_folder):
+                folder_data = future_to_folder[future]
+                folder_name = folder_data["group"]["group"].strip()
+                try:
+                    if future.result():
+                        success_count += 1
+                except Exception as e:
+                    log.error(f"Failed to process folder '{folder_name}': {e}")
 
         log.info(f"Sync complete: {success_count}/{len(folder_data_list)} folders processed successfully")
         return success_count == len(folder_data_list)
