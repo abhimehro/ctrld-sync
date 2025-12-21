@@ -143,8 +143,9 @@ DEFAULT_FOLDER_URLS = [
 
 BATCH_SIZE = 500
 MAX_RETRIES = 10
-RETRY_DELAY = 1            
+RETRY_DELAY = 1
 FOLDER_CREATION_DELAY = 5  # <--- CHANGED: Increased from 2 to 5 for patience
+MAX_READ_WORKERS = 10
 
 # --------------------------------------------------------------------------- #
 # 2. Clients
@@ -239,6 +240,19 @@ def list_existing_folders(client: httpx.Client, profile_id: str) -> Dict[str, st
         log.error(f"Failed to list existing folders: {sanitize_for_log(e)}")
         return {}
 
+def _fetch_folder_rules(client: httpx.Client, profile_id: str, folder_id: str) -> Set[str]:
+    """Helper to fetch rules for a single folder."""
+    rules = set()
+    try:
+        data = _api_get(client, f"{API_BASE}/{profile_id}/rules/{folder_id}").json()
+        folder_rules = data.get("body", {}).get("rules", [])
+        for rule in folder_rules:
+            if rule.get("PK"):
+                rules.add(rule["PK"])
+    except httpx.HTTPError:
+        pass
+    return rules
+
 def get_all_existing_rules(client: httpx.Client, profile_id: str) -> Set[str]:
     all_rules = set()
     try:
@@ -252,17 +266,24 @@ def get_all_existing_rules(client: httpx.Client, profile_id: str) -> Set[str]:
         except httpx.HTTPError:
             pass
 
-        # Get rules from folders
+        # Get rules from folders (Parallelized)
         folders = list_existing_folders(client, profile_id)
-        for folder_name, folder_id in folders.items():
-            try:
-                data = _api_get(client, f"{API_BASE}/{profile_id}/rules/{folder_id}").json()
-                folder_rules = data.get("body", {}).get("rules", [])
-                for rule in folder_rules:
-                    if rule.get("PK"):
-                        all_rules.add(rule["PK"])
-            except httpx.HTTPError:
-                continue
+
+        # We can use more workers here because these are read-only GET requests
+        # and we want to speed up the initial sync state check.
+        with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_READ_WORKERS) as executor:
+            future_to_folder = {
+                executor.submit(_fetch_folder_rules, client, profile_id, folder_id): folder_name
+                for folder_name, folder_id in folders.items()
+            }
+
+            for future in concurrent.futures.as_completed(future_to_folder):
+                try:
+                    folder_rules = future.result()
+                    all_rules.update(folder_rules)
+                except Exception as e:
+                    folder_name = future_to_folder[future]
+                    log.warning(f"Failed to fetch rules for folder {folder_name}: {e}")
 
         log.info(f"Total existing rules across all folders: {len(all_rules)}")
         return all_rules
