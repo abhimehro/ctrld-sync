@@ -145,6 +145,7 @@ BATCH_SIZE = 500
 MAX_RETRIES = 10
 RETRY_DELAY = 1            
 FOLDER_CREATION_DELAY = 5  # <--- CHANGED: Increased from 2 to 5 for patience
+MAX_RESPONSE_SIZE = 10 * 1024 * 1024  # 10MB limit
 
 # --------------------------------------------------------------------------- #
 # 2. Clients
@@ -221,9 +222,50 @@ def _retry_request(request_func, max_retries=MAX_RETRIES, delay=RETRY_DELAY):
 
 def _gh_get(url: str) -> Dict:
     if url not in _cache:
-        r = _gh.get(url)
-        r.raise_for_status()
-        _cache[url] = r.json()
+        try:
+            with _gh.stream("GET", url) as r:
+                r.raise_for_status()
+
+                # 1. Check Content-Length header if present
+                cl = r.headers.get("Content-Length")
+                if cl:
+                    try:
+                        if int(cl) > MAX_RESPONSE_SIZE:
+                            raise ValueError(
+                                f"Response too large from {sanitize_for_log(url)} "
+                                f"({int(cl) / (1024 * 1024):.2f} MB)"
+                            )
+                    except ValueError as e:
+                        # Only catch the conversion error, let the size error propagate
+                        if "Response too large" in str(e):
+                            raise e
+                        log.warning(
+                            f"Malformed Content-Length header from {sanitize_for_log(url)}: {cl!r}. "
+                            "Falling back to streaming size check."
+                        )
+
+                # 2. Stream and check actual size
+                chunks = []
+                current_size = 0
+                for chunk in r.iter_bytes():
+                    current_size += len(chunk)
+                    if current_size > MAX_RESPONSE_SIZE:
+                        raise ValueError(
+                            f"Response too large from {sanitize_for_log(url)} "
+                            f"(> {MAX_RESPONSE_SIZE / (1024 * 1024):.2f} MB)"
+                        )
+                    chunks.append(chunk)
+
+                try:
+                    _cache[url] = json.loads(b"".join(chunks))
+                except json.JSONDecodeError as e:
+                    raise ValueError(f"Invalid JSON response from {sanitize_for_log(url)}") from e
+
+        # Explicitly let HTTPError propagate (no need to catch just to re-raise)
+        # ValueError (size limit / json) will also propagate
+        finally:
+            pass
+
     return _cache[url]
 
 def list_existing_folders(client: httpx.Client, profile_id: str) -> Dict[str, str]:
@@ -482,7 +524,7 @@ def sync_profile(
                 url = future_to_url[future]
                 try:
                     folder_data_list.append(future.result())
-                except (httpx.HTTPError, KeyError) as e:
+                except (httpx.HTTPError, KeyError, ValueError) as e:
                     log.error(f"Failed to fetch folder data from {sanitize_for_log(url)}: {sanitize_for_log(e)}")
                     continue
 
