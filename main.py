@@ -221,9 +221,32 @@ def _retry_request(request_func, max_retries=MAX_RETRIES, delay=RETRY_DELAY):
 
 def _gh_get(url: str) -> Dict:
     if url not in _cache:
-        r = _gh.get(url)
-        r.raise_for_status()
-        _cache[url] = r.json()
+        # Check size to prevent DoS (memory exhaustion)
+        max_size = 10 * 1024 * 1024  # 10MB limit
+
+        try:
+            with _gh.stream("GET", url) as r:
+                r.raise_for_status()
+
+                # 1. Check Content-Length header if present
+                cl = r.headers.get("Content-Length")
+                if cl and int(cl) > max_size:
+                    raise ValueError(f"Response too large from {sanitize_for_log(url)} ({cl} bytes)")
+
+                # 2. Stream and check actual size
+                chunks = []
+                current_size = 0
+                for chunk in r.iter_bytes():
+                    current_size += len(chunk)
+                    if current_size > max_size:
+                        raise ValueError(f"Response too large from {sanitize_for_log(url)} (> {max_size} bytes)")
+                    chunks.append(chunk)
+
+                _cache[url] = json.loads(b"".join(chunks))
+        except httpx.HTTPError as e:
+            # Re-raise HTTP errors to be handled by caller
+            raise e
+
     return _cache[url]
 
 def list_existing_folders(client: httpx.Client, profile_id: str) -> Dict[str, str]:
@@ -482,7 +505,7 @@ def sync_profile(
                 url = future_to_url[future]
                 try:
                     folder_data_list.append(future.result())
-                except (httpx.HTTPError, KeyError) as e:
+                except (httpx.HTTPError, KeyError, ValueError) as e:
                     log.error(f"Failed to fetch folder data from {sanitize_for_log(url)}: {sanitize_for_log(e)}")
                     continue
 
