@@ -17,3 +17,17 @@
 **Prevention:**
 1. Log potentially sensitive data (like raw HTTP bodies) only at `DEBUG` level.
 2. At `INFO`/`ERROR` levels, log only safe summaries or status codes.
+
+## 2024-12-22 - [Sensitive Data Exposure in Logs (Headers)]
+**Vulnerability:** The application's  function was insufficient, only escaping characters but not redacting secrets. If an exception occurred that included headers (e.g. ), the  could be exposed in logs.
+**Learning:** Generic sanitization (like ) is not enough for secrets. Explicit redaction of known secrets is required.
+**Prevention:**
+1. Maintain a list of sensitive values (tokens, keys).
+2. Ensure logging utilities check against this list and mask values before outputting.
+
+## 2024-12-22 - [Sensitive Data Exposure in Logs (Headers)]
+**Vulnerability:** The application's `sanitize_for_log` function was insufficient, only escaping characters but not redacting secrets. If an exception occurred that included headers (e.g. `Authorization`), the `TOKEN` could be exposed in logs.
+**Learning:** Generic sanitization (like `repr()`) is not enough for secrets. Explicit redaction of known secrets is required.
+**Prevention:**
+1. Maintain a list of sensitive values (tokens, keys).
+2. Ensure logging utilities check against this list and mask values before outputting.
