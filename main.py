@@ -374,13 +374,9 @@ def push_rules(
 
     original_count = len(hostnames)
 
-    if existing_rules_lock is not None:
-        with existing_rules_lock:
-            rules_snapshot = set(existing_rules)
-    else:
-        rules_snapshot = existing_rules
-
-    filtered_hostnames = [h for h in hostnames if h not in rules_snapshot]
+    # Optimization: Check directly against existing_rules to avoid O(N) copy.
+    # Membership testing in set is thread-safe, and we don't need a strict snapshot for deduplication.
+    filtered_hostnames = [h for h in hostnames if h not in existing_rules]
     duplicates_count = original_count - len(filtered_hostnames)
 
     if duplicates_count > 0:
