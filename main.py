@@ -618,52 +618,73 @@ def main():
     success_count = 0
     sync_results = []
 
-    for profile_id in (profile_ids or ["dry-run-placeholder"]):
+    try:
+        profile_id = None
         start_time = time.time()
-        # Skip validation for dry-run placeholder
-        if profile_id != "dry-run-placeholder" and not validate_profile_id(profile_id):
+        for profile_id in (profile_ids or ["dry-run-placeholder"]):
+            start_time = time.time()
+            # Skip validation for dry-run placeholder
+            if profile_id != "dry-run-placeholder" and not validate_profile_id(profile_id):
+                sync_results.append({
+                    "profile": profile_id,
+                    "folders": 0,
+                    "rules": 0,
+                    "status_label": "❌ Invalid Profile ID",
+                    "success": False,
+                    "duration": 0.0,
+                })
+                continue
+
+            log.info("Starting sync for profile %s", profile_id)
+            status = sync_profile(
+                profile_id,
+                folder_urls,
+                dry_run=args.dry_run,
+                no_delete=args.no_delete,
+                plan_accumulator=plan,
+            )
+            end_time = time.time()
+            duration = end_time - start_time
+
+            if status:
+                success_count += 1
+
+            # RESTORED STATS LOGIC: Calculate actual counts from the plan
+            entry = next((p for p in plan if p["profile"] == profile_id), None)
+            folder_count = len(entry["folders"]) if entry else 0
+            rule_count = sum(f["rules"] for f in entry["folders"]) if entry else 0
+
+            if args.dry_run:
+                status_text = "✅ Planned" if status else "❌ Failed (Dry)"
+            else:
+                status_text = "✅ Success" if status else "❌ Failed"
+
             sync_results.append({
                 "profile": profile_id,
-                "folders": 0,
-                "rules": 0,
-                "status_label": "❌ Invalid Profile ID",
-                "success": False,
-                "duration": 0.0,
+                "folders": folder_count,
+                "rules": rule_count,
+                "status_label": status_text,
+                "success": status,
+                "duration": duration,
             })
-            continue
+    except KeyboardInterrupt:
+        duration = time.time() - start_time
+        log.warning("\n⚠️  Sync cancelled by user. Finishing current task...")
 
-        log.info("Starting sync for profile %s", profile_id)
-        status = sync_profile(
-            profile_id,
-            folder_urls,
-            dry_run=args.dry_run,
-            no_delete=args.no_delete,
-            plan_accumulator=plan,
-        )
-        end_time = time.time()
-        duration = end_time - start_time
+        if profile_id:
+            # Try to recover stats for the interrupted profile
+            entry = next((p for p in plan if p["profile"] == profile_id), None)
+            folder_count = len(entry["folders"]) if entry else 0
+            rule_count = sum(f["rules"] for f in entry["folders"]) if entry else 0
 
-        if status:
-            success_count += 1
-
-        # RESTORED STATS LOGIC: Calculate actual counts from the plan
-        entry = next((p for p in plan if p["profile"] == profile_id), None)
-        folder_count = len(entry["folders"]) if entry else 0
-        rule_count = sum(f["rules"] for f in entry["folders"]) if entry else 0
-
-        if args.dry_run:
-            status_text = "✅ Planned" if status else "❌ Failed (Dry)"
-        else:
-            status_text = "✅ Success" if status else "❌ Failed"
-
-        sync_results.append({
-            "profile": profile_id,
-            "folders": folder_count,
-            "rules": rule_count,
-            "status_label": status_text,
-            "success": status,
-            "duration": duration,
-        })
+            sync_results.append({
+                "profile": profile_id,
+                "folders": folder_count,
+                "rules": rule_count,
+                "status_label": "⛔ Cancelled",
+                "success": False,
+                "duration": duration,
+            })
 
     if args.plan_json:
         with open(args.plan_json, "w", encoding="utf-8") as f:
