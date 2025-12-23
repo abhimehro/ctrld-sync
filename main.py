@@ -221,9 +221,22 @@ def _retry_request(request_func, max_retries=MAX_RETRIES, delay=RETRY_DELAY):
 
 def _gh_get(url: str) -> Dict:
     if url not in _cache:
-        r = _gh.get(url)
-        r.raise_for_status()
-        _cache[url] = r.json()
+        MAX_SIZE = 10 * 1024 * 1024  # 10MB limit
+        with _gh.stream("GET", url) as response:
+            response.raise_for_status()
+
+            # Check Content-Length if present
+            cl = response.headers.get("Content-Length")
+            if cl and int(cl) > MAX_SIZE:
+                raise ValueError(f"Response too large from {url} ({cl} bytes)")
+
+            content = b""
+            for chunk in response.iter_bytes():
+                content += chunk
+                if len(content) > MAX_SIZE:
+                    raise ValueError(f"Response too large from {url} (> {MAX_SIZE} bytes)")
+
+            _cache[url] = json.loads(content)
     return _cache[url]
 
 def list_existing_folders(client: httpx.Client, profile_id: str) -> Dict[str, str]:
