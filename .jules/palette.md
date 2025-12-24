@@ -1,9 +1,5 @@
 # Palette's Journal
 
-## 2024-10-18 - CLI UX Adaptation
-**Learning:** When a "frontend" agent encounters a CLI-only repo, the "interface" becomes the terminal output. Accessibility principles (contrast, readability, clear feedback) still apply but translate to ANSI colors, clear spacing, and descriptive log messages instead of ARIA labels.
-**Action:** Adapting web-centric UX patterns (like "toast notifications") to CLI equivalents (colored log lines or summary tables).
-
-## 2025-02-18 - Visual Feedback in CLI Tables
-**Learning:** CLI summary tables are the "dashboard" of a command-line tool. Missing visual cues (like color-coding status) in these tables reduces scannability, just like a dashboard widget without status indicators.
-**Action:** Always check if status indicators in CLI output are visually distinct (colored) to improve "glanceability" of the results.
+## 2025-12-24 - Interactive CLI Configuration
+**Learning:** CLI tools often fail hard when configuration is missing, but interactive sessions provide an opportunity to recover by asking the user for input. This turns a "crash" into a "setup wizard".
+**Action:** When required env vars are missing, check `sys.stdin.isatty()` and prompt the user before exiting.
