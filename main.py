@@ -101,6 +101,22 @@ def sanitize_for_log(text: Any) -> str:
     return safe
 
 
+def countdown_timer(seconds: int, message: str = "Waiting") -> None:
+    """Shows a countdown timer if strictly in a TTY, otherwise just sleeps."""
+    if not USE_COLORS:
+        time.sleep(seconds)
+        return
+
+    for remaining in range(seconds, 0, -1):
+        # Add trailing spaces to overwrite previous longer lines
+        sys.stderr.write(f"\r{Colors.CYAN}⏳ {message}: {remaining}s...   {Colors.ENDC}")
+        sys.stderr.flush()
+        time.sleep(1)
+
+    sys.stderr.write(f"\r{Colors.GREEN}✅ {message}: Done!              {Colors.ENDC}\n")
+    sys.stderr.flush()
+
+
 def _clean_env_kv(value: Optional[str], key: str) -> Optional[str]:
     """Allow TOKEN/PROFILE values to be provided as either raw values or KEY=value."""
     if not value:
@@ -545,8 +561,9 @@ def sync_profile(
                 
                 # CRITICAL FIX: Increased wait time for massive folders to clear
                 if deletion_occurred:
-                    log.info("Waiting 60s for deletions to propagate (prevents 'Badware Hoster' zombie state)...")
-                    time.sleep(60)
+                    if not USE_COLORS:
+                        log.info("Waiting 60s for deletions to propagate (prevents 'Badware Hoster' zombie state)...")
+                    countdown_timer(60, "Waiting for deletions to propagate (prevents zombie state)")
 
             existing_rules = get_all_existing_rules(client, profile_id)
 
