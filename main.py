@@ -633,13 +633,34 @@ def main():
             continue
 
         log.info("Starting sync for profile %s", profile_id)
-        status = sync_profile(
-            profile_id,
-            folder_urls,
-            dry_run=args.dry_run,
-            no_delete=args.no_delete,
-            plan_accumulator=plan,
-        )
+
+        try:
+            status = sync_profile(
+                profile_id,
+                folder_urls,
+                dry_run=args.dry_run,
+                no_delete=args.no_delete,
+                plan_accumulator=plan,
+            )
+        except KeyboardInterrupt:
+            duration = time.time() - start_time
+            print(f"\n{Colors.WARNING}⚠️  Sync cancelled by user. Finishing current task...{Colors.ENDC}")
+
+            # Try to recover stats for the interrupted profile
+            entry = next((p for p in plan if p["profile"] == profile_id), None)
+            folder_count = len(entry["folders"]) if entry else 0
+            rule_count = sum(f["rules"] for f in entry["folders"]) if entry else 0
+
+            sync_results.append({
+                "profile": profile_id,
+                "folders": folder_count,
+                "rules": rule_count,
+                "status_label": "⛔ Cancelled",
+                "success": False,
+                "duration": duration,
+            })
+            break
+
         end_time = time.time()
         duration = end_time - start_time
 
