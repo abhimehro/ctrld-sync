@@ -241,6 +241,23 @@ def list_existing_folders(client: httpx.Client, profile_id: str) -> Dict[str, st
 
 def get_all_existing_rules(client: httpx.Client, profile_id: str) -> Set[str]:
     all_rules = set()
+    all_rules_lock = threading.Lock()
+
+    def _fetch_folder_rules(folder_id: str):
+        try:
+            data = _api_get(client, f"{API_BASE}/{profile_id}/rules/{folder_id}").json()
+            folder_rules = data.get("body", {}).get("rules", [])
+            with all_rules_lock:
+                for rule in folder_rules:
+                    if rule.get("PK"):
+                        all_rules.add(rule["PK"])
+        except httpx.HTTPError:
+            pass
+        except Exception as e:
+            # We log error but don't stop the whole process;
+            # individual folder failure shouldn't crash the sync
+            log.warning(f"Error fetching rules for folder {folder_id}: {e}")
+
     try:
         # Get rules from root
         try:
@@ -252,17 +269,17 @@ def get_all_existing_rules(client: httpx.Client, profile_id: str) -> Set[str]:
         except httpx.HTTPError:
             pass
 
-        # Get rules from folders
+        # Get rules from folders in parallel
         folders = list_existing_folders(client, profile_id)
-        for folder_name, folder_id in folders.items():
-            try:
-                data = _api_get(client, f"{API_BASE}/{profile_id}/rules/{folder_id}").json()
-                folder_rules = data.get("body", {}).get("rules", [])
-                for rule in folder_rules:
-                    if rule.get("PK"):
-                        all_rules.add(rule["PK"])
-            except httpx.HTTPError:
-                continue
+
+        # Parallelize fetching rules from folders.
+        # Using 5 workers to be safe with rate limits, though GETs are usually cheaper.
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            futures = [
+                executor.submit(_fetch_folder_rules, folder_id)
+                for folder_name, folder_id in folders.items()
+            ]
+            concurrent.futures.wait(futures)
 
         log.info(f"Total existing rules across all folders: {len(all_rules)}")
         return all_rules
