@@ -7,3 +7,7 @@
 ## 2025-02-18 - Visual Feedback in CLI Tables
 **Learning:** CLI summary tables are the "dashboard" of a command-line tool. Missing visual cues (like color-coding status) in these tables reduces scannability, just like a dashboard widget without status indicators.
 **Action:** Always check if status indicators in CLI output are visually distinct (colored) to improve "glanceability" of the results.
+
+## 2024-10-27 - Interactive CLI Fallbacks
+**Learning:** CLI tools often fail hard when config is missing. Adding an interactive prompt (when tty is available) transforms a crash into a guided setup flow.
+**Action:** Always check `sys.stdin.isatty()` and offer to collect missing required vars instead of `exit(1)`.
