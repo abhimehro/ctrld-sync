@@ -204,6 +204,19 @@ def _api_post(client: httpx.Client, url: str, data: Dict) -> httpx.Response:
 def _api_post_form(client: httpx.Client, url: str, data: Dict) -> httpx.Response:
     return _retry_request(lambda: client.post(url, data=data, headers={"Content-Type": "application/x-www-form-urlencoded"}))
 
+def _wait_with_feedback(seconds: int) -> None:
+    """Waits for a specified duration with a visual countdown if running in a TTY."""
+    if USE_COLORS:
+        for i in range(seconds, 0, -1):
+            sys.stderr.write(f"\r{Colors.CYAN}Time remaining: {i}s...{Colors.ENDC}")
+            sys.stderr.flush()
+            time.sleep(1)
+        # Clear the line
+        sys.stderr.write("\r" + " " * 40 + "\r")
+        sys.stderr.flush()
+    else:
+        time.sleep(seconds)
+
 def _retry_request(request_func, max_retries=MAX_RETRIES, delay=RETRY_DELAY):
     for attempt in range(max_retries):
         try:
@@ -546,7 +559,7 @@ def sync_profile(
                 # CRITICAL FIX: Increased wait time for massive folders to clear
                 if deletion_occurred:
                     log.info("Waiting 60s for deletions to propagate (prevents 'Badware Hoster' zombie state)...")
-                    time.sleep(60)
+                    _wait_with_feedback(60)
 
             existing_rules = get_all_existing_rules(client, profile_id)
 
