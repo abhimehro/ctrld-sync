@@ -599,10 +599,32 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 def main():
+    global TOKEN
     args = parse_args()
     profiles_arg = _clean_env_kv(args.profiles or os.getenv("PROFILE", ""), "PROFILE") or ""
     profile_ids = [p.strip() for p in profiles_arg.split(",") if p.strip()]
     folder_urls = args.folder_url if args.folder_url else DEFAULT_FOLDER_URLS
+
+    # Interactive prompts for missing config
+    if not args.dry_run and sys.stdin.isatty():
+        if not profile_ids:
+            print(f"{Colors.CYAN}ℹ Profile ID is missing.{Colors.ENDC}")
+            try:
+                p_input = input(f"{Colors.BOLD}Enter Control D Profile ID:{Colors.ENDC} ").strip()
+                if p_input:
+                    profile_ids = [p.strip() for p in p_input.split(",") if p.strip()]
+            except (EOFError, KeyboardInterrupt):
+                print()
+
+        if not TOKEN:
+            print(f"{Colors.CYAN}ℹ API Token is missing.{Colors.ENDC}")
+            try:
+                import getpass
+                t_input = getpass.getpass(f"{Colors.BOLD}Enter Control D API Token (hidden):{Colors.ENDC} ").strip()
+                if t_input:
+                    TOKEN = t_input
+            except (EOFError, KeyboardInterrupt):
+                print()
 
     if not profile_ids and not args.dry_run:
         log.error("PROFILE missing and --dry-run not set. Provide --profiles or set PROFILE env.")
