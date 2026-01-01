@@ -145,6 +145,7 @@ BATCH_SIZE = 500
 MAX_RETRIES = 10
 RETRY_DELAY = 1            
 FOLDER_CREATION_DELAY = 5  # <--- CHANGED: Increased from 2 to 5 for patience
+MAX_RESPONSE_SIZE = 10 * 1024 * 1024  # 10 MB limit for downloaded files
 
 # --------------------------------------------------------------------------- #
 # 2. Clients
@@ -221,9 +222,18 @@ def _retry_request(request_func, max_retries=MAX_RETRIES, delay=RETRY_DELAY):
 
 def _gh_get(url: str) -> Dict:
     if url not in _cache:
-        r = _gh.get(url)
-        r.raise_for_status()
-        _cache[url] = r.json()
+        try:
+            with _gh.stream("GET", url) as r:
+                r.raise_for_status()
+                content = b""
+                for chunk in r.iter_bytes():
+                    content += chunk
+                    if len(content) > MAX_RESPONSE_SIZE:
+                        raise ValueError(f"Response too large from {sanitize_for_log(url)} (limit: {MAX_RESPONSE_SIZE} bytes)")
+
+                _cache[url] = json.loads(content)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON from {sanitize_for_log(url)}: {e}")
     return _cache[url]
 
 def list_existing_folders(client: httpx.Client, profile_id: str) -> Dict[str, str]:
@@ -482,7 +492,7 @@ def sync_profile(
                 url = future_to_url[future]
                 try:
                     folder_data_list.append(future.result())
-                except (httpx.HTTPError, KeyError) as e:
+                except (httpx.HTTPError, KeyError, ValueError) as e:
                     log.error(f"Failed to fetch folder data from {sanitize_for_log(url)}: {sanitize_for_log(e)}")
                     continue
 
