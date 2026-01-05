@@ -25,3 +25,10 @@
 1. Use streaming responses (`client.stream("GET", ...)`) when fetching external resources.
 2. Inspect `Content-Length` headers if available.
 3. Enforce a hard limit on the number of bytes read during the stream loop.
+
+## 2025-01-21 - [SSRF Protection and Input Limits]
+**Vulnerability:** The `folder_url` validation checked for HTTPS but allowed internal IP addresses (e.g., `127.0.0.1`, `10.0.0.0/8`). This could theoretically allow Server-Side Request Forgery (SSRF) if the script is run in an environment with access to sensitive internal services. Additionally, `profile_id` had no length limit.
+**Learning:** HTTPS validation alone is insufficient to prevent SSRF against internal services that might support HTTPS or use self-signed certs (if verification was disabled or bypassed). Explicitly blocking private IP ranges provides necessary defense-in-depth.
+**Prevention:**
+1. Parse URLs and check hostnames against `localhost` and private IP ranges using `ipaddress` module.
+2. Enforce strict length limits on user inputs (e.g., profile IDs) to prevent resource exhaustion or buffer abuse.
