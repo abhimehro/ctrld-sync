@@ -96,8 +96,11 @@ API_BASE = "https://api.controld.com/profiles"
 
 
 def sanitize_for_log(text: Any) -> str:
-    """Sanitize text for logging."""
-    safe = repr(str(text))
+    """Sanitize text for logging, ensuring TOKEN is redacted."""
+    s = str(text)
+    if TOKEN and TOKEN in s:
+        s = s.replace(TOKEN, "[REDACTED]")
+    safe = repr(s)
     if len(safe) >= 2 and safe[0] == safe[-1] and safe[0] in ("'", '"'):
         return safe[1:-1]
     return safe
