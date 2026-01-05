@@ -453,31 +453,32 @@ def _process_single_folder(
     profile_id: str,
     existing_rules: Set[str],
     existing_rules_lock: threading.Lock,
+    client: httpx.Client,
 ) -> bool:
     grp = folder_data["group"]
     name = grp["group"].strip()
 
-    with _api_client() as client:
-        main_do = grp.get("action", {}).get("do", 0)
-        main_status = grp.get("action", {}).get("status", 1)
+    # Client is now passed in, reusing the connection
+    main_do = grp.get("action", {}).get("do", 0)
+    main_status = grp.get("action", {}).get("status", 1)
 
-        folder_id = create_folder(client, profile_id, name, main_do, main_status)
-        if not folder_id:
-            return False
+    folder_id = create_folder(client, profile_id, name, main_do, main_status)
+    if not folder_id:
+        return False
 
-        folder_success = True
-        if "rule_groups" in folder_data:
-            for rule_group in folder_data["rule_groups"]:
-                action = rule_group.get("action", {})
-                do = action.get("do", 0)
-                status = action.get("status", 1)
-                hostnames = [r["PK"] for r in rule_group.get("rules", []) if r.get("PK")]
-                if not push_rules(profile_id, name, folder_id, do, status, hostnames, existing_rules, client, existing_rules_lock):
-                    folder_success = False
-        else:
-            hostnames = [r["PK"] for r in folder_data.get("rules", []) if r.get("PK")]
-            if not push_rules(profile_id, name, folder_id, main_do, main_status, hostnames, existing_rules, client, existing_rules_lock):
+    folder_success = True
+    if "rule_groups" in folder_data:
+        for rule_group in folder_data["rule_groups"]:
+            action = rule_group.get("action", {})
+            do = action.get("do", 0)
+            status = action.get("status", 1)
+            hostnames = [r["PK"] for r in rule_group.get("rules", []) if r.get("PK")]
+            if not push_rules(profile_id, name, folder_id, do, status, hostnames, existing_rules, client, existing_rules_lock):
                 folder_success = False
+    else:
+        hostnames = [r["PK"] for r in folder_data.get("rules", []) if r.get("PK")]
+        if not push_rules(profile_id, name, folder_id, main_do, main_status, hostnames, existing_rules, client, existing_rules_lock):
+            folder_success = False
 
     return folder_success
 
@@ -553,7 +554,16 @@ def sync_profile(
             log.info("Dry-run complete: no API calls were made.")
             return True
 
-        # Initial client for getting existing state
+        # Create new folders and push rules
+        success_count = 0
+        existing_rules_lock = threading.Lock()
+
+        # CRITICAL FIX: Switch to Serial Processing (1 worker)
+        # This prevents API rate limits and ensures stability for large folders.
+        max_workers = 1
+
+        # Initial client for getting existing state AND processing folders
+        # Optimization: Reuse the same client session to keep TCP connections alive
         with _api_client() as client:
             existing_folders = list_existing_folders(client, profile_id)
             if not no_delete:
@@ -571,34 +581,27 @@ def sync_profile(
 
             existing_rules = get_all_existing_rules(client, profile_id)
 
-        # Create new folders and push rules
-        success_count = 0
-        existing_rules_lock = threading.Lock()
+            with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+                future_to_folder = {
+                    executor.submit(
+                        _process_single_folder,
+                        folder_data,
+                        profile_id,
+                        existing_rules,
+                        existing_rules_lock,
+                        client  # Pass the persistent client
+                    ): folder_data
+                    for folder_data in folder_data_list
+                }
 
-        # CRITICAL FIX: Switch to Serial Processing (1 worker)
-        # This prevents API rate limits and ensures stability for large folders.
-        max_workers = 1 
-
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            future_to_folder = {
-                executor.submit(
-                    _process_single_folder,
-                    folder_data,
-                    profile_id,
-                    existing_rules,
-                    existing_rules_lock
-                ): folder_data
-                for folder_data in folder_data_list
-            }
-
-            for future in concurrent.futures.as_completed(future_to_folder):
-                folder_data = future_to_folder[future]
-                folder_name = folder_data["group"]["group"].strip()
-                try:
-                    if future.result():
-                        success_count += 1
-                except Exception as e:
-                    log.error(f"Failed to process folder '{folder_name}': {e}")
+                for future in concurrent.futures.as_completed(future_to_folder):
+                    folder_data = future_to_folder[future]
+                    folder_name = folder_data["group"]["group"].strip()
+                    try:
+                        if future.result():
+                            success_count += 1
+                    except Exception as e:
+                        log.error(f"Failed to process folder '{folder_name}': {e}")
 
         log.info(f"Sync complete: {success_count}/{len(folder_data_list)} folders processed successfully")
         return success_count == len(folder_data_list)
