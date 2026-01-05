@@ -359,8 +359,8 @@ def get_all_existing_rules(client: httpx.Client, profile_id: str) -> Set[str]:
         folders = list_existing_folders(client, profile_id)
 
         # Parallelize fetching rules from folders.
-        # Using 5 workers to be safe with rate limits, though GETs are usually cheaper.
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        # Using 10 workers to speed up rule fetching (GETs are cheaper).
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
             futures = [
                 executor.submit(_fetch_folder_rules, folder_id)
                 for folder_name, folder_id in folders.items()
@@ -489,11 +489,11 @@ def push_rules(
         log.info(f"Folder {sanitize_for_log(folder_name)} - no new rules to push after filtering duplicates")
         return True
 
-    successful_batches = 0
     total_batches = len(range(0, len(filtered_hostnames), BATCH_SIZE))
 
-    for i, start in enumerate(range(0, len(filtered_hostnames), BATCH_SIZE), 1):
-        batch = filtered_hostnames[start : start + BATCH_SIZE]
+    # Helper for processing a single batch
+    def _push_batch(batch_idx: int, start_idx: int) -> bool:
+        batch = filtered_hostnames[start_idx : start_idx + BATCH_SIZE]
         data = {
             "do": str(do),
             "status": str(status),
@@ -506,18 +506,34 @@ def push_rules(
             _api_post_form(client, f"{API_BASE}/{profile_id}/rules", data=data)
             log.info(
                 "Folder %s – batch %d: added %d rules",
-                sanitize_for_log(folder_name), i, len(batch)
+                sanitize_for_log(folder_name), batch_idx, len(batch)
             )
-            successful_batches += 1
+
+            # Thread-safe update of existing rules
             if existing_rules_lock:
                 with existing_rules_lock:
                     existing_rules.update(batch)
             else:
                 existing_rules.update(batch)
+            return True
         except httpx.HTTPError as e:
-            log.error(f"Failed to push batch {i} for folder {sanitize_for_log(folder_name)}: {sanitize_for_log(e)}")
+            log.error(f"Failed to push batch {batch_idx} for folder {sanitize_for_log(folder_name)}: {sanitize_for_log(e)}")
             if hasattr(e, 'response') and e.response is not None:
                 log.debug(f"Response content: {e.response.text}")
+            return False
+
+    # Parallelize batch uploads to speed up large folders
+    # Using 5 workers to be safe with POST rate limits while getting significant speedup
+    successful_batches = 0
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        futures = {
+            executor.submit(_push_batch, i, start): i
+            for i, start in enumerate(range(0, len(filtered_hostnames), BATCH_SIZE), 1)
+        }
+
+        for future in concurrent.futures.as_completed(futures):
+            if future.result():
+                successful_batches += 1
 
     if successful_batches == total_batches:
         log.info("Folder %s – finished (%d new rules added)", sanitize_for_log(folder_name), len(filtered_hostnames))
