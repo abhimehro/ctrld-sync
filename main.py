@@ -327,6 +327,23 @@ def list_existing_folders(client: httpx.Client, profile_id: str) -> Dict[str, st
 
 def get_all_existing_rules(client: httpx.Client, profile_id: str) -> Set[str]:
     all_rules = set()
+    all_rules_lock = threading.Lock()
+
+    def _fetch_folder_rules(folder_id: str):
+        try:
+            data = _api_get(client, f"{API_BASE}/{profile_id}/rules/{folder_id}").json()
+            folder_rules = data.get("body", {}).get("rules", [])
+            with all_rules_lock:
+                for rule in folder_rules:
+                    if rule.get("PK"):
+                        all_rules.add(rule["PK"])
+        except httpx.HTTPError:
+            pass
+        except Exception as e:
+            # We log error but don't stop the whole process;
+            # individual folder failure shouldn't crash the sync
+            log.warning(f"Error fetching rules for folder {folder_id}: {e}")
+
     try:
         # Get rules from root
         try:
@@ -338,17 +355,17 @@ def get_all_existing_rules(client: httpx.Client, profile_id: str) -> Set[str]:
         except httpx.HTTPError:
             pass
 
-        # Get rules from folders
+        # Get rules from folders in parallel
         folders = list_existing_folders(client, profile_id)
-        for folder_name, folder_id in folders.items():
-            try:
-                data = _api_get(client, f"{API_BASE}/{profile_id}/rules/{folder_id}").json()
-                folder_rules = data.get("body", {}).get("rules", [])
-                for rule in folder_rules:
-                    if rule.get("PK"):
-                        all_rules.add(rule["PK"])
-            except httpx.HTTPError:
-                continue
+
+        # Parallelize fetching rules from folders.
+        # Using MAX_READ_WORKERS to speed up the initial sync state check.
+        with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_READ_WORKERS) as executor:
+            futures = [
+                executor.submit(_fetch_folder_rules, folder_id)
+                for folder_name, folder_id in folders.items()
+            ]
+            concurrent.futures.wait(futures)
 
         log.info(f"Total existing rules across all folders: {len(all_rules)}")
         return all_rules
@@ -724,9 +741,10 @@ def main():
     success_count = 0
     sync_results = []
 
+    profile_id = "unknown"
+    start_time = time.time()
+
     try:
-        profile_id = None
-        start_time = time.time()
         for profile_id in (profile_ids or ["dry-run-placeholder"]):
             start_time = time.time()
             # Skip validation for dry-run placeholder
@@ -775,22 +793,21 @@ def main():
             })
     except KeyboardInterrupt:
         duration = time.time() - start_time
-        log.warning("\n⚠️  Sync cancelled by user. Finishing current task...")
+        print(f"\n{Colors.WARNING}⚠️  Sync cancelled by user. Finishing current task...{Colors.ENDC}")
 
-        if profile_id:
-            # Try to recover stats for the interrupted profile
-            entry = next((p for p in plan if p["profile"] == profile_id), None)
-            folder_count = len(entry["folders"]) if entry else 0
-            rule_count = sum(f["rules"] for f in entry["folders"]) if entry else 0
+        # Try to recover stats for the interrupted profile
+        entry = next((p for p in plan if p["profile"] == profile_id), None)
+        folder_count = len(entry["folders"]) if entry else 0
+        rule_count = sum(f["rules"] for f in entry["folders"]) if entry else 0
 
-            sync_results.append({
-                "profile": profile_id,
-                "folders": folder_count,
-                "rules": rule_count,
-                "status_label": "⛔ Cancelled",
-                "success": False,
-                "duration": duration,
-            })
+        sync_results.append({
+            "profile": profile_id,
+            "folders": folder_count,
+            "rules": rule_count,
+            "status_label": "⛔ Cancelled",
+            "success": False,
+            "duration": duration,
+        })
 
     if args.plan_json:
         with open(args.plan_json, "w", encoding="utf-8") as f:
