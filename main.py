@@ -22,6 +22,8 @@ import time
 import re
 import concurrent.futures
 import threading
+import ipaddress
+from urllib.parse import urlparse
 from typing import Dict, List, Optional, Any, Set, Sequence
 
 import httpx
@@ -187,13 +189,41 @@ _cache: Dict[str, Dict] = {}
 
 def validate_folder_url(url: str) -> bool:
     if not url.startswith("https://"):
-        log.warning(f"Skipping unsafe or invalid URL: {sanitize_for_log(url)}")
+        log.warning(f"Skipping unsafe or invalid URL (must be https): {sanitize_for_log(url)}")
         return False
+
+    try:
+        parsed = urlparse(url)
+        hostname = parsed.hostname
+        if not hostname:
+            return False
+
+        # Check for potentially malicious hostnames
+        if hostname.lower() in ('localhost', '127.0.0.1', '::1'):
+             log.warning(f"Skipping unsafe URL (localhost detected): {sanitize_for_log(url)}")
+             return False
+
+        try:
+            ip = ipaddress.ip_address(hostname)
+            if ip.is_private or ip.is_loopback:
+                log.warning(f"Skipping unsafe URL (private IP): {sanitize_for_log(url)}")
+                return False
+        except ValueError:
+            # Not an IP literal, it's a domain.
+            pass
+
+    except Exception as e:
+        log.warning(f"Failed to validate URL {sanitize_for_log(url)}: {e}")
+        return False
+
     return True
 
 def validate_profile_id(profile_id: str) -> bool:
     if not re.match(r"^[a-zA-Z0-9_-]+$", profile_id):
         log.error("Invalid profile ID format (contains unsafe characters)")
+        return False
+    if len(profile_id) > 64:
+        log.error("Invalid profile ID length (max 64 chars)")
         return False
     return True
 
