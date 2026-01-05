@@ -313,33 +313,26 @@ def _gh_get(url: str) -> Dict:
     return _cache[url]
 
 def list_existing_folders(client: httpx.Client, profile_id: str) -> Dict[str, str]:
-    try:
-        data = _api_get(client, f"{API_BASE}/{profile_id}/groups").json()
-        folders = data.get("body", {}).get("groups", [])
-        return {
-            f["group"].strip(): f["PK"]
-            for f in folders
-            if f.get("group") and f.get("PK")
-        }
-    except (httpx.HTTPError, KeyError) as e:
-        log.error(f"Failed to list existing folders: {sanitize_for_log(e)}")
-        return {}
-
-def _fetch_folder_rules(client: httpx.Client, profile_id: str, folder_id: str) -> Set[str]:
-    """Helper to fetch rules for a single folder."""
-    rules = set()
-    try:
-        data = _api_get(client, f"{API_BASE}/{profile_id}/rules/{folder_id}").json()
-        folder_rules = data.get("body", {}).get("rules", [])
-        for rule in folder_rules:
-            if rule.get("PK"):
-                rules.add(rule["PK"])
-    except httpx.HTTPError:
-        pass
-    return rules
 
 def get_all_existing_rules(client: httpx.Client, profile_id: str) -> Set[str]:
     all_rules = set()
+    all_rules_lock = threading.Lock()
+
+    def _fetch_folder_rules(folder_id: str):
+        try:
+            data = _api_get(client, f"{API_BASE}/{profile_id}/rules/{folder_id}").json()
+            folder_rules = data.get("body", {}).get("rules", [])
+            with all_rules_lock:
+                for rule in folder_rules:
+                    if rule.get("PK"):
+                        all_rules.add(rule["PK"])
+        except httpx.HTTPError:
+            pass
+        except Exception as e:
+            # We log error but don't stop the whole process;
+            # individual folder failure shouldn't crash the sync
+            log.warning(f"Error fetching rules for folder {folder_id}: {e}")
+
     try:
         # Get rules from root
         try:
@@ -351,24 +344,23 @@ def get_all_existing_rules(client: httpx.Client, profile_id: str) -> Set[str]:
         except httpx.HTTPError:
             pass
 
-        # Get rules from folders (Parallelized)
+        # Get rules from folders in parallel
         folders = list_existing_folders(client, profile_id)
 
-        # We can use more workers here because these are read-only GET requests
-        # and we want to speed up the initial sync state check.
+        # Parallelize fetching rules from folders.
+        # Using MAX_READ_WORKERS to speed up the initial sync state check.
         with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_READ_WORKERS) as executor:
-            future_to_folder = {
-                executor.submit(_fetch_folder_rules, client, profile_id, folder_id): folder_name
+            futures = [
+                executor.submit(_fetch_folder_rules, folder_id)
                 for folder_name, folder_id in folders.items()
-            }
+            ]
+            concurrent.futures.wait(futures)
 
-            for future in concurrent.futures.as_completed(future_to_folder):
-                try:
-                    folder_rules = future.result()
-                    all_rules.update(folder_rules)
-                except Exception as e:
-                    folder_name = future_to_folder[future]
-                    log.warning(f"Failed to fetch rules for folder {folder_name}: {e}")
+        log.info(f"Total existing rules across all folders: {len(all_rules)}")
+        return all_rules
+    except Exception as e:
+        log.error(f"Failed to get existing rules: {sanitize_for_log(e)}")
+        return set()
 
         log.info(f"Total existing rules across all folders: {len(all_rules)}")
         return all_rules
@@ -744,50 +736,71 @@ def main():
     success_count = 0
     sync_results = []
 
-    for profile_id in (profile_ids or ["dry-run-placeholder"]):
-        start_time = time.time()
-        # Skip validation for dry-run placeholder
-        if profile_id != "dry-run-placeholder" and not validate_profile_id(profile_id):
+    profile_id = "unknown"
+    start_time = time.time()
+
+    try:
+        for profile_id in (profile_ids or ["dry-run-placeholder"]):
+            start_time = time.time()
+            # Skip validation for dry-run placeholder
+            if profile_id != "dry-run-placeholder" and not validate_profile_id(profile_id):
+                sync_results.append({
+                    "profile": profile_id,
+                    "folders": 0,
+                    "rules": 0,
+                    "status_label": "❌ Invalid Profile ID",
+                    "success": False,
+                    "duration": 0.0,
+                })
+                continue
+
+            log.info("Starting sync for profile %s", profile_id)
+            status = sync_profile(
+                profile_id,
+                folder_urls,
+                dry_run=args.dry_run,
+                no_delete=args.no_delete,
+                plan_accumulator=plan,
+            )
+            end_time = time.time()
+            duration = end_time - start_time
+
+            if status:
+                success_count += 1
+
+            # RESTORED STATS LOGIC: Calculate actual counts from the plan
+            entry = next((p for p in plan if p["profile"] == profile_id), None)
+            folder_count = len(entry["folders"]) if entry else 0
+            rule_count = sum(f["rules"] for f in entry["folders"]) if entry else 0
+
+            if args.dry_run:
+                status_text = "✅ Planned" if status else "❌ Failed (Dry)"
+            else:
+                status_text = "✅ Success" if status else "❌ Failed"
+
             sync_results.append({
                 "profile": profile_id,
-                "folders": 0,
-                "rules": 0,
-                "status_label": "❌ Invalid Profile ID",
-                "success": False,
-                "duration": 0.0,
+                "folders": folder_count,
+                "rules": rule_count,
+                "status_label": status_text,
+                "success": status,
+                "duration": duration,
             })
-            continue
+    except KeyboardInterrupt:
+        duration = time.time() - start_time
+        print(f"\n{Colors.WARNING}⚠️  Sync cancelled by user. Finishing current task...{Colors.ENDC}")
 
-        log.info("Starting sync for profile %s", profile_id)
-        status = sync_profile(
-            profile_id,
-            folder_urls,
-            dry_run=args.dry_run,
-            no_delete=args.no_delete,
-            plan_accumulator=plan,
-        )
-        end_time = time.time()
-        duration = end_time - start_time
-
-        if status:
-            success_count += 1
-
-        # RESTORED STATS LOGIC: Calculate actual counts from the plan
+        # Try to recover stats for the interrupted profile
         entry = next((p for p in plan if p["profile"] == profile_id), None)
         folder_count = len(entry["folders"]) if entry else 0
         rule_count = sum(f["rules"] for f in entry["folders"]) if entry else 0
-
-        if args.dry_run:
-            status_text = "✅ Planned" if status else "❌ Failed (Dry)"
-        else:
-            status_text = "✅ Success" if status else "❌ Failed"
 
         sync_results.append({
             "profile": profile_id,
             "folders": folder_count,
             "rules": rule_count,
-            "status_label": status_text,
-            "success": status,
+            "status_label": "⛔ Cancelled",
+            "success": False,
             "duration": duration,
         })
 
