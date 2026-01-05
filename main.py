@@ -160,6 +160,7 @@ BATCH_SIZE = 500
 MAX_RETRIES = 10
 RETRY_DELAY = 1            
 FOLDER_CREATION_DELAY = 5  # <--- CHANGED: Increased from 2 to 5 for patience
+MAX_RESPONSE_SIZE = 10 * 1024 * 1024  # 10MB limit
 
 # --------------------------------------------------------------------------- #
 # 2. Clients
@@ -237,29 +238,45 @@ def _retry_request(request_func, max_retries=MAX_RETRIES, delay=RETRY_DELAY):
 
 def _gh_get(url: str) -> Dict:
     if url not in _cache:
-        try:
-            with _gh.stream("GET", url) as r:
-                r.raise_for_status()
+        # Explicitly let HTTPError propagate (no need to catch just to re-raise)
+        with _gh.stream("GET", url) as r:
+            r.raise_for_status()
 
-                # 1. Content-Length header check
-                cl = r.headers.get("Content-Length")
-                if cl and int(cl) > MAX_RESPONSE_SIZE:
-                    raise ValueError(f"Response too large ({cl} bytes)")
+            # 1. Check Content-Length header if present
+            cl = r.headers.get("Content-Length")
+            if cl:
+                try:
+                    if int(cl) > MAX_RESPONSE_SIZE:
+                        raise ValueError(
+                            f"Response too large from {sanitize_for_log(url)} "
+                            f"({int(cl) / (1024 * 1024):.2f} MB)"
+                        )
+                except ValueError as e:
+                    # Only catch the conversion error, let the size error propagate
+                    if "Response too large" in str(e):
+                        raise e
+                    log.warning(
+                        f"Malformed Content-Length header from {sanitize_for_log(url)}: {cl!r}. "
+                        "Falling back to streaming size check."
+                    )
 
-                # 2. Streaming read with size check
-                content_chunks = []
-                total_size = 0
-                for chunk in r.iter_bytes():
-                    total_size += len(chunk)
-                    if total_size > MAX_RESPONSE_SIZE:
-                        raise ValueError(f"Response too large (> {MAX_RESPONSE_SIZE} bytes)")
-                    content_chunks.append(chunk)
+            # 2. Stream and check actual size
+            chunks = []
+            current_size = 0
+            for chunk in r.iter_bytes():
+                current_size += len(chunk)
+                if current_size > MAX_RESPONSE_SIZE:
+                    raise ValueError(
+                        f"Response too large from {sanitize_for_log(url)} "
+                        f"(> {MAX_RESPONSE_SIZE / (1024 * 1024):.2f} MB)"
+                    )
+                chunks.append(chunk)
 
-                full_content = b"".join(content_chunks)
-                _cache[url] = json.loads(full_content)
-        except ValueError as e:
-            # Re-raise size errors or JSON errors
-            raise ValueError(f"Failed to fetch {sanitize_for_log(url)}: {e}") from e
+            try:
+                _cache[url] = json.loads(b"".join(chunks))
+            except json.JSONDecodeError as e:
+                raise ValueError(f"Invalid JSON response from {sanitize_for_log(url)}") from e
+
     return _cache[url]
 
 def list_existing_folders(client: httpx.Client, profile_id: str) -> Dict[str, str]:
@@ -519,7 +536,7 @@ def sync_profile(
                 url = future_to_url[future]
                 try:
                     folder_data_list.append(future.result())
-                except (httpx.HTTPError, KeyError) as e:
+                except (httpx.HTTPError, KeyError, ValueError) as e:
                     log.error(f"Failed to fetch folder data from {sanitize_for_log(url)}: {sanitize_for_log(e)}")
                     continue
 
