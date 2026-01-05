@@ -17,3 +17,25 @@
 **Prevention:**
 1. Log potentially sensitive data (like raw HTTP bodies) only at `DEBUG` level.
 2. At `INFO`/`ERROR` levels, log only safe summaries or status codes.
+
+## 2024-12-16 - [DoS via Unbounded Response Size]
+**Vulnerability:** The `_gh_get` function downloaded external JSON resources without any size limit. A malicious URL or compromised server could serve a massive file (e.g., 10GB), causing the application to consume all available memory (RAM) and crash (Denial of Service).
+**Learning:** When fetching data from external sources, never assume the response size is safe. `httpx.get()` (and `requests.get`) reads the entire body into memory by default.
+**Prevention:**
+1. Use streaming responses (`client.stream("GET", ...)`) when fetching external resources.
+2. Inspect `Content-Length` headers if available.
+3. Enforce a hard limit on the number of bytes read during the stream loop.
+
+## 2024-12-22 - [Sensitive Data Exposure in Logs (Headers)]
+**Vulnerability:** The application's `sanitize_for_log` function was insufficient, only escaping characters but not redacting secrets. If an exception occurred that included headers (e.g. `Authorization`), the `TOKEN` could be exposed in logs.
+**Learning:** Generic sanitization (like `repr()`) is not enough for secrets. Explicit redaction of known secrets is required.
+**Prevention:**
+1. Maintain a list of sensitive values (tokens, keys).
+2. Ensure logging utilities check against this list and mask values before outputting.
+
+## 2025-01-21 - [SSRF Protection and Input Limits]
+**Vulnerability:** The `folder_url` validation checked for HTTPS but allowed internal IP addresses (e.g., `127.0.0.1`, `10.0.0.0/8`). This could theoretically allow Server-Side Request Forgery (SSRF) if the script is run in an environment with access to sensitive internal services. Additionally, `profile_id` had no length limit.
+**Learning:** HTTPS validation alone is insufficient to prevent SSRF against internal services that might support HTTPS or use self-signed certs (if verification was disabled or bypassed). Explicitly blocking private IP ranges provides necessary defense-in-depth.
+**Prevention:**
+1. Parse URLs and check hostnames against `localhost` and private IP ranges using `ipaddress` module.
+2. Enforce strict length limits on user inputs (e.g., profile IDs) to prevent resource exhaustion or buffer abuse.

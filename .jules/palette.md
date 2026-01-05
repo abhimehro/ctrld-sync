@@ -8,6 +8,14 @@
 **Learning:** CLI summary tables are the "dashboard" of a command-line tool. Missing visual cues (like color-coding status) in these tables reduces scannability, just like a dashboard widget without status indicators.
 **Action:** Always check if status indicators in CLI output are visually distinct (colored) to improve "glanceability" of the results.
 
+## 2024-03-22 - CLI Interactive Fallbacks
+**Learning:** CLI tools often fail hard when config is missing, but interactive contexts allow for graceful recovery. Users appreciate being asked for missing info instead of just receiving an error.
+**Action:** When `sys.stdin.isatty()` is true, prompt for missing configuration instead of exiting with an error code.
+
 ## 2025-05-21 - Graceful CLI Interruption
 **Learning:** Users often interrupt long-running CLI processes (syncs). Standard stack traces are scary and unhelpful. Providing a "partial summary" upon interruption respects the user's time and provides closure.
 **Action:** Wrap main loops in `try/except KeyboardInterrupt` to show what was accomplished before the user cancelled.
+
+## 2025-05-23 - Interactive Wait States
+**Learning:** Long static sleeps (like 60s) in CLIs cause "is it hung?" anxiety for users. Static logs aren't enough for long pauses.
+**Action:** Always use a countdown or progress indicator for waits > 5s to provide reassurance of activity.
