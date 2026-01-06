@@ -39,3 +39,11 @@
 **Prevention:**
 1. Parse URLs and check hostnames against `localhost` and private IP ranges using `ipaddress` module.
 2. Enforce strict length limits on user inputs (e.g., profile IDs) to prevent resource exhaustion or buffer abuse.
+
+## 2025-01-24 - [SSRF via DNS Resolution]
+**Vulnerability:** The `validate_folder_url` function performed checks on the initial hostname but did not resolve domains to their IP addresses. This allowed attackers to bypass private IP blocklists by using a custom domain (e.g., `local.test`) that resolves to a private IP (e.g., `127.0.0.1`), leading to SSRF.
+**Learning:** Validating hostnames without DNS resolution is insufficient for SSRF protection. Attackers can easily map public domains to internal IPs (DNS Rebinding/Pinning).
+**Prevention:**
+1. Resolve domains to their IP addresses using `socket.getaddrinfo`.
+2. Validate all resolved IPs against a blocklist of private/loopback ranges.
+3. Fail closed if DNS resolution fails.
