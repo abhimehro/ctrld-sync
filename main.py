@@ -267,7 +267,11 @@ def _retry_request(request_func, max_retries=MAX_RETRIES, delay=RETRY_DELAY):
                 raise
             wait_time = delay * (2 ** attempt)
             log.warning(f"Request failed (attempt {attempt + 1}/{max_retries}): {e}. Retrying in {wait_time}s...")
-            time.sleep(wait_time)
+
+            if wait_time >= 2:
+                countdown_timer(wait_time, "Retrying")
+            else:
+                time.sleep(wait_time)
 
 def _gh_get(url: str) -> Dict:
     if url not in _cache:
@@ -450,8 +454,11 @@ def create_folder(client: httpx.Client, profile_id: str, name: str, do: int, sta
 
             if attempt < MAX_RETRIES:
                 wait_time = FOLDER_CREATION_DELAY * (attempt + 1)
-                log.info(f"Folder '{name}' not found yet. Retrying in {wait_time}s...")
-                time.sleep(wait_time)
+                if USE_COLORS:
+                    countdown_timer(wait_time, f"Waiting for folder '{name}'")
+                else:
+                    log.info(f"Folder '{name}' not found yet. Retrying in {wait_time}s...")
+                    time.sleep(wait_time)
 
         log.error(f"Folder {sanitize_for_log(name)} was not found after creation and retries.")
         return None
