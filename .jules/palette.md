@@ -14,3 +14,7 @@
 ## 2024-03-22 - CLI Interactive Fallbacks
 **Learning:** CLI tools often fail hard when config is missing, but interactive contexts allow for graceful recovery. Users appreciate being asked for missing info instead of just receiving an error.
 **Action:** When `sys.stdin.isatty()` is true, prompt for missing configuration instead of exiting with an error code.
+
+## 2025-05-24 - CLI Hyperlinks & Alignment
+**Learning:** Adding ANSI escape codes (like hyperlinks) to CLI tables breaks standard column alignment because the string length increases invisibly.
+**Action:** When adding hyperlinks to table cells, manually calculate padding based on the visible text length, not the full string length.
