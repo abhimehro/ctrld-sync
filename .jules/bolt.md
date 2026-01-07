@@ -19,3 +19,7 @@
 ## 2024-05-24 - Avoid Copying Large Sets for Membership Checks
 **Learning:** Copying a large set (e.g. 100k items) to create a snapshot for read-only membership checks is expensive O(N) and unnecessary. Python's set membership testing is thread-safe.
 **Action:** When filtering data against a shared large set, iterate and check membership directly instead of snapshotting, unless strict transactional consistency across the entire iteration is required.
+
+## 2025-02-24 - Parallelize Batch Deletions
+**Learning:** Sequential deletion of resources (folders) via REST API is a major bottleneck when syncing state, as latency accumulates linearly. Since deletions are independent operations, they can be parallelized safely.
+**Action:** Use `ThreadPoolExecutor` to parallelize deletion loops, but limit max_workers (e.g., 5) to avoid rate limits.
