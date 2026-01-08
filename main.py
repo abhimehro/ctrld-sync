@@ -333,10 +333,13 @@ def get_all_existing_rules(client: httpx.Client, profile_id: str) -> Set[str]:
         try:
             data = _api_get(client, f"{API_BASE}/{profile_id}/rules/{folder_id}").json()
             folder_rules = data.get("body", {}).get("rules", [])
-            with all_rules_lock:
-                for rule in folder_rules:
-                    if rule.get("PK"):
-                        all_rules.add(rule["PK"])
+
+            # Optimization: Collect local rules first to minimize lock contention
+            local_rules = {rule["PK"] for rule in folder_rules if rule.get("PK")}
+
+            if local_rules:
+                with all_rules_lock:
+                    all_rules.update(local_rules)
         except httpx.HTTPError:
             pass
         except Exception as e:
