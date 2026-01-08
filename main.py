@@ -505,8 +505,8 @@ def push_rules(
         try:
             _api_post_form(client, f"{API_BASE}/{profile_id}/rules", data=data)
             log.info(
-                "Folder %s – batch %d: added %d rules",
-                sanitize_for_log(folder_name), i, len(batch)
+                "Folder %s – batch %d/%d: added %d rules",
+                sanitize_for_log(folder_name), i, total_batches, len(batch)
             )
             successful_batches += 1
             if existing_rules_lock:
