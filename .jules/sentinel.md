@@ -42,6 +42,14 @@
 
 ## 2025-01-24 - [SSRF via DNS Resolution]
 **Vulnerability:** The `validate_folder_url` function blocked private IP literals but failed to resolve domain names to check their underlying IPs. An attacker could use a domain (e.g., `local.test`) that resolves to a private IP (e.g., `127.0.0.1`) to bypass the SSRF protection and access internal services.
+**Learning:** Blocking IP literals is insufficient for SSRF protection. DNS resolution must be performed to verify that a domain does not resolve to a restricted IP address. Additionally, comprehensive checks are needed for all dangerous IP ranges (private, loopback, link-local, reserved, multicast).
+**Prevention:**
+1. Resolve domain names using `socket.getaddrinfo` before making requests.
+2. Verify all resolved IP addresses against private/loopback/link-local/reserved/multicast ranges.
+3. Handle DNS resolution failures securely (fail-closed), catching both `socket.gaierror` and `OSError`.
+4. Strip IPv6 zone identifiers before IP validation.
+**Known Limitations:**
+- DNS rebinding attacks (TOCTOU): An attacker's DNS server could return a safe IP during validation and a private IP during the actual request. This is a fundamental limitation of DNS-based SSRF protection.
 **Learning:** Blocking IP literals is insufficient for SSRF protection. DNS resolution must be performed to verify that a domain does not resolve to a restricted IP address. Note that check-time validation has TOCTOU limitations vs request-time verification.
 **Prevention:**
 1. Resolve domain names using `socket.getaddrinfo` before making requests.
