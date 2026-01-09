@@ -213,14 +213,26 @@ def validate_folder_url(url: str) -> bool:
             # Not an IP literal, it's a domain. Resolve to check for private IPs.
             try:
                 # Resolve hostname to IPs
+                # Note: This check has a Time-Of-Check-Time-Of-Use (TOCTOU) limitation.
+                # A malicious DNS server could return a safe IP now and a private IP later.
                 addr_infos = socket.getaddrinfo(hostname, None)
                 for family, kind, proto, canonname, sockaddr in addr_infos:
                     ip_str = sockaddr[0]
+
+                    # Strip IPv6 zone identifier if present (e.g., fe80::1%eth0)
+                    if '%' in ip_str:
+                        ip_str = ip_str.split('%', 1)[0]
+
                     resolved_ip = ipaddress.ip_address(ip_str)
-                    if resolved_ip.is_private or resolved_ip.is_loopback:
-                        log.warning(f"Skipping unsafe URL (domain {sanitize_for_log(hostname)} resolves to private IP {resolved_ip}): {sanitize_for_log(url)}")
+
+                    if (resolved_ip.is_private or
+                        resolved_ip.is_loopback or
+                        resolved_ip.is_link_local or
+                        resolved_ip.is_reserved or
+                        resolved_ip.is_multicast):
+                        log.warning(f"Skipping unsafe URL (domain {sanitize_for_log(hostname)} resolves to restricted IP {resolved_ip}): {sanitize_for_log(url)}")
                         return False
-            except socket.gaierror:
+            except (socket.gaierror, OSError):
                 log.warning(f"Could not resolve hostname {sanitize_for_log(hostname)}, treating as unsafe.")
                 return False
 
