@@ -504,10 +504,18 @@ def push_rules(
 
         try:
             _api_post_form(client, f"{API_BASE}/{profile_id}/rules", data=data)
-            log.info(
-                "Folder %s – batch %d: added %d rules",
-                sanitize_for_log(folder_name), i, len(batch)
-            )
+
+            if USE_COLORS:
+                sys.stderr.write(
+                    f"\r{Colors.CYAN}🚀 Folder {sanitize_for_log(folder_name)}: Pushing batch {i}/{total_batches}...{Colors.ENDC}"
+                )
+                sys.stderr.flush()
+            else:
+                log.info(
+                    "Folder %s – batch %d: added %d rules",
+                    sanitize_for_log(folder_name), i, len(batch)
+                )
+
             successful_batches += 1
             if existing_rules_lock:
                 with existing_rules_lock:
@@ -518,6 +526,11 @@ def push_rules(
             log.error(f"Failed to push batch {i} for folder {sanitize_for_log(folder_name)}: {sanitize_for_log(e)}")
             if hasattr(e, 'response') and e.response is not None:
                 log.debug(f"Response content: {e.response.text}")
+
+    if USE_COLORS:
+        # Clear the progress line
+        sys.stderr.write("\r" + " " * 80 + "\r")
+        sys.stderr.flush()
 
     if successful_batches == total_batches:
         log.info("Folder %s – finished (%d new rules added)", sanitize_for_log(folder_name), len(filtered_hostnames))
