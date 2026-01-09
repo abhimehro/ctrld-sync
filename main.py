@@ -489,7 +489,7 @@ def push_rules(
         log.info(f"Folder {sanitize_for_log(folder_name)} - no new rules to push after filtering duplicates")
         return True
 
-    total_batches = len(range(0, len(filtered_hostnames), BATCH_SIZE))
+    total_batches = (len(filtered_hostnames) + BATCH_SIZE - 1) // BATCH_SIZE
 
     # Helper for processing a single batch
     def _push_batch(batch_idx: int, start_idx: int) -> bool:
@@ -532,7 +532,20 @@ def push_rules(
         }
 
         for future in concurrent.futures.as_completed(futures):
-            if future.result():
+            batch_idx = futures[future]
+            try:
+                result = future.result()
+            except Exception as e:
+                log.error(
+                    "Unexpected error while processing batch %d for folder %s: %s",
+                    batch_idx,
+                    sanitize_for_log(folder_name),
+                    sanitize_for_log(e),
+                )
+                log.debug("Unexpected exception details", exc_info=True)
+                continue
+
+            if result:
                 successful_batches += 1
 
     if successful_batches == total_batches:
