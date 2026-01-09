@@ -14,3 +14,7 @@
 ## 2024-03-22 - CLI Interactive Fallbacks
 **Learning:** CLI tools often fail hard when config is missing, but interactive contexts allow for graceful recovery. Users appreciate being asked for missing info instead of just receiving an error.
 **Action:** When `sys.stdin.isatty()` is true, prompt for missing configuration instead of exiting with an error code.
+
+## 2025-06-15 - Managing Visual Noise
+**Learning:** Adding progress bars to verbose/chatty CLI processes (streams of logs) creates visual clutter and flickering. It's better to keep progress bars for "silent" wait states (like cache warming) and leave verbose processes as streams.
+**Action:** Only implement progress bars for phases that are otherwise silent or have low log volume; avoid them for high-frequency logging loops.
