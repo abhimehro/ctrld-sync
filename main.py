@@ -23,6 +23,7 @@ import re
 import concurrent.futures
 import threading
 import ipaddress
+import socket
 from urllib.parse import urlparse
 from typing import Dict, List, Optional, Any, Set, Sequence
 
@@ -209,8 +210,27 @@ def validate_folder_url(url: str) -> bool:
                 log.warning(f"Skipping unsafe URL (private IP): {sanitize_for_log(url)}")
                 return False
         except ValueError:
-            # Not an IP literal, it's a domain.
-            pass
+            # Not an IP literal, try to resolve it to check for private IPs
+            try:
+                resolved_ip_str = socket.gethostbyname(hostname)
+                resolved_ip = ipaddress.ip_address(resolved_ip_str)
+                if resolved_ip.is_private or resolved_ip.is_loopback:
+                    log.warning(f"Skipping unsafe URL (domain resolves to private IP {resolved_ip_str}): {sanitize_for_log(url)}")
+                    return False
+            except socket.gaierror:
+                # If we can't resolve it, we can't trust it (or it's just broken).
+                # However, for robustness, if it's a valid public URL that temporarily fails DNS,
+                # rejecting it is safer from a security perspective than allowing it blindly.
+                # But to avoid breaking valid use cases on flaky DNS, we might want to allow it
+                # OR be strict. Given this is a security tool, being strict is better?
+                # Actually, if we can't resolve it, httpx won't be able to fetch it anyway.
+                # So we can just log a warning and return False (or True and let httpx fail).
+                # Returning False prevents the request.
+                log.warning(f"Could not resolve hostname for validation: {sanitize_for_log(url)}")
+                return False
+            except ValueError:
+                # Should not happen if gethostbyname returns a valid IP string
+                pass
 
     except Exception as e:
         log.warning(f"Failed to validate URL {sanitize_for_log(url)}: {e}")
