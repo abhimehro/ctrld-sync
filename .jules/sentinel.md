@@ -50,3 +50,8 @@
 4. Strip IPv6 zone identifiers before IP validation.
 **Known Limitations:**
 - DNS rebinding attacks (TOCTOU): An attacker's DNS server could return a safe IP during validation and a private IP during the actual request. This is a fundamental limitation of DNS-based SSRF protection.
+**Learning:** Blocking IP literals is insufficient for SSRF protection. DNS resolution must be performed to verify that a domain does not resolve to a restricted IP address. Note that check-time validation has TOCTOU limitations vs request-time verification.
+**Prevention:**
+1. Resolve domain names using `socket.getaddrinfo` before making requests.
+2. Verify all resolved IP addresses against private, loopback, link-local, reserved, and multicast ranges.
+3. Handle DNS resolution failures and zone identifiers (IPv6) securely.

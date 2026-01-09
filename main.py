@@ -219,6 +219,8 @@ def validate_folder_url(url: str) -> bool:
             # DNS-based SSRF protection.
             try:
                 # Resolve hostname to IPs
+                # Note: This check has a Time-Of-Check-Time-Of-Use (TOCTOU) limitation.
+                # A malicious DNS server could return a safe IP now and a private IP later.
                 addr_infos = socket.getaddrinfo(hostname, None)
                 for family, kind, proto, canonname, sockaddr in addr_infos:
                     ip_str = sockaddr[0]
