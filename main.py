@@ -206,8 +206,10 @@ def validate_folder_url(url: str) -> bool:
 
         try:
             ip = ipaddress.ip_address(hostname)
-            if ip.is_private or ip.is_loopback:
-                log.warning(f"Skipping unsafe URL (private IP): {sanitize_for_log(url)}")
+            if (ip.is_private or ip.is_loopback or 
+                ip.is_link_local or ip.is_reserved or 
+                ip.is_multicast):
+                log.warning(f"Skipping unsafe URL (restricted IP): {sanitize_for_log(url)}")
                 return False
         except ValueError:
             # Not an IP literal, it's a domain. Resolve to check for private IPs.
