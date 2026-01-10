@@ -19,3 +19,7 @@
 ## 2024-05-24 - Avoid Copying Large Sets for Membership Checks
 **Learning:** Copying a large set (e.g. 100k items) to create a snapshot for read-only membership checks is expensive O(N) and unnecessary. Python's set membership testing is thread-safe.
 **Action:** When filtering data against a shared large set, iterate and check membership directly instead of snapshotting, unless strict transactional consistency across the entire iteration is required.
+
+## 2024-05-24 - Parallelizing Batched API Calls
+**Learning:** For bulk API operations (like pushing rules) that are split into batches, processing batches in parallel (with limited workers) can drastically reduce total time compared to serial execution. However, strict rate limit compliance is crucial; using a small, fixed number of workers (e.g., 4) balances speed and safety.
+**Action:** Refactor serial batch loops to use `ThreadPoolExecutor` when the API supports concurrent requests, ensuring thread safety for any shared progress tracking or state updates.
