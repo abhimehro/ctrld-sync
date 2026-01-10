@@ -59,6 +59,28 @@ class Colors:
         BOLD = ''
         UNDERLINE = ''
 
+class ProgressBar:
+    def __init__(self, total: int, prefix: str = "Progress", length: int = 30):
+        self.total = total
+        self.prefix = prefix
+        self.length = length
+        self.current = 0
+
+    def increment(self):
+        self.current += 1
+        self._print()
+
+    def _print(self):
+        if not USE_COLORS or self.total == 0:
+            return
+        percent = float(self.current) / self.total
+        filled = int(self.length * percent)
+        bar = '█' * filled + '-' * (self.length - filled)
+        sys.stderr.write(f"\r{Colors.CYAN}{self.prefix} |{bar}| {self.current}/{self.total}{Colors.ENDC}")
+        sys.stderr.flush()
+        if self.current == self.total:
+            sys.stderr.write("\n")
+
 class ColoredFormatter(logging.Formatter):
     """Custom formatter to add colors to log levels."""
     LEVEL_COLORS = {
@@ -387,7 +409,9 @@ def warm_up_cache(urls: Sequence[str]) -> None:
     log.info(f"Warming up cache for {len(urls_to_fetch)} URLs...")
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = {executor.submit(_gh_get, url): url for url in urls_to_fetch}
+        pb = ProgressBar(len(futures), "Fetching")
         for future in concurrent.futures.as_completed(futures):
+            pb.increment()
             try:
                 future.result()
             except Exception as e:
@@ -673,7 +697,9 @@ def sync_profile(
                     for folder_data in folder_data_list
                 }
 
+                pb = ProgressBar(len(future_to_folder), "Syncing folders")
                 for future in concurrent.futures.as_completed(future_to_folder):
+                    pb.increment()
                     folder_data = future_to_folder[future]
                     folder_name = folder_data["group"]["group"].strip()
                     try:
