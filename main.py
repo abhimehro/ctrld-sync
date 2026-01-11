@@ -712,14 +712,16 @@ def main():
     if not args.dry_run and sys.stdin.isatty():
         if not profile_ids:
             print(f"{Colors.CYAN}ℹ Profile ID is missing.{Colors.ENDC}")
+            print(f"{Colors.BLUE}  (Tip: You can find this in your Control D dashboard URL: /profiles/<profile_id>){Colors.ENDC}")
             p_input = input(f"{Colors.BOLD}Enter Control D Profile ID:{Colors.ENDC} ").strip()
             if p_input:
                 profile_ids = [p.strip() for p in p_input.split(",") if p.strip()]
 
         if not TOKEN:
             print(f"{Colors.CYAN}ℹ API Token is missing.{Colors.ENDC}")
+            print(f"{Colors.BLUE}  (Tip: Generate this in Account > My Account > API Tokens){Colors.ENDC}")
             import getpass
-            t_input = getpass.getpass(f"{Colors.BOLD}Enter Control D API Token:{Colors.ENDC} ").strip()
+            t_input = getpass.getpass(f"{Colors.BOLD}Enter Control D API Token (input hidden):{Colors.ENDC} ").strip()
             if t_input:
                 TOKEN = t_input
 
