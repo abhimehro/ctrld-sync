@@ -39,3 +39,11 @@
 **Prevention:**
 1. Parse URLs and check hostnames against `localhost` and private IP ranges using `ipaddress` module.
 2. Enforce strict length limits on user inputs (e.g., profile IDs) to prevent resource exhaustion or buffer abuse.
+
+## 2024-05-22 - SSRF Protection: Link-Local Addresses and DNS Resolution
+**Vulnerability:** The application's SSRF protection checked private IPs but missed link-local addresses (e.g., `169.254.169.254`), exposing cloud metadata. Also, it only validated the hostname string, allowing bypass via DNS rebinding or domains pointing to private IPs.
+**Learning:** SSRF protection must verify the *resolved* IP address, not just the hostname string. Cloud environments require blocking link-local addresses (`169.254.0.0/16`) in addition to standard private ranges.
+**Prevention:**
+1. Use `socket.getaddrinfo` to resolve domains during validation.
+2. Check resolved IPs against `is_private`, `is_loopback`, AND `is_link_local`.
+3. Apply checks to both IP literals and resolved domain IPs.

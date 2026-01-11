@@ -23,6 +23,7 @@ import re
 import concurrent.futures
 import threading
 import ipaddress
+import socket
 from urllib.parse import urlparse
 from typing import Dict, List, Optional, Any, Set, Sequence
 
@@ -205,12 +206,27 @@ def validate_folder_url(url: str) -> bool:
 
         try:
             ip = ipaddress.ip_address(hostname)
-            if ip.is_private or ip.is_loopback:
-                log.warning(f"Skipping unsafe URL (private IP): {sanitize_for_log(url)}")
+            if ip.is_private or ip.is_loopback or ip.is_link_local:
+                log.warning(f"Skipping unsafe URL (private/unsafe IP): {sanitize_for_log(url)}")
                 return False
         except ValueError:
-            # Not an IP literal, it's a domain.
-            pass
+            # Not an IP literal, it's a domain. Resolve it.
+            try:
+                # Resolve hostname to check if it points to a private IP
+                # We use getaddrinfo to support both IPv4 and IPv6
+                for _, _, _, _, sockaddr in socket.getaddrinfo(hostname, None):
+                    ip_str = sockaddr[0]
+                    ip = ipaddress.ip_address(ip_str)
+                    # Block private, loopback, AND link-local (e.g. 169.254.x.x for cloud metadata)
+                    if ip.is_private or ip.is_loopback or ip.is_link_local:
+                        log.warning(f"Skipping unsafe URL (domain {hostname} resolves to unsafe IP {ip_str}): {sanitize_for_log(url)}")
+                        return False
+            except socket.gaierror:
+                log.warning(f"Skipping URL (DNS resolution failed): {sanitize_for_log(url)}")
+                return False
+            except Exception as e:
+                log.warning(f"Error resolving domain {sanitize_for_log(hostname)}: {e}")
+                return False
 
     except Exception as e:
         log.warning(f"Failed to validate URL {sanitize_for_log(url)}: {e}")
