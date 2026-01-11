@@ -492,6 +492,9 @@ def push_rules(
     successful_batches = 0
     total_batches = len(range(0, len(filtered_hostnames), BATCH_SIZE))
 
+    # Optimization: Pre-compute keys to avoid repeated string formatting
+    BATCH_KEYS = [f"hostnames[{k}]" for k in range(BATCH_SIZE)]
+
     for i, start in enumerate(range(0, len(filtered_hostnames), BATCH_SIZE), 1):
         batch = filtered_hostnames[start : start + BATCH_SIZE]
         data = {
@@ -500,7 +503,7 @@ def push_rules(
             "group": str(folder_id),
         }
         for j, hostname in enumerate(batch):
-            data[f"hostnames[{j}]"] = hostname
+            data[BATCH_KEYS[j]] = hostname
 
         try:
             _api_post_form(client, f"{API_BASE}/{profile_id}/rules", data=data)
@@ -646,11 +649,26 @@ def sync_profile(
             existing_folders = list_existing_folders(client, profile_id)
             if not no_delete:
                 deletion_occurred = False
+
+                # Identify folders to delete
+                folders_to_delete = []
                 for folder_data in folder_data_list:
                     name = folder_data["group"]["group"].strip()
                     if name in existing_folders:
-                        delete_folder(client, profile_id, name, existing_folders[name])
-                        deletion_occurred = True
+                        folders_to_delete.append((name, existing_folders[name]))
+
+                if folders_to_delete:
+                    # Parallelize deletion for speed
+                    # Using 5 workers to be safe, similar to rule fetching
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as delete_executor:
+                        futures = [
+                            delete_executor.submit(delete_folder, client, profile_id, name, fid)
+                            for name, fid in folders_to_delete
+                        ]
+                        # Wait for all deletions to complete
+                        concurrent.futures.wait(futures)
+
+                    deletion_occurred = True
                 
                 # CRITICAL FIX: Increased wait time for massive folders to clear
                 if deletion_occurred:
