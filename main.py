@@ -59,6 +59,12 @@ class Colors:
         BOLD = ''
         UNDERLINE = ''
 
+    @staticmethod
+    def link(text: str, url: str) -> str:
+        if not USE_COLORS:
+            return text
+        return f"\033]8;;{url}\033\\{text}\033]8;;\033\\"
+
 class ColoredFormatter(logging.Formatter):
     """Custom formatter to add colors to log levels."""
     LEVEL_COLORS = {
@@ -844,8 +850,14 @@ def main():
         # Use boolean success field for color logic
         status_color = Colors.GREEN if res['success'] else Colors.FAIL
 
+        # Create clickable profile ID
+        pid = res['profile']
+        # Pad manually because ANSI codes confuse f-string alignment
+        padding = " " * (profile_col_width - len(pid))
+        linked_pid = Colors.link(pid, f"https://controld.com/profiles/{pid}")
+
         print(
-            f"{res['profile']:<{profile_col_width}} | "
+            f"{linked_pid}{padding} | "
             f"{res['folders']:>10} | "
             f"{res['rules']:>10,} | "
             f"{res['duration']:>9.1f}s | "
