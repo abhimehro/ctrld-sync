@@ -646,11 +646,27 @@ def sync_profile(
             existing_folders = list_existing_folders(client, profile_id)
             if not no_delete:
                 deletion_occurred = False
+
+                # Identify folders to delete first
+                folders_to_delete = []
                 for folder_data in folder_data_list:
                     name = folder_data["group"]["group"].strip()
                     if name in existing_folders:
-                        delete_folder(client, profile_id, name, existing_folders[name])
-                        deletion_occurred = True
+                        folders_to_delete.append((name, existing_folders[name]))
+
+                if folders_to_delete:
+                    log.info(f"Deleting {len(folders_to_delete)} folders in parallel...")
+                    # Parallelize deletion of folders (I/O bound)
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as delete_executor:
+                        futures = [
+                            delete_executor.submit(delete_folder, client, profile_id, name, fid)
+                            for name, fid in folders_to_delete
+                        ]
+                        # Wait for all deletions to complete
+                        for future in concurrent.futures.as_completed(futures):
+                            future.result()
+
+                    deletion_occurred = True
                 
                 # CRITICAL FIX: Increased wait time for massive folders to clear
                 if deletion_occurred:
