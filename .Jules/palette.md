@@ -1,0 +1,3 @@
+## 2024-03-24 - CLI Interactive Prompt Enhancements
+**Learning:** For CLI tools that require external credentials (like API tokens), users often context-switch to find them. Providing specific navigation paths (e.g., "Account > My Account > API Tokens") or URL patterns directly in the prompt significantly reduces friction. Also, explicitly stating `(input hidden)` for `getpass` prompts prevents user confusion about whether input is being received.
+**Action:** When designing CLI onboarding flows, always include "where to find this" hints for credentials and explicit feedback indicators for hidden inputs.
