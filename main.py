@@ -710,18 +710,24 @@ def main():
 
     # Interactive prompts for missing config
     if not args.dry_run and sys.stdin.isatty():
-        if not profile_ids:
-            print(f"{Colors.CYAN}ℹ Profile ID is missing.{Colors.ENDC}")
-            p_input = input(f"{Colors.BOLD}Enter Control D Profile ID:{Colors.ENDC} ").strip()
-            if p_input:
-                profile_ids = [p.strip() for p in p_input.split(",") if p.strip()]
+        try:
+            if not profile_ids:
+                print(f"{Colors.CYAN}ℹ Profile ID is missing.{Colors.ENDC}")
+                print(f"{Colors.CYAN}  (Found in your Profile URL: https://controld.com/dashboard/profiles/<ID>){Colors.ENDC}")
+                p_input = input(f"{Colors.BOLD}Enter Control D Profile ID:{Colors.ENDC} ").strip()
+                if p_input:
+                    profile_ids = [p.strip() for p in p_input.split(",") if p.strip()]
 
-        if not TOKEN:
-            print(f"{Colors.CYAN}ℹ API Token is missing.{Colors.ENDC}")
-            import getpass
-            t_input = getpass.getpass(f"{Colors.BOLD}Enter Control D API Token:{Colors.ENDC} ").strip()
-            if t_input:
-                TOKEN = t_input
+            if not TOKEN:
+                print(f"{Colors.CYAN}ℹ API Token is missing.{Colors.ENDC}")
+                print(f"{Colors.CYAN}  (Generate in Preferences > API){Colors.ENDC}")
+                import getpass
+                t_input = getpass.getpass(f"{Colors.BOLD}Enter Control D API Token:{Colors.ENDC} ").strip()
+                if t_input:
+                    TOKEN = t_input
+        except KeyboardInterrupt:
+            print(f"\n{Colors.WARNING}⚠️  Input cancelled.{Colors.ENDC}")
+            sys.exit(1)
 
     if not profile_ids and not args.dry_run:
         log.error("PROFILE missing and --dry-run not set. Provide --profiles or set PROFILE env.")
