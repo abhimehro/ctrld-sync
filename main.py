@@ -23,6 +23,7 @@ import re
 import concurrent.futures
 import threading
 import ipaddress
+import socket
 from urllib.parse import urlparse
 from typing import Dict, List, Optional, Any, Set, Sequence
 
@@ -205,12 +206,18 @@ def validate_folder_url(url: str) -> bool:
 
         try:
             ip = ipaddress.ip_address(hostname)
-            if ip.is_private or ip.is_loopback:
-                log.warning(f"Skipping unsafe URL (private IP): {sanitize_for_log(url)}")
-                return False
         except ValueError:
-            # Not an IP literal, it's a domain.
-            pass
+            # Not an IP literal, try to resolve domain
+            try:
+                ip_str = socket.gethostbyname(hostname)
+                ip = ipaddress.ip_address(ip_str)
+            except (socket.gaierror, ValueError) as e:
+                log.warning(f"Failed to resolve hostname for {sanitize_for_log(url)}: {e}")
+                return False
+
+        if ip.is_private or ip.is_loopback:
+            log.warning(f"Skipping unsafe URL (resolves to private IP): {sanitize_for_log(url)} -> {ip}")
+            return False
 
     except Exception as e:
         log.warning(f"Failed to validate URL {sanitize_for_log(url)}: {e}")

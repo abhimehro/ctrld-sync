@@ -39,3 +39,11 @@
 **Prevention:**
 1. Parse URLs and check hostnames against `localhost` and private IP ranges using `ipaddress` module.
 2. Enforce strict length limits on user inputs (e.g., profile IDs) to prevent resource exhaustion or buffer abuse.
+
+## 2025-02-17 - [SSRF DNS Rebinding Prevention]
+**Vulnerability:** The `validate_folder_url` function checked for private IP literals but allowed domain names that resolved to private IPs, making the application vulnerable to SSRF via DNS rebinding or simple internal domain names.
+**Learning:** Simply checking if a hostname is a private IP string is not enough. You must resolve the domain to an IP address and check the resolved IP against private ranges.
+**Prevention:**
+1. Resolve domains using `socket.gethostbyname` or similar.
+2. Validate the resolved IP against private IP ranges using `ipaddress.is_private`.
+3. Handle DNS resolution failures gracefully (fail closed).
