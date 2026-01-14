@@ -23,6 +23,7 @@ import re
 import concurrent.futures
 import threading
 import ipaddress
+import socket
 from urllib.parse import urlparse
 from typing import Dict, List, Optional, Any, Set, Sequence
 
@@ -209,8 +210,24 @@ def validate_folder_url(url: str) -> bool:
                 log.warning(f"Skipping unsafe URL (private IP): {sanitize_for_log(url)}")
                 return False
         except ValueError:
-            # Not an IP literal, it's a domain.
-            pass
+            # Not an IP literal, it's a domain. Resolve it to check for private IPs.
+            try:
+                # Resolve hostname to check if it points to private IPs
+                # socket.getaddrinfo returns a list of tuples. sockaddr is the 5th element.
+                # For AF_INET/AF_INET6, sockaddr[0] is the IP address string.
+                addr_infos = socket.getaddrinfo(hostname, None)
+                for family, type_, proto, canonname, sockaddr in addr_infos:
+                    ip_str = sockaddr[0]
+                    ip = ipaddress.ip_address(ip_str)
+                    if ip.is_private or ip.is_loopback:
+                        log.warning(f"Skipping unsafe URL (domain resolves to private IP {ip_str}): {sanitize_for_log(url)}")
+                        return False
+            except (socket.gaierror, ValueError):
+                # If DNS resolution fails, or IP parsing fails, we pass.
+                # If it's a real DNS error, httpx will fail later.
+                pass
+            except Exception as e:
+                log.warning(f"DNS resolution check failed for {sanitize_for_log(url)}: {e}")
 
     except Exception as e:
         log.warning(f"Failed to validate URL {sanitize_for_log(url)}: {e}")

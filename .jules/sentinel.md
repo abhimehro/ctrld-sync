@@ -39,3 +39,10 @@
 **Prevention:**
 1. Parse URLs and check hostnames against `localhost` and private IP ranges using `ipaddress` module.
 2. Enforce strict length limits on user inputs (e.g., profile IDs) to prevent resource exhaustion or buffer abuse.
+
+## 2025-01-27 - [SSRF Protection via DNS Resolution]
+**Vulnerability:** The application's SSRF protection checked `hostname` strings for private IP literals but did not resolve domains. This allowed an attacker to bypass the check using a public domain that resolves to a private IP (e.g., `localtest.me` -> `127.0.0.1`).
+**Learning:** Checking hostnames only as strings is insufficient for SSRF protection because of DNS rebinding and public domains pointing to private IPs.
+**Prevention:**
+1. Resolve domains using `socket.getaddrinfo` and check all returned IPs against private ranges.
+2. Implement this check before making the connection.
