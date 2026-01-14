@@ -19,3 +19,7 @@
 ## 2024-05-24 - Avoid Copying Large Sets for Membership Checks
 **Learning:** Copying a large set (e.g. 100k items) to create a snapshot for read-only membership checks is expensive O(N) and unnecessary. Python's set membership testing is thread-safe.
 **Action:** When filtering data against a shared large set, iterate and check membership directly instead of snapshotting, unless strict transactional consistency across the entire iteration is required.
+
+## 2024-05-24 - Minimize Critical Sections
+**Learning:** Holding a lock while performing O(N) iteration (like adding items to a set one by one) serializes parallel workers, negating the benefit of concurrency. Preparing data in a thread-local structure and then merging it into the shared structure with a single operation (like `set.update`) keeps the critical section small and maximizes parallelism.
+**Action:** When using locks, perform as much work as possible (data preparation, parsing) outside the lock, and only acquire it for the final merge/update.
