@@ -23,6 +23,7 @@ import re
 import concurrent.futures
 import threading
 import ipaddress
+import socket
 from urllib.parse import urlparse
 from typing import Dict, List, Optional, Any, Set, Sequence
 
@@ -210,7 +211,26 @@ def validate_folder_url(url: str) -> bool:
                 return False
         except ValueError:
             # Not an IP literal, it's a domain.
-            pass
+            # Resolve to check if it points to a private IP (prevent SSRF)
+            try:
+                # Use getaddrinfo to support both IPv4 and IPv6
+                addr_infos = socket.getaddrinfo(hostname, None)
+                for family, type, proto, canonname, sockaddr in addr_infos:
+                    ip_str = sockaddr[0]
+                    # Remove IPv6 scope ID if present
+                    if '%' in ip_str:
+                        ip_str = ip_str.split('%')[0]
+
+                    ip = ipaddress.ip_address(ip_str)
+                    if ip.is_private or ip.is_loopback:
+                        log.warning(f"Skipping unsafe URL (domain resolves to private IP {ip_str}): {sanitize_for_log(url)}")
+                        return False
+            except socket.gaierror:
+                log.warning(f"Could not resolve hostname for validation: {sanitize_for_log(hostname)}")
+                return False
+            except Exception as e:
+                log.warning(f"Error during DNS resolution check: {e}")
+                return False
 
     except Exception as e:
         log.warning(f"Failed to validate URL {sanitize_for_log(url)}: {e}")
