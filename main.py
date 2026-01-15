@@ -48,6 +48,7 @@ class Colors:
         ENDC = '\033[0m'
         BOLD = '\033[1m'
         UNDERLINE = '\033[4m'
+        CLEAR_LINE = '\033[K'
     else:
         HEADER = ''
         BLUE = ''
@@ -58,6 +59,7 @@ class Colors:
         ENDC = ''
         BOLD = ''
         UNDERLINE = ''
+        CLEAR_LINE = ''
 
 class ColoredFormatter(logging.Formatter):
     """Custom formatter to add colors to log levels."""
@@ -492,6 +494,11 @@ def push_rules(
     successful_batches = 0
     total_batches = len(range(0, len(filtered_hostnames), BATCH_SIZE))
 
+    # UX: Initialize progress bar (Assumes serial execution for clean output)
+    if USE_COLORS:
+        sys.stderr.write(f"\r{Colors.CYAN}Syncing {sanitize_for_log(folder_name)}: [0/{total_batches}] batches{Colors.ENDC}{Colors.CLEAR_LINE}")
+        sys.stderr.flush()
+
     for i, start in enumerate(range(0, len(filtered_hostnames), BATCH_SIZE), 1):
         batch = filtered_hostnames[start : start + BATCH_SIZE]
         data = {
@@ -504,22 +511,37 @@ def push_rules(
 
         try:
             _api_post_form(client, f"{API_BASE}/{profile_id}/rules", data=data)
-            log.info(
-                "Folder %s – batch %d: added %d rules",
-                sanitize_for_log(folder_name), i, len(batch)
-            )
+
             successful_batches += 1
+
+            # UX: Update progress bar or log verbose
+            if USE_COLORS:
+                sys.stderr.write(f"\r{Colors.CYAN}Syncing {sanitize_for_log(folder_name)}: [{successful_batches}/{total_batches}] batches{Colors.ENDC}{Colors.CLEAR_LINE}")
+                sys.stderr.flush()
+            else:
+                log.info(
+                    "Folder %s – batch %d: added %d rules",
+                    sanitize_for_log(folder_name), i, len(batch)
+                )
+
             if existing_rules_lock:
                 with existing_rules_lock:
                     existing_rules.update(batch)
             else:
                 existing_rules.update(batch)
         except httpx.HTTPError as e:
+            if USE_COLORS:
+                sys.stderr.write("\n")
             log.error(f"Failed to push batch {i} for folder {sanitize_for_log(folder_name)}: {sanitize_for_log(e)}")
             if hasattr(e, 'response') and e.response is not None:
                 log.debug(f"Response content: {e.response.text}")
 
     if successful_batches == total_batches:
+        if USE_COLORS:
+            # Clear the progress line
+            sys.stderr.write(f"\r{Colors.CLEAR_LINE}")
+            sys.stderr.flush()
+
         log.info("Folder %s – finished (%d new rules added)", sanitize_for_log(folder_name), len(filtered_hostnames))
         return True
     else:

@@ -14,3 +14,7 @@
 ## 2024-03-22 - CLI Interactive Fallbacks
 **Learning:** CLI tools often fail hard when config is missing, but interactive contexts allow for graceful recovery. Users appreciate being asked for missing info instead of just receiving an error.
 **Action:** When `sys.stdin.isatty()` is true, prompt for missing configuration instead of exiting with an error code.
+
+## 2024-05-24 - Progress vs. Logs in CLI
+**Learning:** High-frequency logging (e.g., per-batch updates) floods the terminal and hides errors. Replacing it with an in-place progress bar significantly improves UX, but requires careful handling of non-interactive environments (CI logs) and concurrency (shared stderr).
+**Action:** Use `sys.stderr.isatty()` to toggle between "Rich Progress Mode" (interactive) and "Verbose Log Mode" (CI/Pipes).
