@@ -384,14 +384,43 @@ def warm_up_cache(urls: Sequence[str]) -> None:
     urls_to_fetch = [u for u in urls if u not in _cache and validate_folder_url(u)]
     if not urls_to_fetch:
         return
-    log.info(f"Warming up cache for {len(urls_to_fetch)} URLs...")
+
+    total = len(urls_to_fetch)
+    if not USE_COLORS:
+        log.info(f"Warming up cache for {total} URLs...")
+
+    completed = 0
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = {executor.submit(_gh_get, url): url for url in urls_to_fetch}
+
+        if USE_COLORS:
+            sys.stderr.write(f"\r{Colors.CYAN}⏳ Warming up cache: 0/{total}...{Colors.ENDC}")
+            sys.stderr.flush()
+
         for future in concurrent.futures.as_completed(futures):
+            completed += 1
+            if USE_COLORS:
+                sys.stderr.write(f"\r{Colors.CYAN}⏳ Warming up cache: {completed}/{total}...{Colors.ENDC}")
+                sys.stderr.flush()
+
             try:
                 future.result()
             except Exception as e:
+                if USE_COLORS:
+                    # Clear line to print warning cleanly
+                    sys.stderr.write("\r\033[K")
+                    sys.stderr.flush()
+
                 log.warning(f"Failed to pre-fetch {sanitize_for_log(futures[future])}: {e}")
+
+                if USE_COLORS:
+                    # Restore progress
+                    sys.stderr.write(f"\r{Colors.CYAN}⏳ Warming up cache: {completed}/{total}...{Colors.ENDC}")
+                    sys.stderr.flush()
+
+    if USE_COLORS:
+        sys.stderr.write(f"\r{Colors.GREEN}✅ Warming up cache: {total}/{total} Done!     {Colors.ENDC}\n")
+        sys.stderr.flush()
 
 def delete_folder(client: httpx.Client, profile_id: str, name: str, folder_id: str) -> bool:
     try:
