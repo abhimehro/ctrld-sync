@@ -39,3 +39,11 @@
 **Prevention:**
 1. Parse URLs and check hostnames against `localhost` and private IP ranges using `ipaddress` module.
 2. Enforce strict length limits on user inputs (e.g., profile IDs) to prevent resource exhaustion or buffer abuse.
+
+## 2026-01-17 - [SSRF Protection Enhancement]
+**Vulnerability:** The `validate_folder_url` function only checked for IP literals, allowing domains resolving to private IPs (e.g., DNS rebinding or internal domains) to bypass SSRF protection.
+**Learning:** Checking `ipaddress.ip_address(hostname)` is insufficient for validation if `hostname` is a domain. DNS resolution is required to validate the actual destination.
+**Prevention:**
+1. Resolve domains using `socket.getaddrinfo` to obtain the underlying IP addresses.
+2. Check all returned IPs against private and loopback ranges.
+3. Fail closed (block the URL) if resolution fails or returns any private IP.
