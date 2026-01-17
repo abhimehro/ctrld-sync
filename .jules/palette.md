@@ -14,3 +14,11 @@
 ## 2024-03-22 - CLI Interactive Fallbacks
 **Learning:** CLI tools often fail hard when config is missing, but interactive contexts allow for graceful recovery. Users appreciate being asked for missing info instead of just receiving an error.
 **Action:** When `sys.stdin.isatty()` is true, prompt for missing configuration instead of exiting with an error code.
+
+## 2025-05-24 - CLI Accessibility Standards
+**Learning:** CLI tools often lack standard accessibility features like `NO_COLOR` support, assuming TTY checks are enough. However, users may want to disable colors even in TTYs for contrast reasons.
+**Action:** Always check `os.getenv("NO_COLOR")` in CLI tools alongside TTY checks to respect user preference.
+
+## 2025-05-24 - Reducing CLI Log Noise
+**Learning:** High-volume repetitive logs (like batch processing) drown out important errors and context.
+**Action:** Use single-line overwriting updates (`\r`) for repetitive progress in interactive sessions, falling back to standard logging for non-interactive streams.
