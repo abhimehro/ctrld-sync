@@ -162,6 +162,7 @@ DEFAULT_FOLDER_URLS = [
 ]
 
 BATCH_SIZE = 500
+BATCH_KEYS = [f"hostnames[{i}]" for i in range(BATCH_SIZE)]
 MAX_RETRIES = 10
 RETRY_DELAY = 1            
 FOLDER_CREATION_DELAY = 5  # <--- CHANGED: Increased from 2 to 5 for patience
@@ -333,10 +334,11 @@ def get_all_existing_rules(client: httpx.Client, profile_id: str) -> Set[str]:
         try:
             data = _api_get(client, f"{API_BASE}/{profile_id}/rules/{folder_id}").json()
             folder_rules = data.get("body", {}).get("rules", [])
-            with all_rules_lock:
-                for rule in folder_rules:
-                    if rule.get("PK"):
-                        all_rules.add(rule["PK"])
+            # Optimization: Extract PKs locally to minimize lock contention time
+            local_pks = [rule["PK"] for rule in folder_rules if rule.get("PK")]
+            if local_pks:
+                with all_rules_lock:
+                    all_rules.update(local_pks)
         except httpx.HTTPError:
             pass
         except Exception as e:
@@ -499,8 +501,8 @@ def push_rules(
             "status": str(status),
             "group": str(folder_id),
         }
-        for j, hostname in enumerate(batch):
-            data[f"hostnames[{j}]"] = hostname
+        # Optimization: Use pre-calculated keys and zip for faster dict update
+        data.update(zip(BATCH_KEYS, batch))
 
         try:
             _api_post_form(client, f"{API_BASE}/{profile_id}/rules", data=data)

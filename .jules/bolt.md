@@ -19,3 +19,11 @@
 ## 2024-05-24 - Avoid Copying Large Sets for Membership Checks
 **Learning:** Copying a large set (e.g. 100k items) to create a snapshot for read-only membership checks is expensive O(N) and unnecessary. Python's set membership testing is thread-safe.
 **Action:** When filtering data against a shared large set, iterate and check membership directly instead of snapshotting, unless strict transactional consistency across the entire iteration is required.
+
+## 2025-05-24 - [Optimizing Dictionary Creation & Lock Contention]
+**Learning:**
+1. Creating dictionaries in a loop with repetitive f-string formatting (e.g. `data[f"key[{i}]"] = val`) is significantly slower than pre-calculating keys and using `dict.update(zip(keys, values))`. (4x speedup for 500 items).
+2. Holding a lock while iterating over a list to add items to a shared set drastically increases critical section size. Building a local list/set first and then updating the shared set in one atomic(ish) operation reduces lock contention in concurrent workloads.
+**Action:**
+1. Prefer `zip()` with pre-calculated keys for batch dictionary updates.
+2. Minimize work inside `with lock:` blocks; prepare data locally first.
