@@ -567,7 +567,8 @@ def push_rules(
             "group": str(folder_id),
         }
         # Optimization: Use pre-calculated keys and zip for faster dict update
-        data.update(zip(BATCH_KEYS, batch_data))
+        # strict=False is intentional: batch_data may be shorter than BATCH_KEYS for final batch
+        data.update(zip(BATCH_KEYS, batch_data, strict=False))
 
         try:
             _api_post_form(client, f"{API_BASE}/{profile_id}/rules", data=data)
