@@ -19,3 +19,11 @@
 ## 2024-05-24 - Avoid Copying Large Sets for Membership Checks
 **Learning:** Copying a large set (e.g. 100k items) to create a snapshot for read-only membership checks is expensive O(N) and unnecessary. Python's set membership testing is thread-safe.
 **Action:** When filtering data against a shared large set, iterate and check membership directly instead of snapshotting, unless strict transactional consistency across the entire iteration is required.
+
+## 2024-05-24 - Deduplicate before API calls
+**Learning:** Sending duplicate items in API requests wastes bandwidth and processing time. If the input list might contain duplicates (common in aggregated blocklists), deduplicate it locally before sending.
+**Action:** Use `set` logic to filter duplicates from input lists before batching for API calls.
+
+## 2024-05-24 - Parallelize independent batches
+**Learning:** When sending large amounts of data in batches to an API, processing batches sequentially blocks on network latency. Using a thread pool to send multiple batches concurrently can significantly speed up the process, provided the API rate limits are respected.
+**Action:** Refactor sequential batch processing loops to use `ThreadPoolExecutor` with a conservative number of workers (e.g., 3-5) for write operations.

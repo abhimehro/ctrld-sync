@@ -521,9 +521,15 @@ def push_rules(
 
     original_count = len(hostnames)
 
-    # Optimization: Check directly against existing_rules to avoid O(N) copy.
-    # Membership testing in set is thread-safe, and we don't need a strict snapshot for deduplication.
-    filtered_hostnames = [h for h in hostnames if h not in existing_rules]
+    # Optimization 1: Deduplicate input list while preserving order
+    # Optimization 2: Check directly against existing_rules to avoid O(N) copy.
+    seen = set()
+    filtered_hostnames = []
+    for h in hostnames:
+        if h not in existing_rules and h not in seen:
+            filtered_hostnames.append(h)
+            seen.add(h)
+
     duplicates_count = original_count - len(filtered_hostnames)
 
     if duplicates_count > 0:
@@ -534,34 +540,52 @@ def push_rules(
         return True
 
     successful_batches = 0
-    total_batches = len(range(0, len(filtered_hostnames), BATCH_SIZE))
 
-    for i, start in enumerate(range(0, len(filtered_hostnames), BATCH_SIZE), 1):
-        batch = filtered_hostnames[start : start + BATCH_SIZE]
+    # Prepare batches
+    batches = []
+    for start in range(0, len(filtered_hostnames), BATCH_SIZE):
+        batches.append(filtered_hostnames[start : start + BATCH_SIZE])
+
+    total_batches = len(batches)
+
+    def process_batch(batch_idx: int, batch_data: List[str]) -> bool:
         data = {
             "do": str(do),
             "status": str(status),
             "group": str(folder_id),
         }
-        for j, hostname in enumerate(batch):
+        for j, hostname in enumerate(batch_data):
             data[f"hostnames[{j}]"] = hostname
 
         try:
             _api_post_form(client, f"{API_BASE}/{profile_id}/rules", data=data)
             log.info(
                 "Folder %s – batch %d: added %d rules",
-                sanitize_for_log(folder_name), i, len(batch)
+                sanitize_for_log(folder_name), batch_idx, len(batch_data)
             )
-            successful_batches += 1
             if existing_rules_lock:
                 with existing_rules_lock:
-                    existing_rules.update(batch)
+                    existing_rules.update(batch_data)
             else:
-                existing_rules.update(batch)
+                existing_rules.update(batch_data)
+            return True
         except httpx.HTTPError as e:
-            log.error(f"Failed to push batch {i} for folder {sanitize_for_log(folder_name)}: {sanitize_for_log(e)}")
+            log.error(f"Failed to push batch {batch_idx} for folder {sanitize_for_log(folder_name)}: {sanitize_for_log(e)}")
             if hasattr(e, 'response') and e.response is not None:
                 log.debug(f"Response content: {e.response.text}")
+            return False
+
+    # Optimization 3: Parallelize batch processing
+    # Using 3 workers to speed up writes without hitting aggressive rate limits.
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        futures = {
+            executor.submit(process_batch, i, batch): i
+            for i, batch in enumerate(batches, 1)
+        }
+
+        for future in concurrent.futures.as_completed(futures):
+            if future.result():
+                successful_batches += 1
 
     if successful_batches == total_batches:
         log.info("Folder %s – finished (%d new rules added)", sanitize_for_log(folder_name), len(filtered_hostnames))
