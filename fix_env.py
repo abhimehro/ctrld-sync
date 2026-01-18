@@ -17,6 +17,12 @@ def fix_env():
         val = re.sub(r'^[\"\u201c\u201d\']|[\"\u201c\u201d\']$', '', val)
         return val
 
+    # Helper to escape value for shell
+    def escape_val(val):
+        if not val: return ""
+        # Escape backslashes first, then double quotes
+        return val.replace('\\', '\\\\').replace('"', '\\"')
+
     lines = content.splitlines()
     parsed = {}
     
@@ -50,7 +56,7 @@ def fix_env():
     if not real_profiles: real_profiles = profile_val
 
     # Write back with standard quotes
-    new_content = f'TOKEN="{real_token}"\nPROFILE="{real_profiles}"\n'
+    new_content = f'TOKEN="{escape_val(real_token)}"\nPROFILE="{escape_val(real_profiles)}"\n'
     
     with open('.env', 'w') as f:
         f.write(new_content)
