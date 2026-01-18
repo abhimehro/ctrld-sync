@@ -24,6 +24,7 @@ import concurrent.futures
 import threading
 import ipaddress
 import socket
+from functools import lru_cache
 from urllib.parse import urlparse
 from typing import Dict, List, Optional, Any, Set, Sequence
 
@@ -192,7 +193,13 @@ MAX_RESPONSE_SIZE = 10 * 1024 * 1024  # 10 MB limit for external resources
 # --------------------------------------------------------------------------- #
 _cache: Dict[str, Dict] = {}
 
+@lru_cache(maxsize=128)
 def validate_folder_url(url: str) -> bool:
+    """
+    Validates a folder URL.
+    Cached to avoid repeated DNS lookups (socket.getaddrinfo) for the same URL
+    during warm-up and sync phases.
+    """
     if not url.startswith("https://"):
         log.warning(f"Skipping unsafe or invalid URL (must be https): {sanitize_for_log(url)}")
         return False
