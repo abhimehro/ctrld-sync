@@ -35,8 +35,11 @@ from dotenv import load_dotenv
 # --------------------------------------------------------------------------- #
 load_dotenv()
 
-# Determine if we should use colors
-USE_COLORS = sys.stderr.isatty() and sys.stdout.isatty()
+# Respect NO_COLOR standard (https://no-color.org/)
+if os.getenv("NO_COLOR"):
+    USE_COLORS = False
+else:
+    USE_COLORS = sys.stderr.isatty() and sys.stdout.isatty()
 
 class Colors:
     if USE_COLORS:
@@ -163,6 +166,7 @@ DEFAULT_FOLDER_URLS = [
 ]
 
 BATCH_SIZE = 500
+BATCH_KEYS = [f"hostnames[{i}]" for i in range(BATCH_SIZE)]
 MAX_RETRIES = 10
 RETRY_DELAY = 1            
 FOLDER_CREATION_DELAY = 5  # <--- CHANGED: Increased from 2 to 5 for patience
@@ -348,10 +352,11 @@ def get_all_existing_rules(client: httpx.Client, profile_id: str) -> Set[str]:
         try:
             data = _api_get(client, f"{API_BASE}/{profile_id}/rules/{folder_id}").json()
             folder_rules = data.get("body", {}).get("rules", [])
-            with all_rules_lock:
-                for rule in folder_rules:
-                    if rule.get("PK"):
-                        all_rules.add(rule["PK"])
+            # Optimization: Extract PKs locally to minimize lock contention time
+            local_pks = [rule["PK"] for rule in folder_rules if rule.get("PK")]
+            if local_pks:
+                with all_rules_lock:
+                    all_rules.update(local_pks)
         except httpx.HTTPError:
             pass
         except Exception as e:
@@ -554,15 +559,16 @@ def push_rules(
             "status": str(status),
             "group": str(folder_id),
         }
-        for j, hostname in enumerate(batch_data):
-            data[f"hostnames[{j}]"] = hostname
+        # Optimization: Use pre-calculated keys and zip for faster dict update
+        data.update(zip(BATCH_KEYS, batch_data))
 
         try:
             _api_post_form(client, f"{API_BASE}/{profile_id}/rules", data=data)
-            log.info(
-                "Folder %s – batch %d: added %d rules",
-                sanitize_for_log(folder_name), batch_idx, len(batch_data)
-            )
+            if not USE_COLORS:
+                log.info(
+                    "Folder %s – batch %d: added %d rules",
+                    sanitize_for_log(folder_name), batch_idx, len(batch_data)
+                )
             if existing_rules_lock:
                 with existing_rules_lock:
                     existing_rules.update(batch_data)
@@ -570,6 +576,8 @@ def push_rules(
                 existing_rules.update(batch_data)
             return True
         except httpx.HTTPError as e:
+            if USE_COLORS:
+                sys.stderr.write("\n")
             log.error(f"Failed to push batch {batch_idx} for folder {sanitize_for_log(folder_name)}: {sanitize_for_log(e)}")
             if hasattr(e, 'response') and e.response is not None:
                 log.debug(f"Response content: {e.response.text}")
@@ -587,8 +595,16 @@ def push_rules(
             if future.result():
                 successful_batches += 1
 
+            if USE_COLORS:
+                sys.stderr.write(f"\r{Colors.CYAN}🚀 Folder {sanitize_for_log(folder_name)}: Pushing batch {successful_batches}/{total_batches}...{Colors.ENDC}")
+                sys.stderr.flush()
+
     if successful_batches == total_batches:
-        log.info("Folder %s – finished (%d new rules added)", sanitize_for_log(folder_name), len(filtered_hostnames))
+        if USE_COLORS:
+            sys.stderr.write(f"\r{Colors.GREEN}✅ Folder {sanitize_for_log(folder_name)}: Finished ({len(filtered_hostnames)} rules)        {Colors.ENDC}\n")
+            sys.stderr.flush()
+        else:
+            log.info("Folder %s – finished (%d new rules added)", sanitize_for_log(folder_name), len(filtered_hostnames))
         return True
     else:
         log.error("Folder %s – only %d/%d batches succeeded", sanitize_for_log(folder_name), successful_batches, total_batches)
