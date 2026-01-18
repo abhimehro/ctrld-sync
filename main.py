@@ -169,7 +169,7 @@ DEFAULT_FOLDER_URLS = [
 BATCH_SIZE = 500
 BATCH_KEYS = [f"hostnames[{i}]" for i in range(BATCH_SIZE)]
 MAX_RETRIES = 10
-RETRY_DELAY = 1            
+RETRY_DELAY = 1
 FOLDER_CREATION_DELAY = 5  # <--- CHANGED: Increased from 2 to 5 for patience
 MAX_RESPONSE_SIZE = 10 * 1024 * 1024  # 10MB limit
 
@@ -470,18 +470,18 @@ def create_folder(client: httpx.Client, profile_id: str, name: str, do: int, sta
             f"{API_BASE}/{profile_id}/groups",
             data={"name": name, "do": do, "status": status},
         )
-        
+
         # OPTIMIZATION: Try to grab ID directly from response to avoid the wait loop
         try:
             resp_data = response.json()
             body = resp_data.get("body", {})
-            
+
             # Check if it returned a single group object
             if isinstance(body, dict) and "group" in body and "PK" in body["group"]:
                  pk = body["group"]["PK"]
                  log.info("Created folder %s (ID %s) [Direct]", sanitize_for_log(name), pk)
                  return str(pk)
-                 
+
             # Check if it returned a list containing our group
             if isinstance(body, dict) and "groups" in body:
                 for grp in body["groups"]:
@@ -496,7 +496,7 @@ def create_folder(client: httpx.Client, profile_id: str, name: str, do: int, sta
             try:
                 data = _api_get(client, f"{API_BASE}/{profile_id}/groups").json()
                 groups = data.get("body", {}).get("groups", [])
-                
+
                 for grp in groups:
                     if grp["group"].strip() == name.strip():
                         log.info("Created folder %s (ID %s) [Polled]", sanitize_for_log(name), grp["PK"])
@@ -661,6 +661,10 @@ def sync_profile(
     no_delete: bool = False,
     plan_accumulator: Optional[List[Dict[str, Any]]] = None,
 ) -> bool:
+    # SECURITY: Clear cached DNS validations at the start of each sync run.
+    # This prevents TOCTOU issues where a domain's IP could change between runs.
+    validate_folder_url.cache_clear()
+
     try:
         # Fetch all folder data first
         folder_data_list = []
@@ -686,7 +690,7 @@ def sync_profile(
         for folder_data in folder_data_list:
             grp = folder_data["group"]
             name = grp["group"].strip()
-            
+
             if "rule_groups" in folder_data:
                 # Multi-action format
                 total_rules = sum(len(rg.get("rules", [])) for rg in folder_data["rule_groups"])
@@ -742,7 +746,7 @@ def sync_profile(
                     if name in existing_folders:
                         delete_folder(client, profile_id, name, existing_folders[name])
                         deletion_occurred = True
-                
+
                 # CRITICAL FIX: Increased wait time for massive folders to clear
                 if deletion_occurred:
                     if not USE_COLORS:
@@ -779,7 +783,7 @@ def sync_profile(
     except Exception as e:
         log.error(f"Unexpected error during sync for profile {profile_id}: {sanitize_for_log(e)}")
         return False
-        
+
 # --------------------------------------------------------------------------- #
 # 5. Entry-point
 # --------------------------------------------------------------------------- #
