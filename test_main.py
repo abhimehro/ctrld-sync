@@ -1,0 +1,179 @@
+import os
+import sys
+import importlib
+import threading
+from unittest.mock import MagicMock, call, patch
+import pytest
+import main
+
+# Helper to reload main with specific env/tty settings
+def reload_main_with_env(monkeypatch, no_color=None, isatty=True):
+    if no_color is not None:
+        monkeypatch.setenv("NO_COLOR", no_color)
+    else:
+        monkeypatch.delenv("NO_COLOR", raising=False)
+    
+    with patch('sys.stderr') as mock_stderr, patch('sys.stdout') as mock_stdout:
+        mock_stderr.isatty.return_value = isatty
+        mock_stdout.isatty.return_value = isatty
+        importlib.reload(main)
+        return main
+
+# Case 1: USE_COLORS respects NO_COLOR environment variable and terminal isatty status
+def test_use_colors_respects_no_color(monkeypatch):
+    m = reload_main_with_env(monkeypatch, no_color="1", isatty=True)
+    assert m.USE_COLORS is False
+
+def test_use_colors_respects_isatty_true(monkeypatch):
+    m = reload_main_with_env(monkeypatch, no_color=None, isatty=True)
+    assert m.USE_COLORS is True
+
+def test_use_colors_respects_isatty_false(monkeypatch):
+    m = reload_main_with_env(monkeypatch, no_color=None, isatty=False)
+    assert m.USE_COLORS is False
+
+# Case 2: get_all_existing_rules updates all_rules set correctly with locking optimization
+def test_get_all_existing_rules_updates_correctly(monkeypatch):
+    # Setup
+    m = reload_main_with_env(monkeypatch, no_color="1") # Disable colors for simplicity
+    mock_client = MagicMock()
+    profile_id = "test_profile"
+    
+    # Mock helpers
+    mock_list_folders = MagicMock(return_value={"FolderA": "id_A", "FolderB": "id_B"})
+    monkeypatch.setattr(m, "list_existing_folders", mock_list_folders)
+    
+    # Mock _api_get to return different rules for root vs folders
+    def side_effect(client, url):
+        mock_resp = MagicMock()
+        if url.endswith("/rules"): # Root rules
+            mock_resp.json.return_value = {"body": {"rules": [{"PK": "rule_root"}]}}
+        elif "id_A" in url:
+            mock_resp.json.return_value = {"body": {"rules": [{"PK": "rule_A1"}, {"PK": "rule_A2"}]}}
+        elif "id_B" in url:
+            mock_resp.json.return_value = {"body": {"rules": [{"PK": "rule_B1"}]}}
+        return mock_resp
+    
+    monkeypatch.setattr(m, "_api_get", side_effect)
+    
+    # Spy on threading.Lock
+    mock_lock_instance = MagicMock()
+    mock_lock_instance.__enter__.return_value = None
+    mock_lock_instance.__exit__.return_value = None
+    mock_lock_cls = MagicMock(return_value=mock_lock_instance)
+    monkeypatch.setattr(threading, "Lock", mock_lock_cls)
+    
+    # Execution
+    rules = m.get_all_existing_rules(mock_client, profile_id)
+    
+    # Verification
+    expected_rules = {"rule_root", "rule_A1", "rule_A2", "rule_B1"}
+    assert rules == expected_rules
+    
+    # Verify lock usage. 
+    # Since get_all_existing_rules creates a lock: `all_rules_lock = threading.Lock()`
+    # and then uses `with all_rules_lock:` inside the worker `_fetch_folder_rules`.
+    # We expect the lock to be acquired.
+    assert mock_lock_cls.called
+    assert mock_lock_instance.__enter__.called
+
+# Case 3: push_rules updates data dictionary with pre-calculated batch keys correctly
+def test_push_rules_updates_data_with_batch_keys(monkeypatch):
+    m = reload_main_with_env(monkeypatch)
+    mock_client = MagicMock()
+    mock_post_form = MagicMock()
+    monkeypatch.setattr(m, "_api_post_form", mock_post_form)
+    
+    # Create enough hostnames for one batch
+    batch_size = m.BATCH_SIZE
+    hostnames = [f"host{i}" for i in range(batch_size)]
+    
+    m.push_rules(
+        profile_id="p1",
+        folder_name="f1",
+        folder_id="fid1",
+        do=1,
+        status=1,
+        hostnames=hostnames,
+        existing_rules=set(),
+        client=mock_client
+    )
+    
+    assert mock_post_form.called
+    args, kwargs = mock_post_form.call_args
+    data_sent = kwargs['data']
+    
+    # Check if hostnames[0], hostnames[1]... are in data
+    assert "hostnames[0]" in data_sent
+    assert data_sent["hostnames[0]"] == "host0"
+    assert f"hostnames[{batch_size-1}]" in data_sent
+    assert data_sent[f"hostnames[{batch_size-1}]"] == f"host{batch_size-1}"
+    assert data_sent["do"] == "1"
+    assert data_sent["group"] == "fid1"
+
+# Case 4: push_rules logs info conditionally based on USE_COLORS flag
+def test_push_rules_logs_conditionally_use_colors(monkeypatch):
+    # Test when USE_COLORS is False
+    m_no_color = reload_main_with_env(monkeypatch, no_color="1")
+    monkeypatch.setattr(m_no_color, "_api_post_form", MagicMock())
+    mock_log = MagicMock()
+    monkeypatch.setattr(m_no_color, "log", mock_log)
+    
+    hostnames = ["h1"]
+    m_no_color.push_rules("p", "f", "fid", 1, 1, hostnames, set(), MagicMock())
+    
+    # Should log info when USE_COLORS is False (lines 567-571)
+    # log.info("Folder %s – batch %d: added %d rules", ...)
+    assert mock_log.info.called
+    
+    found_batch_log = False
+    for call_obj in mock_log.info.call_args_list:
+        args, _ = call_obj
+        if "batch" in str(args) and "added" in str(args):
+             found_batch_log = True
+             break
+    assert found_batch_log, "Batch log message not found in log.info calls"
+
+    # Test when USE_COLORS is True
+    m_color = reload_main_with_env(monkeypatch, no_color=None, isatty=True)
+    monkeypatch.setattr(m_color, "_api_post_form", MagicMock())
+    monkeypatch.setattr(m_color, "log", mock_log)
+    mock_log.reset_mock()
+    
+    m_color.push_rules("p", "f", "fid", 1, 1, hostnames, set(), MagicMock())
+    
+    # Should NOT log info for batch success when USE_COLORS is True
+    # It might log other things, but not the batch success message handled by stderr
+    # Check that the specific batch message is NOT logged
+    for call_args in mock_log.info.call_args_list:
+        args = call_args[0]
+        if "batch" in str(args) and "added" in str(args):
+            pytest.fail("Should not log batch info when USE_COLORS is True")
+
+# Case 5: push_rules writes colored progress and completion messages to stderr when USE_COLORS is True
+def test_push_rules_writes_colored_stderr(monkeypatch):
+    m = reload_main_with_env(monkeypatch, no_color=None, isatty=True)
+    monkeypatch.setattr(m, "_api_post_form", MagicMock())
+    
+    mock_stderr = MagicMock()
+    monkeypatch.setattr(sys, "stderr", mock_stderr)
+    
+    hostnames = ["h1"]
+    m.push_rules("p", "f", "fid", 1, 1, hostnames, set(), MagicMock())
+    
+    # Check for color codes in stderr writes
+    # Look for CYAN (progress) and GREEN (completion)
+    # Colors.CYAN defined in main might vary depending on reload, but since we reloaded with isatty=True
+    # Colors class should have values.
+    
+    # We can check for calls containing specific substrings
+    writes = [args[0] for args, _ in mock_stderr.write.call_args_list]
+    combined_output = "".join(writes)
+    
+    # Verify progress message
+    assert "🚀 Folder" in combined_output
+    # Verify completion message
+    assert "✅ Folder" in combined_output
+    
+    # Verify colors are present (checking for escape sequence intro \033)
+    assert "\033[" in combined_output

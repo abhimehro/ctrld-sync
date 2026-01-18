@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 2 * * *"  # daily 02:00 UTC
+
+jobs:
+  dry-run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          python-version: "3.13"
+      - name: Install deps
+        run: uv sync --frozen
+      - name: Dry-run plan
+        run: |
+          uv run python main.py --dry-run --profiles dummy --plan-json plan.json
+      - name: Upload plan artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ctrld-plan
+          path: plan.json
