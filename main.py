@@ -217,8 +217,8 @@ def validate_folder_url(url: str) -> bool:
 
         try:
             ip = ipaddress.ip_address(hostname)
-            if ip.is_private or ip.is_loopback:
-                log.warning(f"Skipping unsafe URL (private IP): {sanitize_for_log(url)}")
+            if not ip.is_global or ip.is_multicast:
+                log.warning(f"Skipping unsafe URL (non-global/multicast IP): {sanitize_for_log(url)}")
                 return False
         except ValueError:
             # Not an IP literal, it's a domain. Resolve and check IPs.
@@ -231,8 +231,8 @@ def validate_folder_url(url: str) -> bool:
                     # sockaddr is (address, port) for AF_INET/AF_INET6
                     ip_str = res[4][0]
                     ip = ipaddress.ip_address(ip_str)
-                    if ip.is_private or ip.is_loopback:
-                        log.warning(f"Skipping unsafe URL (domain {hostname} resolves to private IP {ip}): {sanitize_for_log(url)}")
+                    if not ip.is_global or ip.is_multicast:
+                        log.warning(f"Skipping unsafe URL (domain {hostname} resolves to non-global/multicast IP {ip}): {sanitize_for_log(url)}")
                         return False
             except (socket.gaierror, ValueError, OSError) as e:
                 log.warning(f"Failed to resolve/validate domain {hostname}: {e}")
