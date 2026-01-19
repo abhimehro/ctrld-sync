@@ -47,3 +47,9 @@
 1. Resolve domains using `socket.getaddrinfo` to obtain the underlying IP addresses.
 2. Check all returned IPs against private and loopback ranges.
 3. Fail closed (block the URL) if resolution fails or returns any private IP.
+
+## 2026-03-22 - [SSRF Protection Gaps in Python ipaddress]
+**Vulnerability:** The standard `ip.is_private` check in Python's `ipaddress` module misses critical ranges like Carrier-Grade NAT (100.64.0.0/10), Link-Local (169.254.0.0/16 in some versions/contexts), and Reserved IPs.
+**Learning:** `ip.is_global` (available since Python 3.4) is the correct property for validating public Internet addresses. However, it considers Multicast addresses as "global" (technically true), so explicit `ip.is_multicast` checks are still needed if blocking them is desired.
+**Prevention:**
+1. Always use `if not ip.is_global or ip.is_multicast:` for strict SSRF filtering, rather than manual blacklists of private ranges.
