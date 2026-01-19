@@ -177,3 +177,42 @@ def test_push_rules_writes_colored_stderr(monkeypatch):
     
     # Verify colors are present (checking for escape sequence intro \033)
     assert "\033[" in combined_output
+
+# Case 6: Interactive prompts show helpful hints
+def test_interactive_prompts_show_hints(monkeypatch, capsys):
+    # Ensure environment is clean
+    monkeypatch.delenv("PROFILE", raising=False)
+    monkeypatch.delenv("TOKEN", raising=False)
+
+    # Reload main with isatty=True to trigger interactive mode logic
+    m = reload_main_with_env(monkeypatch, isatty=True)
+
+    # Mock sys.stdin.isatty to return True
+    monkeypatch.setattr('sys.stdin.isatty', lambda: True)
+
+    # Mock inputs to provide values immediately
+    monkeypatch.setattr('builtins.input', lambda prompt="": "test_profile")
+    monkeypatch.setattr('getpass.getpass', lambda prompt="": "test_token")
+
+    # Mock parse_args
+    mock_args = MagicMock()
+    mock_args.profiles = None
+    mock_args.folder_url = None
+    mock_args.dry_run = False
+    mock_args.no_delete = False
+    mock_args.plan_json = None
+    monkeypatch.setattr(m, "parse_args", lambda: mock_args)
+
+    # Mock internal functions to abort execution safely after prompts
+    monkeypatch.setattr(m, "warm_up_cache", MagicMock(side_effect=RuntimeError("AbortTest")))
+
+    # Run main
+    with pytest.raises(RuntimeError, match="AbortTest"):
+        m.main()
+
+    # Check output
+    captured = capsys.readouterr()
+    stdout = captured.out
+
+    assert "You can find this in the URL of your profile" in stdout
+    assert "https://controld.com/account/manage-account" in stdout
