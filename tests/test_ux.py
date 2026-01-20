@@ -43,5 +43,5 @@ def test_countdown_timer_no_colors(monkeypatch):
 
     # Should not write to stderr
     mock_stderr.write.assert_not_called()
-    # Should call sleep with full seconds
-    mock_sleep.assert_called_with(3)
+    # Should call sleep exactly once with full seconds
+    mock_sleep.assert_called_once_with(3)
