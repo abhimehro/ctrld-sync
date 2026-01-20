@@ -355,7 +355,11 @@ def list_existing_folders(client: httpx.Client, profile_id: str) -> Dict[str, st
         log.error(f"Failed to list existing folders: {sanitize_for_log(e)}")
         return {}
 
-def get_all_existing_rules(client: httpx.Client, profile_id: str) -> Set[str]:
+def get_all_existing_rules(
+    client: httpx.Client,
+    profile_id: str,
+    known_folders: Optional[Dict[str, str]] = None
+) -> Set[str]:
     all_rules = set()
     all_rules_lock = threading.Lock()
 
@@ -387,7 +391,11 @@ def get_all_existing_rules(client: httpx.Client, profile_id: str) -> Set[str]:
             pass
 
         # Get rules from folders in parallel
-        folders = list_existing_folders(client, profile_id)
+        # Optimization: Use known_folders if provided to avoid redundant API call
+        if known_folders is not None:
+            folders = known_folders
+        else:
+            folders = list_existing_folders(client, profile_id)
 
         # Parallelize fetching rules from folders.
         # Using 5 workers to be safe with rate limits, though GETs are usually cheaper.
@@ -749,8 +757,11 @@ def sync_profile(
                 for folder_data in folder_data_list:
                     name = folder_data["group"]["group"].strip()
                     if name in existing_folders:
-                        delete_folder(client, profile_id, name, existing_folders[name])
-                        deletion_occurred = True
+                        # Optimization: Maintain local state of folders to avoid re-fetching
+                        # delete_folder returns True on success
+                        if delete_folder(client, profile_id, name, existing_folders[name]):
+                            del existing_folders[name]
+                            deletion_occurred = True
 
                 # CRITICAL FIX: Increased wait time for massive folders to clear
                 if deletion_occurred:
@@ -758,7 +769,8 @@ def sync_profile(
                         log.info("Waiting 60s for deletions to propagate (prevents 'Badware Hoster' zombie state)...")
                     countdown_timer(60, "Waiting for deletions to propagate")
 
-            existing_rules = get_all_existing_rules(client, profile_id)
+            # Optimization: Pass the updated existing_folders to avoid redundant API call
+            existing_rules = get_all_existing_rules(client, profile_id, known_folders=existing_folders)
 
             with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
                 future_to_folder = {
