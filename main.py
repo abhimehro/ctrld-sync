@@ -119,7 +119,7 @@ def countdown_timer(seconds: int, message: str = "Waiting") -> None:
 
     width = 15
     for remaining in range(seconds, 0, -1):
-        progress = (seconds - remaining) / seconds
+        progress = (seconds - remaining + 1) / seconds
         filled = int(width * progress)
         bar = "█" * filled + "░" * (width - filled)
         sys.stderr.write(f"\r{Colors.CYAN}⏳ {message}: [{bar}] {remaining}s...{Colors.ENDC}")
