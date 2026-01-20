@@ -117,12 +117,16 @@ def countdown_timer(seconds: int, message: str = "Waiting") -> None:
         time.sleep(seconds)
         return
 
+    width = 15
     for remaining in range(seconds, 0, -1):
-        sys.stderr.write(f"\r{Colors.CYAN}⏳ {message}: {remaining}s...{Colors.ENDC}")
+        progress = (seconds - remaining + 1) / seconds
+        filled = int(width * progress)
+        bar = "█" * filled + "░" * (width - filled)
+        sys.stderr.write(f"\r{Colors.CYAN}⏳ {message}: [{bar}] {remaining}s...{Colors.ENDC}")
         sys.stderr.flush()
         time.sleep(1)
 
-    sys.stderr.write(f"\r{Colors.GREEN}✅ {message}: Done!              {Colors.ENDC}\n")
+    sys.stderr.write(f"\r\033[K{Colors.GREEN}✅ {message}: Done!{Colors.ENDC}\n")
     sys.stderr.flush()
 
 
