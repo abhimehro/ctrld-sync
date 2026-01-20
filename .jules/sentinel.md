@@ -53,3 +53,10 @@
 **Learning:** `ip.is_global` (available since Python 3.4) is the correct property for validating public Internet addresses. However, it considers Multicast addresses as "global" (technically true), so explicit `ip.is_multicast` checks are still needed if blocking them is desired.
 **Prevention:**
 1. Always use `if not ip.is_global or ip.is_multicast:` for strict SSRF filtering, rather than manual blacklists of private ranges.
+
+## 2026-05-14 - [Indirect XSS via Third-Party Data]
+**Vulnerability:** The script fetches blocklists (JSON) from external URLs and pushes them to the Control D API. It assumed the content (rules/hostnames) was safe. A compromised or malicious blocklist could contain XSS payloads (e.g., `<script>`) as "rules", which would be stored in the user's profile and potentially executed in the dashboard.
+**Learning:** "Trusted" third-party data sources should still be treated as untrusted input when they cross security boundaries (like being stored in a database or displayed in a UI).
+**Prevention:**
+1. Implement strict validation on all data items from external lists (`is_valid_rule`).
+2. Filter out items containing dangerous characters (`<`, `>`, `"` etc.) or control codes.
