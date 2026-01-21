@@ -260,9 +260,10 @@ def validate_profile_id(profile_id: str) -> bool:
 def is_valid_rule(rule: str) -> bool:
     """
     Validates that a rule is safe to use.
-    Rejects potential XSS payloads or control characters.
+    Rejects potential XSS payloads, control characters, or whitespace.
     """
-    if not rule or not rule.isprintable():
+    # Reject empty, non-printable, or whitespace-containing rules
+    if not rule or not rule.isprintable() or any(c.isspace() for c in rule):
         return False
 
     # Block characters common in XSS and injection attacks
