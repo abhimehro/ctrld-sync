@@ -48,7 +48,8 @@ if os.path.exists(".env"):
                 platform_hint += " For example: 'chmod 600 .env'."
             sys.stderr.write(f"\033[93m⚠️  Security Warning: .env file is readable by others ({oct(st.st_mode)[-3:]})! {platform_hint}\033[0m\n")
     except Exception as e:
-        sys.stderr.write(f"\033[93m⚠️  Security Warning: Could not check .env permissions: {e}\033[0m\n")
+        exc_type = type(e).__name__
+        sys.stderr.write(f"\033[93m⚠️  Security Warning: Could not check .env permissions ({exc_type}: {e})\033[0m\n")
 
 # Respect NO_COLOR standard (https://no-color.org/)
 if os.getenv("NO_COLOR"):
