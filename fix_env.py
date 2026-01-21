@@ -1,5 +1,6 @@
 import os
 import re
+import stat
 
 def fix_env():
     try:
@@ -61,7 +62,11 @@ def fix_env():
     with open('.env', 'w') as f:
         f.write(new_content)
     
+    # SECURITY: Ensure .env is only readable by the owner (600)
+    os.chmod('.env', stat.S_IRUSR | stat.S_IWUSR)
+
     print("Fixed .env file: standardized quotes and corrected variable assignments.")
+    print("Security: .env permissions set to 600 (read/write only by owner).")
 
 if __name__ == "__main__":
     fix_env()

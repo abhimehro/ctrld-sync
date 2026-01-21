@@ -16,6 +16,7 @@ Nothing fancy, just works.
 import argparse
 import json
 import os
+import stat
 import logging
 import sys
 import time
@@ -35,6 +36,16 @@ from dotenv import load_dotenv
 # 0. Bootstrap – load secrets and configure logging
 # --------------------------------------------------------------------------- #
 load_dotenv()
+
+# SECURITY: Check .env permissions
+if os.path.exists(".env"):
+    try:
+        st = os.stat(".env")
+        # Check if group or others have any permission
+        if st.st_mode & (stat.S_IRWXG | stat.S_IRWXO):
+            sys.stderr.write(f"\033[93m⚠️  Security Warning: .env file is readable by others ({oct(st.st_mode)[-3:]})! Run 'chmod 600 .env' to secure your API token.\033[0m\n")
+    except Exception as e:
+        sys.stderr.write(f"\033[93m⚠️  Security Warning: Could not check .env permissions: {e}\033[0m\n")
 
 # Respect NO_COLOR standard (https://no-color.org/)
 if os.getenv("NO_COLOR"):
