@@ -267,8 +267,8 @@ def is_valid_rule(rule: str) -> bool:
 
     # Block characters common in XSS and injection attacks
     # Allowed: Alphanumeric, hyphen, dot, underscore, asterisk, colon (IPv6), slash (CIDR)
-    # Block: < > " ' ` ( ) ; { } [ ]
-    dangerous_chars = set("<>\"'`();{}[]")
+    # Block: < > " ' ` ( ) ; { } [ ] =
+    dangerous_chars = set("<>\"'`();{}[]=")
     if any(c in dangerous_chars for c in rule):
         return False
 
