@@ -1,7 +1,6 @@
 import os
 import sys
 import importlib
-import threading
 from unittest.mock import MagicMock, call, patch
 import pytest
 import main
@@ -32,7 +31,7 @@ def test_use_colors_respects_isatty_false(monkeypatch):
     m = reload_main_with_env(monkeypatch, no_color=None, isatty=False)
     assert m.USE_COLORS is False
 
-# Case 2: get_all_existing_rules updates all_rules set correctly with locking optimization
+# Case 2: get_all_existing_rules updates all_rules set correctly without locking
 def test_get_all_existing_rules_updates_correctly(monkeypatch):
     # Setup
     m = reload_main_with_env(monkeypatch, no_color="1") # Disable colors for simplicity
@@ -56,26 +55,12 @@ def test_get_all_existing_rules_updates_correctly(monkeypatch):
     
     monkeypatch.setattr(m, "_api_get", side_effect)
     
-    # Spy on threading.Lock
-    mock_lock_instance = MagicMock()
-    mock_lock_instance.__enter__.return_value = None
-    mock_lock_instance.__exit__.return_value = None
-    mock_lock_cls = MagicMock(return_value=mock_lock_instance)
-    monkeypatch.setattr(threading, "Lock", mock_lock_cls)
-    
     # Execution
     rules = m.get_all_existing_rules(mock_client, profile_id)
     
     # Verification
     expected_rules = {"rule_root", "rule_A1", "rule_A2", "rule_B1"}
     assert rules == expected_rules
-    
-    # Verify lock usage. 
-    # Since get_all_existing_rules creates a lock: `all_rules_lock = threading.Lock()`
-    # and then uses `with all_rules_lock:` inside the worker `_fetch_folder_rules`.
-    # We expect the lock to be acquired.
-    assert mock_lock_cls.called
-    assert mock_lock_instance.__enter__.called
 
 # Case 3: push_rules updates data dictionary with pre-calculated batch keys correctly
 def test_push_rules_updates_data_with_batch_keys(monkeypatch):
@@ -110,6 +95,29 @@ def test_push_rules_updates_data_with_batch_keys(monkeypatch):
     assert data_sent[f"hostnames[{batch_size-1}]"] == f"host{batch_size-1}"
     assert data_sent["do"] == "1"
     assert data_sent["group"] == "fid1"
+
+# Case 3b: push_rules updates existing_rules set correctly
+def test_push_rules_updates_existing_rules(monkeypatch):
+    m = reload_main_with_env(monkeypatch)
+    mock_client = MagicMock()
+    monkeypatch.setattr(m, "_api_post_form", MagicMock())
+
+    hostnames = ["h1", "h2"]
+    existing_rules = set()
+
+    m.push_rules(
+        profile_id="p1",
+        folder_name="f1",
+        folder_id="fid1",
+        do=1,
+        status=1,
+        hostnames=hostnames,
+        existing_rules=existing_rules,
+        client=mock_client
+    )
+
+    assert "h1" in existing_rules
+    assert "h2" in existing_rules
 
 # Case 4: push_rules logs info conditionally based on USE_COLORS flag
 def test_push_rules_logs_conditionally_use_colors(monkeypatch):

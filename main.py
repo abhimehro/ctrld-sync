@@ -21,7 +21,6 @@ import sys
 import time
 import re
 import concurrent.futures
-import threading
 import ipaddress
 import socket
 from functools import lru_cache
@@ -357,23 +356,19 @@ def list_existing_folders(client: httpx.Client, profile_id: str) -> Dict[str, st
 
 def get_all_existing_rules(client: httpx.Client, profile_id: str) -> Set[str]:
     all_rules = set()
-    all_rules_lock = threading.Lock()
 
-    def _fetch_folder_rules(folder_id: str):
+    def _fetch_folder_rules(folder_id: str) -> List[str]:
         try:
             data = _api_get(client, f"{API_BASE}/{profile_id}/rules/{folder_id}").json()
             folder_rules = data.get("body", {}).get("rules", [])
-            # Optimization: Extract PKs locally to minimize lock contention time
-            local_pks = [rule["PK"] for rule in folder_rules if rule.get("PK")]
-            if local_pks:
-                with all_rules_lock:
-                    all_rules.update(local_pks)
+            return [rule["PK"] for rule in folder_rules if rule.get("PK")]
         except httpx.HTTPError:
-            pass
+            return []
         except Exception as e:
             # We log error but don't stop the whole process;
             # individual folder failure shouldn't crash the sync
             log.warning(f"Error fetching rules for folder {folder_id}: {e}")
+            return []
 
     try:
         # Get rules from root
@@ -392,11 +387,19 @@ def get_all_existing_rules(client: httpx.Client, profile_id: str) -> Set[str]:
         # Parallelize fetching rules from folders.
         # Using 5 workers to be safe with rate limits, though GETs are usually cheaper.
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            futures = [
-                executor.submit(_fetch_folder_rules, folder_id)
+            future_to_folder = {
+                executor.submit(_fetch_folder_rules, folder_id): folder_id
                 for folder_name, folder_id in folders.items()
-            ]
-            concurrent.futures.wait(futures)
+            }
+
+            for future in concurrent.futures.as_completed(future_to_folder):
+                try:
+                    result = future.result()
+                    if result:
+                        all_rules.update(result)
+                except Exception as e:
+                    folder_id = future_to_folder[future]
+                    log.warning(f"Failed to fetch rules for folder ID {folder_id}: {e}")
 
         log.info(f"Total existing rules across all folders: {len(all_rules)}")
         return all_rules
@@ -529,7 +532,6 @@ def push_rules(
     hostnames: List[str],
     existing_rules: Set[str],
     client: httpx.Client,
-    existing_rules_lock: Optional[threading.Lock] = None,
 ) -> bool:
     if not hostnames:
         log.info("Folder %s - no rules to push", sanitize_for_log(folder_name))
@@ -564,7 +566,7 @@ def push_rules(
 
     total_batches = len(batches)
 
-    def process_batch(batch_idx: int, batch_data: List[str]) -> bool:
+    def process_batch(batch_idx: int, batch_data: List[str]) -> Optional[List[str]]:
         data = {
             "do": str(do),
             "status": str(status),
@@ -581,19 +583,14 @@ def push_rules(
                     "Folder %s – batch %d: added %d rules",
                     sanitize_for_log(folder_name), batch_idx, len(batch_data)
                 )
-            if existing_rules_lock:
-                with existing_rules_lock:
-                    existing_rules.update(batch_data)
-            else:
-                existing_rules.update(batch_data)
-            return True
+            return batch_data
         except httpx.HTTPError as e:
             if USE_COLORS:
                 sys.stderr.write("\n")
             log.error(f"Failed to push batch {batch_idx} for folder {sanitize_for_log(folder_name)}: {sanitize_for_log(e)}")
             if hasattr(e, 'response') and e.response is not None:
                 log.debug(f"Response content: {e.response.text}")
-            return False
+            return None
 
     # Optimization 3: Parallelize batch processing
     # Using 3 workers to speed up writes without hitting aggressive rate limits.
@@ -604,8 +601,10 @@ def push_rules(
         }
 
         for future in concurrent.futures.as_completed(futures):
-            if future.result():
+            result = future.result()
+            if result:
                 successful_batches += 1
+                existing_rules.update(result)
 
             if USE_COLORS:
                 sys.stderr.write(f"\r{Colors.CYAN}🚀 Folder {sanitize_for_log(folder_name)}: Pushing batch {successful_batches}/{total_batches}...{Colors.ENDC}")
@@ -626,7 +625,6 @@ def _process_single_folder(
     folder_data: Dict[str, Any],
     profile_id: str,
     existing_rules: Set[str],
-    existing_rules_lock: threading.Lock,
     client: httpx.Client,
 ) -> bool:
     grp = folder_data["group"]
@@ -647,11 +645,11 @@ def _process_single_folder(
             do = action.get("do", 0)
             status = action.get("status", 1)
             hostnames = [r["PK"] for r in rule_group.get("rules", []) if r.get("PK")]
-            if not push_rules(profile_id, name, folder_id, do, status, hostnames, existing_rules, client, existing_rules_lock):
+            if not push_rules(profile_id, name, folder_id, do, status, hostnames, existing_rules, client):
                 folder_success = False
     else:
         hostnames = [r["PK"] for r in folder_data.get("rules", []) if r.get("PK")]
-        if not push_rules(profile_id, name, folder_id, main_do, main_status, hostnames, existing_rules, client, existing_rules_lock):
+        if not push_rules(profile_id, name, folder_id, main_do, main_status, hostnames, existing_rules, client):
             folder_success = False
 
     return folder_success
@@ -734,7 +732,6 @@ def sync_profile(
 
         # Create new folders and push rules
         success_count = 0
-        existing_rules_lock = threading.Lock()
 
         # CRITICAL FIX: Switch to Serial Processing (1 worker)
         # This prevents API rate limits and ensures stability for large folders.
@@ -767,7 +764,6 @@ def sync_profile(
                         folder_data,
                         profile_id,
                         existing_rules,
-                        existing_rules_lock,
                         client  # Pass the persistent client
                     ): folder_data
                     for folder_data in folder_data_list
