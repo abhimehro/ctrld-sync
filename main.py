@@ -256,6 +256,23 @@ def validate_profile_id(profile_id: str) -> bool:
         return False
     return True
 
+def is_valid_rule(rule: str) -> bool:
+    """
+    Validates that a rule is safe to use.
+    Rejects potential XSS payloads or control characters.
+    """
+    if not rule or not rule.isprintable():
+        return False
+
+    # Block characters common in XSS and injection attacks
+    # Allowed: Alphanumeric, hyphen, dot, underscore, asterisk, colon (IPv6), slash (CIDR)
+    # Block: < > " ' ` ( ) ; { } [ ]
+    dangerous_chars = set("<>\"'`();{}[]")
+    if any(c in dangerous_chars for c in rule):
+        return False
+
+    return True
+
 def validate_folder_data(data: Dict[str, Any], url: str) -> bool:
     if not isinstance(data, dict):
         log.error(f"Invalid data from {sanitize_for_log(url)}: Root must be a JSON object.")
@@ -543,12 +560,22 @@ def push_rules(
     # Optimization 2: Check directly against existing_rules to avoid O(N) copy.
     seen = set()
     filtered_hostnames = []
+    skipped_unsafe = 0
+
     for h in hostnames:
+        if not is_valid_rule(h):
+            log.warning(f"Skipping unsafe rule in {sanitize_for_log(folder_name)}: {sanitize_for_log(h)}")
+            skipped_unsafe += 1
+            continue
+
         if h not in existing_rules and h not in seen:
             filtered_hostnames.append(h)
             seen.add(h)
 
-    duplicates_count = original_count - len(filtered_hostnames)
+    if skipped_unsafe > 0:
+        log.warning(f"Folder {sanitize_for_log(folder_name)}: skipped {skipped_unsafe} unsafe rules")
+
+    duplicates_count = original_count - len(filtered_hostnames) - skipped_unsafe
 
     if duplicates_count > 0:
         log.info(f"Folder {sanitize_for_log(folder_name)}: skipping {duplicates_count} duplicate rules")
