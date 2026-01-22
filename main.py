@@ -37,20 +37,6 @@ from dotenv import load_dotenv
 # --------------------------------------------------------------------------- #
 load_dotenv()
 
-# SECURITY: Check .env permissions
-if os.path.exists(".env"):
-    try:
-        st = os.stat(".env")
-        # Check if group or others have any permission
-        if st.st_mode & (stat.S_IRWXG | stat.S_IRWXO):
-            platform_hint = "Please secure your .env file so it is only readable by the owner."
-            if os.name != "nt":
-                platform_hint += " For example: 'chmod 600 .env'."
-            sys.stderr.write(f"\033[93m⚠️  Security Warning: .env file is readable by others ({oct(st.st_mode)[-3:]})! {platform_hint}\033[0m\n")
-    except Exception as e:
-        exc_type = type(e).__name__
-        sys.stderr.write(f"\033[93m⚠️  Security Warning: Could not check .env permissions ({exc_type}: {e})\033[0m\n")
-
 # Respect NO_COLOR standard (https://no-color.org/)
 if os.getenv("NO_COLOR"):
     USE_COLORS = False
@@ -107,6 +93,31 @@ handler = logging.StreamHandler()
 handler.setFormatter(ColoredFormatter())
 logging.basicConfig(level=logging.INFO, handlers=[handler])
 logging.getLogger("httpx").setLevel(logging.WARNING)
+
+# SECURITY: Check .env permissions (after Colors is defined for NO_COLOR support)
+if os.path.exists(".env"):
+    try:
+        file_stat = os.stat(".env")
+        # Check if group or others have any permission
+        if file_stat.st_mode & (stat.S_IRWXG | stat.S_IRWXO):
+            platform_hint = (
+                "Please secure your .env file so it is only readable by "
+                "the owner."
+            )
+            if os.name != "nt":
+                platform_hint += " For example: 'chmod 600 .env'."
+            perms = format(stat.S_IMODE(file_stat.st_mode), '03o')
+            sys.stderr.write(
+                f"{Colors.WARNING}⚠️  Security Warning: .env file is "
+                f"readable by others ({perms})! {platform_hint}"
+                f"{Colors.ENDC}\n"
+            )
+    except Exception as error:
+        exception_type = type(error).__name__
+        sys.stderr.write(
+            f"{Colors.WARNING}⚠️  Security Warning: Could not check .env "
+            f"permissions ({exception_type}: {error}){Colors.ENDC}\n"
+        )
 log = logging.getLogger("control-d-sync")
 
 # --------------------------------------------------------------------------- #
