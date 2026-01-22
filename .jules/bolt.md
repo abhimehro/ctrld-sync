@@ -27,3 +27,7 @@
 ## 2024-05-24 - Parallelize independent batches
 **Learning:** When sending large amounts of data in batches to an API, processing batches sequentially blocks on network latency. Using a thread pool to send multiple batches concurrently can significantly speed up the process, provided the API rate limits are respected.
 **Action:** Refactor sequential batch processing loops to use `ThreadPoolExecutor` with a conservative number of workers (e.g., 3-5) for write operations.
+
+## 2024-05-24 - Pass Local State to Avoid Redundant Reads
+**Learning:** When a process involves modifying remote state (e.g. deleting folders) and then querying it (e.g. getting rules from remaining folders), maintaining a local replica of the state avoids redundant API calls. If you know what you deleted, you don't need to ask the server "what's left?".
+**Action:** Identify sequences of "Read -> Modify -> Read" and optimize to "Read -> Modify (update local) -> Use local".
