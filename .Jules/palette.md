@@ -5,3 +5,7 @@
 ## 2024-05-23 - CLI Progress Bars
 **Learning:** Using clear-line ANSI codes (`\033[K`) is significantly more robust than space-padding for overwriting CLI lines, especially when line lengths vary between updates. Visual progress bars (e.g., `[██░░]`) provide better psychological feedback for waiting periods than simple countdowns.
 **Action:** Use `\033[K` for dynamic CLI updates and favor visual bars for waits > 5 seconds.
+
+## 2024-05-24 - Fail Fast & Friendly
+**Learning:** In CLI tools involving APIs, cascade failures (hundreds of "Failed to X") caused by basic auth issues (401/403) are overwhelming and confusing. A dedicated "Pre-flight Check" that validates credentials *before* attempting the main workload allows for specific, actionable error messages (e.g. "Check your token at [URL]") instead of generic HTTP errors.
+**Action:** Implement a `check_api_access()` step at the start of any CLI workflow to validate permissions and provide human-readable guidance on failure.

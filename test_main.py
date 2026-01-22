@@ -4,6 +4,7 @@ import importlib
 from unittest.mock import MagicMock, call, patch
 import pytest
 import main
+import httpx
 
 # Helper to reload main with specific env/tty settings
 def reload_main_with_env(monkeypatch, no_color=None, isatty=True):
@@ -224,3 +225,97 @@ def test_interactive_prompts_show_hints(monkeypatch, capsys):
 
     assert "You can find this in the URL of your profile" in stdout
     assert "https://controld.com/account/manage-account" in stdout
+
+# Case 7: check_api_access handles success and errors correctly
+def test_check_api_access_success(monkeypatch):
+    m = reload_main_with_env(monkeypatch)
+    mock_client = MagicMock()
+    mock_client.get.return_value.raise_for_status.return_value = None
+
+    assert m.check_api_access(mock_client, "valid_profile") is True
+
+def test_check_api_access_401(monkeypatch):
+    m = reload_main_with_env(monkeypatch)
+    mock_client = MagicMock()
+
+    # Simulate 401 response
+    mock_response = MagicMock()
+    mock_response.status_code = 401
+    error = httpx.HTTPStatusError("401 Unauthorized", request=MagicMock(), response=mock_response)
+    mock_client.get.return_value.raise_for_status.side_effect = error
+
+    # Mock log to verify output
+    mock_log = MagicMock()
+    monkeypatch.setattr(m, "log", mock_log)
+
+    assert m.check_api_access(mock_client, "invalid_token") is False
+    assert mock_log.critical.call_count >= 1
+    # Check for authentication failed message
+    args = str(mock_log.critical.call_args_list)
+    assert "Authentication Failed" in args
+
+def test_check_api_access_403(monkeypatch):
+    m = reload_main_with_env(monkeypatch)
+    mock_client = MagicMock()
+
+    # Simulate 403 response
+    mock_response = MagicMock()
+    mock_response.status_code = 403
+    error = httpx.HTTPStatusError("403 Forbidden", request=MagicMock(), response=mock_response)
+    mock_client.get.return_value.raise_for_status.side_effect = error
+
+    mock_log = MagicMock()
+    monkeypatch.setattr(m, "log", mock_log)
+
+    assert m.check_api_access(mock_client, "forbidden_profile") is False
+    assert mock_log.critical.call_count == 1
+    assert "Access Denied" in str(mock_log.critical.call_args)
+
+def test_check_api_access_404(monkeypatch):
+    m = reload_main_with_env(monkeypatch)
+    mock_client = MagicMock()
+
+    # Simulate 404 response
+    mock_response = MagicMock()
+    mock_response.status_code = 404
+    error = httpx.HTTPStatusError("404 Not Found", request=MagicMock(), response=mock_response)
+    mock_client.get.return_value.raise_for_status.side_effect = error
+
+    mock_log = MagicMock()
+    monkeypatch.setattr(m, "log", mock_log)
+
+    assert m.check_api_access(mock_client, "missing_profile") is False
+    assert mock_log.critical.call_count >= 1
+    assert "Profile Not Found" in str(mock_log.critical.call_args_list)
+
+def test_check_api_access_generic_http_error(monkeypatch):
+    m = reload_main_with_env(monkeypatch)
+    mock_client = MagicMock()
+
+    # Simulate 500 response
+    mock_response = MagicMock()
+    mock_response.status_code = 500
+    error = httpx.HTTPStatusError("500 Server Error", request=MagicMock(), response=mock_response)
+    mock_client.get.return_value.raise_for_status.side_effect = error
+
+    mock_log = MagicMock()
+    monkeypatch.setattr(m, "log", mock_log)
+
+    assert m.check_api_access(mock_client, "profile") is False
+    assert mock_log.error.called
+    assert "500" in str(mock_log.error.call_args)
+
+def test_check_api_access_network_error(monkeypatch):
+    m = reload_main_with_env(monkeypatch)
+    mock_client = MagicMock()
+
+    # Simulate network error
+    error = httpx.RequestError("Network failure", request=MagicMock())
+    mock_client.get.side_effect = error
+
+    mock_log = MagicMock()
+    monkeypatch.setattr(m, "log", mock_log)
+
+    assert m.check_api_access(mock_client, "profile") is False
+    assert mock_log.error.called
+    assert "Network failure" in str(mock_log.error.call_args)

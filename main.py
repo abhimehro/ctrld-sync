@@ -358,6 +358,35 @@ def _gh_get(url: str) -> Dict:
 
     return _cache[url]
 
+def check_api_access(client: httpx.Client, profile_id: str) -> bool:
+    """
+    Verifies API access and Profile existence before starting heavy work.
+    Returns True if access is good, False otherwise (with helpful logs).
+    """
+    url = f"{API_BASE}/{profile_id}/groups"
+    try:
+        # We use a raw request here to avoid the automatic retries of _retry_request
+        # for auth errors, which are permanent.
+        resp = client.get(url)
+        resp.raise_for_status()
+        return True
+    except httpx.HTTPStatusError as e:
+        code = e.response.status_code
+        if code == 401:
+            log.critical(f"{Colors.FAIL}❌ Authentication Failed: The API Token is invalid.{Colors.ENDC}")
+            log.critical(f"{Colors.FAIL}   Please check your token at: https://controld.com/account/manage-account{Colors.ENDC}")
+        elif code == 403:
+            log.critical(f"{Colors.FAIL}🚫 Access Denied: Token lacks permission for Profile {profile_id}.{Colors.ENDC}")
+        elif code == 404:
+            log.critical(f"{Colors.FAIL}🔍 Profile Not Found: The ID '{profile_id}' does not exist.{Colors.ENDC}")
+            log.critical(f"{Colors.FAIL}   Please verify the Profile ID from your Control D Dashboard URL.{Colors.ENDC}")
+        else:
+            log.error(f"API Access Check Failed ({code}): {e}")
+        return False
+    except httpx.RequestError as e:
+        log.error(f"Network Error during access check: {e}")
+        return False
+
 def list_existing_folders(client: httpx.Client, profile_id: str) -> Dict[str, str]:
     try:
         data = _api_get(client, f"{API_BASE}/{profile_id}/groups").json()
@@ -767,6 +796,10 @@ def sync_profile(
         # Initial client for getting existing state AND processing folders
         # Optimization: Reuse the same client session to keep TCP connections alive
         with _api_client() as client:
+            # Check for API access problems first (401/403/404)
+            if not check_api_access(client, profile_id):
+                return False
+
             existing_folders = list_existing_folders(client, profile_id)
             if not no_delete:
                 deletion_occurred = False
