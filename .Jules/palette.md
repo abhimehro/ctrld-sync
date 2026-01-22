@@ -9,3 +9,7 @@
 ## 2024-05-24 - Fail Fast & Friendly
 **Learning:** In CLI tools involving APIs, cascade failures (hundreds of "Failed to X") caused by basic auth issues (401/403) are overwhelming and confusing. A dedicated "Pre-flight Check" that validates credentials *before* attempting the main workload allows for specific, actionable error messages (e.g. "Check your token at [URL]") instead of generic HTTP errors.
 **Action:** Implement a `check_api_access()` step at the start of any CLI workflow to validate permissions and provide human-readable guidance on failure.
+
+## 2024-05-25 - Centralized CLI Progress
+**Learning:** Inconsistent progress indicators (some text-based, some bars) degrade perceived quality. Centralizing progress logic into a single helper (`render_progress_bar`) ensures consistent visual feedback (e.g. `[██░░]`) and safer terminal handling (`\033[K`) across all operations.
+**Action:** Extract and reuse a standardized `render_progress_bar` helper for all count-based loops.

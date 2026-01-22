@@ -129,6 +129,22 @@ def countdown_timer(seconds: int, message: str = "Waiting") -> None:
     sys.stderr.flush()
 
 
+def render_progress_bar(current: int, total: int, label: str, prefix: str = "🚀") -> None:
+    """Renders a progress bar to stderr if USE_COLORS is True."""
+    if not USE_COLORS or total == 0:
+        return
+
+    width = 15
+    progress = min(1.0, current / total)
+    filled = int(width * progress)
+    bar = "█" * filled + "░" * (width - filled)
+    percent = int(progress * 100)
+
+    # Use \033[K to clear line residue
+    sys.stderr.write(f"\r\033[K{Colors.CYAN}{prefix} {label}: [{bar}] {percent}% ({current}/{total}){Colors.ENDC}")
+    sys.stderr.flush()
+
+
 def _clean_env_kv(value: Optional[str], key: str) -> Optional[str]:
     """Allow TOKEN/PROFILE values to be provided as either raw values or KEY=value."""
     if not value:
@@ -481,15 +497,11 @@ def warm_up_cache(urls: Sequence[str]) -> None:
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = {executor.submit(_gh_get, url): url for url in urls_to_fetch}
 
-        if USE_COLORS:
-            sys.stderr.write(f"\r{Colors.CYAN}⏳ Warming up cache: 0/{total}...{Colors.ENDC}")
-            sys.stderr.flush()
+        render_progress_bar(0, total, "Warming up cache", prefix="⏳")
 
         for future in concurrent.futures.as_completed(futures):
             completed += 1
-            if USE_COLORS:
-                sys.stderr.write(f"\r{Colors.CYAN}⏳ Warming up cache: {completed}/{total}...{Colors.ENDC}")
-                sys.stderr.flush()
+            render_progress_bar(completed, total, "Warming up cache", prefix="⏳")
 
             try:
                 future.result()
@@ -501,13 +513,11 @@ def warm_up_cache(urls: Sequence[str]) -> None:
 
                 log.warning(f"Failed to pre-fetch {sanitize_for_log(futures[future])}: {e}")
 
-                if USE_COLORS:
-                    # Restore progress
-                    sys.stderr.write(f"\r{Colors.CYAN}⏳ Warming up cache: {completed}/{total}...{Colors.ENDC}")
-                    sys.stderr.flush()
+                # Restore progress
+                render_progress_bar(completed, total, "Warming up cache", prefix="⏳")
 
     if USE_COLORS:
-        sys.stderr.write(f"\r{Colors.GREEN}✅ Warming up cache: {total}/{total} Done!     {Colors.ENDC}\n")
+        sys.stderr.write(f"\r\033[K{Colors.GREEN}✅ Warming up cache: Done!{Colors.ENDC}\n")
         sys.stderr.flush()
 
 def delete_folder(client: httpx.Client, profile_id: str, name: str, folder_id: str) -> bool:
@@ -670,13 +680,11 @@ def push_rules(
                 successful_batches += 1
                 existing_rules.update(result)
 
-            if USE_COLORS:
-                sys.stderr.write(f"\r{Colors.CYAN}🚀 Folder {sanitize_for_log(folder_name)}: Pushing batch {successful_batches}/{total_batches}...{Colors.ENDC}")
-                sys.stderr.flush()
+            render_progress_bar(successful_batches, total_batches, f"Folder {sanitize_for_log(folder_name)}")
 
     if successful_batches == total_batches:
         if USE_COLORS:
-            sys.stderr.write(f"\r{Colors.GREEN}✅ Folder {sanitize_for_log(folder_name)}: Finished ({len(filtered_hostnames)} rules)        {Colors.ENDC}\n")
+            sys.stderr.write(f"\r\033[K{Colors.GREEN}✅ Folder {sanitize_for_log(folder_name)}: Finished ({len(filtered_hostnames)} rules){Colors.ENDC}\n")
             sys.stderr.flush()
         else:
             log.info("Folder %s – finished (%d new rules added)", sanitize_for_log(folder_name), len(filtered_hostnames))
