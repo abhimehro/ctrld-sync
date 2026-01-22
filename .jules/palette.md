@@ -1,16 +1,11 @@
-# Palette's Journal
+## 2024-05-22 - Helpful CLI Prompts
+**Learning:** Even in CLI tools, users often get stuck on authentication steps (Tokens/IDs). Providing direct URLs or location hints in the prompt text significantly reduces friction compared to forcing users to consult external docs.
+**Action:** When prompting for credentials in CLI tools, always include a "Where to find this" hint or direct URL.
 
-## 2024-10-18 - CLI UX Adaptation
-**Learning:** When a "frontend" agent encounters a CLI-only repo, the "interface" becomes the terminal output. Accessibility principles (contrast, readability, clear feedback) still apply but translate to ANSI colors, clear spacing, and descriptive log messages instead of ARIA labels.
-**Action:** Adapting web-centric UX patterns (like "toast notifications") to CLI equivalents (colored log lines or summary tables).
+## 2024-05-23 - CLI Progress Bars
+**Learning:** Using clear-line ANSI codes (`\033[K`) is significantly more robust than space-padding for overwriting CLI lines, especially when line lengths vary between updates. Visual progress bars (e.g., `[██░░]`) provide better psychological feedback for waiting periods than simple countdowns.
+**Action:** Use `\033[K` for dynamic CLI updates and favor visual bars for waits > 5 seconds.
 
-## 2025-02-18 - Visual Feedback in CLI Tables
-**Learning:** CLI summary tables are the "dashboard" of a command-line tool. Missing visual cues (like color-coding status) in these tables reduces scannability, just like a dashboard widget without status indicators.
-**Action:** Always check if status indicators in CLI output are visually distinct (colored) to improve "glanceability" of the results.
-
-## 2025-05-23 - Interactive Wait States
-**Learning:** Long static sleeps (like 60s) in CLIs cause "is it hung?" anxiety for users. Static logs aren't enough for long pauses.
-**Action:** Always use a countdown or progress indicator for waits > 5s to provide reassurance of activity.
-## 2024-03-22 - CLI Interactive Fallbacks
-**Learning:** CLI tools often fail hard when config is missing, but interactive contexts allow for graceful recovery. Users appreciate being asked for missing info instead of just receiving an error.
-**Action:** When `sys.stdin.isatty()` is true, prompt for missing configuration instead of exiting with an error code.
+## 2024-05-24 - Fail Fast & Friendly
+**Learning:** In CLI tools involving APIs, cascade failures (hundreds of "Failed to X") caused by basic auth issues (401/403) are overwhelming and confusing. A dedicated "Pre-flight Check" that validates credentials *before* attempting the main workload allows for specific, actionable error messages (e.g. "Check your token at [URL]") instead of generic HTTP errors.
+**Action:** Implement a `check_api_access()` step at the start of any CLI workflow to validate permissions and provide human-readable guidance on failure.
