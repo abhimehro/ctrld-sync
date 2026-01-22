@@ -34,18 +34,18 @@ def test_env_permission_check_warns_on_insecure_permissions(monkeypatch, tmp_pat
     # Create a temporary .env file
     env_file = tmp_path / ".env"
     env_file.write_text("TOKEN=test")
-    
+
     # Set insecure permissions (readable by others)
     if os.name != 'nt':  # Skip on Windows
         os.chmod(env_file, 0o644)
-        
+
         # Mock sys.stderr to capture warnings
         mock_stderr = MagicMock()
         monkeypatch.setattr(sys, "stderr", mock_stderr)
-        
+
         # Run the permission check logic
         _check_env_permissions_and_warn(env_file, mock_stderr)
-        
+
         # Verify warning was written
         mock_stderr.write.assert_called()
         call_args = mock_stderr.write.call_args[0][0]
@@ -59,18 +59,18 @@ def test_env_permission_check_no_warn_on_secure_permissions(monkeypatch, tmp_pat
     # Create a temporary .env file
     env_file = tmp_path / ".env"
     env_file.write_text("TOKEN=test")
-    
+
     # Set secure permissions (readable only by owner)
     if os.name != 'nt':  # Skip on Windows
         os.chmod(env_file, 0o600)
-        
+
         # Mock sys.stderr to capture warnings
         mock_stderr = MagicMock()
         monkeypatch.setattr(sys, "stderr", mock_stderr)
-        
+
         # Run the permission check logic
         _check_env_permissions_and_warn(env_file, mock_stderr)
-        
+
         # Verify no warning was written
         mock_stderr.write.assert_not_called()
 
@@ -80,7 +80,7 @@ def test_env_permission_check_handles_stat_error(monkeypatch):
     # Mock sys.stderr to capture warnings
     mock_stderr = MagicMock()
     monkeypatch.setattr(sys, "stderr", mock_stderr)
-    
+
     # Simulate a permission error
     try:
         raise PermissionError("Cannot access file")
@@ -90,7 +90,7 @@ def test_env_permission_check_handles_stat_error(monkeypatch):
             f"⚠️  Security Warning: Could not check .env "
             f"permissions ({exception_type}: {error})\n"
         )
-    
+
     # Verify error warning was written
     mock_stderr.write.assert_called()
     call_args = mock_stderr.write.call_args[0][0]
@@ -103,26 +103,26 @@ def test_fix_env_sets_secure_permissions(tmp_path, monkeypatch):
     """Test that fix_env.py sets secure permissions on .env file."""
     # Change to temp directory
     monkeypatch.chdir(tmp_path)
-    
+
     # Create a .env file with insecure content
     env_file = tmp_path / ".env"
     env_file.write_text("TOKEN='test_token'\nPROFILE='test_profile'\n")
-    
+
     if os.name != 'nt':  # Skip on Windows
         # Set insecure permissions initially
         os.chmod(env_file, 0o644)
-        
+
         # Import and run fix_env
         import fix_env
         fix_env.fix_env()
-        
+
         # Check that permissions are now secure
         file_stat = os.stat(env_file)
         mode = stat.S_IMODE(file_stat.st_mode)
-        
+
         # Verify permissions are 600 (read/write for owner only)
         assert mode == 0o600, f"Expected 600, got {oct(mode)}"
-        
+
         # Verify no group or other permissions
         assert not (file_stat.st_mode & stat.S_IRWXG), "Group has permissions"
         assert not (file_stat.st_mode & stat.S_IRWXO), "Others have permissions"
@@ -132,22 +132,22 @@ def test_fix_env_skips_chmod_on_windows(tmp_path, monkeypatch):
     """Test that fix_env.py skips chmod on Windows."""
     # Change to temp directory
     monkeypatch.chdir(tmp_path)
-    
+
     # Create a .env file
     env_file = tmp_path / ".env"
     env_file.write_text("TOKEN='test_token'\nPROFILE='test_profile'\n")
-    
+
     # Mock os.name to simulate Windows
     monkeypatch.setattr(os, "name", "nt")
-    
+
     # Mock os.chmod to verify it's not called
     mock_chmod = MagicMock()
     monkeypatch.setattr(os, "chmod", mock_chmod)
-    
+
     # Import and run fix_env
     import fix_env
     fix_env.fix_env()
-    
+
     # Verify chmod was not called on Windows
     mock_chmod.assert_not_called()
 
@@ -161,7 +161,7 @@ def test_octal_permission_format():
         0o755,  # rwxr-xr-x
         0o000,  # ---------
     ]
-    
+
     for mode in test_modes:
         # The robust way
         result = format(stat.S_IMODE(mode), '03o')
