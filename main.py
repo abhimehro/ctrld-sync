@@ -100,10 +100,12 @@ API_BASE = "https://api.controld.com/profiles"
 
 
 def sanitize_for_log(text: Any) -> str:
-    """Sanitize text for logging, ensuring TOKEN is redacted."""
+    """Sanitize text for logging, ensuring TOKEN is redacted and control chars are escaped."""
     s = str(text)
     if TOKEN and TOKEN in s:
         s = s.replace(TOKEN, "[REDACTED]")
+    # repr() safely escapes control characters (e.g., \n -> \\n, \x1b -> \\x1b)
+    # This prevents log injection and terminal hijacking.
     safe = repr(s)
     if len(safe) >= 2 and safe[0] == safe[-1] and safe[0] in ("'", '"'):
         return safe[1:-1]
@@ -513,7 +515,7 @@ def create_folder(client: httpx.Client, profile_id: str, name: str, do: int, sta
 
             if attempt < MAX_RETRIES:
                 wait_time = FOLDER_CREATION_DELAY * (attempt + 1)
-                log.info(f"Folder '{name}' not found yet. Retrying in {wait_time}s...")
+                log.info(f"Folder '{sanitize_for_log(name)}' not found yet. Retrying in {wait_time}s...")
                 time.sleep(wait_time)
 
         log.error(f"Folder {sanitize_for_log(name)} was not found after creation and retries.")
@@ -776,7 +778,7 @@ def sync_profile(
                         if future.result():
                             success_count += 1
                     except Exception as e:
-                        log.error(f"Failed to process folder '{folder_name}': {e}")
+                        log.error(f"Failed to process folder '{sanitize_for_log(folder_name)}': {sanitize_for_log(e)}")
 
         log.info(f"Sync complete: {success_count}/{len(folder_data_list)} folders processed successfully")
         return success_count == len(folder_data_list)

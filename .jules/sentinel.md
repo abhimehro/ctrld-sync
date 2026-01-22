@@ -53,3 +53,10 @@
 **Learning:** `ip.is_global` (available since Python 3.4) is the correct property for validating public Internet addresses. However, it considers Multicast addresses as "global" (technically true), so explicit `ip.is_multicast` checks are still needed if blocking them is desired.
 **Prevention:**
 1. Always use `if not ip.is_global or ip.is_multicast:` for strict SSRF filtering, rather than manual blacklists of private ranges.
+
+## 2026-05-18 - [Log Injection via Unsanitized Input]
+**Vulnerability:** User-controlled inputs (folder names from JSON, error messages) were logged using f-strings without sanitization. This allowed Terminal Escape Sequence Injection, potentially corrupting terminal output or spoofing log entries.
+**Learning:** `repr()` is a powerful, built-in mechanism for sanitizing strings for logs because it escapes control characters (like `\x1b`) by default.
+**Prevention:**
+1. Identify all log call sites that include user input.
+2. Wrap untrusted inputs in a sanitization function (e.g., `sanitize_for_log`) that uses `repr()` or similar escaping mechanisms.
