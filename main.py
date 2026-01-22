@@ -260,16 +260,15 @@ def validate_profile_id(profile_id: str) -> bool:
 def is_valid_rule(rule: str) -> bool:
     """
     Validates that a rule is safe to use.
-    Rejects potential XSS payloads, control characters, or whitespace.
+    Rejects potential XSS payloads or control characters.
     """
-    # Reject empty, non-printable, or whitespace-containing rules
-    if not rule or not rule.isprintable() or any(c.isspace() for c in rule):
+    if not rule or not rule.isprintable():
         return False
 
     # Block characters common in XSS and injection attacks
     # Allowed: Alphanumeric, hyphen, dot, underscore, asterisk, colon (IPv6), slash (CIDR)
-    # Block: < > " ' ` ( ) ; { } [ ] =
-    dangerous_chars = set("<>\"'`();{}[]=")
+    # Block: < > " ' ` ( ) ; { } [ ]
+    dangerous_chars = set("<>\"'`();{}[]")
     if any(c in dangerous_chars for c in rule):
         return False
 
