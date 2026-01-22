@@ -7,6 +7,7 @@ import sys
 import tempfile
 from unittest.mock import MagicMock, patch, mock_open
 import pytest
+import fix_env
 
 
 def _check_env_permissions_and_warn(env_file_path, mock_stderr):
@@ -112,8 +113,7 @@ def test_fix_env_sets_secure_permissions(tmp_path, monkeypatch):
         # Set insecure permissions initially
         os.chmod(env_file, 0o644)
 
-        # Import and run fix_env
-        import fix_env
+        # Run fix_env
         fix_env.fix_env()
 
         # Check that permissions are now secure
@@ -144,8 +144,7 @@ def test_fix_env_skips_chmod_on_windows(tmp_path, monkeypatch):
     mock_chmod = MagicMock()
     monkeypatch.setattr(os, "chmod", mock_chmod)
 
-    # Import and run fix_env
-    import fix_env
+    # Run fix_env
     fix_env.fix_env()
 
     # Verify chmod was not called on Windows
