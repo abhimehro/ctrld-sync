@@ -5,7 +5,6 @@ import os
 import stat
 import sys
 from unittest.mock import MagicMock
-import pytest
 import fix_env
 
 
