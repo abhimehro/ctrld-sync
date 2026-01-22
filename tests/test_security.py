@@ -4,7 +4,7 @@ Tests for security features in main.py and fix_env.py
 import os
 import stat
 import sys
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 import pytest
 import fix_env
 
