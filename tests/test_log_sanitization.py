@@ -42,22 +42,7 @@ class TestLogSanitization(unittest.TestCase):
         client = MagicMock()
         main.create_folder(client, "pid", unsafe_name, 0, 1)
 
-        # Check logs
-        # We look for the specific log message: "Folder '{name}' not found yet..."
-        found_unsafe_log = False
-        for call in mock_log.info.call_args_list:
-            args = call[0]
-            msg = args[0] if args else ""
-            # The vulnerable code uses f-string: f"Folder '{name}' not found yet..."
-            # So the message itself contains the name.
-            if f"Folder '{unsafe_name}' not found yet" in str(msg):
-                found_unsafe_log = True
-                break
-
-        # If we found the log with RAW unsafe_name, it's vulnerable.
-        # We want to assertion that we DO find it (demonstrating vulnerability)
-        # OR we verify it is NOT there (after fix).
-
+        # Check logs: ensure we do not log the raw unsafe name, but do log the sanitized name.
         # For this test file, I want it to PASS when the code is FIXED.
         # So I should assert that I DO NOT find raw unsafe_name, but I DO find sanitized name.
 
