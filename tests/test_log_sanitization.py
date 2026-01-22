@@ -73,9 +73,9 @@ class TestLogSanitization(unittest.TestCase):
             # But wait, if the source is f"Folder '{name}'...", logging receives the formatted string.
             log_msg = args[0]
             if unsafe_name in log_msg:
-                 found_raw = True
+                found_raw = True
             if sanitized_name in log_msg:
-                 found_sanitized = True
+                found_sanitized = True
 
         if found_raw:
             print("VULNERABILITY DETECTED: Raw unsafe name found in logs.")
