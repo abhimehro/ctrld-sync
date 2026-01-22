@@ -9,6 +9,26 @@ from unittest.mock import MagicMock, patch, mock_open
 import pytest
 
 
+def _check_env_permissions_and_warn(env_file_path, mock_stderr):
+    """
+    Helper function that replicates the permission check logic from main.py.
+    This is used in tests to verify the behavior without importing main.py.
+    """
+    file_stat = os.stat(env_file_path)
+    if file_stat.st_mode & (stat.S_IRWXG | stat.S_IRWXO):
+        platform_hint = (
+            "Please secure your .env file so it is only readable by "
+            "the owner."
+        )
+        if os.name != "nt":
+            platform_hint += " For example: 'chmod 600 .env'."
+        perms = format(stat.S_IMODE(file_stat.st_mode), '03o')
+        mock_stderr.write(
+            f"⚠️  Security Warning: .env file is "
+            f"readable by others ({perms})! {platform_hint}\n"
+        )
+
+
 def test_env_permission_check_warns_on_insecure_permissions(monkeypatch, tmp_path):
     """Test that insecure .env permissions trigger a warning."""
     # Create a temporary .env file
@@ -23,20 +43,8 @@ def test_env_permission_check_warns_on_insecure_permissions(monkeypatch, tmp_pat
         mock_stderr = MagicMock()
         monkeypatch.setattr(sys, "stderr", mock_stderr)
         
-        # Import and run the permission check logic
-        file_stat = os.stat(env_file)
-        if file_stat.st_mode & (stat.S_IRWXG | stat.S_IRWXO):
-            platform_hint = (
-                "Please secure your .env file so it is only readable by "
-                "the owner."
-            )
-            if os.name != "nt":
-                platform_hint += " For example: 'chmod 600 .env'."
-            perms = format(stat.S_IMODE(file_stat.st_mode), '03o')
-            sys.stderr.write(
-                f"⚠️  Security Warning: .env file is "
-                f"readable by others ({perms})! {platform_hint}\n"
-            )
+        # Run the permission check logic
+        _check_env_permissions_and_warn(env_file, mock_stderr)
         
         # Verify warning was written
         mock_stderr.write.assert_called()
@@ -60,20 +68,8 @@ def test_env_permission_check_no_warn_on_secure_permissions(monkeypatch, tmp_pat
         mock_stderr = MagicMock()
         monkeypatch.setattr(sys, "stderr", mock_stderr)
         
-        # Import and run the permission check logic
-        file_stat = os.stat(env_file)
-        if file_stat.st_mode & (stat.S_IRWXG | stat.S_IRWXO):
-            platform_hint = (
-                "Please secure your .env file so it is only readable by "
-                "the owner."
-            )
-            if os.name != "nt":
-                platform_hint += " For example: 'chmod 600 .env'."
-            perms = format(stat.S_IMODE(file_stat.st_mode), '03o')
-            sys.stderr.write(
-                f"⚠️  Security Warning: .env file is "
-                f"readable by others ({perms})! {platform_hint}\n"
-            )
+        # Run the permission check logic
+        _check_env_permissions_and_warn(env_file, mock_stderr)
         
         # Verify no warning was written
         mock_stderr.write.assert_not_called()
