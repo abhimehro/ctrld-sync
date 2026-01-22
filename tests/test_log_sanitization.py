@@ -1,6 +1,5 @@
 import unittest
 from unittest.mock import MagicMock, patch
-import os
 import main
 
 class TestLogSanitization(unittest.TestCase):
