@@ -94,10 +94,19 @@ handler.setFormatter(ColoredFormatter())
 logging.basicConfig(level=logging.INFO, handlers=[handler])
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
-# SECURITY: Check .env permissions (after Colors is defined for NO_COLOR support)
-if os.path.exists(".env"):
+
+def check_env_permissions(env_path: str = ".env") -> None:
+    """
+    Check .env file permissions and warn if readable by others.
+
+    Args:
+        env_path: Path to the .env file to check (default: ".env")
+    """
+    if not os.path.exists(env_path):
+        return
+
     try:
-        file_stat = os.stat(".env")
+        file_stat = os.stat(env_path)
         # Check if group or others have any permission
         if file_stat.st_mode & (stat.S_IRWXG | stat.S_IRWXO):
             platform_hint = (
@@ -118,6 +127,10 @@ if os.path.exists(".env"):
             f"{Colors.WARNING}⚠️  Security Warning: Could not check .env "
             f"permissions ({exception_type}: {error}){Colors.ENDC}\n"
         )
+
+
+# SECURITY: Check .env permissions (after Colors is defined for NO_COLOR support)
+check_env_permissions()
 log = logging.getLogger("control-d-sync")
 
 # --------------------------------------------------------------------------- #
