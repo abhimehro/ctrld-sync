@@ -60,3 +60,10 @@
 **Prevention:**
 1. Implement strict validation on all data items from external lists (`is_valid_rule`).
 2. Filter out items containing dangerous characters (`<`, `>`, `"` etc.) or control codes.
+
+## 2026-05-15 - [Inconsistent Redaction in Debug Logs]
+**Vulnerability:** While `sanitize_for_log` existed, it was not applied to `log.debug(e.response.text)` calls in exception handlers. This meant enabling debug logs could expose raw secrets returned by the API in error messages, bypassing the redaction mechanism.
+**Learning:** Security controls (like redaction helpers) must be applied consistently at all exit points, especially in verbose/debug paths which are often overlooked during security reviews.
+**Prevention:**
+1. Audit all logging calls, especially `DEBUG` level ones, for potential secret exposure.
+2. Wrapper functions or custom loggers can help enforce sanitization automatically, reducing reliance on manual application of helper functions.

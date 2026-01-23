@@ -97,6 +97,7 @@ log = logging.getLogger("control-d-sync")
 # 1. Constants – tweak only here
 # --------------------------------------------------------------------------- #
 API_BASE = "https://api.controld.com/profiles"
+USER_AGENT = "Control-D-Sync/0.1.0"
 
 
 def sanitize_for_log(text: Any) -> str:
@@ -184,11 +185,17 @@ def _api_client() -> httpx.Client:
         headers={
             "Accept": "application/json",
             "Authorization": f"Bearer {TOKEN}",
+            "User-Agent": USER_AGENT,
         },
         timeout=30,
+        follow_redirects=False,
     )
 
-_gh = httpx.Client(timeout=30)
+_gh = httpx.Client(
+    headers={"User-Agent": USER_AGENT},
+    timeout=30,
+    follow_redirects=False,
+)
 MAX_RESPONSE_SIZE = 10 * 1024 * 1024  # 10 MB limit for external resources
 
 # --------------------------------------------------------------------------- #
@@ -309,7 +316,7 @@ def _retry_request(request_func, max_retries=MAX_RETRIES, delay=RETRY_DELAY):
         except (httpx.HTTPError, httpx.TimeoutException) as e:
             if attempt == max_retries - 1:
                 if hasattr(e, 'response') and e.response is not None:
-                    log.debug(f"Response content: {e.response.text}")
+                    log.debug(f"Response content: {sanitize_for_log(e.response.text)}")
                 raise
             wait_time = delay * (2 ** attempt)
             log.warning(f"Request failed (attempt {attempt + 1}/{max_retries}): {e}. Retrying in {wait_time}s...")
@@ -653,7 +660,7 @@ def push_rules(
                 sys.stderr.write("\n")
             log.error(f"Failed to push batch {batch_idx} for folder {sanitize_for_log(folder_name)}: {sanitize_for_log(e)}")
             if hasattr(e, 'response') and e.response is not None:
-                log.debug(f"Response content: {e.response.text}")
+                log.debug(f"Response content: {sanitize_for_log(e.response.text)}")
             return None
 
     # Optimization 3: Parallelize batch processing
