@@ -9,3 +9,7 @@
 ## 2024-05-24 - Fail Fast & Friendly
 **Learning:** In CLI tools involving APIs, cascade failures (hundreds of "Failed to X") caused by basic auth issues (401/403) are overwhelming and confusing. A dedicated "Pre-flight Check" that validates credentials *before* attempting the main workload allows for specific, actionable error messages (e.g. "Check your token at [URL]") instead of generic HTTP errors.
 **Action:** Implement a `check_api_access()` step at the start of any CLI workflow to validate permissions and provide human-readable guidance on failure.
+
+## 2024-05-25 - Immediate CLI Input Validation
+**Learning:** Validating user input immediately during the interactive prompt loop (e.g. checking regex or length) prevents user frustration from long-running processes failing late due to simple typos. Immediate feedback loops ("❌ Invalid format, try again") are far superior to "Job failed after 20s".
+**Action:** Wrap `input()` calls in a `get_valid_input` helper that enforces constraints before proceeding.

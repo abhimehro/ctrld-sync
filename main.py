@@ -247,14 +247,36 @@ def validate_folder_url(url: str) -> bool:
 
     return True
 
-def validate_profile_id(profile_id: str) -> bool:
+def validate_profile_id(profile_id: str, log_errors: bool = True) -> bool:
     if not re.match(r"^[a-zA-Z0-9_-]+$", profile_id):
-        log.error("Invalid profile ID format (contains unsafe characters)")
+        if log_errors:
+            log.error("Invalid profile ID format (contains unsafe characters)")
         return False
     if len(profile_id) > 64:
-        log.error("Invalid profile ID length (max 64 chars)")
+        if log_errors:
+            log.error("Invalid profile ID length (max 64 chars)")
         return False
     return True
+
+def get_valid_input(prompt: str, validator: callable, error_msg: str, is_password: bool = False) -> str:
+    """
+    Prompts the user for input until it passes validation.
+    """
+    import getpass
+    while True:
+        if is_password:
+            value = getpass.getpass(prompt).strip()
+        else:
+            value = input(prompt).strip()
+
+        if not value:
+            print(f"{Colors.FAIL}❌ Value cannot be empty.{Colors.ENDC}")
+            continue
+
+        if validator(value):
+            return value
+
+        print(f"{Colors.FAIL}❌ {error_msg}{Colors.ENDC}")
 
 def is_valid_rule(rule: str) -> bool:
     """
@@ -881,17 +903,34 @@ def main():
         if not profile_ids:
             print(f"{Colors.CYAN}ℹ Profile ID is missing.{Colors.ENDC}")
             print(f"{Colors.CYAN}  You can find this in the URL of your profile in the Control D Dashboard.{Colors.ENDC}")
-            p_input = input(f"{Colors.BOLD}Enter Control D Profile ID:{Colors.ENDC} ").strip()
-            if p_input:
-                profile_ids = [p.strip() for p in p_input.split(",") if p.strip()]
+
+            def validate_profiles(text: str) -> bool:
+                ids = [p.strip() for p in text.split(",") if p.strip()]
+                if not ids: return False
+                return all(validate_profile_id(pid, log_errors=False) for pid in ids)
+
+            p_input = get_valid_input(
+                f"{Colors.BOLD}Enter Control D Profile ID:{Colors.ENDC} ",
+                validate_profiles,
+                "Invalid Profile ID(s). Must be alphanumeric (max 64 chars)."
+            )
+            profile_ids = [p.strip() for p in p_input.split(",") if p.strip()]
 
         if not TOKEN:
             print(f"{Colors.CYAN}ℹ API Token is missing.{Colors.ENDC}")
             print(f"{Colors.CYAN}  You can generate one at: https://controld.com/account/manage-account{Colors.ENDC}")
-            import getpass
-            t_input = getpass.getpass(f"{Colors.BOLD}Enter Control D API Token:{Colors.ENDC} ").strip()
-            if t_input:
-                TOKEN = t_input
+
+            def validate_token(text: str) -> bool:
+                # Basic sanity check
+                return len(text) > 8
+
+            t_input = get_valid_input(
+                f"{Colors.BOLD}Enter Control D API Token:{Colors.ENDC} ",
+                validate_token,
+                "Token seems too short. Please check your API token.",
+                is_password=True
+            )
+            TOKEN = t_input
 
     if not profile_ids and not args.dry_run:
         log.error("PROFILE missing and --dry-run not set. Provide --profiles or set PROFILE env.")

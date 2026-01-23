@@ -319,3 +319,56 @@ def test_check_api_access_network_error(monkeypatch):
     assert m.check_api_access(mock_client, "profile") is False
     assert mock_log.error.called
     assert "Network failure" in str(mock_log.error.call_args)
+
+# Case 8: validate_profile_id respects log_errors flag
+def test_validate_profile_id_log_errors(monkeypatch):
+    m = reload_main_with_env(monkeypatch)
+    mock_log = MagicMock()
+    monkeypatch.setattr(m, "log", mock_log)
+
+    # Invalid ID with logging enabled (default)
+    assert m.validate_profile_id("invalid spaces") is False
+    assert mock_log.error.called
+
+    mock_log.reset_mock()
+
+    # Invalid ID with logging disabled
+    assert m.validate_profile_id("invalid spaces", log_errors=False) is False
+    assert not mock_log.error.called
+
+# Case 9: get_valid_input retries on invalid input and returns valid input
+def test_get_valid_input_retry(monkeypatch, capsys):
+    m = reload_main_with_env(monkeypatch)
+
+    # Mock input to return invalid first, then valid
+    # First call: empty string -> "Value cannot be empty"
+    # Second call: "invalid" -> Validator fails -> Error message
+    # Third call: "valid" -> Validator passes
+    input_mock = MagicMock(side_effect=["", "invalid", "valid"])
+    monkeypatch.setattr('builtins.input', input_mock)
+
+    validator = lambda x: x == "valid"
+
+    result = m.get_valid_input("Prompt: ", validator, "Error message")
+
+    assert result == "valid"
+    assert input_mock.call_count == 3
+
+    # Check output for error messages
+    captured = capsys.readouterr()
+    assert "Value cannot be empty" in captured.out
+    assert "Error message" in captured.out
+
+# Case 10: get_valid_input works with getpass
+def test_get_valid_input_password(monkeypatch):
+    m = reload_main_with_env(monkeypatch)
+
+    getpass_mock = MagicMock(return_value="secret")
+    monkeypatch.setattr('getpass.getpass', getpass_mock)
+
+    validator = lambda x: True
+
+    result = m.get_valid_input("Password: ", validator, "Error", is_password=True)
+
+    assert result == "secret"
+    getpass_mock.assert_called_once()
