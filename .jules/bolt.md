@@ -31,3 +31,7 @@
 ## 2024-05-24 - Pass Local State to Avoid Redundant Reads
 **Learning:** When a process involves modifying remote state (e.g. deleting folders) and then querying it (e.g. getting rules from remaining folders), maintaining a local replica of the state avoids redundant API calls. If you know what you deleted, you don't need to ask the server "what's left?".
 **Action:** Identify sequences of "Read -> Modify -> Read" and optimize to "Read -> Modify (update local) -> Use local".
+
+## 2024-05-24 - Parallelize DNS Validation
+**Learning:** DNS lookups (`socket.getaddrinfo`) are blocking I/O operations. Performing them sequentially in a list comprehension (e.g., to filter URLs) can be a major bottleneck. Parallelizing them alongside the fetch operation can significantly reduce startup time.
+**Action:** Move validation logic that involves network I/O into the parallel worker thread instead of pre-filtering sequentially.

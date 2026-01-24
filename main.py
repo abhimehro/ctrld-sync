@@ -469,7 +469,8 @@ def fetch_folder_data(url: str) -> Dict[str, Any]:
 
 def warm_up_cache(urls: Sequence[str]) -> None:
     urls = list(set(urls))
-    urls_to_fetch = [u for u in urls if u not in _cache and validate_folder_url(u)]
+    # Optimization: Filter out already cached URLs (content check)
+    urls_to_fetch = [u for u in urls if u not in _cache]
     if not urls_to_fetch:
         return
 
@@ -477,9 +478,16 @@ def warm_up_cache(urls: Sequence[str]) -> None:
     if not USE_COLORS:
         log.info(f"Warming up cache for {total} URLs...")
 
+    # Helper function to validate AND fetch in the worker thread
+    # Validation involves DNS lookups (blocking I/O), so parallelization is critical.
+    def _validate_and_fetch(url: str) -> None:
+        if validate_folder_url(url):
+            _gh_get(url)
+
     completed = 0
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = {executor.submit(_gh_get, url): url for url in urls_to_fetch}
+        # Submit task that does both validation and fetch
+        futures = {executor.submit(_validate_and_fetch, url): url for url in urls_to_fetch}
 
         if USE_COLORS:
             sys.stderr.write(f"\r{Colors.CYAN}⏳ Warming up cache: 0/{total}...{Colors.ENDC}")
