@@ -85,3 +85,33 @@ def test_push_rules_filters_xss_payloads():
     finally:
         main._api_post_form = original_post_form
         main.log = original_log
+
+def test_validate_folder_data_sanitizes_names():
+    """
+    Verify that validate_folder_data rejects unsafe folder names (XSS prevention).
+    """
+    # Mock logger to check error messages
+    mock_log = MagicMock()
+    original_log = main.log
+    main.log = mock_log
+
+    try:
+        # 1. Valid Folder Name
+        valid_data = {"group": {"group": "My Safe Folder"}}
+        assert main.validate_folder_data(valid_data, "https://example.com/valid.json") is True
+
+        # 2. XSS Payload in Folder Name
+        xss_data = {"group": {"group": "<script>alert(1)</script>"}}
+        assert main.validate_folder_data(xss_data, "https://example.com/xss.json") is False
+        assert mock_log.error.called
+
+        # 3. Non-string Folder Name
+        bad_type_data = {"group": {"group": 12345}}
+        assert main.validate_folder_data(bad_type_data, "https://example.com/bad_type.json") is False
+
+        # 4. Dangerous chars (quote)
+        quote_data = {"group": {"group": "Folder \"Bad\""}}
+        assert main.validate_folder_data(quote_data, "https://example.com/quote.json") is False
+
+    finally:
+        main.log = original_log
