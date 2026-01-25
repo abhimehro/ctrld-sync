@@ -60,3 +60,10 @@
 **Prevention:**
 1. Implement strict validation on all data items from external lists (`is_valid_rule`).
 2. Filter out items containing dangerous characters (`<`, `>`, `"` etc.) or control codes.
+
+## 2026-05-15 - [Stored XSS in Folder Names]
+**Vulnerability:** While rule content was validated, the folder names (metadata) from external JSON files were not validated. A malicious JSON file could contain a folder name with XSS payloads (e.g., `<script>`), which would be sent to the API and potentially stored/executed in the dashboard.
+**Learning:** Input validation must cover *all* fields from untrusted sources, not just the "main" data (rules), but also metadata (names, descriptions).
+**Prevention:**
+1. Extend input validation to cover all user-controlled fields, including folder names.
+2. Define strict allowlists for names (e.g., printable characters, no HTML special chars).

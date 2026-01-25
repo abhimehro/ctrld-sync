@@ -273,6 +273,23 @@ def is_valid_rule(rule: str) -> bool:
 
     return True
 
+def is_valid_folder_name(name: str) -> bool:
+    """
+    Validates that a folder name is safe.
+    Rejects potential XSS payloads or control characters.
+    """
+    if not name or not name.strip() or not name.isprintable():
+        return False
+
+    # Block characters common in XSS and injection attacks
+    # Allow: ( ) [ ] { } for folder names (e.g. "Work (Private)")
+    # Block: < > " ' `
+    dangerous_chars = set("<>\"'`")
+    if any(c in dangerous_chars for c in name):
+        return False
+
+    return True
+
 def validate_folder_data(data: Dict[str, Any], url: str) -> bool:
     if not isinstance(data, dict):
         log.error(f"Invalid data from {sanitize_for_log(url)}: Root must be a JSON object.")
@@ -286,6 +303,16 @@ def validate_folder_data(data: Dict[str, Any], url: str) -> bool:
     if "group" not in data["group"]:
         log.error(f"Invalid data from {sanitize_for_log(url)}: Missing 'group.group' (folder name).")
         return False
+
+    folder_name = data["group"]["group"]
+    if not isinstance(folder_name, str):
+        log.error(f"Invalid data from {sanitize_for_log(url)}: Folder name must be a string.")
+        return False
+
+    if not is_valid_folder_name(folder_name):
+        log.error(f"Invalid data from {sanitize_for_log(url)}: Invalid folder name (empty, unsafe characters, or non-printable).")
+        return False
+
     return True
 
 def _api_get(client: httpx.Client, url: str) -> httpx.Response:
