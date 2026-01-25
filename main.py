@@ -23,9 +23,10 @@ import re
 import concurrent.futures
 import ipaddress
 import socket
+import getpass
 from functools import lru_cache
 from urllib.parse import urlparse
-from typing import Dict, List, Optional, Any, Set, Sequence
+from typing import Dict, List, Optional, Any, Set, Sequence, Callable
 
 import httpx
 from dotenv import load_dotenv
@@ -140,6 +141,25 @@ def _clean_env_kv(value: Optional[str], key: str) -> Optional[str]:
     return v
 
 
+def get_validated_input(
+    prompt: str,
+    validator: Callable[[str], bool],
+    error_msg: str,
+    is_password: bool = False
+) -> str:
+    """Prompts for input until the validator returns True."""
+    while True:
+        if is_password:
+            value = getpass.getpass(prompt).strip()
+        else:
+            value = input(prompt).strip()
+
+        if validator(value):
+            return value
+
+        print(f"{Colors.FAIL}❌ {error_msg}{Colors.ENDC}")
+
+
 TOKEN = _clean_env_kv(os.getenv("TOKEN"), "TOKEN")
 
 # Default folder sources
@@ -189,7 +209,6 @@ def _api_client() -> httpx.Client:
     )
 
 _gh = httpx.Client(timeout=30)
-MAX_RESPONSE_SIZE = 10 * 1024 * 1024  # 10 MB limit for external resources
 
 # --------------------------------------------------------------------------- #
 # 3. Helpers
@@ -247,12 +266,19 @@ def validate_folder_url(url: str) -> bool:
 
     return True
 
-def validate_profile_id(profile_id: str) -> bool:
+def is_valid_profile_id_format(profile_id: str) -> bool:
     if not re.match(r"^[a-zA-Z0-9_-]+$", profile_id):
-        log.error("Invalid profile ID format (contains unsafe characters)")
         return False
     if len(profile_id) > 64:
-        log.error("Invalid profile ID length (max 64 chars)")
+        return False
+    return True
+
+def validate_profile_id(profile_id: str) -> bool:
+    if not is_valid_profile_id_format(profile_id):
+        if not re.match(r"^[a-zA-Z0-9_-]+$", profile_id):
+            log.error("Invalid profile ID format (contains unsafe characters)")
+        elif len(profile_id) > 64:
+            log.error("Invalid profile ID length (max 64 chars)")
         return False
     return True
 
@@ -881,17 +907,31 @@ def main():
         if not profile_ids:
             print(f"{Colors.CYAN}ℹ Profile ID is missing.{Colors.ENDC}")
             print(f"{Colors.CYAN}  You can find this in the URL of your profile in the Control D Dashboard.{Colors.ENDC}")
-            p_input = input(f"{Colors.BOLD}Enter Control D Profile ID:{Colors.ENDC} ").strip()
-            if p_input:
-                profile_ids = [p.strip() for p in p_input.split(",") if p.strip()]
+
+            def validate_profile_input(value: str) -> bool:
+                if not value:
+                    return False
+                ids = [p.strip() for p in value.split(",") if p.strip()]
+                return bool(ids) and all(is_valid_profile_id_format(pid) for pid in ids)
+
+            p_input = get_validated_input(
+                f"{Colors.BOLD}Enter Control D Profile ID:{Colors.ENDC} ",
+                validate_profile_input,
+                "Invalid ID(s). Must be alphanumeric (including - and _), max 64 chars. Comma-separate for multiple."
+            )
+            profile_ids = [p.strip() for p in p_input.split(",") if p.strip()]
 
         if not TOKEN:
             print(f"{Colors.CYAN}ℹ API Token is missing.{Colors.ENDC}")
             print(f"{Colors.CYAN}  You can generate one at: https://controld.com/account/manage-account{Colors.ENDC}")
-            import getpass
-            t_input = getpass.getpass(f"{Colors.BOLD}Enter Control D API Token:{Colors.ENDC} ").strip()
-            if t_input:
-                TOKEN = t_input
+
+            t_input = get_validated_input(
+                f"{Colors.BOLD}Enter Control D API Token:{Colors.ENDC} ",
+                lambda x: bool(x),
+                "Token cannot be empty.",
+                is_password=True
+            )
+            TOKEN = t_input
 
     if not profile_ids and not args.dry_run:
         log.error("PROFILE missing and --dry-run not set. Provide --profiles or set PROFILE env.")
