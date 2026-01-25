@@ -469,17 +469,24 @@ def fetch_folder_data(url: str) -> Dict[str, Any]:
 
 def warm_up_cache(urls: Sequence[str]) -> None:
     urls = list(set(urls))
-    urls_to_fetch = [u for u in urls if u not in _cache and validate_folder_url(u)]
-    if not urls_to_fetch:
+    urls_to_process = [u for u in urls if u not in _cache]
+    if not urls_to_process:
         return
 
-    total = len(urls_to_fetch)
+    total = len(urls_to_process)
     if not USE_COLORS:
         log.info(f"Warming up cache for {total} URLs...")
 
+    # OPTIMIZATION: Combine validation (DNS) and fetching (HTTP) in one task
+    # to allow validation latency to be parallelized.
+    def _validate_and_fetch(url: str):
+        if validate_folder_url(url):
+            return _gh_get(url)
+        return None
+
     completed = 0
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = {executor.submit(_gh_get, url): url for url in urls_to_fetch}
+        futures = {executor.submit(_validate_and_fetch, url): url for url in urls_to_process}
 
         if USE_COLORS:
             sys.stderr.write(f"\r{Colors.CYAN}⏳ Warming up cache: 0/{total}...{Colors.ENDC}")
@@ -735,15 +742,23 @@ def sync_profile(
     try:
         # Fetch all folder data first
         folder_data_list = []
-        valid_urls = [url for url in folder_urls if validate_folder_url(url)]
+
+        # OPTIMIZATION: Move validation inside the thread pool to parallelize DNS lookups.
+        # Previously, sequential validation blocked the main thread.
+        def _fetch_if_valid(url: str):
+            if validate_folder_url(url):
+                return fetch_folder_data(url)
+            return None
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            future_to_url = {executor.submit(fetch_folder_data, url): url for url in valid_urls}
+            future_to_url = {executor.submit(_fetch_if_valid, url): url for url in folder_urls}
 
             for future in concurrent.futures.as_completed(future_to_url):
                 url = future_to_url[future]
                 try:
-                    folder_data_list.append(future.result())
+                    result = future.result()
+                    if result:
+                        folder_data_list.append(result)
                 except (httpx.HTTPError, KeyError, ValueError) as e:
                     log.error(f"Failed to fetch folder data from {sanitize_for_log(url)}: {sanitize_for_log(e)}")
                     continue
