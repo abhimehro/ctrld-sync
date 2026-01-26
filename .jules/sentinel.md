@@ -60,3 +60,10 @@
 **Prevention:**
 1. Implement strict validation on all data items from external lists (`is_valid_rule`).
 2. Filter out items containing dangerous characters (`<`, `>`, `"` etc.) or control codes.
+
+## 2026-06-01 - [Incomplete Input Validation Scope]
+**Vulnerability:** While rule content was validated for XSS characters, the `folder_name` (parsed from the same JSON structure) was not. This created an inconsistency where one part of the untrusted input was sanitized, but another (which also appears in the UI) was left vulnerable to Stored XSS.
+**Learning:** Validation MUST cover the entire schema of untrusted input. Focusing only on the "payload" (rules) while ignoring metadata (names, descriptions) leaves gaps.
+**Prevention:**
+1. Map out the full JSON schema of external inputs.
+2. Apply validation functions to ALL string fields, not just the primary data arrays.
