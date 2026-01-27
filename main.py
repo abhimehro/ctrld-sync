@@ -525,7 +525,7 @@ def _retry_request(request_func, max_retries=MAX_RETRIES, delay=RETRY_DELAY):
 
 
 def _gh_get(url: str) -> Dict:
-    # Check cache first (read operation, no lock needed for membership test)
+    # Check cache with lock to ensure thread-safe read
     with _cache_lock:
         if url in _cache:
             return _cache[url]

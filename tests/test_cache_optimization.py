@@ -194,11 +194,16 @@ class TestCacheOptimization(unittest.TestCase):
         test_url = "https://example.com/test.json"
         test_data = {"group": {"group": "Test Folder"}, "domains": ["example.com"]}
         
-        fetch_count = [0]  # Use list to allow modification in closure
+        class FetchTracker:
+            """Track fetch count using a class to avoid closure issues."""
+            def __init__(self):
+                self.count = 0
+        
+        tracker = FetchTracker()
         
         def mock_stream_get(method, url):
             """Mock the streaming GET request."""
-            fetch_count[0] += 1
+            tracker.count += 1
             mock_response = MagicMock()
             mock_response.raise_for_status = MagicMock()
             mock_response.headers = {"Content-Length": "100"}
