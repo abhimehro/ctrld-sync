@@ -668,21 +668,14 @@ def fetch_folder_data(url: str) -> Dict[str, Any]:
 
 def warm_up_cache(urls: Sequence[str]) -> None:
     urls = list(set(urls))
-<<<<<<< HEAD
     urls_to_process = [u for u in urls if u not in _cache]
     if not urls_to_process:
-=======
-    # Optimization: Filter out already cached URLs (content check)
-    urls_to_fetch = [u for u in urls if u not in _cache]
-    if not urls_to_fetch:
->>>>>>> origin/bolt-parallel-dns-validation-6616409735450417751
         return
 
     total = len(urls_to_process)
     if not USE_COLORS:
         log.info(f"Warming up cache for {total} URLs...")
 
-<<<<<<< HEAD
     # OPTIMIZATION: Combine validation (DNS) and fetching (HTTP) in one task
     # to allow validation latency to be parallelized.
     def _validate_and_fetch(url: str):
@@ -695,18 +688,6 @@ def warm_up_cache(urls: Sequence[str]) -> None:
         futures = {
             executor.submit(_validate_and_fetch, url): url for url in urls_to_process
         }
-=======
-    # Helper function to validate AND fetch in the worker thread
-    # Validation involves DNS lookups (blocking I/O), so parallelization is critical.
-    def _validate_and_fetch(url: str) -> None:
-        if validate_folder_url(url):
-            _gh_get(url)
-
-    completed = 0
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        # Submit task that does both validation and fetch
-        futures = {executor.submit(_validate_and_fetch, url): url for url in urls_to_fetch}
->>>>>>> origin/bolt-parallel-dns-validation-6616409735450417751
 
         render_progress_bar(0, total, "Warming up cache", prefix="⏳")
 
