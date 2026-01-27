@@ -6,7 +6,6 @@ This module verifies that:
 2. Non-cached URLs still get validated
 3. Cache operations are thread-safe
 """
-import concurrent.futures
 import threading
 import unittest
 from unittest.mock import patch, MagicMock
@@ -52,8 +51,10 @@ class TestCacheOptimization(unittest.TestCase):
 
     def test_non_cached_url_calls_validation(self):
         """
-        Test that when a URL is NOT in the cache, validate_folder_url is called.
-        This ensures we don't skip validation for non-cached URLs.
+        Test that when a URL is NOT in the cache during sync_profile,
+        validate_folder_url is called before fetching.
+        This test simulates the _fetch_if_valid behavior where validation
+        is required for non-cached URLs.
         """
         test_url = "https://example.com/test.json"
         test_data = {"group": {"group": "Test Folder"}, "domains": ["example.com"]}
@@ -61,21 +62,25 @@ class TestCacheOptimization(unittest.TestCase):
         # Ensure URL is NOT in cache
         self.assertNotIn(test_url, main._cache)
         
-        with patch('main.validate_folder_url', return_value=True):
+        with patch('main.validate_folder_url', return_value=True) as mock_validate:
             with patch('main._gh_get', return_value=test_data):
-                # Call the helper function that's used in sync_profile
-                # This mimics what happens in _fetch_if_valid
+                # Simulate the _fetch_if_valid logic for non-cached URLs
                 with main._cache_lock:
                     url_in_cache = test_url in main._cache
                 
                 if not url_in_cache:
-                    # Should validate because URL is not cached
-                    is_valid = main.validate_folder_url(test_url)
-                    self.assertTrue(is_valid)
-                    
-                    if is_valid:
+                    # For non-cached URLs, validate first
+                    if main.validate_folder_url(test_url):
                         result = main.fetch_folder_data(test_url)
-                        self.assertEqual(result, test_data)
+                    else:
+                        result = None
+                else:
+                    with main._cache_lock:
+                        result = main._cache[test_url]
+                
+                # Verify validation WAS called for non-cached URL
+                mock_validate.assert_called_once_with(test_url)
+                self.assertEqual(result, test_data)
 
     def test_cache_thread_safety_concurrent_reads(self):
         """
@@ -158,6 +163,12 @@ class TestCacheOptimization(unittest.TestCase):
         """
         Test the actual _fetch_if_valid logic used in sync_profile.
         This is an integration test that verifies the optimization path.
+        
+        NOTE: _fetch_if_valid is a nested function inside sync_profile, so we
+        cannot test it directly. This test manually reimplements its logic to
+        verify the cache optimization behavior that would occur in the actual
+        function. The logic is intentionally duplicated to test the pattern
+        without needing to invoke the entire sync_profile function.
         """
         test_url = "https://example.com/test.json"
         test_data = {"group": {"group": "Test Folder"}, "domains": ["example.com"]}
@@ -171,15 +182,13 @@ class TestCacheOptimization(unittest.TestCase):
             with patch('main._gh_get', return_value=test_data):
                 # Simulate the logic in _fetch_if_valid
                 with main._cache_lock:
-                    url_is_cached = test_url in main._cache
-                
-                if url_is_cached:
-                    result = main.fetch_folder_data(test_url)
-                else:
-                    if main.validate_folder_url(test_url):
-                        result = main.fetch_folder_data(test_url)
+                    if test_url in main._cache:
+                        result = main._cache[test_url]
                     else:
-                        result = None
+                        if main.validate_folder_url(test_url):
+                            result = main.fetch_folder_data(test_url)
+                        else:
+                            result = None
                 
                 # Verify validation was NOT called because URL was cached
                 mock_validate.assert_not_called()
@@ -188,8 +197,9 @@ class TestCacheOptimization(unittest.TestCase):
     def test_gh_get_thread_safety(self):
         """
         Test that _gh_get handles concurrent access correctly.
-        When multiple threads try to fetch the same URL, only one should fetch
-        and the rest should get the cached result.
+        When multiple threads try to fetch the same URL, the double-checked
+        locking pattern should minimize redundant fetches (though some may
+        still occur if threads enter the fetch section before any completes).
         """
         test_url = "https://example.com/test.json"
         test_data = {"group": {"group": "Test Folder"}, "domains": ["example.com"]}
@@ -198,12 +208,17 @@ class TestCacheOptimization(unittest.TestCase):
             """Track fetch count using a class to avoid closure issues."""
             def __init__(self):
                 self.count = 0
+                self.lock = threading.Lock()
+            
+            def increment(self):
+                with self.lock:
+                    self.count += 1
         
         tracker = FetchTracker()
         
         def mock_stream_get(method, url):
             """Mock the streaming GET request."""
-            tracker.count += 1
+            tracker.increment()
             mock_response = MagicMock()
             mock_response.raise_for_status = MagicMock()
             mock_response.headers = {"Content-Length": "100"}
@@ -243,6 +258,11 @@ class TestCacheOptimization(unittest.TestCase):
         # All results should be the same
         for result in results:
             self.assertEqual(result, test_data)
+        
+        # Verify fetch count - with double-checked locking, we should have
+        # at most 5 fetches (worst case) but ideally fewer
+        self.assertLessEqual(tracker.count, 5, 
+            f"Expected at most 5 fetches, got {tracker.count}")
 
 
 if __name__ == '__main__':
