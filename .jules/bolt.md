@@ -38,4 +38,4 @@
 
 ## 2026-01-27 - Redundant Validation for Cached Data
 **Learning:** Re-validating resource properties (like DNS/IP) when using *cached content* is pure overhead. If the content is served from memory (proven safe at fetch time), checking the *current* state of the source is disconnected from the data being used.
-**Action:** In multi-stage pipelines with a data cache, check the data cache first to skip validation for cached content, rather than relying on preserving validation-cache state across stages.
+**Action:** When using a multi-stage pipeline (Warmup -> Process), ensure validation state persists alongside the data cache. Avoid clearing validation caches between stages if the data cache is not also cleared.
