@@ -80,6 +80,8 @@
 1. Implement strict validation on all data items from external lists (`is_valid_rule`).
 2. Filter out items containing dangerous characters (`<`, `>`, `"` etc.) or control codes.
 
+<<<<<<< HEAD
+
 ## 2026-05-15 - [Inconsistent Redaction in Debug Logs]
 
 **Vulnerability:** While `sanitize_for_log` existed, it was not applied to `log.debug(e.response.text)` calls in exception handlers. This meant enabling debug logs could expose raw secrets returned by the API in error messages, bypassing the redaction mechanism.

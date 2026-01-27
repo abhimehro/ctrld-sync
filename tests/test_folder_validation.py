@@ -1,6 +1,9 @@
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
+
 import main
+
 
 def test_folder_name_security():
     """
@@ -22,11 +25,19 @@ def test_folder_name_security():
 
         # Case 3: Invalid Type
         invalid_type_data = {"group": {"group": 123}}
-        assert main.validate_folder_data(invalid_type_data, "http://badtype.com") is False
+        assert (
+            main.validate_folder_data(invalid_type_data, "http://badtype.com") is False
+        )
 
         # Case 4: Dangerous characters
-        dangerous_data = {"group": {"group": "Folder\"Name"}}
-        assert main.validate_folder_data(dangerous_data, "http://dangerous.com") is False
+        dangerous_data = {"group": {"group": 'Folder"Name'}}
+        assert (
+            main.validate_folder_data(dangerous_data, "http://dangerous.com") is False
+        )
+
+        # Case 5: Empty/Strip folder name
+        empty_data = {"group": {"group": "   "}}
+        assert main.validate_folder_data(empty_data, "http://empty.com") is False
 
     finally:
         main.log = original_log

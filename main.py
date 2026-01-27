@@ -387,23 +387,28 @@ def is_valid_rule(rule: str) -> bool:
 
     return True
 
+<<<<<<< HEAD
 
 def is_valid_folder_name(name: str) -> bool:
     """
     Validates folder name to prevent XSS and ensure printability.
     Allowed: Anything printable except < > " ' `
     """
-    if not name or not name.isprintable():
+    if not name or not name.strip() or not name.isprintable():
         return False
 
     # Block XSS and HTML injection characters
+    # Allow: ( ) [ ] { } for folder names (e.g. "Work (Private)")
     dangerous_chars = set("<>\"'`")
     if any(c in dangerous_chars for c in name):
         return False
 
     return True
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> origin/sentinel-folder-validation-10716619568147792189
 def validate_folder_data(data: Dict[str, Any], url: str) -> bool:
     if not isinstance(data, dict):
         log.error(
@@ -424,6 +429,7 @@ def validate_folder_data(data: Dict[str, Any], url: str) -> bool:
         )
         return False
 
+<<<<<<< HEAD
     # Security: Validate folder name
     folder_name = data["group"]["group"]
     if not isinstance(folder_name, str):
@@ -431,11 +437,13 @@ def validate_folder_data(data: Dict[str, Any], url: str) -> bool:
             f"Invalid data from {sanitize_for_log(url)}: Folder name must be a string."
         )
         return False
+    folder_name = data["group"]["group"]
+    if not isinstance(folder_name, str):
+        log.error(f"Invalid data from {sanitize_for_log(url)}: Folder name must be a string.")
+        return False
 
     if not is_valid_folder_name(folder_name):
-        log.error(
-            f"Invalid data from {sanitize_for_log(url)}: Unsafe folder name detected."
-        )
+        log.error(f"Invalid data from {sanitize_for_log(url)}: Invalid folder name (empty, unsafe characters, or non-printable).")
         return False
 
     return True
