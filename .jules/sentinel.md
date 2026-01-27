@@ -60,3 +60,10 @@
 **Prevention:**
 1. Implement strict validation on all data items from external lists (`is_valid_rule`).
 2. Filter out items containing dangerous characters (`<`, `>`, `"` etc.) or control codes.
+
+## 2026-05-24 - [Weak Blacklist Validation for Rules]
+**Vulnerability:** The `is_valid_rule` function used a blacklist of dangerous characters (`<>\"'`();{}[]`) to sanitize rules. This missed several dangerous characters like `&`, `|`, and ` ` which could allow command injection or other attacks if the backend processed rules unsafely.
+**Learning:** Blacklists are inherently fragile because they require knowing every possible dangerous character. Whitelists are robust because they define exactly what is allowed.
+**Prevention:**
+1. Replace blacklists with strict whitelists whenever possible.
+2. Use regex to enforce allowable character sets (e.g., `^[a-zA-Z0-9.\-_:*\/]+$`).

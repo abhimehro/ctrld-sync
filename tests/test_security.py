@@ -1,6 +1,8 @@
+
 import pytest
 from unittest.mock import MagicMock
 import main
+from main import is_valid_rule
 
 def test_push_rules_filters_xss_payloads():
     """
@@ -85,3 +87,35 @@ def test_push_rules_filters_xss_payloads():
     finally:
         main._api_post_form = original_post_form
         main.log = original_log
+
+@pytest.mark.parametrize("rule,expected_validity", [
+    # Valid Inputs (should pass)
+    ("example.com", True),
+    ("1.2.3.4", True),
+    ("2001:db8::1", True),
+    ("192.168.1.0/24", True),
+    ("*.example.com", True),
+    ("_sip._tcp.example.com", True),
+    ("valid-domain-with-hyphens.com", True),
+    ("sub.domain.example.com", True),
+
+    # Invalid Inputs (should fail)
+    # These contain characters NOT in the whitelist (and some not in the old blacklist)
+    ("example.com && rm -rf /", False),  # Contains spaces and &
+    ("$(whoami).example.com", False),    # Contains $ and ( )
+    ("example.com|nc 1.2.3.4 80", False),# Contains | and space
+    ("example.com; ls", False),          # Contains ; and space
+    ("<script>alert(1)</script>", False),# Contains < > ( )
+    ("invalid@email.com", False),        # Contains @ (not allowed in whitelist)
+    ("http://example.com", True),        # Safe from injection (contains only allowed chars)
+    ("example.com/path", True),          # Allowed (CIDR uses /)
+    ("foo bar", False),                  # Space not allowed
+    ("foo\tbar", False),                 # Tab not allowed
+    ("foo\nbar", False),                 # Newline not allowed
+    ("`touch hacked`", False),           # Backtick not allowed
+])
+def test_is_valid_rule_strict(rule, expected_validity):
+    """
+    Tests the is_valid_rule function against a strict whitelist of inputs.
+    """
+    assert is_valid_rule(rule) == expected_validity, f"Failed for rule: {rule}"
