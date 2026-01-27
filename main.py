@@ -387,7 +387,7 @@ def is_valid_rule(rule: str) -> bool:
 
     return True
 
-<<<<<<< HEAD
+
 
 def is_valid_folder_name(name: str) -> bool:
     """
@@ -405,10 +405,7 @@ def is_valid_folder_name(name: str) -> bool:
 
     return True
 
-<<<<<<< HEAD
 
-=======
->>>>>>> origin/sentinel-folder-validation-10716619568147792189
 def validate_folder_data(data: Dict[str, Any], url: str) -> bool:
     if not isinstance(data, dict):
         log.error(
@@ -429,14 +426,6 @@ def validate_folder_data(data: Dict[str, Any], url: str) -> bool:
         )
         return False
 
-<<<<<<< HEAD
-    # Security: Validate folder name
-    folder_name = data["group"]["group"]
-    if not isinstance(folder_name, str):
-        log.error(
-            f"Invalid data from {sanitize_for_log(url)}: Folder name must be a string."
-        )
-        return False
     folder_name = data["group"]["group"]
     if not isinstance(folder_name, str):
         log.error(f"Invalid data from {sanitize_for_log(url)}: Folder name must be a string.")
