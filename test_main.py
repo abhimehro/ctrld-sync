@@ -323,3 +323,62 @@ def test_check_api_access_network_error(monkeypatch):
     assert m.check_api_access(mock_client, "profile") is False
     assert mock_log.error.called
     assert "Network failure" in str(mock_log.error.call_args)
+
+# Case 8: extract_profile_id correctly extracts ID from URL or returns input
+def test_extract_profile_id():
+    # Regular ID
+    assert main.extract_profile_id("12345") == "12345"
+    # URL with /filters
+    assert main.extract_profile_id("https://controld.com/dashboard/profiles/12345/filters") == "12345"
+    # URL without /filters
+    assert main.extract_profile_id("https://controld.com/dashboard/profiles/12345") == "12345"
+    # URL with params
+    assert main.extract_profile_id("https://controld.com/dashboard/profiles/12345?foo=bar") == "12345"
+    # Clean up whitespace
+    assert main.extract_profile_id("  12345  ") == "12345"
+    # Invalid input returns as is (cleaned)
+    assert main.extract_profile_id("random-string") == "random-string"
+    # Empty input
+    assert main.extract_profile_id("") == ""
+    assert main.extract_profile_id(None) == ""
+
+# Case 9: Interactive input handles URL pasting
+def test_interactive_input_extracts_id(monkeypatch, capsys):
+    # Ensure environment is clean
+    monkeypatch.delenv("PROFILE", raising=False)
+    monkeypatch.delenv("TOKEN", raising=False)
+
+    # Reload main with isatty=True
+    m = reload_main_with_env(monkeypatch, isatty=True)
+    monkeypatch.setattr('sys.stdin.isatty', lambda: True)
+
+    # Provide URL as input
+    url_input = "https://controld.com/dashboard/profiles/extracted_id/filters"
+    monkeypatch.setattr('builtins.input', lambda prompt="": url_input)
+    monkeypatch.setattr('getpass.getpass', lambda prompt="": "test_token")
+
+    # Mock parse_args
+    mock_args = MagicMock()
+    mock_args.profiles = None
+    mock_args.folder_url = None
+    mock_args.dry_run = False
+    mock_args.no_delete = False
+    mock_args.plan_json = None
+    monkeypatch.setattr(m, "parse_args", lambda: mock_args)
+
+    # Mock sync_profile to catch the call
+    mock_sync = MagicMock(return_value=True)
+    monkeypatch.setattr(m, "sync_profile", mock_sync)
+    monkeypatch.setattr(m, "warm_up_cache", MagicMock())
+
+    # Run main, expect clean exit
+    with pytest.raises(SystemExit):
+        m.main()
+
+    # Verify sync_profile called with extracted ID
+    args, _ = mock_sync.call_args
+    assert args[0] == "extracted_id"
+
+    # Verify prompt text update
+    captured = capsys.readouterr()
+    assert "(or just paste the URL)" in captured.out

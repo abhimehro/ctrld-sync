@@ -353,6 +353,22 @@ def validate_folder_url(url: str) -> bool:
     return True
 
 
+def extract_profile_id(text: str) -> str:
+    """
+    Extracts the Profile ID from a Control D URL if present,
+    otherwise returns the text as-is (cleaned).
+    """
+    if not text:
+        return ""
+    text = text.strip()
+    # Pattern for Control D Dashboard URLs
+    # e.g. https://controld.com/dashboard/profiles/12345abc/filters
+    match = re.search(r"controld\.com/dashboard/profiles/([^/?#\s]+)", text)
+    if match:
+        return match.group(1)
+    return text
+
+
 def is_valid_profile_id_format(profile_id: str) -> bool:
     if not re.match(r"^[a-zA-Z0-9_-]+$", profile_id):
         return False
@@ -386,7 +402,6 @@ def is_valid_rule(rule: str) -> bool:
         return False
 
     return True
-
 
 
 def is_valid_folder_name(name: str) -> bool:
@@ -428,11 +443,15 @@ def validate_folder_data(data: Dict[str, Any], url: str) -> bool:
 
     folder_name = data["group"]["group"]
     if not isinstance(folder_name, str):
-        log.error(f"Invalid data from {sanitize_for_log(url)}: Folder name must be a string.")
+        log.error(
+            f"Invalid data from {sanitize_for_log(url)}: Folder name must be a string."
+        )
         return False
 
     if not is_valid_folder_name(folder_name):
-        log.error(f"Invalid data from {sanitize_for_log(url)}: Invalid folder name (empty, unsafe characters, or non-printable).")
+        log.error(
+            f"Invalid data from {sanitize_for_log(url)}: Invalid folder name (empty, unsafe characters, or non-printable)."
+        )
         return False
 
     return True
@@ -1167,7 +1186,7 @@ def main():
     profiles_arg = (
         _clean_env_kv(args.profiles or os.getenv("PROFILE", ""), "PROFILE") or ""
     )
-    profile_ids = [p.strip() for p in profiles_arg.split(",") if p.strip()]
+    profile_ids = [extract_profile_id(p) for p in profiles_arg.split(",") if p.strip()]
     folder_urls = args.folder_url if args.folder_url else DEFAULT_FOLDER_URLS
 
     # Interactive prompts for missing config
@@ -1175,21 +1194,23 @@ def main():
         if not profile_ids:
             print(f"{Colors.CYAN}ℹ Profile ID is missing.{Colors.ENDC}")
             print(
-                f"{Colors.CYAN}  You can find this in the URL of your profile in the Control D Dashboard.{Colors.ENDC}"
+                f"{Colors.CYAN}  You can find this in the URL of your profile in the Control D Dashboard (or just paste the URL).{Colors.ENDC}"
             )
 
             def validate_profile_input(value: str) -> bool:
                 if not value:
                     return False
-                ids = [p.strip() for p in value.split(",") if p.strip()]
+                ids = [extract_profile_id(p) for p in value.split(",") if p.strip()]
                 return bool(ids) and all(is_valid_profile_id_format(pid) for pid in ids)
 
             p_input = get_validated_input(
                 f"{Colors.BOLD}Enter Control D Profile ID:{Colors.ENDC} ",
                 validate_profile_input,
-                "Invalid ID(s). Must be alphanumeric (including - and _), max 64 chars. Comma-separate for multiple.",
+                "Invalid ID(s) or URL(s). Must be a valid Profile ID or a Control D Profile URL. Comma-separate for multiple.",
             )
-            profile_ids = [p.strip() for p in p_input.split(",") if p.strip()]
+            profile_ids = [
+                extract_profile_id(p) for p in p_input.split(",") if p.strip()
+            ]
 
         if not TOKEN:
             print(f"{Colors.CYAN}ℹ API Token is missing.{Colors.ENDC}")
