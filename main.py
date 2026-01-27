@@ -1038,6 +1038,11 @@ def sync_profile(
         # OPTIMIZATION: Move validation inside the thread pool to parallelize DNS lookups.
         # Previously, sequential validation blocked the main thread.
         def _fetch_if_valid(url: str):
+            # Optimization: If we already have the content in cache, skip validation
+            # because the content was validated at the time of fetch (warm_up_cache).
+            if url in _cache:
+                return fetch_folder_data(url)
+
             if validate_folder_url(url):
                 return fetch_folder_data(url)
             return None

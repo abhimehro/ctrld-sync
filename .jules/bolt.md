@@ -35,3 +35,7 @@
 ## 2024-05-24 - Parallelize DNS Validation
 **Learning:** DNS lookups (`socket.getaddrinfo`) are blocking I/O operations. Performing them sequentially in a list comprehension (e.g., to filter URLs) can be a major bottleneck. Parallelizing them alongside the fetch operation can significantly reduce startup time.
 **Action:** Move validation logic that involves network I/O into the parallel worker thread instead of pre-filtering sequentially.
+
+## 2026-01-27 - Redundant Validation for Cached Data
+**Learning:** Re-validating resource properties (like DNS/IP) when using *cached content* is pure overhead. If the content is served from memory (proven safe at fetch time), checking the *current* state of the source is disconnected from the data being used.
+**Action:** When using a multi-stage pipeline (Warmup -> Process), ensure validation state persists alongside the data cache. Avoid clearing validation caches between stages if the data cache is not also cleared.
