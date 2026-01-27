@@ -576,6 +576,7 @@ def _gh_get(url: str) -> Dict:
 
     # Double-checked locking: Check again after fetch to avoid duplicate fetches
     # If another thread already cached it while we were fetching, use theirs
+    # for consistency (return _cache[url] instead of data to ensure single source of truth)
     with _cache_lock:
         if url not in _cache:
             _cache[url] = data
