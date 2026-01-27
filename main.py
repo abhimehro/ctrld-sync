@@ -16,6 +16,7 @@ Nothing fancy, just works.
 import argparse
 import json
 import os
+import stat
 import logging
 import sys
 import time
@@ -91,6 +92,44 @@ handler = logging.StreamHandler()
 handler.setFormatter(ColoredFormatter())
 logging.basicConfig(level=logging.INFO, handlers=[handler])
 logging.getLogger("httpx").setLevel(logging.WARNING)
+
+
+def check_env_permissions(env_path: str = ".env") -> None:
+    """
+    Check .env file permissions and warn if readable by others.
+
+    Args:
+        env_path: Path to the .env file to check (default: ".env")
+    """
+    if not os.path.exists(env_path):
+        return
+
+    try:
+        file_stat = os.stat(env_path)
+        # Check if group or others have any permission
+        if file_stat.st_mode & (stat.S_IRWXG | stat.S_IRWXO):
+            platform_hint = (
+                "Please secure your .env file so it is only readable by "
+                "the owner."
+            )
+            if os.name != "nt":
+                platform_hint += " For example: 'chmod 600 .env'."
+            perms = format(stat.S_IMODE(file_stat.st_mode), '03o')
+            sys.stderr.write(
+                f"{Colors.WARNING}⚠️  Security Warning: .env file is "
+                f"readable by others ({perms})! {platform_hint}"
+                f"{Colors.ENDC}\n"
+            )
+    except Exception as error:
+        exception_type = type(error).__name__
+        sys.stderr.write(
+            f"{Colors.WARNING}⚠️  Security Warning: Could not check .env "
+            f"permissions ({exception_type}: {error}){Colors.ENDC}\n"
+        )
+
+
+# SECURITY: Check .env permissions (after Colors is defined for NO_COLOR support)
+check_env_permissions()
 log = logging.getLogger("control-d-sync")
 
 # --------------------------------------------------------------------------- #
