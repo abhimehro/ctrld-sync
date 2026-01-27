@@ -222,6 +222,10 @@ def get_validated_input(
         else:
             value = input(prompt).strip()
 
+        if not value:
+            print(f"{Colors.FAIL}❌ Value cannot be empty{Colors.ENDC}")
+            continue
+
         if validator(value):
             return value
 
@@ -377,12 +381,13 @@ def is_valid_profile_id_format(profile_id: str) -> bool:
     return True
 
 
-def validate_profile_id(profile_id: str) -> bool:
+def validate_profile_id(profile_id: str, log_errors: bool = True) -> bool:
     if not is_valid_profile_id_format(profile_id):
-        if not re.match(r"^[a-zA-Z0-9_-]+$", profile_id):
-            log.error("Invalid profile ID format (contains unsafe characters)")
-        elif len(profile_id) > 64:
-            log.error("Invalid profile ID length (max 64 chars)")
+        if log_errors:
+            if not re.match(r"^[a-zA-Z0-9_-]+$", profile_id):
+                log.error("Invalid profile ID format (contains unsafe characters)")
+            elif len(profile_id) > 64:
+                log.error("Invalid profile ID length (max 64 chars)")
         return False
     return True
 
@@ -1198,10 +1203,10 @@ def main():
             )
 
             def validate_profile_input(value: str) -> bool:
-                if not value:
-                    return False
                 ids = [extract_profile_id(p) for p in value.split(",") if p.strip()]
-                return bool(ids) and all(is_valid_profile_id_format(pid) for pid in ids)
+                return bool(ids) and all(
+                    validate_profile_id(pid, log_errors=False) for pid in ids
+                )
 
             p_input = get_validated_input(
                 f"{Colors.BOLD}Enter Control D Profile ID:{Colors.ENDC} ",
@@ -1220,8 +1225,8 @@ def main():
 
             t_input = get_validated_input(
                 f"{Colors.BOLD}Enter Control D API Token:{Colors.ENDC} ",
-                lambda x: bool(x),
-                "Token cannot be empty.",
+                lambda x: len(x) > 8,
+                "Token seems too short. Please check your API token.",
                 is_password=True,
             )
             TOKEN = t_input
