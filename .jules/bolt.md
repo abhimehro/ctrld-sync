@@ -31,3 +31,7 @@
 ## 2024-05-24 - Pass Local State to Avoid Redundant Reads
 **Learning:** When a process involves modifying remote state (e.g. deleting folders) and then querying it (e.g. getting rules from remaining folders), maintaining a local replica of the state avoids redundant API calls. If you know what you deleted, you don't need to ask the server "what's left?".
 **Action:** Identify sequences of "Read -> Modify -> Read" and optimize to "Read -> Modify (update local) -> Use local".
+
+## 2024-05-24 - Parallelize Validation with Fetching
+**Learning:** Sequential validation (especially if it involves network IO like DNS lookups) before parallel fetching creates a bottleneck. Combining validation and fetching into a single task within a `ThreadPoolExecutor` allows validation latency to be absorbed by parallelism.
+**Action:** Look for patterns like `[url for url in urls if validate(url)]` followed by `ThreadPoolExecutor`. Move the `validate(url)` check inside the executor task.
