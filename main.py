@@ -24,6 +24,7 @@ import re
 import socket
 import stat
 import sys
+import threading
 import time
 from functools import lru_cache
 from typing import Any, Callable, Dict, List, Optional, Sequence, Set
@@ -315,6 +316,7 @@ MAX_RESPONSE_SIZE = 10 * 1024 * 1024  # 10 MB limit for external resources
 # 3. Helpers
 # --------------------------------------------------------------------------- #
 _cache: Dict[str, Dict] = {}
+_cache_lock = threading.Lock()
 
 
 @lru_cache(maxsize=128)
@@ -523,49 +525,58 @@ def _retry_request(request_func, max_retries=MAX_RETRIES, delay=RETRY_DELAY):
 
 
 def _gh_get(url: str) -> Dict:
-    if url not in _cache:
-        # Explicitly let HTTPError propagate (no need to catch just to re-raise)
-        with _gh.stream("GET", url) as r:
-            r.raise_for_status()
+    # Check cache first (read operation, no lock needed for membership test)
+    with _cache_lock:
+        if url in _cache:
+            return _cache[url]
+    
+    # Fetch data if not cached
+    # Explicitly let HTTPError propagate (no need to catch just to re-raise)
+    with _gh.stream("GET", url) as r:
+        r.raise_for_status()
 
-            # 1. Check Content-Length header if present
-            cl = r.headers.get("Content-Length")
-            if cl:
-                try:
-                    if int(cl) > MAX_RESPONSE_SIZE:
-                        raise ValueError(
-                            f"Response too large from {sanitize_for_log(url)} "
-                            f"({int(cl) / (1024 * 1024):.2f} MB)"
-                        )
-                except ValueError as e:
-                    # Only catch the conversion error, let the size error propagate
-                    if "Response too large" in str(e):
-                        raise e
-                    log.warning(
-                        f"Malformed Content-Length header from {sanitize_for_log(url)}: {cl!r}. "
-                        "Falling back to streaming size check."
-                    )
-
-            # 2. Stream and check actual size
-            chunks = []
-            current_size = 0
-            for chunk in r.iter_bytes():
-                current_size += len(chunk)
-                if current_size > MAX_RESPONSE_SIZE:
+        # 1. Check Content-Length header if present
+        cl = r.headers.get("Content-Length")
+        if cl:
+            try:
+                if int(cl) > MAX_RESPONSE_SIZE:
                     raise ValueError(
                         f"Response too large from {sanitize_for_log(url)} "
-                        f"(> {MAX_RESPONSE_SIZE / (1024 * 1024):.2f} MB)"
+                        f"({int(cl) / (1024 * 1024):.2f} MB)"
                     )
-                chunks.append(chunk)
+            except ValueError as e:
+                # Only catch the conversion error, let the size error propagate
+                if "Response too large" in str(e):
+                    raise e
+                log.warning(
+                    f"Malformed Content-Length header from {sanitize_for_log(url)}: {cl!r}. "
+                    "Falling back to streaming size check."
+                )
 
-            try:
-                _cache[url] = json.loads(b"".join(chunks))
-            except json.JSONDecodeError as e:
+        # 2. Stream and check actual size
+        chunks = []
+        current_size = 0
+        for chunk in r.iter_bytes():
+            current_size += len(chunk)
+            if current_size > MAX_RESPONSE_SIZE:
                 raise ValueError(
-                    f"Invalid JSON response from {sanitize_for_log(url)}"
-                ) from e
+                    f"Response too large from {sanitize_for_log(url)} "
+                    f"(> {MAX_RESPONSE_SIZE / (1024 * 1024):.2f} MB)"
+                )
+            chunks.append(chunk)
 
-    return _cache[url]
+        try:
+            data = json.loads(b"".join(chunks))
+        except json.JSONDecodeError as e:
+            raise ValueError(
+                f"Invalid JSON response from {sanitize_for_log(url)}"
+            ) from e
+
+    # Store in cache (write operation, needs lock)
+    with _cache_lock:
+        _cache[url] = data
+    
+    return data
 
 
 def check_api_access(client: httpx.Client, profile_id: str) -> bool:
@@ -693,7 +704,8 @@ def fetch_folder_data(url: str) -> Dict[str, Any]:
 
 def warm_up_cache(urls: Sequence[str]) -> None:
     urls = list(set(urls))
-    urls_to_process = [u for u in urls if u not in _cache]
+    with _cache_lock:
+        urls_to_process = [u for u in urls if u not in _cache]
     if not urls_to_process:
         return
 
@@ -1040,8 +1052,9 @@ def sync_profile(
         def _fetch_if_valid(url: str):
             # Optimization: If we already have the content in cache, skip validation
             # because the content was validated at the time of fetch (warm_up_cache).
-            if url in _cache:
-                return fetch_folder_data(url)
+            with _cache_lock:
+                if url in _cache:
+                    return fetch_folder_data(url)
 
             if validate_folder_url(url):
                 return fetch_folder_data(url)
