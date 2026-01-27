@@ -342,6 +342,10 @@ def test_extract_profile_id():
     assert main.extract_profile_id("") == ""
     assert main.extract_profile_id(None) == ""
 
+# Mock load_dotenv globally to prevent local .env from polluting tests
+import dotenv
+dotenv.load_dotenv = lambda **kwargs: None
+
 # Case 9: Interactive input handles URL pasting
 def test_interactive_input_extracts_id(monkeypatch, capsys):
     # Ensure environment is clean
