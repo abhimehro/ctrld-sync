@@ -316,7 +316,9 @@ MAX_RESPONSE_SIZE = 10 * 1024 * 1024  # 10 MB limit for external resources
 # 3. Helpers
 # --------------------------------------------------------------------------- #
 _cache: Dict[str, Dict] = {}
-_cache_lock = threading.Lock()
+# Use RLock (reentrant lock) to allow nested acquisitions by the same thread
+# This prevents deadlocks when _fetch_if_valid calls fetch_folder_data which calls _gh_get
+_cache_lock = threading.RLock()
 
 
 @lru_cache(maxsize=128)
@@ -525,7 +527,7 @@ def _retry_request(request_func, max_retries=MAX_RETRIES, delay=RETRY_DELAY):
 
 
 def _gh_get(url: str) -> Dict:
-    # Check cache with lock to ensure thread-safe read
+    # First check: Quick check without holding lock for long
     with _cache_lock:
         if url in _cache:
             return _cache[url]
@@ -572,11 +574,12 @@ def _gh_get(url: str) -> Dict:
                 f"Invalid JSON response from {sanitize_for_log(url)}"
             ) from e
 
-    # Store in cache (write operation, needs lock)
+    # Double-checked locking: Check again after fetch to avoid duplicate fetches
+    # If another thread already cached it while we were fetching, use theirs
     with _cache_lock:
-        _cache[url] = data
-    
-    return data
+        if url not in _cache:
+            _cache[url] = data
+        return _cache[url]
 
 
 def check_api_access(client: httpx.Client, profile_id: str) -> bool:
@@ -1050,11 +1053,12 @@ def sync_profile(
         # OPTIMIZATION: Move validation inside the thread pool to parallelize DNS lookups.
         # Previously, sequential validation blocked the main thread.
         def _fetch_if_valid(url: str):
-            # Optimization: If we already have the content in cache, skip validation
-            # because the content was validated at the time of fetch (warm_up_cache).
+            # Optimization: If we already have the content in cache, return it directly.
+            # The content was validated at the time of fetch (warm_up_cache).
+            # Read directly from cache to avoid calling fetch_folder_data while holding lock.
             with _cache_lock:
                 if url in _cache:
-                    return fetch_folder_data(url)
+                    return _cache[url]
 
             if validate_folder_url(url):
                 return fetch_folder_data(url)
