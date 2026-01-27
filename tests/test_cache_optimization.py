@@ -74,9 +74,6 @@ class TestCacheOptimization(unittest.TestCase):
                         result = main.fetch_folder_data(test_url)
                     else:
                         result = None
-                else:
-                    with main._cache_lock:
-                        result = main._cache[test_url]
                 
                 # Verify validation WAS called for non-cached URL
                 mock_validate.assert_called_once_with(test_url)
@@ -205,7 +202,9 @@ class TestCacheOptimization(unittest.TestCase):
         test_data = {"group": {"group": "Test Folder"}, "domains": ["example.com"]}
         
         class FetchTracker:
-            """Track fetch count using a class to avoid closure issues."""
+            """Track fetch count using a class to avoid closure issues.
+            Uses a separate lock from main._cache_lock to avoid any potential
+            ordering issues with the test's mock patches and actual cache operations."""
             def __init__(self):
                 self.count = 0
                 self.lock = threading.Lock()
