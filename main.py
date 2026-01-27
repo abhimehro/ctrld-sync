@@ -159,25 +159,6 @@ def sanitize_for_log(text: Any) -> str:
     return safe
 
 
-def render_progress_bar(
-    current: int, total: int, label: str, prefix: str = "🚀"
-) -> None:
-    if not USE_COLORS or total == 0:
-        return
-
-    width = 20
-    progress = min(1.0, current / total)
-    filled = int(width * progress)
-    bar = "█" * filled + "░" * (width - filled)
-    percent = int(progress * 100)
-
-    # Use \033[K to clear line residue
-    sys.stderr.write(
-        f"\r\033[K{Colors.CYAN}{prefix} {label}: [{bar}] {percent}% ({current}/{total}){Colors.ENDC}"
-    )
-    sys.stderr.flush()
-
-
 def countdown_timer(seconds: int, message: str = "Waiting") -> None:
     """Shows a countdown timer if strictly in a TTY, otherwise just sleeps."""
     if not USE_COLORS:
@@ -1214,7 +1195,11 @@ def sync_profile(
 # 5. Entry-point
 # --------------------------------------------------------------------------- #
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Control D folder sync")
+    parser = argparse.ArgumentParser(
+        description="Control D folder sync",
+        epilog="Example: python main.py --dry-run --profiles 12345abc",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     parser.add_argument(
         "--profiles", help="Comma-separated list of profile IDs", default=None
     )
@@ -1454,4 +1439,10 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.stderr.write(
+            f"\n{Colors.WARNING}⚠️  Sync cancelled by user.{Colors.ENDC}\n"
+        )
+        sys.exit(130)
