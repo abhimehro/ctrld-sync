@@ -97,3 +97,12 @@
 
 1. Identify all log call sites that include user input.
 2. Wrap untrusted inputs in a sanitization function (e.g., `sanitize_for_log`) that uses `repr()` or similar escaping mechanisms.
+
+## 2026-06-01 - [Incomplete Input Validation Scope]
+
+**Vulnerability:** While rule content was validated for XSS characters, the `folder_name` (parsed from the same JSON structure) was not. This created an inconsistency where one part of the untrusted input was sanitized, but another (which also appears in the UI) was left vulnerable to Stored XSS.
+**Learning:** Validation MUST cover the entire schema of untrusted input. Focusing only on the "payload" (rules) while ignoring metadata (names, descriptions) leaves gaps.
+**Prevention:**
+
+1. Map out the full JSON schema of external inputs.
+2. Apply validation functions to ALL string fields, not just the primary data arrays.
