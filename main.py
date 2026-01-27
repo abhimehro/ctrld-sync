@@ -14,19 +14,20 @@ Nothing fancy, just works.
 """
 
 import argparse
+import concurrent.futures
+import getpass
+import ipaddress
 import json
-import os
-import stat
 import logging
+import os
+import re
+import socket
+import stat
 import sys
 import time
-import re
-import concurrent.futures
-import ipaddress
-import socket
 from functools import lru_cache
+from typing import Any, Callable, Dict, List, Optional, Sequence, Set
 from urllib.parse import urlparse
-from typing import Dict, List, Optional, Any, Set, Sequence
 
 import httpx
 from dotenv import load_dotenv
@@ -42,30 +43,33 @@ if os.getenv("NO_COLOR"):
 else:
     USE_COLORS = sys.stderr.isatty() and sys.stdout.isatty()
 
+
 class Colors:
     if USE_COLORS:
-        HEADER = '\033[95m'
-        BLUE = '\033[94m'
-        CYAN = '\033[96m'
-        GREEN = '\033[92m'
-        WARNING = '\033[93m'
-        FAIL = '\033[91m'
-        ENDC = '\033[0m'
-        BOLD = '\033[1m'
-        UNDERLINE = '\033[4m'
+        HEADER = "\033[95m"
+        BLUE = "\033[94m"
+        CYAN = "\033[96m"
+        GREEN = "\033[92m"
+        WARNING = "\033[93m"
+        FAIL = "\033[91m"
+        ENDC = "\033[0m"
+        BOLD = "\033[1m"
+        UNDERLINE = "\033[4m"
     else:
-        HEADER = ''
-        BLUE = ''
-        CYAN = ''
-        GREEN = ''
-        WARNING = ''
-        FAIL = ''
-        ENDC = ''
-        BOLD = ''
-        UNDERLINE = ''
+        HEADER = ""
+        BLUE = ""
+        CYAN = ""
+        GREEN = ""
+        WARNING = ""
+        FAIL = ""
+        ENDC = ""
+        BOLD = ""
+        UNDERLINE = ""
+
 
 class ColoredFormatter(logging.Formatter):
     """Custom formatter to add colors to log levels."""
+
     LEVEL_COLORS = {
         logging.DEBUG: Colors.BLUE,
         logging.INFO: Colors.CYAN,
@@ -74,9 +78,11 @@ class ColoredFormatter(logging.Formatter):
         logging.CRITICAL: Colors.FAIL + Colors.BOLD,
     }
 
-    def __init__(self, fmt=None, datefmt=None, style='%', validate=True):
+    def __init__(self, fmt=None, datefmt=None, style="%", validate=True):
         super().__init__(fmt, datefmt, style, validate)
-        self.delegate_formatter = logging.Formatter("%(asctime)s | %(levelname)s | %(message)s", datefmt="%H:%M:%S")
+        self.delegate_formatter = logging.Formatter(
+            "%(asctime)s | %(levelname)s | %(message)s", datefmt="%H:%M:%S"
+        )
 
     def format(self, record):
         original_levelname = record.levelname
@@ -86,6 +92,7 @@ class ColoredFormatter(logging.Formatter):
         result = self.delegate_formatter.format(record)
         record.levelname = original_levelname
         return result
+
 
 # Setup logging
 handler = logging.StreamHandler()
@@ -109,12 +116,11 @@ def check_env_permissions(env_path: str = ".env") -> None:
         # Check if group or others have any permission
         if file_stat.st_mode & (stat.S_IRWXG | stat.S_IRWXO):
             platform_hint = (
-                "Please secure your .env file so it is only readable by "
-                "the owner."
+                "Please secure your .env file so it is only readable by " "the owner."
             )
             if os.name != "nt":
                 platform_hint += " For example: 'chmod 600 .env'."
-            perms = format(stat.S_IMODE(file_stat.st_mode), '03o')
+            perms = format(stat.S_IMODE(file_stat.st_mode), "03o")
             sys.stderr.write(
                 f"{Colors.WARNING}⚠️  Security Warning: .env file is "
                 f"readable by others ({perms})! {platform_hint}"
@@ -152,7 +158,9 @@ def sanitize_for_log(text: Any) -> str:
     return safe
 
 
-def render_progress_bar(current: int, total: int, label: str, prefix: str = "🚀") -> None:
+def render_progress_bar(
+    current: int, total: int, label: str, prefix: str = "🚀"
+) -> None:
     if not USE_COLORS or total == 0:
         return
 
@@ -163,7 +171,9 @@ def render_progress_bar(current: int, total: int, label: str, prefix: str = "�
     percent = int(progress * 100)
 
     # Use \033[K to clear line residue
-    sys.stderr.write(f"\r\033[K{Colors.CYAN}{prefix} {label}: [{bar}] {percent}% ({current}/{total}){Colors.ENDC}")
+    sys.stderr.write(
+        f"\r\033[K{Colors.CYAN}{prefix} {label}: [{bar}] {percent}% ({current}/{total}){Colors.ENDC}"
+    )
     sys.stderr.flush()
 
 
@@ -178,7 +188,9 @@ def countdown_timer(seconds: int, message: str = "Waiting") -> None:
         progress = (seconds - remaining + 1) / seconds
         filled = int(width * progress)
         bar = "█" * filled + "░" * (width - filled)
-        sys.stderr.write(f"\r{Colors.CYAN}⏳ {message}: [{bar}] {remaining}s...{Colors.ENDC}")
+        sys.stderr.write(
+            f"\r{Colors.CYAN}⏳ {message}: [{bar}] {remaining}s...{Colors.ENDC}"
+        )
         sys.stderr.flush()
         time.sleep(1)
 
@@ -195,6 +207,25 @@ def _clean_env_kv(value: Optional[str], key: str) -> Optional[str]:
     if m:
         return m.group(1).strip()
     return v
+
+
+def get_validated_input(
+    prompt: str,
+    validator: Callable[[str], bool],
+    error_msg: str,
+    is_password: bool = False,
+) -> str:
+    """Prompts for input until the validator returns True."""
+    while True:
+        if is_password:
+            value = getpass.getpass(prompt).strip()
+        else:
+            value = input(prompt).strip()
+
+        if validator(value):
+            return value
+
+        print(f"{Colors.FAIL}❌ {error_msg}{Colors.ENDC}")
 
 
 TOKEN = _clean_env_kv(os.getenv("TOKEN"), "TOKEN")
@@ -233,6 +264,7 @@ RETRY_DELAY = 1
 FOLDER_CREATION_DELAY = 5  # <--- CHANGED: Increased from 2 to 5 for patience
 MAX_RESPONSE_SIZE = 10 * 1024 * 1024  # 10MB limit
 
+
 # --------------------------------------------------------------------------- #
 # 2. Clients
 # --------------------------------------------------------------------------- #
@@ -247,6 +279,7 @@ def _api_client() -> httpx.Client:
         follow_redirects=False,
     )
 
+
 _gh = httpx.Client(
     headers={"User-Agent": USER_AGENT},
     timeout=30,
@@ -259,6 +292,7 @@ MAX_RESPONSE_SIZE = 10 * 1024 * 1024  # 10 MB limit for external resources
 # --------------------------------------------------------------------------- #
 _cache: Dict[str, Dict] = {}
 
+
 @lru_cache(maxsize=128)
 def validate_folder_url(url: str) -> bool:
     """
@@ -267,7 +301,9 @@ def validate_folder_url(url: str) -> bool:
     during warm-up and sync phases.
     """
     if not url.startswith("https://"):
-        log.warning(f"Skipping unsafe or invalid URL (must be https): {sanitize_for_log(url)}")
+        log.warning(
+            f"Skipping unsafe or invalid URL (must be https): {sanitize_for_log(url)}"
+        )
         return False
 
     try:
@@ -277,14 +313,18 @@ def validate_folder_url(url: str) -> bool:
             return False
 
         # Check for potentially malicious hostnames
-        if hostname.lower() in ('localhost', '127.0.0.1', '::1'):
-             log.warning(f"Skipping unsafe URL (localhost detected): {sanitize_for_log(url)}")
-             return False
+        if hostname.lower() in ("localhost", "127.0.0.1", "::1"):
+            log.warning(
+                f"Skipping unsafe URL (localhost detected): {sanitize_for_log(url)}"
+            )
+            return False
 
         try:
             ip = ipaddress.ip_address(hostname)
             if not ip.is_global or ip.is_multicast:
-                log.warning(f"Skipping unsafe URL (non-global/multicast IP): {sanitize_for_log(url)}")
+                log.warning(
+                    f"Skipping unsafe URL (non-global/multicast IP): {sanitize_for_log(url)}"
+                )
                 return False
         except ValueError:
             # Not an IP literal, it's a domain. Resolve and check IPs.
@@ -298,7 +338,9 @@ def validate_folder_url(url: str) -> bool:
                     ip_str = res[4][0]
                     ip = ipaddress.ip_address(ip_str)
                     if not ip.is_global or ip.is_multicast:
-                        log.warning(f"Skipping unsafe URL (domain {hostname} resolves to non-global/multicast IP {ip}): {sanitize_for_log(url)}")
+                        log.warning(
+                            f"Skipping unsafe URL (domain {hostname} resolves to non-global/multicast IP {ip}): {sanitize_for_log(url)}"
+                        )
                         return False
             except (socket.gaierror, ValueError, OSError) as e:
                 log.warning(f"Failed to resolve/validate domain {hostname}: {e}")
@@ -310,14 +352,24 @@ def validate_folder_url(url: str) -> bool:
 
     return True
 
-def validate_profile_id(profile_id: str) -> bool:
+
+def is_valid_profile_id_format(profile_id: str) -> bool:
     if not re.match(r"^[a-zA-Z0-9_-]+$", profile_id):
-        log.error("Invalid profile ID format (contains unsafe characters)")
         return False
     if len(profile_id) > 64:
-        log.error("Invalid profile ID length (max 64 chars)")
         return False
     return True
+
+
+def validate_profile_id(profile_id: str) -> bool:
+    if not is_valid_profile_id_format(profile_id):
+        if not re.match(r"^[a-zA-Z0-9_-]+$", profile_id):
+            log.error("Invalid profile ID format (contains unsafe characters)")
+        elif len(profile_id) > 64:
+            log.error("Invalid profile ID length (max 64 chars)")
+        return False
+    return True
+
 
 def is_valid_rule(rule: str) -> bool:
     """
@@ -336,6 +388,7 @@ def is_valid_rule(rule: str) -> bool:
 
     return True
 
+
 def is_valid_folder_name(name: str) -> bool:
     """
     Validates folder name to prevent XSS and ensure printability.
@@ -351,43 +404,65 @@ def is_valid_folder_name(name: str) -> bool:
 
     return True
 
+
 def validate_folder_data(data: Dict[str, Any], url: str) -> bool:
     if not isinstance(data, dict):
-        log.error(f"Invalid data from {sanitize_for_log(url)}: Root must be a JSON object.")
+        log.error(
+            f"Invalid data from {sanitize_for_log(url)}: Root must be a JSON object."
+        )
         return False
     if "group" not in data:
         log.error(f"Invalid data from {sanitize_for_log(url)}: Missing 'group' key.")
         return False
     if not isinstance(data["group"], dict):
-        log.error(f"Invalid data from {sanitize_for_log(url)}: 'group' must be an object.")
+        log.error(
+            f"Invalid data from {sanitize_for_log(url)}: 'group' must be an object."
+        )
         return False
     if "group" not in data["group"]:
-        log.error(f"Invalid data from {sanitize_for_log(url)}: Missing 'group.group' (folder name).")
+        log.error(
+            f"Invalid data from {sanitize_for_log(url)}: Missing 'group.group' (folder name)."
+        )
         return False
 
     # Security: Validate folder name
     folder_name = data["group"]["group"]
     if not isinstance(folder_name, str):
-        log.error(f"Invalid data from {sanitize_for_log(url)}: Folder name must be a string.")
+        log.error(
+            f"Invalid data from {sanitize_for_log(url)}: Folder name must be a string."
+        )
         return False
 
     if not is_valid_folder_name(folder_name):
-        log.error(f"Invalid data from {sanitize_for_log(url)}: Unsafe folder name detected.")
+        log.error(
+            f"Invalid data from {sanitize_for_log(url)}: Unsafe folder name detected."
+        )
         return False
 
     return True
 
+
 def _api_get(client: httpx.Client, url: str) -> httpx.Response:
     return _retry_request(lambda: client.get(url))
+
 
 def _api_delete(client: httpx.Client, url: str) -> httpx.Response:
     return _retry_request(lambda: client.delete(url))
 
+
 def _api_post(client: httpx.Client, url: str, data: Dict) -> httpx.Response:
     return _retry_request(lambda: client.post(url, data=data))
 
+
 def _api_post_form(client: httpx.Client, url: str, data: Dict) -> httpx.Response:
-    return _retry_request(lambda: client.post(url, data=data, headers={"Content-Type": "application/x-www-form-urlencoded"}))
+    return _retry_request(
+        lambda: client.post(
+            url,
+            data=data,
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+    )
+
 
 def _retry_request(request_func, max_retries=MAX_RETRIES, delay=RETRY_DELAY):
     for attempt in range(max_retries):
@@ -397,12 +472,15 @@ def _retry_request(request_func, max_retries=MAX_RETRIES, delay=RETRY_DELAY):
             return response
         except (httpx.HTTPError, httpx.TimeoutException) as e:
             if attempt == max_retries - 1:
-                if hasattr(e, 'response') and e.response is not None:
+                if hasattr(e, "response") and e.response is not None:
                     log.debug(f"Response content: {sanitize_for_log(e.response.text)}")
                 raise
-            wait_time = delay * (2 ** attempt)
-            log.warning(f"Request failed (attempt {attempt + 1}/{max_retries}): {e}. Retrying in {wait_time}s...")
+            wait_time = delay * (2**attempt)
+            log.warning(
+                f"Request failed (attempt {attempt + 1}/{max_retries}): {e}. Retrying in {wait_time}s..."
+            )
             time.sleep(wait_time)
+
 
 def _gh_get(url: str) -> Dict:
     if url not in _cache:
@@ -443,9 +521,12 @@ def _gh_get(url: str) -> Dict:
             try:
                 _cache[url] = json.loads(b"".join(chunks))
             except json.JSONDecodeError as e:
-                raise ValueError(f"Invalid JSON response from {sanitize_for_log(url)}") from e
+                raise ValueError(
+                    f"Invalid JSON response from {sanitize_for_log(url)}"
+                ) from e
 
     return _cache[url]
+
 
 def check_api_access(client: httpx.Client, profile_id: str) -> bool:
     """
@@ -462,19 +543,30 @@ def check_api_access(client: httpx.Client, profile_id: str) -> bool:
     except httpx.HTTPStatusError as e:
         code = e.response.status_code
         if code == 401:
-            log.critical(f"{Colors.FAIL}❌ Authentication Failed: The API Token is invalid.{Colors.ENDC}")
-            log.critical(f"{Colors.FAIL}   Please check your token at: https://controld.com/account/manage-account{Colors.ENDC}")
+            log.critical(
+                f"{Colors.FAIL}❌ Authentication Failed: The API Token is invalid.{Colors.ENDC}"
+            )
+            log.critical(
+                f"{Colors.FAIL}   Please check your token at: https://controld.com/account/manage-account{Colors.ENDC}"
+            )
         elif code == 403:
-            log.critical(f"{Colors.FAIL}🚫 Access Denied: Token lacks permission for Profile {profile_id}.{Colors.ENDC}")
+            log.critical(
+                f"{Colors.FAIL}🚫 Access Denied: Token lacks permission for Profile {profile_id}.{Colors.ENDC}"
+            )
         elif code == 404:
-            log.critical(f"{Colors.FAIL}🔍 Profile Not Found: The ID '{profile_id}' does not exist.{Colors.ENDC}")
-            log.critical(f"{Colors.FAIL}   Please verify the Profile ID from your Control D Dashboard URL.{Colors.ENDC}")
+            log.critical(
+                f"{Colors.FAIL}🔍 Profile Not Found: The ID '{profile_id}' does not exist.{Colors.ENDC}"
+            )
+            log.critical(
+                f"{Colors.FAIL}   Please verify the Profile ID from your Control D Dashboard URL.{Colors.ENDC}"
+            )
         else:
             log.error(f"API Access Check Failed ({code}): {e}")
         return False
     except httpx.RequestError as e:
         log.error(f"Network Error during access check: {e}")
         return False
+
 
 def list_existing_folders(client: httpx.Client, profile_id: str) -> Dict[str, str]:
     try:
@@ -489,10 +581,11 @@ def list_existing_folders(client: httpx.Client, profile_id: str) -> Dict[str, st
         log.error(f"Failed to list existing folders: {sanitize_for_log(e)}")
         return {}
 
+
 def get_all_existing_rules(
     client: httpx.Client,
     profile_id: str,
-    known_folders: Optional[Dict[str, str]] = None
+    known_folders: Optional[Dict[str, str]] = None,
 ) -> Set[str]:
     all_rules = set()
 
@@ -550,11 +643,13 @@ def get_all_existing_rules(
         log.error(f"Failed to get existing rules: {sanitize_for_log(e)}")
         return set()
 
+
 def fetch_folder_data(url: str) -> Dict[str, Any]:
     js = _gh_get(url)
     if not validate_folder_data(js, url):
         raise KeyError(f"Invalid folder data from {sanitize_for_log(url)}")
     return js
+
 
 def warm_up_cache(urls: Sequence[str]) -> None:
     urls = list(set(urls))
@@ -575,7 +670,9 @@ def warm_up_cache(urls: Sequence[str]) -> None:
 
     completed = 0
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = {executor.submit(_validate_and_fetch, url): url for url in urls_to_process}
+        futures = {
+            executor.submit(_validate_and_fetch, url): url for url in urls_to_process
+        }
 
         render_progress_bar(0, total, "Warming up cache", prefix="⏳")
 
@@ -589,24 +686,36 @@ def warm_up_cache(urls: Sequence[str]) -> None:
                     sys.stderr.write("\r\033[K")
                     sys.stderr.flush()
 
-                log.warning(f"Failed to pre-fetch {sanitize_for_log(futures[future])}: {e}")
+                log.warning(
+                    f"Failed to pre-fetch {sanitize_for_log(futures[future])}: {e}"
+                )
 
             render_progress_bar(completed, total, "Warming up cache", prefix="⏳")
 
     if USE_COLORS:
-        sys.stderr.write(f"\r\033[K{Colors.GREEN}✅ Warming up cache: Done!{Colors.ENDC}\n")
+        sys.stderr.write(
+            f"\r\033[K{Colors.GREEN}✅ Warming up cache: Done!{Colors.ENDC}\n"
+        )
         sys.stderr.flush()
 
-def delete_folder(client: httpx.Client, profile_id: str, name: str, folder_id: str) -> bool:
+
+def delete_folder(
+    client: httpx.Client, profile_id: str, name: str, folder_id: str
+) -> bool:
     try:
         _api_delete(client, f"{API_BASE}/{profile_id}/groups/{folder_id}")
         log.info("Deleted folder %s (ID %s)", sanitize_for_log(name), folder_id)
         return True
     except httpx.HTTPError as e:
-        log.error(f"Failed to delete folder {sanitize_for_log(name)} (ID {folder_id}): {sanitize_for_log(e)}")
+        log.error(
+            f"Failed to delete folder {sanitize_for_log(name)} (ID {folder_id}): {sanitize_for_log(e)}"
+        )
         return False
 
-def create_folder(client: httpx.Client, profile_id: str, name: str, do: int, status: int) -> Optional[str]:
+
+def create_folder(
+    client: httpx.Client, profile_id: str, name: str, do: int, status: int
+) -> Optional[str]:
     """
     Create a new folder and return its ID.
     Attempts to read ID from response first, then falls back to polling.
@@ -626,15 +735,21 @@ def create_folder(client: httpx.Client, profile_id: str, name: str, do: int, sta
 
             # Check if it returned a single group object
             if isinstance(body, dict) and "group" in body and "PK" in body["group"]:
-                 pk = body["group"]["PK"]
-                 log.info("Created folder %s (ID %s) [Direct]", sanitize_for_log(name), pk)
-                 return str(pk)
+                pk = body["group"]["PK"]
+                log.info(
+                    "Created folder %s (ID %s) [Direct]", sanitize_for_log(name), pk
+                )
+                return str(pk)
 
             # Check if it returned a list containing our group
             if isinstance(body, dict) and "groups" in body:
                 for grp in body["groups"]:
                     if grp.get("group") == name:
-                        log.info("Created folder %s (ID %s) [Direct]", sanitize_for_log(name), grp["PK"])
+                        log.info(
+                            "Created folder %s (ID %s) [Direct]",
+                            sanitize_for_log(name),
+                            grp["PK"],
+                        )
                         return str(grp["PK"])
         except Exception as e:
             log.debug(f"Could not extract ID from POST response: {e}")
@@ -647,22 +762,33 @@ def create_folder(client: httpx.Client, profile_id: str, name: str, do: int, sta
 
                 for grp in groups:
                     if grp["group"].strip() == name.strip():
-                        log.info("Created folder %s (ID %s) [Polled]", sanitize_for_log(name), grp["PK"])
+                        log.info(
+                            "Created folder %s (ID %s) [Polled]",
+                            sanitize_for_log(name),
+                            grp["PK"],
+                        )
                         return str(grp["PK"])
             except Exception as e:
                 log.warning(f"Error fetching groups on attempt {attempt}: {e}")
 
             if attempt < MAX_RETRIES:
                 wait_time = FOLDER_CREATION_DELAY * (attempt + 1)
-                log.info(f"Folder '{sanitize_for_log(name)}' not found yet. Retrying in {wait_time}s...")
+                log.info(
+                    f"Folder '{sanitize_for_log(name)}' not found yet. Retrying in {wait_time}s..."
+                )
                 time.sleep(wait_time)
 
-        log.error(f"Folder {sanitize_for_log(name)} was not found after creation and retries.")
+        log.error(
+            f"Folder {sanitize_for_log(name)} was not found after creation and retries."
+        )
         return None
 
     except (httpx.HTTPError, KeyError) as e:
-        log.error(f"Failed to create folder {sanitize_for_log(name)}: {sanitize_for_log(e)}")
+        log.error(
+            f"Failed to create folder {sanitize_for_log(name)}: {sanitize_for_log(e)}"
+        )
         return None
+
 
 def push_rules(
     profile_id: str,
@@ -688,7 +814,9 @@ def push_rules(
 
     for h in hostnames:
         if not is_valid_rule(h):
-            log.warning(f"Skipping unsafe rule in {sanitize_for_log(folder_name)}: {sanitize_for_log(h)}")
+            log.warning(
+                f"Skipping unsafe rule in {sanitize_for_log(folder_name)}: {sanitize_for_log(h)}"
+            )
             skipped_unsafe += 1
             continue
 
@@ -697,15 +825,21 @@ def push_rules(
             seen.add(h)
 
     if skipped_unsafe > 0:
-        log.warning(f"Folder {sanitize_for_log(folder_name)}: skipped {skipped_unsafe} unsafe rules")
+        log.warning(
+            f"Folder {sanitize_for_log(folder_name)}: skipped {skipped_unsafe} unsafe rules"
+        )
 
     duplicates_count = original_count - len(filtered_hostnames) - skipped_unsafe
 
     if duplicates_count > 0:
-        log.info(f"Folder {sanitize_for_log(folder_name)}: skipping {duplicates_count} duplicate rules")
+        log.info(
+            f"Folder {sanitize_for_log(folder_name)}: skipping {duplicates_count} duplicate rules"
+        )
 
     if not filtered_hostnames:
-        log.info(f"Folder {sanitize_for_log(folder_name)} - no new rules to push after filtering duplicates")
+        log.info(
+            f"Folder {sanitize_for_log(folder_name)} - no new rules to push after filtering duplicates"
+        )
         return True
 
     successful_batches = 0
@@ -732,14 +866,18 @@ def push_rules(
             if not USE_COLORS:
                 log.info(
                     "Folder %s – batch %d: added %d rules",
-                    sanitize_for_log(folder_name), batch_idx, len(batch_data)
+                    sanitize_for_log(folder_name),
+                    batch_idx,
+                    len(batch_data),
                 )
             return batch_data
         except httpx.HTTPError as e:
             if USE_COLORS:
                 sys.stderr.write("\n")
-            log.error(f"Failed to push batch {batch_idx} for folder {sanitize_for_log(folder_name)}: {sanitize_for_log(e)}")
-            if hasattr(e, 'response') and e.response is not None:
+            log.error(
+                f"Failed to push batch {batch_idx} for folder {sanitize_for_log(folder_name)}: {sanitize_for_log(e)}"
+            )
+            if hasattr(e, "response") and e.response is not None:
                 log.debug(f"Response content: {sanitize_for_log(e.response.text)}")
             return None
 
@@ -757,18 +895,34 @@ def push_rules(
                 successful_batches += 1
                 existing_rules.update(result)
 
-            render_progress_bar(successful_batches, total_batches, f"Folder {sanitize_for_log(folder_name)}")
+            render_progress_bar(
+                successful_batches,
+                total_batches,
+                f"Folder {sanitize_for_log(folder_name)}",
+            )
 
     if successful_batches == total_batches:
         if USE_COLORS:
-            sys.stderr.write(f"\r\033[K{Colors.GREEN}✅ Folder {sanitize_for_log(folder_name)}: Finished ({len(filtered_hostnames)} rules){Colors.ENDC}\n")
+            sys.stderr.write(
+                f"\r\033[K{Colors.GREEN}✅ Folder {sanitize_for_log(folder_name)}: Finished ({len(filtered_hostnames)} rules){Colors.ENDC}\n"
+            )
             sys.stderr.flush()
         else:
-            log.info("Folder %s – finished (%d new rules added)", sanitize_for_log(folder_name), len(filtered_hostnames))
+            log.info(
+                "Folder %s – finished (%d new rules added)",
+                sanitize_for_log(folder_name),
+                len(filtered_hostnames),
+            )
         return True
     else:
-        log.error("Folder %s – only %d/%d batches succeeded", sanitize_for_log(folder_name), successful_batches, total_batches)
+        log.error(
+            "Folder %s – only %d/%d batches succeeded",
+            sanitize_for_log(folder_name),
+            successful_batches,
+            total_batches,
+        )
         return False
+
 
 def _process_single_folder(
     folder_data: Dict[str, Any],
@@ -794,14 +948,33 @@ def _process_single_folder(
             do = action.get("do", 0)
             status = action.get("status", 1)
             hostnames = [r["PK"] for r in rule_group.get("rules", []) if r.get("PK")]
-            if not push_rules(profile_id, name, folder_id, do, status, hostnames, existing_rules, client):
+            if not push_rules(
+                profile_id,
+                name,
+                folder_id,
+                do,
+                status,
+                hostnames,
+                existing_rules,
+                client,
+            ):
                 folder_success = False
     else:
         hostnames = [r["PK"] for r in folder_data.get("rules", []) if r.get("PK")]
-        if not push_rules(profile_id, name, folder_id, main_do, main_status, hostnames, existing_rules, client):
+        if not push_rules(
+            profile_id,
+            name,
+            folder_id,
+            main_do,
+            main_status,
+            hostnames,
+            existing_rules,
+            client,
+        ):
             folder_success = False
 
     return folder_success
+
 
 # --------------------------------------------------------------------------- #
 # 4. Main workflow
@@ -829,7 +1002,9 @@ def sync_profile(
             return None
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            future_to_url = {executor.submit(_fetch_if_valid, url): url for url in folder_urls}
+            future_to_url = {
+                executor.submit(_fetch_if_valid, url): url for url in folder_urls
+            }
 
             for future in concurrent.futures.as_completed(future_to_url):
                 url = future_to_url[future]
@@ -838,7 +1013,9 @@ def sync_profile(
                     if result:
                         folder_data_list.append(result)
                 except (httpx.HTTPError, KeyError, ValueError) as e:
-                    log.error(f"Failed to fetch folder data from {sanitize_for_log(url)}: {sanitize_for_log(e)}")
+                    log.error(
+                        f"Failed to fetch folder data from {sanitize_for_log(url)}: {sanitize_for_log(e)}"
+                    )
                     continue
 
         if not folder_data_list:
@@ -853,7 +1030,9 @@ def sync_profile(
 
             if "rule_groups" in folder_data:
                 # Multi-action format
-                total_rules = sum(len(rg.get("rules", [])) for rg in folder_data["rule_groups"])
+                total_rules = sum(
+                    len(rg.get("rules", [])) for rg in folder_data["rule_groups"]
+                )
                 plan_entry["folders"].append(
                     {
                         "name": name,
@@ -870,7 +1049,9 @@ def sync_profile(
                 )
             else:
                 # Legacy single-action format
-                hostnames = [r["PK"] for r in folder_data.get("rules", []) if r.get("PK")]
+                hostnames = [
+                    r["PK"] for r in folder_data.get("rules", []) if r.get("PK")
+                ]
                 plan_entry["folders"].append(
                     {
                         "name": name,
@@ -909,27 +1090,35 @@ def sync_profile(
                     if name in existing_folders:
                         # Optimization: Maintain local state of folders to avoid re-fetching
                         # delete_folder returns True on success
-                        if delete_folder(client, profile_id, name, existing_folders[name]):
+                        if delete_folder(
+                            client, profile_id, name, existing_folders[name]
+                        ):
                             del existing_folders[name]
                             deletion_occurred = True
 
                 # CRITICAL FIX: Increased wait time for massive folders to clear
                 if deletion_occurred:
                     if not USE_COLORS:
-                        log.info("Waiting 60s for deletions to propagate (prevents 'Badware Hoster' zombie state)...")
+                        log.info(
+                            "Waiting 60s for deletions to propagate (prevents 'Badware Hoster' zombie state)..."
+                        )
                     countdown_timer(60, "Waiting for deletions to propagate")
 
             # Optimization: Pass the updated existing_folders to avoid redundant API call
-            existing_rules = get_all_existing_rules(client, profile_id, known_folders=existing_folders)
+            existing_rules = get_all_existing_rules(
+                client, profile_id, known_folders=existing_folders
+            )
 
-            with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            with concurrent.futures.ThreadPoolExecutor(
+                max_workers=max_workers
+            ) as executor:
                 future_to_folder = {
                     executor.submit(
                         _process_single_folder,
                         folder_data,
                         profile_id,
                         existing_rules,
-                        client  # Pass the persistent client
+                        client,  # Pass the persistent client
                     ): folder_data
                     for folder_data in folder_data_list
                 }
@@ -941,31 +1130,47 @@ def sync_profile(
                         if future.result():
                             success_count += 1
                     except Exception as e:
-                        log.error(f"Failed to process folder '{sanitize_for_log(folder_name)}': {sanitize_for_log(e)}")
+                        log.error(
+                            f"Failed to process folder '{sanitize_for_log(folder_name)}': {sanitize_for_log(e)}"
+                        )
 
-        log.info(f"Sync complete: {success_count}/{len(folder_data_list)} folders processed successfully")
+        log.info(
+            f"Sync complete: {success_count}/{len(folder_data_list)} folders processed successfully"
+        )
         return success_count == len(folder_data_list)
 
     except Exception as e:
-        log.error(f"Unexpected error during sync for profile {profile_id}: {sanitize_for_log(e)}")
+        log.error(
+            f"Unexpected error during sync for profile {profile_id}: {sanitize_for_log(e)}"
+        )
         return False
+
 
 # --------------------------------------------------------------------------- #
 # 5. Entry-point
 # --------------------------------------------------------------------------- #
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Control D folder sync")
-    parser.add_argument("--profiles", help="Comma-separated list of profile IDs", default=None)
-    parser.add_argument("--folder-url", action="append", help="Folder JSON URL(s)", default=None)
+    parser.add_argument(
+        "--profiles", help="Comma-separated list of profile IDs", default=None
+    )
+    parser.add_argument(
+        "--folder-url", action="append", help="Folder JSON URL(s)", default=None
+    )
     parser.add_argument("--dry-run", action="store_true", help="Plan only")
-    parser.add_argument("--no-delete", action="store_true", help="Do not delete existing folders")
+    parser.add_argument(
+        "--no-delete", action="store_true", help="Do not delete existing folders"
+    )
     parser.add_argument("--plan-json", help="Write plan to JSON file", default=None)
     return parser.parse_args()
+
 
 def main():
     global TOKEN
     args = parse_args()
-    profiles_arg = _clean_env_kv(args.profiles or os.getenv("PROFILE", ""), "PROFILE") or ""
+    profiles_arg = (
+        _clean_env_kv(args.profiles or os.getenv("PROFILE", ""), "PROFILE") or ""
+    )
     profile_ids = [p.strip() for p in profiles_arg.split(",") if p.strip()]
     folder_urls = args.folder_url if args.folder_url else DEFAULT_FOLDER_URLS
 
@@ -973,21 +1178,41 @@ def main():
     if not args.dry_run and sys.stdin.isatty():
         if not profile_ids:
             print(f"{Colors.CYAN}ℹ Profile ID is missing.{Colors.ENDC}")
-            print(f"{Colors.CYAN}  You can find this in the URL of your profile in the Control D Dashboard.{Colors.ENDC}")
-            p_input = input(f"{Colors.BOLD}Enter Control D Profile ID:{Colors.ENDC} ").strip()
-            if p_input:
-                profile_ids = [p.strip() for p in p_input.split(",") if p.strip()]
+            print(
+                f"{Colors.CYAN}  You can find this in the URL of your profile in the Control D Dashboard.{Colors.ENDC}"
+            )
+
+            def validate_profile_input(value: str) -> bool:
+                if not value:
+                    return False
+                ids = [p.strip() for p in value.split(",") if p.strip()]
+                return bool(ids) and all(is_valid_profile_id_format(pid) for pid in ids)
+
+            p_input = get_validated_input(
+                f"{Colors.BOLD}Enter Control D Profile ID:{Colors.ENDC} ",
+                validate_profile_input,
+                "Invalid ID(s). Must be alphanumeric (including - and _), max 64 chars. Comma-separate for multiple.",
+            )
+            profile_ids = [p.strip() for p in p_input.split(",") if p.strip()]
 
         if not TOKEN:
             print(f"{Colors.CYAN}ℹ API Token is missing.{Colors.ENDC}")
-            print(f"{Colors.CYAN}  You can generate one at: https://controld.com/account/manage-account{Colors.ENDC}")
-            import getpass
-            t_input = getpass.getpass(f"{Colors.BOLD}Enter Control D API Token:{Colors.ENDC} ").strip()
-            if t_input:
-                TOKEN = t_input
+            print(
+                f"{Colors.CYAN}  You can generate one at: https://controld.com/account/manage-account{Colors.ENDC}"
+            )
+
+            t_input = get_validated_input(
+                f"{Colors.BOLD}Enter Control D API Token:{Colors.ENDC} ",
+                lambda x: bool(x),
+                "Token cannot be empty.",
+                is_password=True,
+            )
+            TOKEN = t_input
 
     if not profile_ids and not args.dry_run:
-        log.error("PROFILE missing and --dry-run not set. Provide --profiles or set PROFILE env.")
+        log.error(
+            "PROFILE missing and --dry-run not set. Provide --profiles or set PROFILE env."
+        )
         exit(1)
 
     if not TOKEN and not args.dry_run:
@@ -1004,18 +1229,22 @@ def main():
     start_time = time.time()
 
     try:
-        for profile_id in (profile_ids or ["dry-run-placeholder"]):
+        for profile_id in profile_ids or ["dry-run-placeholder"]:
             start_time = time.time()
             # Skip validation for dry-run placeholder
-            if profile_id != "dry-run-placeholder" and not validate_profile_id(profile_id):
-                sync_results.append({
-                    "profile": profile_id,
-                    "folders": 0,
-                    "rules": 0,
-                    "status_label": "❌ Invalid Profile ID",
-                    "success": False,
-                    "duration": 0.0,
-                })
+            if profile_id != "dry-run-placeholder" and not validate_profile_id(
+                profile_id
+            ):
+                sync_results.append(
+                    {
+                        "profile": profile_id,
+                        "folders": 0,
+                        "rules": 0,
+                        "status_label": "❌ Invalid Profile ID",
+                        "success": False,
+                        "duration": 0.0,
+                    }
+                )
                 continue
 
             log.info("Starting sync for profile %s", profile_id)
@@ -1042,31 +1271,37 @@ def main():
             else:
                 status_text = "✅ Success" if status else "❌ Failed"
 
-            sync_results.append({
-                "profile": profile_id,
-                "folders": folder_count,
-                "rules": rule_count,
-                "status_label": status_text,
-                "success": status,
-                "duration": duration,
-            })
+            sync_results.append(
+                {
+                    "profile": profile_id,
+                    "folders": folder_count,
+                    "rules": rule_count,
+                    "status_label": status_text,
+                    "success": status,
+                    "duration": duration,
+                }
+            )
     except KeyboardInterrupt:
         duration = time.time() - start_time
-        print(f"\n{Colors.WARNING}⚠️  Sync cancelled by user. Finishing current task...{Colors.ENDC}")
+        print(
+            f"\n{Colors.WARNING}⚠️  Sync cancelled by user. Finishing current task...{Colors.ENDC}"
+        )
 
         # Try to recover stats for the interrupted profile
         entry = next((p for p in plan if p["profile"] == profile_id), None)
         folder_count = len(entry["folders"]) if entry else 0
         rule_count = sum(f["rules"] for f in entry["folders"]) if entry else 0
 
-        sync_results.append({
-            "profile": profile_id,
-            "folders": folder_count,
-            "rules": rule_count,
-            "status_label": "⛔ Cancelled",
-            "success": False,
-            "duration": duration,
-        })
+        sync_results.append(
+            {
+                "profile": profile_id,
+                "folders": folder_count,
+                "rules": rule_count,
+                "status_label": "⛔ Cancelled",
+                "success": False,
+                "duration": duration,
+            }
+        )
 
     if args.plan_json:
         with open(args.plan_json, "w", encoding="utf-8") as f:
@@ -1105,7 +1340,7 @@ def main():
 
     for res in sync_results:
         # Use boolean success field for color logic
-        status_color = Colors.GREEN if res['success'] else Colors.FAIL
+        status_color = Colors.GREEN if res["success"] else Colors.FAIL
 
         print(
             f"{res['profile']:<{profile_col_width}} | "
@@ -1114,15 +1349,15 @@ def main():
             f"{res['duration']:>9.1f}s | "
             f"{status_color}{res['status_label']:<15}{Colors.ENDC}"
         )
-        total_folders += res['folders']
-        total_rules += res['rules']
-        total_duration += res['duration']
+        total_folders += res["folders"]
+        total_rules += res["rules"]
+        total_duration += res["duration"]
 
     print("-" * table_width)
 
     # Total Row
     total = len(profile_ids or ["dry-run-placeholder"])
-    all_success = (success_count == total)
+    all_success = success_count == total
 
     if args.dry_run:
         if all_success:
@@ -1150,6 +1385,7 @@ def main():
     total = len(profile_ids or ["dry-run-placeholder"])
     log.info(f"All profiles processed: {success_count}/{total} successful")
     exit(0 if success_count == total else 1)
+
 
 if __name__ == "__main__":
     main()

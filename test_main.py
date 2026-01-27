@@ -12,7 +12,7 @@ def reload_main_with_env(monkeypatch, no_color=None, isatty=True):
         monkeypatch.setenv("NO_COLOR", no_color)
     else:
         monkeypatch.delenv("NO_COLOR", raising=False)
-    
+
     with patch('sys.stderr') as mock_stderr, patch('sys.stdout') as mock_stdout:
         mock_stderr.isatty.return_value = isatty
         mock_stdout.isatty.return_value = isatty
@@ -38,11 +38,11 @@ def test_get_all_existing_rules_updates_correctly(monkeypatch):
     m = reload_main_with_env(monkeypatch, no_color="1") # Disable colors for simplicity
     mock_client = MagicMock()
     profile_id = "test_profile"
-    
+
     # Mock helpers
     mock_list_folders = MagicMock(return_value={"FolderA": "id_A", "FolderB": "id_B"})
     monkeypatch.setattr(m, "list_existing_folders", mock_list_folders)
-    
+
     # Mock _api_get to return different rules for root vs folders
     def side_effect(client, url):
         mock_resp = MagicMock()
@@ -53,12 +53,12 @@ def test_get_all_existing_rules_updates_correctly(monkeypatch):
         elif "id_B" in url:
             mock_resp.json.return_value = {"body": {"rules": [{"PK": "rule_B1"}]}}
         return mock_resp
-    
+
     monkeypatch.setattr(m, "_api_get", side_effect)
-    
+
     # Execution
     rules = m.get_all_existing_rules(mock_client, profile_id)
-    
+
     # Verification
     expected_rules = {"rule_root", "rule_A1", "rule_A2", "rule_B1"}
     assert rules == expected_rules
@@ -69,11 +69,11 @@ def test_push_rules_updates_data_with_batch_keys(monkeypatch):
     mock_client = MagicMock()
     mock_post_form = MagicMock()
     monkeypatch.setattr(m, "_api_post_form", mock_post_form)
-    
+
     # Create enough hostnames for one batch
     batch_size = m.BATCH_SIZE
     hostnames = [f"host{i}" for i in range(batch_size)]
-    
+
     m.push_rules(
         profile_id="p1",
         folder_name="f1",
@@ -84,11 +84,11 @@ def test_push_rules_updates_data_with_batch_keys(monkeypatch):
         existing_rules=set(),
         client=mock_client
     )
-    
+
     assert mock_post_form.called
     args, kwargs = mock_post_form.call_args
     data_sent = kwargs['data']
-    
+
     # Check if hostnames[0], hostnames[1]... are in data
     assert "hostnames[0]" in data_sent
     assert data_sent["hostnames[0]"] == "host0"
@@ -127,14 +127,14 @@ def test_push_rules_logs_conditionally_use_colors(monkeypatch):
     monkeypatch.setattr(m_no_color, "_api_post_form", MagicMock())
     mock_log = MagicMock()
     monkeypatch.setattr(m_no_color, "log", mock_log)
-    
+
     hostnames = ["h1"]
     m_no_color.push_rules("p", "f", "fid", 1, 1, hostnames, set(), MagicMock())
-    
+
     # Should log info when USE_COLORS is False (lines 567-571)
     # log.info("Folder %s – batch %d: added %d rules", ...)
     assert mock_log.info.called
-    
+
     found_batch_log = False
     for call_obj in mock_log.info.call_args_list:
         args, _ = call_obj
@@ -148,9 +148,9 @@ def test_push_rules_logs_conditionally_use_colors(monkeypatch):
     monkeypatch.setattr(m_color, "_api_post_form", MagicMock())
     monkeypatch.setattr(m_color, "log", mock_log)
     mock_log.reset_mock()
-    
+
     m_color.push_rules("p", "f", "fid", 1, 1, hostnames, set(), MagicMock())
-    
+
     # Should NOT log info for batch success when USE_COLORS is True
     # It might log other things, but not the batch success message handled by stderr
     # Check that the specific batch message is NOT logged
@@ -163,27 +163,27 @@ def test_push_rules_logs_conditionally_use_colors(monkeypatch):
 def test_push_rules_writes_colored_stderr(monkeypatch):
     m = reload_main_with_env(monkeypatch, no_color=None, isatty=True)
     monkeypatch.setattr(m, "_api_post_form", MagicMock())
-    
+
     mock_stderr = MagicMock()
     monkeypatch.setattr(sys, "stderr", mock_stderr)
-    
+
     hostnames = ["h1"]
     m.push_rules("p", "f", "fid", 1, 1, hostnames, set(), MagicMock())
-    
+
     # Check for color codes in stderr writes
     # Look for CYAN (progress) and GREEN (completion)
     # Colors.CYAN defined in main might vary depending on reload, but since we reloaded with isatty=True
     # Colors class should have values.
-    
+
     # We can check for calls containing specific substrings
     writes = [args[0] for args, _ in mock_stderr.write.call_args_list]
     combined_output = "".join(writes)
-    
+
     # Verify progress message
     assert "🚀 Folder" in combined_output
     # Verify completion message
     assert "✅ Folder" in combined_output
-    
+
     # Verify colors are present (checking for escape sequence intro \033)
     assert "\033[" in combined_output
 
@@ -192,6 +192,10 @@ def test_interactive_prompts_show_hints(monkeypatch, capsys):
     # Ensure environment is clean
     monkeypatch.delenv("PROFILE", raising=False)
     monkeypatch.delenv("TOKEN", raising=False)
+
+    # Prevent dotenv from loading .env file which would restore the variables
+    import dotenv
+    monkeypatch.setattr(dotenv, "load_dotenv", lambda: None)
 
     # Reload main with isatty=True to trigger interactive mode logic
     m = reload_main_with_env(monkeypatch, isatty=True)
