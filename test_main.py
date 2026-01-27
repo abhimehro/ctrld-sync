@@ -486,3 +486,27 @@ def test_get_validated_input_password(monkeypatch):
 
     assert result == "secret"
     getpass_mock.assert_called_once()
+
+
+# Case 13: render_progress_bar renders correctly
+def test_render_progress_bar(monkeypatch):
+    m = reload_main_with_env(monkeypatch, no_color=None, isatty=True)
+    mock_stderr = MagicMock()
+    monkeypatch.setattr(sys, "stderr", mock_stderr)
+
+    m.render_progress_bar(5, 10, "Test", prefix="T")
+
+    # Check output
+    writes = [args[0] for args, _ in mock_stderr.write.call_args_list]
+    combined = "".join(writes)
+
+    # \033[K clear line
+    assert "\033[K" in combined
+    # Prefix and Label
+    assert "T Test" in combined
+    # Progress bar and percentage
+    assert "50%" in combined
+    assert "5/10" in combined
+    # Color codes (accessing instance Colors or m.Colors)
+    assert m.Colors.CYAN in combined
+    assert m.Colors.ENDC in combined

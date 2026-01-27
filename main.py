@@ -198,6 +198,26 @@ def countdown_timer(seconds: int, message: str = "Waiting") -> None:
     sys.stderr.flush()
 
 
+def render_progress_bar(
+    current: int, total: int, label: str, prefix: str = "🚀"
+) -> None:
+    """Renders a progress bar to stderr if USE_COLORS is True."""
+    if not USE_COLORS or total == 0:
+        return
+
+    width = 15
+    progress = min(1.0, current / total)
+    filled = int(width * progress)
+    bar = "█" * filled + "░" * (width - filled)
+    percent = int(progress * 100)
+
+    # Use \033[K to clear line residue
+    sys.stderr.write(
+        f"\r\033[K{Colors.CYAN}{prefix} {label}: [{bar}] {percent}% ({current}/{total}){Colors.ENDC}"
+    )
+    sys.stderr.flush()
+
+
 def _clean_env_kv(value: Optional[str], key: str) -> Optional[str]:
     """Allow TOKEN/PROFILE values to be provided as either raw values or KEY=value."""
     if not value:
@@ -698,6 +718,7 @@ def warm_up_cache(urls: Sequence[str]) -> None:
 
         for future in concurrent.futures.as_completed(futures):
             completed += 1
+            render_progress_bar(completed, total, "Warming up cache", prefix="⏳")
             try:
                 future.result()
             except Exception as e:
@@ -709,8 +730,8 @@ def warm_up_cache(urls: Sequence[str]) -> None:
                 log.warning(
                     f"Failed to pre-fetch {sanitize_for_log(futures[future])}: {e}"
                 )
-
-            render_progress_bar(completed, total, "Warming up cache", prefix="⏳")
+                # Restore progress bar after warning
+                render_progress_bar(completed, total, "Warming up cache", prefix="⏳")
 
     if USE_COLORS:
         sys.stderr.write(
