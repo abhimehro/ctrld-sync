@@ -159,25 +159,6 @@ def sanitize_for_log(text: Any) -> str:
     return safe
 
 
-def render_progress_bar(
-    current: int, total: int, label: str, prefix: str = "🚀"
-) -> None:
-    if not USE_COLORS or total == 0:
-        return
-
-    width = 20
-    progress = min(1.0, current / total)
-    filled = int(width * progress)
-    bar = "█" * filled + "░" * (width - filled)
-    percent = int(progress * 100)
-
-    # Use \033[K to clear line residue
-    sys.stderr.write(
-        f"\r\033[K{Colors.CYAN}{prefix} {label}: [{bar}] {percent}% ({current}/{total}){Colors.ENDC}"
-    )
-    sys.stderr.flush()
-
-
 def countdown_timer(seconds: int, message: str = "Waiting") -> None:
     """Shows a countdown timer if strictly in a TTY, otherwise just sleeps."""
     if not USE_COLORS:
@@ -1214,7 +1195,10 @@ def sync_profile(
 # 5. Entry-point
 # --------------------------------------------------------------------------- #
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Control D folder sync")
+    parser = argparse.ArgumentParser(
+        description="Control D folder sync",
+        epilog="Example: python main.py --dry-run --profiles 12345abc",
+    )
     parser.add_argument(
         "--profiles", help="Comma-separated list of profile IDs", default=None
     )
@@ -1239,41 +1223,47 @@ def main():
     folder_urls = args.folder_url if args.folder_url else DEFAULT_FOLDER_URLS
 
     # Interactive prompts for missing config
-    if not args.dry_run and sys.stdin.isatty():
-        if not profile_ids:
-            print(f"{Colors.CYAN}ℹ Profile ID is missing.{Colors.ENDC}")
-            print(
-                f"{Colors.CYAN}  You can find this in the URL of your profile in the Control D Dashboard (or just paste the URL).{Colors.ENDC}"
-            )
-
-            def validate_profile_input(value: str) -> bool:
-                ids = [extract_profile_id(p) for p in value.split(",") if p.strip()]
-                return bool(ids) and all(
-                    validate_profile_id(pid, log_errors=False) for pid in ids
+    try:
+        if not args.dry_run and sys.stdin.isatty():
+            if not profile_ids:
+                print(f"{Colors.CYAN}ℹ Profile ID is missing.{Colors.ENDC}")
+                print(
+                    f"{Colors.CYAN}  You can find this in the URL of your profile in the Control D Dashboard (or just paste the URL).{Colors.ENDC}"
                 )
 
-            p_input = get_validated_input(
-                f"{Colors.BOLD}Enter Control D Profile ID:{Colors.ENDC} ",
-                validate_profile_input,
-                "Invalid ID(s) or URL(s). Must be a valid Profile ID or a Control D Profile URL. Comma-separate for multiple.",
-            )
-            profile_ids = [
-                extract_profile_id(p) for p in p_input.split(",") if p.strip()
-            ]
+                def validate_profile_input(value: str) -> bool:
+                    ids = [extract_profile_id(p) for p in value.split(",") if p.strip()]
+                    return bool(ids) and all(
+                        validate_profile_id(pid, log_errors=False) for pid in ids
+                    )
 
-        if not TOKEN:
-            print(f"{Colors.CYAN}ℹ API Token is missing.{Colors.ENDC}")
-            print(
-                f"{Colors.CYAN}  You can generate one at: https://controld.com/account/manage-account{Colors.ENDC}"
-            )
+                p_input = get_validated_input(
+                    f"{Colors.BOLD}Enter Control D Profile ID:{Colors.ENDC} ",
+                    validate_profile_input,
+                    "Invalid ID(s) or URL(s). Must be a valid Profile ID or a Control D Profile URL. Comma-separate for multiple.",
+                )
+                profile_ids = [
+                    extract_profile_id(p) for p in p_input.split(",") if p.strip()
+                ]
 
-            t_input = get_validated_input(
-                f"{Colors.BOLD}Enter Control D API Token:{Colors.ENDC} ",
-                lambda x: len(x) > 8,
-                "Token seems too short. Please check your API token.",
-                is_password=True,
-            )
-            TOKEN = t_input
+            if not TOKEN:
+                print(f"{Colors.CYAN}ℹ API Token is missing.{Colors.ENDC}")
+                print(
+                    f"{Colors.CYAN}  You can generate one at: https://controld.com/account/manage-account{Colors.ENDC}"
+                )
+
+                t_input = get_validated_input(
+                    f"{Colors.BOLD}Enter Control D API Token:{Colors.ENDC} ",
+                    lambda x: len(x) > 8,
+                    "Token seems too short. Please check your API token.",
+                    is_password=True,
+                )
+                TOKEN = t_input
+    except KeyboardInterrupt:
+        sys.stderr.write(
+            f"\n{Colors.WARNING}⚠️  Sync cancelled by user.{Colors.ENDC}\n"
+        )
+        exit(130)
 
     if not profile_ids and not args.dry_run:
         log.error(
