@@ -312,6 +312,10 @@ _gh = httpx.Client(
 )
 MAX_RESPONSE_SIZE = 10 * 1024 * 1024  # 10 MB limit for external resources
 
+# Validation Patterns
+RULE_PATTERN = re.compile(r"^[a-zA-Z0-9.\-_:*\/]+$")
+DANGEROUS_CHARS = set("<>\"'`")
+
 # --------------------------------------------------------------------------- #
 # 3. Helpers
 # --------------------------------------------------------------------------- #
@@ -422,15 +426,9 @@ def is_valid_rule(rule: str) -> bool:
     Enforces a strict whitelist of allowed characters.
     Allowed: Alphanumeric, hyphen, dot, underscore, asterisk, colon (IPv6), slash (CIDR)
     """
-    if not rule:
-        return False
-
     # Strict whitelist to prevent injection
     # ^[a-zA-Z0-9.\-_:*\/]+$
-    if not re.match(r"^[a-zA-Z0-9.\-_:*\/]+$", rule):
-        return False
-
-    return True
+    return bool(rule and RULE_PATTERN.match(rule))
 
 
 def is_valid_folder_name(name: str) -> bool:
@@ -443,8 +441,7 @@ def is_valid_folder_name(name: str) -> bool:
 
     # Block XSS and HTML injection characters
     # Allow: ( ) [ ] { } for folder names (e.g. "Work (Private)")
-    dangerous_chars = set("<>\"'`")
-    if any(c in dangerous_chars for c in name):
+    if any(c in DANGEROUS_CHARS for c in name):
         return False
 
     return True
