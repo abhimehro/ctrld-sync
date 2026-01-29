@@ -18,10 +18,14 @@ def reload_main_with_env(monkeypatch, no_color=None, isatty=True):
         importlib.reload(main)
         return main
 
-def test_terminal_injection_in_summary_table(monkeypatch, capsys):
+def test_terminal_injection_in_summary_table(monkeypatch, capsys, caplog):
     """
     Test that malicious ANSI codes in profile IDs are sanitized in the summary table.
     """
+    # Ensure INFO logs are captured
+    import logging
+    caplog.set_level(logging.INFO)
+
     # 1. Setup environment
     monkeypatch.setenv("TOKEN", "valid_token")
     monkeypatch.setenv("PROFILE", "valid_profile")
@@ -56,17 +60,15 @@ def test_terminal_injection_in_summary_table(monkeypatch, capsys):
 
     # 5. Check output
     captured = capsys.readouterr()
-    # The output might be in stdout or stderr depending on implementation (we switched to stderr for safety)
-    output = captured.out + captured.err
+    # Check caplog for logs (since we use log.info)
+    log_text = caplog.text
+    all_output = captured.out + captured.err + log_text
 
-    # If vulnerable, stdout/err contains the raw ANSI code \033
-    # If fixed, it should contain the sanitized version (e.g. escaped)
-
+    # If vulnerable, output contains the raw ANSI code \033
     # We assert that the raw ESC character is NOT present
-    assert "\033[31m" not in output, "Terminal injection detected: ANSI codes printed raw!"
+    assert "\033[31m" not in all_output, "Terminal injection detected: ANSI codes printed raw!"
 
     # We assert that the output is masked because it is long/sensitive
     # The new masking logic replaces the entire ID with "********" for Profile IDs from env var.
-    # We check that the raw injection is NOT present (already done above)
-    # and that the output contains the redacted placeholder.
-    assert "********" in output, "Redacted output not found!"
+    # We look for this string in the logs.
+    assert "********" in log_text, "Redacted output not found in logs!"
