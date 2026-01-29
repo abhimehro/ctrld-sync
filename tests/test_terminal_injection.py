@@ -56,13 +56,14 @@ def test_terminal_injection_in_summary_table(monkeypatch, capsys):
 
     # 5. Check output
     captured = capsys.readouterr()
-    stdout = captured.out
+    # The output might be in stdout or stderr depending on implementation (we switched to stderr for safety)
+    output = captured.out + captured.err
 
-    # If vulnerable, stdout contains the raw ANSI code \033
+    # If vulnerable, stdout/err contains the raw ANSI code \033
     # If fixed, it should contain the sanitized version (e.g. escaped)
 
     # We assert that the raw ESC character is NOT present
-    assert "\033[31m" not in stdout, "Terminal injection detected: ANSI codes printed raw!"
+    assert "\033[31m" not in output, "Terminal injection detected: ANSI codes printed raw!"
 
     # We assert that the output is masked because it is long/sensitive
     # sanitize_for_log uses repr(), so it escapes \ to \\
@@ -70,4 +71,4 @@ def test_terminal_injection_in_summary_table(monkeypatch, capsys):
     # The masking logic (first 4 ... last 4) will truncate this.
     # We check that the raw injection is NOT present (already done above)
     # and that the output contains the masked structure or at least the start.
-    assert "test..." in stdout or "test" in stdout, "Masked output not found!"
+    assert "test..." in output or "test" in output, "Masked output not found!"
