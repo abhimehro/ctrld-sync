@@ -1385,11 +1385,8 @@ def main():
 
     # Print Summary Table
     # Determine the width for the Profile ID column (min 25)
-    # SECURITY: Calculate width based on sanitized profile IDs to handle escaped chars correctly
-    max_profile_len = max(
-        (len(sanitize_for_log(r["profile"])) for r in sync_results), default=25
-    )
-    profile_col_width = max(25, max_profile_len)
+    # SECURITY: Use fixed width since we are masking/redacting sensitive Profile IDs
+    profile_col_width = 25
 
     # Calculate total width for the table
     # Profile ID + " | " + Folders + " | " + Rules + " | " + Duration + " | " + Status
