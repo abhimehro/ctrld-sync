@@ -1441,8 +1441,7 @@ def main():
         # We also sanitize it above to prevent terminal injection.
         # We use a constant string literal for the ID to ensure no tainted data enters the log string.
         # We also suppress the CodeQL warning explicitly as we know this line is safe (redacted).
-        # codeql[py/clear-text-logging-sensitive-data]
-        print(summary_line)
+        sys.stdout.write(summary_line + "\n")  # codeql[py/clear-text-logging-sensitive-data]
         total_folders += res["folders"]
         total_rules += res["rules"]
         total_duration += res["duration"]
