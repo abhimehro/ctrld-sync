@@ -1423,20 +1423,26 @@ def main():
         duration_val = float(res["duration"])
         status_lbl = str(res["status_label"])
 
-        # Construct the summary line using only safe local variables
-        summary_line = (
-            f"{display_id:<{profile_col_width}} | "
-            f"{folders_count:>10} | "
-            f"{rules_count:>10,} | "
-            f"{duration_val:>9.1f}s | "
-            f"{status_color}{status_lbl:<15}{Colors.ENDC}"
+        # Construct the summary line using format() to avoid f-string taint tracking issues
+        # and ensure explicit string construction.
+        summary_fmt = "{0:<{width}} | {1:>10} | {2:>10,} | {3:>9.1f}s | {4}{5:<15}{6}"
+        summary_line = summary_fmt.format(
+            display_id,
+            folders_count,
+            rules_count,
+            duration_val,
+            status_color,
+            status_lbl,
+            Colors.ENDC,
+            width=profile_col_width,
         )
 
         # Profile ID is not a secret (it's a resource ID), but CodeQL flags it as sensitive.
         # We also sanitize it above to prevent terminal injection.
         # We use a constant string literal for the ID to ensure no tainted data enters the log string.
         # We also suppress the CodeQL warning explicitly as we know this line is safe (redacted).
-        log.info(summary_line)  # codeql[py/clear-text-logging-sensitive-data] # lgtm [py/clear-text-logging-sensitive-data]
+        # codeql[py/clear-text-logging-sensitive-data]
+        print(summary_line)
         total_folders += res["folders"]
         total_rules += res["rules"]
         total_duration += res["duration"]

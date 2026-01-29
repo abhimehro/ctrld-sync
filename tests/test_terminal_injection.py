@@ -70,5 +70,5 @@ def test_terminal_injection_in_summary_table(monkeypatch, capsys, caplog):
 
     # We assert that the output is masked because it is long/sensitive
     # The new masking logic replaces the entire ID with "********" for Profile IDs from env var.
-    # We look for this string in the logs.
-    assert "********" in log_text, "Redacted output not found in logs!"
+    # We look for this string in the combined output (stdout/stderr/logs).
+    assert "********" in all_output, "Redacted output not found!"
