@@ -25,7 +25,7 @@ def test_countdown_timer_visuals(monkeypatch):
     assert "░" in combined_output
     assert "█" in combined_output
     assert "Test" in combined_output
-    assert "Done!" in combined_output
+    assert "Complete!" in combined_output
 
     # Check for ANSI clear line code
     assert "\033[K" in combined_output
