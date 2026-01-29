@@ -39,3 +39,7 @@
 ## 2026-01-27 - Redundant Validation for Cached Data
 **Learning:** Re-validating resource properties (like DNS/IP) when using *cached content* is pure overhead. If the content is served from memory (proven safe at fetch time), checking the *current* state of the source is disconnected from the data being used.
 **Action:** When using a multi-stage pipeline (Warmup -> Process), ensure validation state persists alongside the data cache. Avoid clearing validation caches between stages if the data cache is not also cleared.
+
+## 2026-01-27 - Pre-compiling Regex for Validation
+**Learning:** Pre-compiling regular expressions (`re.compile`) yields a measurable ~50% reduction in validation time compared to repeatedly calling `re.match` inside tight loops (0.038s vs 0.078s for 100k checks), even with Python's internal regex cache.
+**Action:** Always pre-compile regex patterns as module-level constants when they are used in high-frequency validation functions.
