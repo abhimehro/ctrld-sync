@@ -391,10 +391,12 @@ def validate_profile_id(profile_id: str, log_errors: bool = True) -> bool:
         if log_errors:
             if not re.match(r"^[a-zA-Z0-9_-]+$", profile_id):
                 log.error(
-                    f"Invalid profile ID '{profile_id}': contains unsafe characters (allowed: A-Z, a-z, 0-9, _, -)"
+                    f"Invalid profile ID {sanitize_for_log(profile_id)}: contains unsafe characters (allowed: A-Z, a-z, 0-9, _, -)"
                 )
             elif len(profile_id) > 64:
-                log.error(f"Invalid profile ID '{profile_id}': too long (max 64 chars)")
+                log.error(
+                    f"Invalid profile ID {sanitize_for_log(profile_id)}: too long (max 64 chars)"
+                )
         return False
     return True
 
