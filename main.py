@@ -1417,11 +1417,11 @@ def main():
         # We use a constant string literal to ensure no tainted data from 'res["profile"]' enters the log string.
         display_id = "********"
 
-        # Extract values to local variables to further isolate from the 'res' dict taint
-        folders_count = res["folders"]
-        rules_count = res["rules"]
-        duration_val = res["duration"]
-        status_lbl = res["status_label"]
+        # Extract values to local variables and explicitly cast to break taint from the 'res' dict
+        folders_count = int(res["folders"])
+        rules_count = int(res["rules"])
+        duration_val = float(res["duration"])
+        status_lbl = str(res["status_label"])
 
         # Construct the summary line using only safe local variables
         summary_line = (
