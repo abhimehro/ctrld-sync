@@ -1376,7 +1376,10 @@ def main():
 
     # Print Summary Table
     # Determine the width for the Profile ID column (min 25)
-    max_profile_len = max((len(r["profile"]) for r in sync_results), default=25)
+    # SECURITY: Calculate width based on sanitized profile IDs to handle escaped chars correctly
+    max_profile_len = max(
+        (len(sanitize_for_log(r["profile"])) for r in sync_results), default=25
+    )
     profile_col_width = max(25, max_profile_len)
 
     # Calculate total width for the table
@@ -1408,8 +1411,11 @@ def main():
         # Use boolean success field for color logic
         status_color = Colors.GREEN if res["success"] else Colors.FAIL
 
+        # SECURITY: Sanitize profile ID to prevent terminal injection/log forgery
+        safe_profile = sanitize_for_log(res["profile"])
+
         print(
-            f"{res['profile']:<{profile_col_width}} | "
+            f"{safe_profile:<{profile_col_width}} | "
             f"{res['folders']:>10} | "
             f"{res['rules']:>10,} | "
             f"{res['duration']:>9.1f}s | "
