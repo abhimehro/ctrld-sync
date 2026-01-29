@@ -162,10 +162,11 @@ def sanitize_for_log(text: Any) -> str:
 def render_progress_bar(
     current: int, total: int, label: str, prefix: str = "🚀"
 ) -> None:
+    """Renders a progress bar to stderr if USE_COLORS is True."""
     if not USE_COLORS or total == 0:
         return
 
-    width = 20
+    width = 30
     progress = min(1.0, current / total)
     filled = int(width * progress)
     bar = "█" * filled + "░" * (width - filled)
@@ -184,7 +185,7 @@ def countdown_timer(seconds: int, message: str = "Waiting") -> None:
         time.sleep(seconds)
         return
 
-    width = 15
+    width = 30
     for remaining in range(seconds, 0, -1):
         progress = (seconds - remaining + 1) / seconds
         filled = int(width * progress)
@@ -195,27 +196,7 @@ def countdown_timer(seconds: int, message: str = "Waiting") -> None:
         sys.stderr.flush()
         time.sleep(1)
 
-    sys.stderr.write(f"\r\033[K{Colors.GREEN}✅ {message}: Done!{Colors.ENDC}\n")
-    sys.stderr.flush()
-
-
-def render_progress_bar(
-    current: int, total: int, label: str, prefix: str = "🚀"
-) -> None:
-    """Renders a progress bar to stderr if USE_COLORS is True."""
-    if not USE_COLORS or total == 0:
-        return
-
-    width = 15
-    progress = min(1.0, current / total)
-    filled = int(width * progress)
-    bar = "█" * filled + "░" * (width - filled)
-    percent = int(progress * 100)
-
-    # Use \033[K to clear line residue
-    sys.stderr.write(
-        f"\r\033[K{Colors.CYAN}{prefix} {label}: [{bar}] {percent}% ({current}/{total}){Colors.ENDC}"
-    )
+    sys.stderr.write(f"\r\033[K{Colors.GREEN}✅ {message}: Complete!{Colors.ENDC}\n")
     sys.stderr.flush()
 
 
@@ -409,9 +390,11 @@ def validate_profile_id(profile_id: str, log_errors: bool = True) -> bool:
     if not is_valid_profile_id_format(profile_id):
         if log_errors:
             if not re.match(r"^[a-zA-Z0-9_-]+$", profile_id):
-                log.error("Invalid profile ID format (contains unsafe characters)")
+                log.error(
+                    f"Invalid profile ID '{profile_id}': contains unsafe characters (allowed: A-Z, a-z, 0-9, _, -)"
+                )
             elif len(profile_id) > 64:
-                log.error("Invalid profile ID length (max 64 chars)")
+                log.error(f"Invalid profile ID '{profile_id}': too long (max 64 chars)")
         return False
     return True
 
@@ -1249,13 +1232,13 @@ def main():
             def validate_profile_input(value: str) -> bool:
                 ids = [extract_profile_id(p) for p in value.split(",") if p.strip()]
                 return bool(ids) and all(
-                    validate_profile_id(pid, log_errors=False) for pid in ids
+                    validate_profile_id(pid, log_errors=True) for pid in ids
                 )
 
             p_input = get_validated_input(
                 f"{Colors.BOLD}Enter Control D Profile ID:{Colors.ENDC} ",
                 validate_profile_input,
-                "Invalid ID(s) or URL(s). Must be a valid Profile ID or a Control D Profile URL. Comma-separate for multiple.",
+                "Please enter valid Profile ID(s). See errors above.",
             )
             profile_ids = [
                 extract_profile_id(p) for p in p_input.split(",") if p.strip()
