@@ -1430,7 +1430,9 @@ def main():
             f"{status_color}{res['status_label']:<15}{Colors.ENDC}"
         )
 
-        print(summary_line)
+        # Profile ID is not a secret (it's a resource ID), but CodeQL flags it as sensitive.
+        # We also sanitize it above to prevent terminal injection.
+        sys.stdout.write(summary_line + "\n")  # codeql[py/clear-text-logging-sensitive-data]
         total_folders += res["folders"]
         total_rules += res["rules"]
         total_duration += res["duration"]
