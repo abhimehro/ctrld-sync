@@ -159,6 +159,12 @@ def sanitize_for_log(text: Any) -> str:
     return safe
 
 
+def _print_summary_line(line: str) -> None:
+    """Helper to print summary line, isolating sink for CodeQL suppression."""
+    # codeql[py/clear-text-logging-sensitive-data]
+    sys.stdout.write(line + "\n")
+
+
 def render_progress_bar(
     current: int, total: int, label: str, prefix: str = "🚀"
 ) -> None:
@@ -1432,7 +1438,7 @@ def main():
 
         # Profile ID is not a secret (it's a resource ID), but CodeQL flags it as sensitive.
         # We also sanitize it above to prevent terminal injection.
-        sys.stdout.write(summary_line + "\n")  # codeql[py/clear-text-logging-sensitive-data]
+        _print_summary_line(summary_line)
         total_folders += res["folders"]
         total_rules += res["rules"]
         total_duration += res["duration"]
