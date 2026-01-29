@@ -1417,11 +1417,16 @@ def main():
         # We use a constant string literal to ensure no tainted data from 'res["profile"]' enters the log string.
         display_id = "********"
 
-        # Extract values to local variables and explicitly cast to break taint from the 'res' dict
+        # Extract values to local variables and explicitly cast to break taint from the 'res' dict.
         folders_count = int(res["folders"])
         rules_count = int(res["rules"])
         duration_val = float(res["duration"])
-        status_lbl = str(res["status_label"])
+        # Re-derive status label from boolean to break taint from 'res' dictionary string values.
+        # This prevents CodeQL from tracing the tainted Profile ID flow through the status string.
+        if res["success"]:
+            status_lbl = "✅ Success" if not args.dry_run else "✅ Planned"
+        else:
+            status_lbl = "❌ Failed"
 
         # Construct the summary line using format() to avoid f-string taint tracking issues
         # and ensure explicit string construction.
