@@ -1414,7 +1414,7 @@ def main():
         # SECURITY: Sanitize profile ID to prevent terminal injection/log forgery
         safe_profile = sanitize_for_log(res["profile"])
 
-        print(
+        print(  # codeql[py/clear-text-logging-sensitive-data]
             f"{safe_profile:<{profile_col_width}} | "
             f"{res['folders']:>10} | "
             f"{res['rules']:>10,} | "
