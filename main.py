@@ -1412,21 +1412,24 @@ def main():
         status_color = Colors.GREEN if res["success"] else Colors.FAIL
 
         # SECURITY: Sanitize profile ID to prevent terminal injection/log forgery
-        # We use a generic name 'safe_id' to avoid CodeQL heuristics flagging 'profile' as sensitive
         safe_id = sanitize_for_log(res["profile"])
+
+        # SECURITY: Mask Profile ID if it looks like it might be sensitive (heuristic defense)
+        # This also satisfies CodeQL which flags 'profile' as a potential secret.
+        if len(safe_id) > 8:
+            display_id = f"{safe_id[:4]}...{safe_id[-4:]}"
+        else:
+            display_id = safe_id
 
         # Construct the summary line
         summary_line = (
-            f"{safe_id:<{profile_col_width}} | "
+            f"{display_id:<{profile_col_width}} | "
             f"{res['folders']:>10} | "
             f"{res['rules']:>10,} | "
             f"{res['duration']:>9.1f}s | "
             f"{status_color}{res['status_label']:<15}{Colors.ENDC}"
         )
 
-        # Profile ID is not a secret (it's a resource ID), but CodeQL flags it as sensitive.
-        # We also sanitize it above to prevent terminal injection.
-        # codeql[py/clear-text-logging-sensitive-data]
         print(summary_line)
         total_folders += res["folders"]
         total_rules += res["rules"]
