@@ -1426,7 +1426,8 @@ def main():
 
         # Profile ID is not a secret (it's a resource ID), but CodeQL flags it as sensitive.
         # We also sanitize it above to prevent terminal injection.
-        print(summary_line)  # codeql[py/clear-text-logging-sensitive-data]
+        # codeql[py/clear-text-logging-sensitive-data]
+        print(summary_line)
         total_folders += res["folders"]
         total_rules += res["rules"]
         total_duration += res["duration"]
