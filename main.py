@@ -1414,15 +1414,18 @@ def main():
         # SECURITY: Sanitize profile ID to prevent terminal injection/log forgery
         safe_profile = sanitize_for_log(res["profile"])
 
-        print(
-            # Profile ID is not a secret (it's a resource ID), but CodeQL flags it as sensitive.
-            # We also sanitize it above to prevent terminal injection.
-            f"{safe_profile:<{profile_col_width}} | "  # codeql[py/clear-text-logging-sensitive-data]
+        # Construct the summary line
+        summary_line = (
+            f"{safe_profile:<{profile_col_width}} | "
             f"{res['folders']:>10} | "
             f"{res['rules']:>10,} | "
             f"{res['duration']:>9.1f}s | "
             f"{status_color}{res['status_label']:<15}{Colors.ENDC}"
         )
+
+        # Profile ID is not a secret (it's a resource ID), but CodeQL flags it as sensitive.
+        # We also sanitize it above to prevent terminal injection.
+        print(summary_line)  # codeql[py/clear-text-logging-sensitive-data]
         total_folders += res["folders"]
         total_rules += res["rules"]
         total_duration += res["duration"]
