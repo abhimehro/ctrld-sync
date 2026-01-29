@@ -1423,12 +1423,10 @@ def main():
         # SECURITY: Sanitize profile ID to prevent terminal injection/log forgery
         safe_id = sanitize_for_log(res["profile"])
 
-        # SECURITY: Mask Profile ID if it looks like it might be sensitive (heuristic defense)
-        # This also satisfies CodeQL which flags 'profile' as a potential secret.
-        if len(safe_id) > 8:
-            display_id = f"{safe_id[:4]}...{safe_id[-4:]}"
-        else:
-            display_id = safe_id
+        # SECURITY: CodeQL flags the Profile ID as sensitive data because it comes from the 'PROFILE' env var.
+        # To satisfy the "clear text logging of sensitive data" check, we must redact it entirely or use a constant placeholder
+        # if we cannot suppress the false positive. We choose to mask it heavily.
+        display_id = "********"
 
         # Construct the summary line
         summary_line = (

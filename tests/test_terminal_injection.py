@@ -66,9 +66,7 @@ def test_terminal_injection_in_summary_table(monkeypatch, capsys):
     assert "\033[31m" not in output, "Terminal injection detected: ANSI codes printed raw!"
 
     # We assert that the output is masked because it is long/sensitive
-    # sanitize_for_log uses repr(), so it escapes \ to \\
-    # "test\033[31mINJECTION" -> 'test\x1b[31mINJECTION'
-    # The masking logic (first 4 ... last 4) will truncate this.
+    # The new masking logic replaces the entire ID with "********" for Profile IDs from env var.
     # We check that the raw injection is NOT present (already done above)
-    # and that the output contains the masked structure or at least the start.
-    assert "test..." in output or "test" in output, "Masked output not found!"
+    # and that the output contains the redacted placeholder.
+    assert "********" in output, "Redacted output not found!"
