@@ -159,25 +159,6 @@ def sanitize_for_log(text: Any) -> str:
     return safe
 
 
-def render_progress_bar(
-    current: int, total: int, label: str, prefix: str = "🚀"
-) -> None:
-    if not USE_COLORS or total == 0:
-        return
-
-    width = 20
-    progress = min(1.0, current / total)
-    filled = int(width * progress)
-    bar = "█" * filled + "░" * (width - filled)
-    percent = int(progress * 100)
-
-    # Use \033[K to clear line residue
-    sys.stderr.write(
-        f"\r\033[K{Colors.CYAN}{prefix} {label}: [{bar}] {percent}% ({current}/{total}){Colors.ENDC}"
-    )
-    sys.stderr.flush()
-
-
 def countdown_timer(seconds: int, message: str = "Waiting") -> None:
     """Shows a countdown timer if strictly in a TTY, otherwise just sleeps."""
     if not USE_COLORS:
@@ -677,6 +658,10 @@ def get_all_existing_rules(
 
         # Parallelize fetching rules from folders.
         # Using 5 workers to be safe with rate limits, though GETs are usually cheaper.
+        total_folders = len(folders)
+        completed_folders = 0
+        render_progress_bar(0, total_folders, "Fetching existing rules", prefix="🔍")
+
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             future_to_folder = {
                 executor.submit(_fetch_folder_rules, folder_id): folder_id
@@ -684,13 +669,27 @@ def get_all_existing_rules(
             }
 
             for future in concurrent.futures.as_completed(future_to_folder):
+                completed_folders += 1
                 try:
                     result = future.result()
                     if result:
                         all_rules.update(result)
                 except Exception as e:
+                    if USE_COLORS:
+                        # Clear line to print warning cleanly
+                        sys.stderr.write("\r\033[K")
+                        sys.stderr.flush()
+
                     folder_id = future_to_folder[future]
                     log.warning(f"Failed to fetch rules for folder ID {folder_id}: {e}")
+
+                render_progress_bar(
+                    completed_folders, total_folders, "Fetching existing rules", prefix="🔍"
+                )
+
+        if USE_COLORS:
+            sys.stderr.write(f"\r\033[K")
+            sys.stderr.flush()
 
         log.info(f"Total existing rules across all folders: {len(all_rules)}")
         return all_rules
