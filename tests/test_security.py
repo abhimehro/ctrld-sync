@@ -1,7 +1,8 @@
 import os
 import stat
 import sys
-from unittest.mock import MagicMock
+import socket
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -285,3 +286,64 @@ def test_is_valid_rule_strict(rule, expected_validity):
     Tests the is_valid_rule function against a strict whitelist of inputs.
     """
     assert is_valid_rule(rule) == expected_validity, f"Failed for rule: {rule}"
+
+
+# Mock helpers for TestValidateFolderUrl
+def mock_getaddrinfo_ipv4(ip):
+    return [(socket.AF_INET, socket.SOCK_STREAM, 6, '', (ip, 443))]
+
+def mock_getaddrinfo_ipv6(ip):
+    return [(socket.AF_INET6, socket.SOCK_STREAM, 6, '', (ip, 443, 0, 0))]
+
+class TestValidateFolderUrl:
+    """Security tests for SSRF protection in validate_folder_url."""
+
+    def test_rejects_non_https(self):
+        assert main.validate_folder_url("http://example.com/foo") is False
+        assert main.validate_folder_url("ftp://example.com/foo") is False
+        assert main.validate_folder_url("file:///etc/passwd") is False
+
+    @patch('socket.getaddrinfo')
+    def test_accepts_valid_public_ip(self, mock_gai):
+        # Mock domain resolving to public IP (8.8.8.8)
+        mock_gai.side_effect = lambda host, *args, **kwargs: mock_getaddrinfo_ipv4("8.8.8.8")
+        assert main.validate_folder_url("https://example.com/foo") is True
+
+    def test_rejects_localhost_literal(self):
+        # Test explicit localhost hostname check
+        assert main.validate_folder_url("https://localhost/foo") is False
+
+    @patch('socket.getaddrinfo')
+    def test_rejects_private_ip_resolution(self, mock_gai):
+        # Mock domain resolving to private IP (192.168.1.1)
+        mock_gai.side_effect = lambda host, *args, **kwargs: mock_getaddrinfo_ipv4("192.168.1.1")
+        assert main.validate_folder_url("https://internal.corp/foo") is False
+
+    @patch('socket.getaddrinfo')
+    def test_rejects_loopback_ip_resolution(self, mock_gai):
+        # Mock domain resolving to loopback IP (127.0.0.1)
+        mock_gai.side_effect = lambda host, *args, **kwargs: mock_getaddrinfo_ipv4("127.0.0.1")
+        assert main.validate_folder_url("https://evil.com/foo") is False
+
+    @patch('socket.getaddrinfo')
+    def test_rejects_ipv6_loopback_resolution(self, mock_gai):
+        # Mock domain resolving to IPv6 loopback (::1)
+        mock_gai.side_effect = lambda host, *args, **kwargs: mock_getaddrinfo_ipv6("::1")
+        assert main.validate_folder_url("https://ipv6.local/foo") is False
+
+    def test_rejects_ip_literal_private(self):
+        # IP literals are checked directly via ipaddress module, bypassing DNS
+        assert main.validate_folder_url("https://192.168.1.1/foo") is False
+        assert main.validate_folder_url("https://10.0.0.1/foo") is False
+        assert main.validate_folder_url("https://127.0.0.1/foo") is False
+        assert main.validate_folder_url("https://[::1]/foo") is False
+
+    def test_accepts_ip_literal_public(self):
+        assert main.validate_folder_url("https://8.8.8.8/foo") is True
+        assert main.validate_folder_url("https://[2001:4860:4860::8888]/foo") is True
+
+    @patch('socket.getaddrinfo')
+    def test_dns_resolution_failure_is_safe(self, mock_gai):
+        # Ensure that if DNS fails, we default to False (fail closed)
+        mock_gai.side_effect = socket.gaierror("Name or service not known")
+        assert main.validate_folder_url("https://nonexistent.com/foo") is False
