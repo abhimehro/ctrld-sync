@@ -1149,16 +1149,33 @@ def sync_profile(
             existing_folders = list_existing_folders(client, profile_id)
             if not no_delete:
                 deletion_occurred = False
+                # Use a dict to deduplicate folders to delete
+                folders_to_delete = {}
                 for folder_data in folder_data_list:
                     name = folder_data["group"]["group"].strip()
                     if name in existing_folders:
-                        # Optimization: Maintain local state of folders to avoid re-fetching
-                        # delete_folder returns True on success
-                        if delete_folder(
-                            client, profile_id, name, existing_folders[name]
-                        ):
-                            del existing_folders[name]
-                            deletion_occurred = True
+                        folders_to_delete[name] = existing_folders[name]
+
+                if folders_to_delete:
+                    # Parallelize deletion: 5 workers is generally safe for DELETE operations
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+                        future_to_folder = {
+                            executor.submit(
+                                delete_folder, client, profile_id, name, folder_id
+                            ): name
+                            for name, folder_id in folders_to_delete.items()
+                        }
+
+                        for future in concurrent.futures.as_completed(future_to_folder):
+                            name = future_to_folder[future]
+                            try:
+                                if future.result():
+                                    del existing_folders[name]
+                                    deletion_occurred = True
+                            except Exception as e:
+                                log.error(
+                                    f"Failed to delete folder {sanitize_for_log(name)}: {e}"
+                                )
 
                 # CRITICAL FIX: Increased wait time for massive folders to clear
                 if deletion_occurred:
