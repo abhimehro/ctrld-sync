@@ -510,3 +510,37 @@ def test_render_progress_bar(monkeypatch):
     # Color codes (accessing instance Colors or m.Colors)
     assert m.Colors.CYAN in combined
     assert m.Colors.ENDC in combined
+
+# Case 14: get_all_existing_rules shows progress bar
+def test_get_all_existing_rules_shows_progress(monkeypatch):
+    m = reload_main_with_env(monkeypatch, no_color=None, isatty=True)
+    mock_client = MagicMock()
+    profile_id = "test_profile"
+
+    mock_stderr = MagicMock()
+    monkeypatch.setattr(sys, "stderr", mock_stderr)
+
+    # Mock list_existing_folders to return multiple folders
+    folders = {f"Folder{i}": f"id_{i}" for i in range(5)}
+    monkeypatch.setattr(m, "list_existing_folders", MagicMock(return_value=folders))
+
+    # Mock _api_get
+    def side_effect(client, url):
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {"body": {"rules": []}}
+        return mock_resp
+    monkeypatch.setattr(m, "_api_get", side_effect)
+
+    # Run
+    m.get_all_existing_rules(mock_client, profile_id)
+
+    # Check that progress bar logic was invoked
+    # render_progress_bar writes to stderr with \r...
+    # We check if there were writes containing "Fetching existing rules"
+    writes = [str(args[0]) for args, _ in mock_stderr.write.call_args_list]
+    progress_writes = [w for w in writes if "Fetching existing rules" in w]
+
+    assert len(progress_writes) > 0
+    # Should be called initially (0/5) + for each folder (1/5 ... 5/5)
+    # Total calls >= 6
+    assert len(progress_writes) >= 6
