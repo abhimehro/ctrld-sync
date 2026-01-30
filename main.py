@@ -26,7 +26,6 @@ import stat
 import sys
 import threading
 import time
-from functools import lru_cache
 from typing import Any, Callable, Dict, List, Optional, Sequence, Set
 from urllib.parse import urlparse
 
@@ -321,12 +320,12 @@ _cache: Dict[str, Dict] = {}
 _cache_lock = threading.RLock()
 
 
-@lru_cache(maxsize=128)
+# SECURITY: Do not cache validation results. Caching introduces a TOCTOU (Time-of-Check Time-of-Use)
+# vulnerability where a DNS record could change from a public IP to a private IP (DNS Rebinding)
+# in the time between validation and fetch. We must re-validate immediately before fetching.
 def validate_folder_url(url: str) -> bool:
     """
     Validates a folder URL.
-    Cached to avoid repeated DNS lookups (socket.getaddrinfo) for the same URL
-    during warm-up and sync phases.
     """
     if not url.startswith("https://"):
         log.warning(
@@ -1043,9 +1042,8 @@ def sync_profile(
     no_delete: bool = False,
     plan_accumulator: Optional[List[Dict[str, Any]]] = None,
 ) -> bool:
-    # SECURITY: Clear cached DNS validations at the start of each sync run.
-    # This prevents TOCTOU issues where a domain's IP could change between runs.
-    validate_folder_url.cache_clear()
+    # SECURITY: Removed cache clearing because we removed the cache on validate_folder_url
+    # to mitigate TOCTOU (DNS Rebinding) risks. Validation now happens per-fetch.
 
     try:
         # Fetch all folder data first
