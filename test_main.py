@@ -1,3 +1,4 @@
+import concurrent.futures
 import importlib
 import os
 import sys
@@ -510,3 +511,90 @@ def test_render_progress_bar(monkeypatch):
     # Color codes (accessing instance Colors or m.Colors)
     assert m.Colors.CYAN in combined
     assert m.Colors.ENDC in combined
+
+
+# Case 14: is_valid_rule uses pre-compiled regex
+def test_is_valid_rule_uses_regex(monkeypatch):
+    m = reload_main_with_env(monkeypatch)
+    assert m.is_valid_rule("valid.rule") is True
+    assert m.is_valid_rule("invalid rule") is False
+    assert m.is_valid_rule("invalid;rule") is False
+    # Check that RULE_PATTERN is available
+    assert hasattr(m, "RULE_PATTERN")
+    assert m.RULE_PATTERN.pattern == r"^[a-zA-Z0-9.\-_:*\/]+$"
+
+
+# Case 15: sync_profile deletes folders in parallel
+def test_sync_profile_parallel_deletion(monkeypatch):
+    m = reload_main_with_env(monkeypatch)
+
+    # Mock clients
+    mock_client = MagicMock()
+    mock_client_ctx = MagicMock(
+        __enter__=lambda self: mock_client, __exit__=lambda *args: None
+    )
+    monkeypatch.setattr(m, "_api_client", MagicMock(return_value=mock_client_ctx))
+    monkeypatch.setattr(m, "check_api_access", MagicMock(return_value=True))
+
+    # Existing folders to be deleted
+    monkeypatch.setattr(
+        m,
+        "list_existing_folders",
+        MagicMock(return_value={"FolderA": "idA", "FolderB": "idB"}),
+    )
+
+    # Mock delete_folder to track calls
+    mock_delete = MagicMock(return_value=True)
+    monkeypatch.setattr(m, "delete_folder", mock_delete)
+
+    # Mock other calls to prevent errors
+    monkeypatch.setattr(m, "get_all_existing_rules", MagicMock(return_value=set()))
+    monkeypatch.setattr(m, "countdown_timer", MagicMock())
+    monkeypatch.setattr(m, "_process_single_folder", MagicMock(return_value=True))
+
+    # Mock fetching
+    mock_validate = MagicMock(return_value=True)
+    mock_validate.cache_clear = MagicMock()
+    monkeypatch.setattr(m, "validate_folder_url", mock_validate)
+
+    def fetch_side_effect(url):
+        if url == "urlA":
+            return {"group": {"group": "FolderA"}}
+        if url == "urlB":
+            return {"group": {"group": "FolderB"}}
+        return None
+
+    monkeypatch.setattr(m, "fetch_folder_data", fetch_side_effect)
+
+    # Spy on ThreadPoolExecutor
+    # We need to spy on the one used inside m (main)
+    # Since m imports concurrent.futures, we can patch concurrent.futures.ThreadPoolExecutor
+    mock_executor_cls = MagicMock(wraps=concurrent.futures.ThreadPoolExecutor)
+    monkeypatch.setattr("concurrent.futures.ThreadPoolExecutor", mock_executor_cls)
+
+    folder_urls = ["urlA", "urlB"]
+
+    # Run
+    m.sync_profile("pid", folder_urls, no_delete=False)
+
+    # Verification
+    assert mock_delete.call_count == 2
+    mock_delete.assert_any_call(mock_client, "pid", "FolderA", "idA")
+    mock_delete.assert_any_call(mock_client, "pid", "FolderB", "idB")
+
+    # Check if ThreadPoolExecutor was called with max_workers=5
+    calls = mock_executor_cls.call_args_list
+    # Expected calls:
+    # 1. Fetching (default workers)
+    # 2. Deletion (max_workers=5)
+    # 3. Processing (max_workers=1)
+
+    has_deletion_pool = False
+    for call_args in calls:
+        if call_args.kwargs.get("max_workers") == 5:
+            has_deletion_pool = True
+            break
+
+    assert (
+        has_deletion_pool
+    ), "ThreadPoolExecutor should be initialized with max_workers=5 for deletion"
