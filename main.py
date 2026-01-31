@@ -537,6 +537,25 @@ def _gh_get(url: str) -> Dict:
     with _gh.stream("GET", url) as r:
         r.raise_for_status()
 
+        # SECURITY FIX: Post-connect SSRF verification (DNS Rebinding protection)
+        # Verify the actual IP address we connected to, to prevent DNS rebinding attacks.
+        stream = r.extensions.get("network_stream")
+        if stream:
+            # "server_addr" returns (ip, port) for TCP connections
+            server_addr = stream.get_extra_info("server_addr")
+            if server_addr and len(server_addr) >= 1:
+                ip_str = server_addr[0]
+                try:
+                    ip = ipaddress.ip_address(ip_str)
+                except ValueError:
+                    # server_addr[0] might not be an IP string (unlikely for TCP)
+                    ip = None
+
+                if ip and (not ip.is_global or ip.is_multicast):
+                    raise ValueError(
+                        f"Security Alert: Domain resolved to private IP {ip_str} (DNS Rebinding protection)"
+                    )
+
         # 1. Check Content-Length header if present
         cl = r.headers.get("Content-Length")
         if cl:
