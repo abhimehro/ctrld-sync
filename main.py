@@ -159,25 +159,6 @@ def sanitize_for_log(text: Any) -> str:
     return safe
 
 
-def render_progress_bar(
-    current: int, total: int, label: str, prefix: str = "🚀"
-) -> None:
-    if not USE_COLORS or total == 0:
-        return
-
-    width = 20
-    progress = min(1.0, current / total)
-    filled = int(width * progress)
-    bar = "█" * filled + "░" * (width - filled)
-    percent = int(progress * 100)
-
-    # Use \033[K to clear line residue
-    sys.stderr.write(
-        f"\r\033[K{Colors.CYAN}{prefix} {label}: [{bar}] {percent}% ({current}/{total}){Colors.ENDC}"
-    )
-    sys.stderr.flush()
-
-
 def countdown_timer(seconds: int, message: str = "Waiting") -> None:
     """Shows a countdown timer if strictly in a TTY, otherwise just sleeps."""
     if not USE_COLORS:
@@ -1033,6 +1014,40 @@ def _process_single_folder(
     return folder_success
 
 
+def print_dry_run_plan(plan_entry: Dict[str, Any]) -> None:
+    profile = sanitize_for_log(plan_entry["profile"])
+    folders = plan_entry["folders"]
+
+    if USE_COLORS:
+        print(
+            f"\n{Colors.HEADER}📝 Dry Run Plan for Profile: {Colors.BOLD}{profile}{Colors.ENDC}"
+        )
+        print(
+            f"{Colors.CYAN}   The following folders will be created/replaced:{Colors.ENDC}"
+        )
+    else:
+        print(f"\n📝 Dry Run Plan for Profile: {profile}")
+        print("   The following folders will be created/replaced:")
+
+    if not folders:
+        print(
+            f"   {Colors.WARNING}(No folders found to sync){Colors.ENDC}"
+            if USE_COLORS
+            else "   (No folders found to sync)"
+        )
+
+    for folder in folders:
+        safe_name = sanitize_for_log(folder["name"])
+        safe_rules = sanitize_for_log(folder["rules"])
+        if USE_COLORS:
+            print(
+                f"   • {Colors.BOLD}{safe_name}{Colors.ENDC}: {safe_rules} rules"
+            )
+        else:
+            print(f"   - {safe_name}: {safe_rules} rules")
+    print("")
+
+
 # --------------------------------------------------------------------------- #
 # 4. Main workflow
 # --------------------------------------------------------------------------- #
@@ -1129,6 +1144,7 @@ def sync_profile(
             plan_accumulator.append(plan_entry)
 
         if dry_run:
+            print_dry_run_plan(plan_entry)
             log.info("Dry-run complete: no API calls were made.")
             return True
 
