@@ -1015,7 +1015,7 @@ def _process_single_folder(
 
 
 def print_dry_run_plan(plan_entry: Dict[str, Any]) -> None:
-    profile = plan_entry["profile"]
+    profile = sanitize_for_log(plan_entry["profile"])
     folders = plan_entry["folders"]
 
     if USE_COLORS:
@@ -1037,7 +1037,7 @@ def print_dry_run_plan(plan_entry: Dict[str, Any]) -> None:
         )
 
     for folder in folders:
-        name = folder["name"]
+        name = sanitize_for_log(folder["name"])
         rules = folder["rules"]
         if USE_COLORS:
             print(f"   • {Colors.BOLD}{name}{Colors.ENDC}: {rules} rules")
