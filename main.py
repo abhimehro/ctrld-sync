@@ -1037,12 +1037,14 @@ def print_dry_run_plan(plan_entry: Dict[str, Any]) -> None:
         )
 
     for folder in folders:
-        name = sanitize_for_log(folder["name"])
-        rules = folder["rules"]
+        safe_name = sanitize_for_log(folder["name"])
+        safe_rules = sanitize_for_log(folder["rules"])
         if USE_COLORS:
-            print(f"   • {Colors.BOLD}{name}{Colors.ENDC}: {rules} rules")
+            print(
+                f"   • {Colors.BOLD}{safe_name}{Colors.ENDC}: {safe_rules} rules"
+            )
         else:
-            print(f"   - {name}: {rules} rules")
+            print(f"   - {safe_name}: {safe_rules} rules")
     print("")
 
 
