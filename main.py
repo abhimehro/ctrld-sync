@@ -159,25 +159,6 @@ def sanitize_for_log(text: Any) -> str:
     return safe
 
 
-def render_progress_bar(
-    current: int, total: int, label: str, prefix: str = "🚀"
-) -> None:
-    if not USE_COLORS or total == 0:
-        return
-
-    width = 20
-    progress = min(1.0, current / total)
-    filled = int(width * progress)
-    bar = "█" * filled + "░" * (width - filled)
-    percent = int(progress * 100)
-
-    # Use \033[K to clear line residue
-    sys.stderr.write(
-        f"\r\033[K{Colors.CYAN}{prefix} {label}: [{bar}] {percent}% ({current}/{total}){Colors.ENDC}"
-    )
-    sys.stderr.flush()
-
-
 def countdown_timer(seconds: int, message: str = "Waiting") -> None:
     """Shows a countdown timer if strictly in a TTY, otherwise just sleeps."""
     if not USE_COLORS:
@@ -1129,6 +1110,20 @@ def sync_profile(
             plan_accumulator.append(plan_entry)
 
         if dry_run:
+            if USE_COLORS:
+                print(f"\n{Colors.CYAN}🔍 Plan for profile {profile_id}:{Colors.ENDC}")
+                for folder in plan_entry["folders"]:
+                    f_name = folder["name"]
+                    f_rules = folder["rules"]
+                    print(f"   • {f_name} ({f_rules:,} rules)")
+                print("")
+            else:
+                log.info(f"Plan for profile {profile_id}:")
+                for folder in plan_entry["folders"]:
+                    f_name = folder["name"]
+                    f_rules = folder["rules"]
+                    log.info(f"   - {f_name} ({f_rules:,} rules)")
+
             log.info("Dry-run complete: no API calls were made.")
             return True
 
