@@ -145,6 +145,11 @@ log = logging.getLogger("control-d-sync")
 API_BASE = "https://api.controld.com/profiles"
 USER_AGENT = "Control-D-Sync/0.1.0"
 
+# Pre-compiled regex patterns for performance
+# Used in hot loops (e.g. validating 100k+ rules)
+RULE_PATTERN = re.compile(r"^[a-zA-Z0-9.\-_:*\/]+$")
+PROFILE_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
+
 
 def sanitize_for_log(text: Any) -> str:
     """Sanitize text for logging, ensuring TOKEN is redacted and control chars are escaped."""
@@ -398,7 +403,8 @@ def extract_profile_id(text: str) -> str:
 
 
 def is_valid_profile_id_format(profile_id: str) -> bool:
-    if not re.match(r"^[a-zA-Z0-9_-]+$", profile_id):
+    # Use pre-compiled pattern for better performance
+    if not PROFILE_ID_PATTERN.match(profile_id):
         return False
     if len(profile_id) > 64:
         return False
@@ -408,7 +414,8 @@ def is_valid_profile_id_format(profile_id: str) -> bool:
 def validate_profile_id(profile_id: str, log_errors: bool = True) -> bool:
     if not is_valid_profile_id_format(profile_id):
         if log_errors:
-            if not re.match(r"^[a-zA-Z0-9_-]+$", profile_id):
+            # Re-check to give specific error message
+            if not PROFILE_ID_PATTERN.match(profile_id):
                 log.error("Invalid profile ID format (contains unsafe characters)")
             elif len(profile_id) > 64:
                 log.error("Invalid profile ID length (max 64 chars)")
@@ -426,8 +433,8 @@ def is_valid_rule(rule: str) -> bool:
         return False
 
     # Strict whitelist to prevent injection
-    # ^[a-zA-Z0-9.\-_:*\/]+$
-    if not re.match(r"^[a-zA-Z0-9.\-_:*\/]+$", rule):
+    # Use pre-compiled pattern for better performance
+    if not RULE_PATTERN.match(rule):
         return False
 
     return True
