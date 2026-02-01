@@ -1110,17 +1110,18 @@ def sync_profile(
             plan_accumulator.append(plan_entry)
 
         if dry_run:
+            s_profile = sanitize_for_log(profile_id)
             if USE_COLORS:
-                print(f"\n{Colors.CYAN}🔍 Plan for profile {profile_id}:{Colors.ENDC}")
+                print(f"\n{Colors.CYAN}🔍 Plan for profile {s_profile}:{Colors.ENDC}")
                 for folder in plan_entry["folders"]:
-                    f_name = folder["name"]
+                    f_name = sanitize_for_log(folder["name"])
                     f_rules = folder["rules"]
                     print(f"   • {f_name} ({f_rules:,} rules)")
                 print("")
             else:
-                log.info(f"Plan for profile {profile_id}:")
+                log.info(f"Plan for profile {s_profile}:")
                 for folder in plan_entry["folders"]:
-                    f_name = folder["name"]
+                    f_name = sanitize_for_log(folder["name"])
                     f_rules = folder["rules"]
                     log.info(f"   - {f_name} ({f_rules:,} rules)")
 
