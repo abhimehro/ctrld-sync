@@ -1110,20 +1110,24 @@ def sync_profile(
             plan_accumulator.append(plan_entry)
 
         if dry_run:
-            s_profile = sanitize_for_log(profile_id)
+            safe_profile_id = sanitize_for_log(profile_id)
             if USE_COLORS:
-                print(f"\n{Colors.CYAN}🔍 Plan for profile {s_profile}:{Colors.ENDC}")
+                print(f"\n{Colors.CYAN}🔍 Plan for profile {safe_profile_id}:{Colors.ENDC}")
                 for folder in plan_entry["folders"]:
-                    f_name = sanitize_for_log(folder["name"])
-                    f_rules = folder["rules"]
-                    print(f"   • {f_name} ({f_rules:,} rules)")
+                    # Sanitize folder name and ensure rule count is an integer
+                    raw_name = folder.get("name", "Unknown")
+                    safe_name = sanitize_for_log(raw_name)
+                    rule_count = int(folder.get("rules", 0))
+                    print(f"   • {safe_name} ({rule_count:,} rules)")
                 print("")
             else:
-                log.info(f"Plan for profile {s_profile}:")
+                log.info(f"Plan for profile {safe_profile_id}:")
                 for folder in plan_entry["folders"]:
-                    f_name = sanitize_for_log(folder["name"])
-                    f_rules = folder["rules"]
-                    log.info(f"   - {f_name} ({f_rules:,} rules)")
+                    # Sanitize folder name and ensure rule count is an integer
+                    raw_name = folder.get("name", "Unknown")
+                    safe_name = sanitize_for_log(raw_name)
+                    rule_count = int(folder.get("rules", 0))
+                    log.info(f"   - {safe_name} ({rule_count:,} rules)")
 
             log.info("Dry-run complete: no API calls were made.")
             return True
