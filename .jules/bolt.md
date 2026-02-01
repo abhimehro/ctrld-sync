@@ -39,3 +39,7 @@
 ## 2026-01-27 - Redundant Validation for Cached Data
 **Learning:** Re-validating resource properties (like DNS/IP) when using *cached content* is pure overhead. If the content is served from memory (proven safe at fetch time), checking the *current* state of the source is disconnected from the data being used.
 **Action:** When using a multi-stage pipeline (Warmup -> Process), ensure validation state persists alongside the data cache. Avoid clearing validation caches between stages if the data cache is not also cleared.
+
+## 2026-01-27 - Pre-compile Regex in Hot Loops
+**Learning:** In data-heavy applications iterating over 100k+ strings (like rules), even cached regex calls (`re.match`) add up. Pre-compiling the regex constant (`re.compile`) saves significant CPU time (~2x faster per call) by bypassing the internal cache lookup.
+**Action:** Identify validation functions called in loops and lift regex compilation to module-level constants.
