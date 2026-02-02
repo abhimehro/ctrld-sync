@@ -510,3 +510,31 @@ def test_render_progress_bar(monkeypatch):
     # Color codes (accessing instance Colors or m.Colors)
     assert m.Colors.CYAN in combined
     assert m.Colors.ENDC in combined
+
+# Case 14: get_all_existing_rules shows progress bar when USE_COLORS is True
+def test_get_all_existing_rules_shows_progress_bar(monkeypatch):
+    m = reload_main_with_env(monkeypatch, no_color=None, isatty=True)
+    mock_client = MagicMock()
+    mock_stderr = MagicMock()
+    monkeypatch.setattr(sys, "stderr", mock_stderr)
+
+    # Mock list_existing_folders to return multiple folders
+    mock_list_folders = MagicMock(return_value={"FolderA": "id_A", "FolderB": "id_B"})
+    monkeypatch.setattr(m, "list_existing_folders", mock_list_folders)
+
+    # Mock _api_get
+    def side_effect(client, url):
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {"body": {"rules": []}}
+        return mock_resp
+    monkeypatch.setattr(m, "_api_get", side_effect)
+
+    m.get_all_existing_rules(mock_client, "profile_id")
+
+    # Check that progress bar was rendered
+    # We expect calls to stderr.write with "Fetching existing rules"
+    writes = [args[0] for args, _ in mock_stderr.write.call_args_list]
+    combined = "".join(writes)
+
+    assert "Fetching existing rules" in combined
+    assert "🔍" in combined
