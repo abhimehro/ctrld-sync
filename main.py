@@ -145,6 +145,9 @@ log = logging.getLogger("control-d-sync")
 API_BASE = "https://api.controld.com/profiles"
 USER_AGENT = "Control-D-Sync/0.1.0"
 
+# Pre-compile regex for performance
+RULE_PATTERN = re.compile(r"^[a-zA-Z0-9.\-_:*\/]+$")
+
 
 def sanitize_for_log(text: Any) -> str:
     """Sanitize text for logging, ensuring TOKEN is redacted and control chars are escaped."""
@@ -427,7 +430,8 @@ def is_valid_rule(rule: str) -> bool:
 
     # Strict whitelist to prevent injection
     # ^[a-zA-Z0-9.\-_:*\/]+$
-    if not re.match(r"^[a-zA-Z0-9.\-_:*\/]+$", rule):
+    # Optimization: Use pre-compiled regex to save compilation overhead
+    if not RULE_PATTERN.match(rule):
         return False
 
     return True
