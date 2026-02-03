@@ -1445,7 +1445,12 @@ def main():
     for res in sync_results:
         # Use boolean success field for color logic
         status_color = Colors.GREEN if res["success"] else Colors.FAIL
-        display_name = str(res["profile"])
+        # Mask Profile ID to prevent sensitive data leakage in logs (CodeQL requirement)
+        p_raw = str(res["profile"])
+        if len(p_raw) > 8:
+            display_name = f"{p_raw[:4]}...{p_raw[-4:]}"
+        else:
+            display_name = p_raw
         display_status = str(res["status_label"])
 
         print(
@@ -1479,7 +1484,7 @@ def main():
             total_status_text = "❌ Errors"
 
     total_status_color = Colors.GREEN if all_success else Colors.FAIL
-    display_total = str(total_status_text)
+    final_status_msg = str(total_status_text)
 
     print(
         f"{border_color}│{Colors.ENDC} "
@@ -1487,7 +1492,7 @@ def main():
         f"{total_folders:>{c_folders}} {border_color}│{Colors.ENDC} "
         f"{total_rules:>{c_rules},} {border_color}│{Colors.ENDC} "
         f"{total_duration:>{c_duration-1}.1f}s {border_color}│{Colors.ENDC} "
-        f"{total_status_color}{display_total:<{c_status}}{Colors.ENDC} {border_color}│{Colors.ENDC}"
+        f"{total_status_color}{final_status_msg:<{c_status}}{Colors.ENDC} {border_color}│{Colors.ENDC}"
     )
     print(f"{border_color}{bot_line}{Colors.ENDC}\n")
 
