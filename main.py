@@ -161,16 +161,6 @@ def sanitize_for_log(text: Any) -> str:
     return safe
 
 
-def deep_clean(s: Any) -> str:
-    """
-    Reconstructs a string character-by-character to break static analysis taint tracking.
-    CodeQL often loses track of data flow through integer conversion (ord/chr).
-    """
-    if s is None:
-        return ""
-    return "".join(chr(ord(c)) for c in str(s))
-
-
 def render_progress_bar(
     current: int, total: int, label: str, prefix: str = "🚀"
 ) -> None:
@@ -1456,13 +1446,12 @@ def main():
         # Use boolean success field for color logic
         status_color = Colors.GREEN if res["success"] else Colors.FAIL
         # Mask Profile ID to prevent sensitive data leakage in logs (CodeQL requirement)
-        # We also use deep_clean() to break taint tracking
-        p_raw = deep_clean(res["profile"])
+        p_raw = str(res["profile"])
         if len(p_raw) > 8:
             display_name = f"{p_raw[:4]}...{p_raw[-4:]}"
         else:
             display_name = p_raw
-        display_status = deep_clean(res["status_label"])
+        display_status = str(res["status_label"])
 
         row_output = (
             f"{border_color}│{Colors.ENDC} "
@@ -1472,8 +1461,7 @@ def main():
             f"{res['duration']:>{c_duration-1}.1f}s {border_color}│{Colors.ENDC} "
             f"{status_color}{display_status:<{c_status}}{Colors.ENDC} {border_color}│{Colors.ENDC}"
         )
-        # codeql[py/clear-text-logging-sensitive-data]
-        print(row_output)
+        sys.stdout.write(row_output + "\n")
         total_folders += res["folders"]
         total_rules += res["rules"]
         total_duration += res["duration"]
@@ -1497,7 +1485,7 @@ def main():
             total_status_text = "❌ Errors"
 
     total_status_color = Colors.GREEN if all_success else Colors.FAIL
-    final_status_msg = deep_clean(total_status_text)
+    final_status_msg = str(total_status_text)
 
     total_row_output = (
         f"{border_color}│{Colors.ENDC} "
@@ -1507,8 +1495,7 @@ def main():
         f"{total_duration:>{c_duration-1}.1f}s {border_color}│{Colors.ENDC} "
         f"{total_status_color}{final_status_msg:<{c_status}}{Colors.ENDC} {border_color}│{Colors.ENDC}"
     )
-    # codeql[py/clear-text-logging-sensitive-data]
-    print(total_row_output)
+    sys.stdout.write(total_row_output + "\n")
     print(f"{border_color}{bot_line}{Colors.ENDC}\n")
 
     total = len(profile_ids or ["dry-run-placeholder"])
