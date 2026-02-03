@@ -56,6 +56,7 @@ class Colors:
         ENDC = "\033[0m"
         BOLD = "\033[1m"
         UNDERLINE = "\033[4m"
+        GREY = "\033[90m"
     else:
         HEADER = ""
         BLUE = ""
@@ -66,6 +67,7 @@ class Colors:
         ENDC = ""
         BOLD = ""
         UNDERLINE = ""
+        GREY = ""
 
 
 class ColoredFormatter(logging.Formatter):
@@ -1379,25 +1381,61 @@ def main():
     max_profile_len = max((len(r["profile"]) for r in sync_results), default=25)
     profile_col_width = max(25, max_profile_len)
 
-    # Calculate total width for the table
-    # Profile ID + " | " + Folders + " | " + Rules + " | " + Duration + " | " + Status
-    # Widths: profile_col_width + 3 + 10 + 3 + 10 + 3 + 10 + 3 + 15 = profile_col_width + 57
-    table_width = profile_col_width + 57
+    # Table configuration
+    # Columns: Profile(w), Folders(10), Rules(10), Duration(10), Status(15)
+    c_profile = profile_col_width
+    c_folders = 10
+    c_rules = 10
+    c_duration = 10
+    c_status = 15
 
     title_text = "DRY RUN SUMMARY" if args.dry_run else "SYNC SUMMARY"
     title_color = Colors.CYAN if args.dry_run else Colors.HEADER
+    border_color = Colors.GREY
 
-    print("\n" + "=" * table_width)
-    print(f"{title_color}{title_text:^{table_width}}{Colors.ENDC}")
-    print("=" * table_width)
+    # Horizontal lines components
+    h_profile = "─" * (c_profile + 2)  # +2 for padding spaces
+    h_folders = "─" * (c_folders + 2)
+    h_rules = "─" * (c_rules + 2)
+    h_duration = "─" * (c_duration + 2)
+    h_status = "─" * (c_status + 2)
+
+    mid_line = f"├{h_profile}┼{h_folders}┼{h_rules}┼{h_duration}┼{h_status}┤"
+    bot_line = f"└{h_profile}┴{h_folders}┴{h_rules}┴{h_duration}┴{h_status}┘"
+
+    # Total length of the inner content for title centering
+    total_len = (
+        (c_profile + 2)
+        + 1
+        + (c_folders + 2)
+        + 1
+        + (c_rules + 2)
+        + 1
+        + (c_duration + 2)
+        + 1
+        + (c_status + 2)
+    )
+
+    print("\n" + f"{border_color}┌{'─' * total_len}┐{Colors.ENDC}")
+    print(
+        f"{border_color}│{Colors.ENDC}{title_color}{title_text:^{total_len}}{Colors.ENDC}{border_color}│{Colors.ENDC}"
+    )
+    print(
+        f"{border_color}├{'─' * (c_profile+2)}┬{'─' * (c_folders+2)}┬{'─' * (c_rules+2)}┬{'─' * (c_duration+2)}┬{'─' * (c_status+2)}┤{Colors.ENDC}"
+    )
 
     # Header
     print(
-        f"{Colors.BOLD}"
-        f"{'Profile ID':<{profile_col_width}} | {'Folders':>10} | {'Rules':>10} | {'Duration':>10} | {'Status':<15}"
-        f"{Colors.ENDC}"
+        f"{border_color}│{Colors.ENDC} "
+        f"{Colors.BOLD}{'Profile ID':<{c_profile}}{Colors.ENDC} {border_color}│{Colors.ENDC} "
+        f"{Colors.BOLD}{'Folders':>{c_folders}}{Colors.ENDC} {border_color}│{Colors.ENDC} "
+        f"{Colors.BOLD}{'Rules':>{c_rules}}{Colors.ENDC} {border_color}│{Colors.ENDC} "
+        f"{Colors.BOLD}{'Duration':>{c_duration}}{Colors.ENDC} {border_color}│{Colors.ENDC} "
+        f"{Colors.BOLD}{'Status':<{c_status}}{Colors.ENDC} {border_color}│{Colors.ENDC}"
     )
-    print("-" * table_width)
+
+    # Separator (Header bottom)
+    print(f"{border_color}{mid_line}{Colors.ENDC}")
 
     # Rows
     total_folders = 0
@@ -1409,17 +1447,19 @@ def main():
         status_color = Colors.GREEN if res["success"] else Colors.FAIL
 
         print(
-            f"{res['profile']:<{profile_col_width}} | "
-            f"{res['folders']:>10} | "
-            f"{res['rules']:>10,} | "
-            f"{res['duration']:>9.1f}s | "
-            f"{status_color}{res['status_label']:<15}{Colors.ENDC}"
+            f"{border_color}│{Colors.ENDC} "
+            f"{res['profile']:<{c_profile}} {border_color}│{Colors.ENDC} "
+            f"{res['folders']:>{c_folders}} {border_color}│{Colors.ENDC} "
+            f"{res['rules']:>{c_rules},} {border_color}│{Colors.ENDC} "
+            f"{res['duration']:>{c_duration-1}.1f}s {border_color}│{Colors.ENDC} "
+            f"{status_color}{res['status_label']:<{c_status}}{Colors.ENDC} {border_color}│{Colors.ENDC}"
         )
         total_folders += res["folders"]
         total_rules += res["rules"]
         total_duration += res["duration"]
 
-    print("-" * table_width)
+    # Footer Separator
+    print(f"{border_color}{mid_line}{Colors.ENDC}")
 
     # Total Row
     total = len(profile_ids or ["dry-run-placeholder"])
@@ -1439,14 +1479,14 @@ def main():
     total_status_color = Colors.GREEN if all_success else Colors.FAIL
 
     print(
-        f"{Colors.BOLD}"
-        f"{'TOTAL':<{profile_col_width}} | "
-        f"{total_folders:>10} | "
-        f"{total_rules:>10,} | "
-        f"{total_duration:>9.1f}s | "
-        f"{total_status_color}{total_status_text:<15}{Colors.ENDC}"
+        f"{border_color}│{Colors.ENDC} "
+        f"{Colors.BOLD}{'TOTAL':<{c_profile}}{Colors.ENDC} {border_color}│{Colors.ENDC} "
+        f"{total_folders:>{c_folders}} {border_color}│{Colors.ENDC} "
+        f"{total_rules:>{c_rules},} {border_color}│{Colors.ENDC} "
+        f"{total_duration:>{c_duration-1}.1f}s {border_color}│{Colors.ENDC} "
+        f"{total_status_color}{total_status_text:<{c_status}}{Colors.ENDC} {border_color}│{Colors.ENDC}"
     )
-    print("=" * table_width + "\n")
+    print(f"{border_color}{bot_line}{Colors.ENDC}\n")
 
     total = len(profile_ids or ["dry-run-placeholder"])
     log.info(f"All profiles processed: {success_count}/{total} successful")
