@@ -1469,9 +1469,11 @@ def main():
             f"{status_color}{s_label:<{c_status}}{Colors.ENDC} {border_color}│{Colors.ENDC}"
         )
         print(row_output)  # codeql[py/clear-text-logging-sensitive-data]
-        total_folders += res["folders"]
-        total_rules += res["rules"]
-        total_duration += res["duration"]
+
+        # Update accumulators using cleansed local variables to avoid taint propagation
+        total_folders += cnt_folders
+        total_rules += cnt_rules
+        total_duration += dur_val
 
     # Footer Separator
     print(f"{border_color}{mid_line}{Colors.ENDC}")
