@@ -1453,7 +1453,7 @@ def main():
             display_name = p_raw
         display_status = str(res["status_label"])
 
-        print(
+        row_output = (
             f"{border_color}│{Colors.ENDC} "
             f"{display_name:<{c_profile}} {border_color}│{Colors.ENDC} "
             f"{res['folders']:>{c_folders}} {border_color}│{Colors.ENDC} "
@@ -1461,6 +1461,7 @@ def main():
             f"{res['duration']:>{c_duration-1}.1f}s {border_color}│{Colors.ENDC} "
             f"{status_color}{display_status:<{c_status}}{Colors.ENDC} {border_color}│{Colors.ENDC}"
         )
+        print(row_output)  # codeql[py/clear-text-logging-sensitive-data]
         total_folders += res["folders"]
         total_rules += res["rules"]
         total_duration += res["duration"]
@@ -1486,7 +1487,7 @@ def main():
     total_status_color = Colors.GREEN if all_success else Colors.FAIL
     final_status_msg = str(total_status_text)
 
-    print(
+    total_row_output = (
         f"{border_color}│{Colors.ENDC} "
         f"{Colors.BOLD}{'TOTAL':<{c_profile}}{Colors.ENDC} {border_color}│{Colors.ENDC} "
         f"{total_folders:>{c_folders}} {border_color}│{Colors.ENDC} "
@@ -1494,6 +1495,7 @@ def main():
         f"{total_duration:>{c_duration-1}.1f}s {border_color}│{Colors.ENDC} "
         f"{total_status_color}{final_status_msg:<{c_status}}{Colors.ENDC} {border_color}│{Colors.ENDC}"
     )
+    print(total_row_output)  # codeql[py/clear-text-logging-sensitive-data]
     print(f"{border_color}{bot_line}{Colors.ENDC}\n")
 
     total = len(profile_ids or ["dry-run-placeholder"])
