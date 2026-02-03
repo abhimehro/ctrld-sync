@@ -1445,8 +1445,8 @@ def main():
     for res in sync_results:
         # Use boolean success field for color logic
         status_color = Colors.GREEN if res["success"] else Colors.FAIL
-        display_name = str(sanitize_for_log(res["profile"]))
-        display_status = str(sanitize_for_log(res["status_label"]))
+        display_name = str(res["profile"])
+        display_status = str(res["status_label"])
 
         print(
             f"{border_color}│{Colors.ENDC} "
@@ -1479,7 +1479,7 @@ def main():
             total_status_text = "❌ Errors"
 
     total_status_color = Colors.GREEN if all_success else Colors.FAIL
-    display_total = str(sanitize_for_log(total_status_text))
+    display_total = str(total_status_text)
 
     print(
         f"{border_color}│{Colors.ENDC} "
