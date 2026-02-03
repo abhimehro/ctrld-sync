@@ -1448,11 +1448,11 @@ def main():
 
         print(
             f"{border_color}│{Colors.ENDC} "
-            f"{res['profile']:<{c_profile}} {border_color}│{Colors.ENDC} "
+            f"{sanitize_for_log(res['profile']):<{c_profile}} {border_color}│{Colors.ENDC} "
             f"{res['folders']:>{c_folders}} {border_color}│{Colors.ENDC} "
             f"{res['rules']:>{c_rules},} {border_color}│{Colors.ENDC} "
             f"{res['duration']:>{c_duration-1}.1f}s {border_color}│{Colors.ENDC} "
-            f"{status_color}{res['status_label']:<{c_status}}{Colors.ENDC} {border_color}│{Colors.ENDC}"
+            f"{status_color}{sanitize_for_log(res['status_label']):<{c_status}}{Colors.ENDC} {border_color}│{Colors.ENDC}"
         )
         total_folders += res["folders"]
         total_rules += res["rules"]
@@ -1484,7 +1484,7 @@ def main():
         f"{total_folders:>{c_folders}} {border_color}│{Colors.ENDC} "
         f"{total_rules:>{c_rules},} {border_color}│{Colors.ENDC} "
         f"{total_duration:>{c_duration-1}.1f}s {border_color}│{Colors.ENDC} "
-        f"{total_status_color}{total_status_text:<{c_status}}{Colors.ENDC} {border_color}│{Colors.ENDC}"
+        f"{total_status_color}{sanitize_for_log(total_status_text):<{c_status}}{Colors.ENDC} {border_color}│{Colors.ENDC}"
     )
     print(f"{border_color}{bot_line}{Colors.ENDC}\n")
 
