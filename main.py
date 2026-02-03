@@ -149,8 +149,21 @@ USER_AGENT = "Control-D-Sync/0.1.0"
 def sanitize_for_log(text: Any) -> str:
     """Sanitize text for logging, ensuring TOKEN is redacted and control chars are escaped."""
     s = str(text)
+
+    # 1. Redact common sensitive query parameters in URLs (Defense in Depth)
+    # Matches ?param=value or &param=value
+    # Stops at &, whitespace, or quotes
+    s = re.sub(
+        r"([?&](?:token|key|secret|password|auth|access_token|api_key)=)([^&\s\"']+)",
+        r"\1[REDACTED]",
+        s,
+        flags=re.IGNORECASE,
+    )
+
+    # 2. Redact the specific global TOKEN if known
     if TOKEN and TOKEN in s:
         s = s.replace(TOKEN, "[REDACTED]")
+
     # repr() safely escapes control characters (e.g., \n -> \\n, \x1b -> \\x1b)
     # This prevents log injection and terminal hijacking.
     safe = repr(s)
