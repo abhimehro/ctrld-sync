@@ -1438,7 +1438,7 @@ def main():
     # Header
     print(
         f"{border_color}│{Colors.ENDC} "
-        f"{Colors.BOLD}{'Profile ID':<{c_profile}}{Colors.ENDC} {border_color}│{Colors.ENDC} "
+        f"{Colors.BOLD}{'Profile #':<{c_profile}}{Colors.ENDC} {border_color}│{Colors.ENDC} "
         f"{Colors.BOLD}{'Folders':>{c_folders}}{Colors.ENDC} {border_color}│{Colors.ENDC} "
         f"{Colors.BOLD}{'Rules':>{c_rules}}{Colors.ENDC} {border_color}│{Colors.ENDC} "
         f"{Colors.BOLD}{'Duration':>{c_duration}}{Colors.ENDC} {border_color}│{Colors.ENDC} "
@@ -1453,16 +1453,12 @@ def main():
     total_rules = 0
     total_duration = 0.0
 
-    for res in sync_results:
+    for i, res in enumerate(sync_results, 1):
         # Use boolean success field for color logic
         status_color = Colors.GREEN if res["success"] else Colors.FAIL
-        # Mask Profile ID to prevent sensitive data leakage in logs (CodeQL requirement)
-        # Use sanitize_id to ensure we are only printing safe chars (breaks taint)
-        p_raw = sanitize_id(res["profile"])
-        if len(p_raw) > 8:
-            display_name = f"{p_raw[:4]}...{p_raw[-4:]}"
-        else:
-            display_name = p_raw
+
+        # Do not print Profile ID (tainted by CodeQL). Use index instead.
+        display_name = f"Profile {i}"
 
         # Sanitize status just in case
         display_status = sanitize_id(res["status_label"].replace(" ", "_"))
