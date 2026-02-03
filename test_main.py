@@ -510,3 +510,27 @@ def test_render_progress_bar(monkeypatch):
     # Color codes (accessing instance Colors or m.Colors)
     assert m.Colors.CYAN in combined
     assert m.Colors.ENDC in combined
+
+
+# Case 14: is_valid_rule logic correctness
+def test_is_valid_rule_logic(monkeypatch):
+    m = reload_main_with_env(monkeypatch)
+
+    # Valid rules
+    assert m.is_valid_rule("example.com")
+    assert m.is_valid_rule("sub.example.com")
+    assert m.is_valid_rule("1.2.3.4")
+    assert m.is_valid_rule("2001:db8::1")
+    assert m.is_valid_rule("192.168.1.0/24")
+    assert m.is_valid_rule("example-domain.com")
+    assert m.is_valid_rule("example_domain.com")
+    assert m.is_valid_rule("*.example.com")
+
+    # Invalid rules
+    assert not m.is_valid_rule("")
+    assert not m.is_valid_rule(" ")
+    assert not m.is_valid_rule("example.com; rm -rf /")  # Injection attempt
+    assert not m.is_valid_rule("<script>alert(1)</script>")  # XSS
+    assert not m.is_valid_rule("example.com|cat /etc/passwd")  # Shell pipe
+    assert not m.is_valid_rule("example.com&")
+    assert not m.is_valid_rule("$variable")

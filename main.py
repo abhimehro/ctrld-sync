@@ -312,6 +312,10 @@ _gh = httpx.Client(
 )
 MAX_RESPONSE_SIZE = 10 * 1024 * 1024  # 10 MB limit for external resources
 
+# Pre-compiled regex for rule validation (Performance Optimization)
+# Compiling this once avoids overhead in loops processing thousands of rules.
+RULE_PATTERN = re.compile(r"^[a-zA-Z0-9.\-_:*\/]+$")
+
 # --------------------------------------------------------------------------- #
 # 3. Helpers
 # --------------------------------------------------------------------------- #
@@ -426,8 +430,7 @@ def is_valid_rule(rule: str) -> bool:
         return False
 
     # Strict whitelist to prevent injection
-    # ^[a-zA-Z0-9.\-_:*\/]+$
-    if not re.match(r"^[a-zA-Z0-9.\-_:*\/]+$", rule):
+    if not RULE_PATTERN.match(rule):
         return False
 
     return True
