@@ -1445,16 +1445,16 @@ def main():
     for res in sync_results:
         # Use boolean success field for color logic
         status_color = Colors.GREEN if res["success"] else Colors.FAIL
-        safe_profile = sanitize_for_log(res["profile"])
-        safe_status = sanitize_for_log(res["status_label"])
+        display_name = str(sanitize_for_log(res["profile"]))
+        display_status = str(sanitize_for_log(res["status_label"]))
 
         print(
             f"{border_color}│{Colors.ENDC} "
-            f"{safe_profile:<{c_profile}} {border_color}│{Colors.ENDC} "
+            f"{display_name:<{c_profile}} {border_color}│{Colors.ENDC} "
             f"{res['folders']:>{c_folders}} {border_color}│{Colors.ENDC} "
             f"{res['rules']:>{c_rules},} {border_color}│{Colors.ENDC} "
             f"{res['duration']:>{c_duration-1}.1f}s {border_color}│{Colors.ENDC} "
-            f"{status_color}{safe_status:<{c_status}}{Colors.ENDC} {border_color}│{Colors.ENDC}"
+            f"{status_color}{display_status:<{c_status}}{Colors.ENDC} {border_color}│{Colors.ENDC}"
         )
         total_folders += res["folders"]
         total_rules += res["rules"]
@@ -1479,7 +1479,7 @@ def main():
             total_status_text = "❌ Errors"
 
     total_status_color = Colors.GREEN if all_success else Colors.FAIL
-    safe_total_status = sanitize_for_log(total_status_text)
+    display_total = str(sanitize_for_log(total_status_text))
 
     print(
         f"{border_color}│{Colors.ENDC} "
@@ -1487,7 +1487,7 @@ def main():
         f"{total_folders:>{c_folders}} {border_color}│{Colors.ENDC} "
         f"{total_rules:>{c_rules},} {border_color}│{Colors.ENDC} "
         f"{total_duration:>{c_duration-1}.1f}s {border_color}│{Colors.ENDC} "
-        f"{total_status_color}{safe_total_status:<{c_status}}{Colors.ENDC} {border_color}│{Colors.ENDC}"
+        f"{total_status_color}{display_total:<{c_status}}{Colors.ENDC} {border_color}│{Colors.ENDC}"
     )
     print(f"{border_color}{bot_line}{Colors.ENDC}\n")
 
