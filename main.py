@@ -1129,6 +1129,30 @@ def sync_profile(
             plan_accumulator.append(plan_entry)
 
         if dry_run:
+            log.info("Dry-run Plan:")
+            for entry in plan_entry["folders"]:
+                # Determine action label
+                if "rule_groups" in entry:
+                    action_str = f"Multi-Action ({len(entry['rule_groups'])} groups)"
+                else:
+                    act_val = entry.get("action")
+                    # Handle missing 'do' field (None) as default Allow (0) for display
+                    if act_val is None:
+                        act_val = 0
+
+                    if act_val == 0:
+                        action_str = "Allow"
+                    elif act_val == 1:
+                        action_str = "Block"
+                    elif act_val == 2:
+                        action_str = "Bypass"
+                    else:
+                        action_str = f"Action={act_val}"
+
+                log.info(
+                    f"  - {entry['name']}: {entry['rules']} rules ({action_str})"
+                )
+
             log.info("Dry-run complete: no API calls were made.")
             return True
 
