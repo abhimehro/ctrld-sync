@@ -1150,7 +1150,7 @@ def sync_profile(
                         action_str = f"Action={act_val}"
 
                 log.info(
-                    f"  - {entry['name']}: {entry['rules']} rules ({action_str})"
+                    f"  - {sanitize_for_log(entry['name'])}: {entry['rules']} rules ({action_str})"
                 )
 
             log.info("Dry-run complete: no API calls were made.")
