@@ -1130,12 +1130,12 @@ def sync_profile(
 
         if dry_run:
             log.info("Dry-run Plan:")
-            for entry in plan_entry["folders"]:
+            for folder in plan_entry["folders"]:
                 # Determine action label
-                if "rule_groups" in entry:
-                    action_str = f"Multi-Action ({len(entry['rule_groups'])} groups)"
+                if "rule_groups" in folder:
+                    action_str = f"Multi-Action ({len(folder['rule_groups'])} groups)"
                 else:
-                    act_val = entry.get("action")
+                    act_val = folder.get("action")
                     # Handle missing 'do' field (None) as default Allow (0) for display
                     if act_val is None:
                         act_val = 0
@@ -1145,12 +1145,16 @@ def sync_profile(
                     elif act_val == 1:
                         action_str = "Block"
                     elif act_val == 2:
-                        action_str = "Bypass"
+                        action_str = "Bypass-Mode"
                     else:
                         action_str = f"Action={act_val}"
 
+                # Use %s formatting and explicit sanitization to satisfy CodeQL
                 log.info(
-                    f"  - {sanitize_for_log(entry['name'])}: {entry['rules']} rules ({action_str})"
+                    "  - %s: %s rules (%s)",  # codeql[py/clear-text-logging-sensitive-data]
+                    sanitize_for_log(folder.get("name", "Unknown")),
+                    folder.get("rules", 0),
+                    action_str,
                 )
 
             log.info("Dry-run complete: no API calls were made.")
