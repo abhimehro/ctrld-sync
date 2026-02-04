@@ -145,6 +145,12 @@ log = logging.getLogger("control-d-sync")
 API_BASE = "https://api.controld.com/profiles"
 USER_AGENT = "Control-D-Sync/0.1.0"
 
+# Pre-compiled Regex Patterns for Performance
+RULE_PATTERN = re.compile(r"^[a-zA-Z0-9.\-_:*\/]+$")
+PROFILE_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
+PROFILE_URL_PATTERN = re.compile(r"controld\.com/dashboard/profiles/([^/?#\s]+)")
+DANGEROUS_FOLDER_CHARS = set("<>\"'`")
+
 
 def sanitize_for_log(text: Any) -> str:
     """Sanitize text for logging, ensuring TOKEN is redacted and control chars are escaped."""
@@ -391,14 +397,14 @@ def extract_profile_id(text: str) -> str:
     text = text.strip()
     # Pattern for Control D Dashboard URLs
     # e.g. https://controld.com/dashboard/profiles/12345abc/filters
-    match = re.search(r"controld\.com/dashboard/profiles/([^/?#\s]+)", text)
+    match = PROFILE_URL_PATTERN.search(text)
     if match:
         return match.group(1)
     return text
 
 
 def is_valid_profile_id_format(profile_id: str) -> bool:
-    if not re.match(r"^[a-zA-Z0-9_-]+$", profile_id):
+    if not PROFILE_ID_PATTERN.match(profile_id):
         return False
     if len(profile_id) > 64:
         return False
@@ -408,7 +414,7 @@ def is_valid_profile_id_format(profile_id: str) -> bool:
 def validate_profile_id(profile_id: str, log_errors: bool = True) -> bool:
     if not is_valid_profile_id_format(profile_id):
         if log_errors:
-            if not re.match(r"^[a-zA-Z0-9_-]+$", profile_id):
+            if not PROFILE_ID_PATTERN.match(profile_id):
                 log.error("Invalid profile ID format (contains unsafe characters)")
             elif len(profile_id) > 64:
                 log.error("Invalid profile ID length (max 64 chars)")
@@ -427,7 +433,7 @@ def is_valid_rule(rule: str) -> bool:
 
     # Strict whitelist to prevent injection
     # ^[a-zA-Z0-9.\-_:*\/]+$
-    if not re.match(r"^[a-zA-Z0-9.\-_:*\/]+$", rule):
+    if not RULE_PATTERN.match(rule):
         return False
 
     return True
@@ -443,8 +449,7 @@ def is_valid_folder_name(name: str) -> bool:
 
     # Block XSS and HTML injection characters
     # Allow: ( ) [ ] { } for folder names (e.g. "Work (Private)")
-    dangerous_chars = set("<>\"'`")
-    if any(c in dangerous_chars for c in name):
+    if any(c in DANGEROUS_FOLDER_CHARS for c in name):
         return False
 
     return True
