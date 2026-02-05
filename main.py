@@ -1036,6 +1036,55 @@ def _process_single_folder(
 # --------------------------------------------------------------------------- #
 # 4. Main workflow
 # --------------------------------------------------------------------------- #
+def delete_existing_folders_parallel(
+    client: httpx.Client,
+    profile_id: str,
+    folder_data_list: List[Dict[str, Any]],
+    existing_folders: Dict[str, str],
+) -> bool:
+    """
+    Identifies and deletes existing folders that match the new folder list.
+    Deletes in parallel to save time.
+    Updates existing_folders in-place by removing deleted folders.
+    Returns True if any deletion occurred.
+    """
+    folders_to_delete = []
+    seen_deletions = set()
+
+    # Identify folders to delete
+    for folder_data in folder_data_list:
+        name = folder_data["group"]["group"].strip()
+        if name in existing_folders and name not in seen_deletions:
+            folders_to_delete.append((name, existing_folders[name]))
+            seen_deletions.add(name)
+
+    if not folders_to_delete:
+        return False
+
+    if not USE_COLORS:
+        log.info(f"Deleting {len(folders_to_delete)} folders in parallel...")
+
+    deletion_occurred = False
+    # Using 5 workers to be safe with rate limits for write operations
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        future_to_name = {
+            executor.submit(delete_folder, client, profile_id, name, fid): name
+            for name, fid in folders_to_delete
+        }
+
+        for future in concurrent.futures.as_completed(future_to_name):
+            name = future_to_name[future]
+            try:
+                if future.result():
+                    if name in existing_folders:
+                        del existing_folders[name]
+                    deletion_occurred = True
+            except Exception as e:
+                log.error(f"Failed to delete folder {sanitize_for_log(name)}: {e}")
+
+    return deletion_occurred
+
+
 def sync_profile(
     profile_id: str,
     folder_urls: Sequence[str],
@@ -1148,17 +1197,9 @@ def sync_profile(
 
             existing_folders = list_existing_folders(client, profile_id)
             if not no_delete:
-                deletion_occurred = False
-                for folder_data in folder_data_list:
-                    name = folder_data["group"]["group"].strip()
-                    if name in existing_folders:
-                        # Optimization: Maintain local state of folders to avoid re-fetching
-                        # delete_folder returns True on success
-                        if delete_folder(
-                            client, profile_id, name, existing_folders[name]
-                        ):
-                            del existing_folders[name]
-                            deletion_occurred = True
+                deletion_occurred = delete_existing_folders_parallel(
+                    client, profile_id, folder_data_list, existing_folders
+                )
 
                 # CRITICAL FIX: Increased wait time for massive folders to clear
                 if deletion_occurred:
