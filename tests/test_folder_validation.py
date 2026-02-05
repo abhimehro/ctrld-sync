@@ -39,5 +39,21 @@ def test_folder_name_security():
         empty_data = {"group": {"group": "   "}}
         assert main.validate_folder_data(empty_data, "http://empty.com") is False
 
+        # Case 6: Path Separators
+        slash_data = {"group": {"group": "Folder/Name"}}
+        assert main.validate_folder_data(slash_data, "http://slash.com") is False
+
+        backslash_data = {"group": {"group": "Folder\\Name"}}
+        assert main.validate_folder_data(backslash_data, "http://backslash.com") is False
+
+        # Case 7: Bidi Control Characters (RTLO)
+        # \u202e is Right-To-Left Override
+        rtlo_data = {"group": {"group": "SafeName\u202eexe.pdf"}}
+        assert main.validate_folder_data(rtlo_data, "http://rtlo.com") is False
+
+        # Case 8: Other Bidi Char
+        lre_data = {"group": {"group": "Name\u202a"}}
+        assert main.validate_folder_data(lre_data, "http://lre.com") is False
+
     finally:
         main.log = original_log

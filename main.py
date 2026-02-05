@@ -444,7 +444,26 @@ def is_valid_folder_name(name: str) -> bool:
     # Block XSS and HTML injection characters
     # Allow: ( ) [ ] { } for folder names (e.g. "Work (Private)")
     dangerous_chars = set("<>\"'`")
-    if any(c in dangerous_chars for c in name):
+
+    # Block path separators to prevent confusion
+    dangerous_chars.update(["/", "\\"])
+
+    # Block Bidi control characters to prevent RTLO spoofing
+    # \u202a (LRE), \u202b (RLE), \u202c (PDF), \u202d (LRO), \u202e (RLO)
+    # \u2066 (LRI), \u2067 (RLI), \u2068 (FSI), \u2069 (PDI)
+    bidi_chars = {
+        "\u202a",
+        "\u202b",
+        "\u202c",
+        "\u202d",
+        "\u202e",
+        "\u2066",
+        "\u2067",
+        "\u2068",
+        "\u2069",
+    }
+
+    if any(c in dangerous_chars or c in bidi_chars for c in name):
         return False
 
     return True
