@@ -14,6 +14,7 @@ Nothing fancy, just works.
 """
 
 import argparse
+import atexit
 import concurrent.futures
 import getpass
 import ipaddress
@@ -56,6 +57,8 @@ class Colors:
         ENDC = "\033[0m"
         BOLD = "\033[1m"
         UNDERLINE = "\033[4m"
+        CURSOR_HIDE = "\033[?25l"
+        CURSOR_SHOW = "\033[?25h"
     else:
         HEADER = ""
         BLUE = ""
@@ -66,6 +69,8 @@ class Colors:
         ENDC = ""
         BOLD = ""
         UNDERLINE = ""
+        CURSOR_HIDE = ""
+        CURSOR_SHOW = ""
 
 
 class ColoredFormatter(logging.Formatter):
@@ -100,6 +105,16 @@ handler = logging.StreamHandler()
 handler.setFormatter(ColoredFormatter())
 logging.basicConfig(level=logging.INFO, handlers=[handler])
 logging.getLogger("httpx").setLevel(logging.WARNING)
+
+
+def restore_cursor():
+    """Ensure cursor is visible when the script exits."""
+    if USE_COLORS:
+        sys.stderr.write(Colors.CURSOR_SHOW)
+        sys.stderr.flush()
+
+
+atexit.register(restore_cursor)
 
 
 def check_env_permissions(env_path: str = ".env") -> None:
@@ -159,25 +174,6 @@ def sanitize_for_log(text: Any) -> str:
     return safe
 
 
-def render_progress_bar(
-    current: int, total: int, label: str, prefix: str = "🚀"
-) -> None:
-    if not USE_COLORS or total == 0:
-        return
-
-    width = 20
-    progress = min(1.0, current / total)
-    filled = int(width * progress)
-    bar = "█" * filled + "░" * (width - filled)
-    percent = int(progress * 100)
-
-    # Use \033[K to clear line residue
-    sys.stderr.write(
-        f"\r\033[K{Colors.CYAN}{prefix} {label}: [{bar}] {percent}% ({current}/{total}){Colors.ENDC}"
-    )
-    sys.stderr.flush()
-
-
 def countdown_timer(seconds: int, message: str = "Waiting") -> None:
     """Shows a countdown timer if strictly in a TTY, otherwise just sleeps."""
     if not USE_COLORS:
@@ -190,7 +186,7 @@ def countdown_timer(seconds: int, message: str = "Waiting") -> None:
         filled = int(width * progress)
         bar = "█" * filled + "░" * (width - filled)
         sys.stderr.write(
-            f"\r{Colors.CYAN}⏳ {message}: [{bar}] {remaining}s...{Colors.ENDC}"
+            f"\r{Colors.CURSOR_HIDE}{Colors.CYAN}⏳ {message}: [{bar}] {remaining}s...{Colors.ENDC}"
         )
         sys.stderr.flush()
         time.sleep(1)
@@ -206,7 +202,7 @@ def render_progress_bar(
     if not USE_COLORS or total == 0:
         return
 
-    width = 15
+    width = 30
     progress = min(1.0, current / total)
     filled = int(width * progress)
     bar = "█" * filled + "░" * (width - filled)
@@ -214,7 +210,7 @@ def render_progress_bar(
 
     # Use \033[K to clear line residue
     sys.stderr.write(
-        f"\r\033[K{Colors.CYAN}{prefix} {label}: [{bar}] {percent}% ({current}/{total}){Colors.ENDC}"
+        f"\r{Colors.CURSOR_HIDE}\033[K{Colors.CYAN}{prefix} {label}: [{bar}] {percent}% ({current}/{total}){Colors.ENDC}"
     )
     sys.stderr.flush()
 
