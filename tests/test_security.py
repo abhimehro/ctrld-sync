@@ -100,8 +100,8 @@ def test_push_rules_filters_xss_payloads():
 @pytest.mark.skipif(
     os.name == "nt", reason="Unix permissions not applicable on Windows"
 )
-def test_env_permission_check_warns_on_insecure_permissions(monkeypatch, tmp_path):
-    """Test that insecure .env permissions trigger a warning."""
+def test_env_permission_check_fixes_insecure_permissions(monkeypatch, tmp_path):
+    """Test that insecure .env permissions are automatically fixed."""
     # Import main to get access to check_env_permissions and Colors
     import main
 
@@ -110,19 +110,21 @@ def test_env_permission_check_warns_on_insecure_permissions(monkeypatch, tmp_pat
     env_file.write_text("TOKEN=test")
     os.chmod(env_file, 0o644)
 
-    # Mock sys.stderr to capture warnings
+    # Mock sys.stderr to capture output
     mock_stderr = MagicMock()
     monkeypatch.setattr(sys, "stderr", mock_stderr)
 
     # Run the permission check logic
     main.check_env_permissions(str(env_file))
 
-    # Verify warning was written
+    # Verify it fixed the file
+    assert stat.S_IMODE(os.stat(env_file).st_mode) == 0o600
+
+    # Verify success message was written
     mock_stderr.write.assert_called()
     call_args = mock_stderr.write.call_args[0][0]
-    assert "Security Warning" in call_args
-    assert "readable by others" in call_args
-    assert "644" in call_args
+    assert "Fixed .env permissions" in call_args
+    assert "set to 600" in call_args
 
 
 @pytest.mark.skipif(

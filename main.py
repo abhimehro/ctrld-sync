@@ -120,7 +120,18 @@ def check_env_permissions(env_path: str = ".env") -> None:
                 "Please secure your .env file so it is only readable by " "the owner."
             )
             if os.name != "nt":
+                try:
+                    # Auto-fix permissions on Unix-like systems
+                    os.chmod(env_path, stat.S_IRUSR | stat.S_IWUSR)
+                    sys.stderr.write(
+                        f"{Colors.GREEN}🔒 Security: Fixed .env permissions (set to 600).{Colors.ENDC}\n"
+                    )
+                    return
+                except Exception as e:
+                    platform_hint += f" (Auto-fix failed: {e})"
+            else:
                 platform_hint += " For example: 'chmod 600 .env'."
+
             perms = format(stat.S_IMODE(file_stat.st_mode), "03o")
             sys.stderr.write(
                 f"{Colors.WARNING}⚠️  Security Warning: .env file is "
