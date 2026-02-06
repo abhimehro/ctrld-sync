@@ -30,8 +30,16 @@ from functools import lru_cache
 from typing import Any, Callable, Dict, List, Optional, Sequence, Set
 from urllib.parse import urlparse
 
-import httpx
-from dotenv import load_dotenv
+try:
+    import httpx
+    from dotenv import load_dotenv
+except ImportError:
+    # Use raw ANSI codes for simple, dependency-free coloring
+    sys.stderr.write("\033[91m❌ Error: Missing dependencies.\033[0m\n")
+    sys.stderr.write("Please run:\n")
+    sys.stderr.write("  \033[1muv sync\033[0m\n")
+    sys.exit(1)
+
 
 # --------------------------------------------------------------------------- #
 # 0. Bootstrap – load secrets and configure logging
