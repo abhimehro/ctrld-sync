@@ -289,6 +289,10 @@ RETRY_DELAY = 1
 FOLDER_CREATION_DELAY = 5  # <--- CHANGED: Increased from 2 to 5 for patience
 MAX_RESPONSE_SIZE = 10 * 1024 * 1024  # 10MB limit
 
+# Regex patterns (compiled for performance)
+PROFILE_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
+RULE_PATTERN = re.compile(r"^[a-zA-Z0-9.\-_:*\/]+$")
+
 
 # --------------------------------------------------------------------------- #
 # 2. Clients
@@ -398,7 +402,7 @@ def extract_profile_id(text: str) -> str:
 
 
 def is_valid_profile_id_format(profile_id: str) -> bool:
-    if not re.match(r"^[a-zA-Z0-9_-]+$", profile_id):
+    if not PROFILE_ID_PATTERN.match(profile_id):
         return False
     if len(profile_id) > 64:
         return False
@@ -408,7 +412,7 @@ def is_valid_profile_id_format(profile_id: str) -> bool:
 def validate_profile_id(profile_id: str, log_errors: bool = True) -> bool:
     if not is_valid_profile_id_format(profile_id):
         if log_errors:
-            if not re.match(r"^[a-zA-Z0-9_-]+$", profile_id):
+            if not PROFILE_ID_PATTERN.match(profile_id):
                 log.error("Invalid profile ID format (contains unsafe characters)")
             elif len(profile_id) > 64:
                 log.error("Invalid profile ID length (max 64 chars)")
@@ -427,7 +431,7 @@ def is_valid_rule(rule: str) -> bool:
 
     # Strict whitelist to prevent injection
     # ^[a-zA-Z0-9.\-_:*\/]+$
-    if not re.match(r"^[a-zA-Z0-9.\-_:*\/]+$", rule):
+    if not RULE_PATTERN.match(rule):
         return False
 
     return True
@@ -583,44 +587,6 @@ def _gh_get(url: str) -> Dict:
         return _cache[url]
 
 
-def check_api_access(client: httpx.Client, profile_id: str) -> bool:
-    """
-    Verifies API access and Profile existence before starting heavy work.
-    Returns True if access is good, False otherwise (with helpful logs).
-    """
-    url = f"{API_BASE}/{profile_id}/groups"
-    try:
-        # We use a raw request here to avoid the automatic retries of _retry_request
-        # for auth errors, which are permanent.
-        resp = client.get(url)
-        resp.raise_for_status()
-        return True
-    except httpx.HTTPStatusError as e:
-        code = e.response.status_code
-        if code == 401:
-            log.critical(
-                f"{Colors.FAIL}❌ Authentication Failed: The API Token is invalid.{Colors.ENDC}"
-            )
-            log.critical(
-                f"{Colors.FAIL}   Please check your token at: https://controld.com/account/manage-account{Colors.ENDC}"
-            )
-        elif code == 403:
-            log.critical(
-                f"{Colors.FAIL}🚫 Access Denied: Token lacks permission for Profile {profile_id}.{Colors.ENDC}"
-            )
-        elif code == 404:
-            log.critical(
-                f"{Colors.FAIL}🔍 Profile Not Found: The ID '{profile_id}' does not exist.{Colors.ENDC}"
-            )
-            log.critical(
-                f"{Colors.FAIL}   Please verify the Profile ID from your Control D Dashboard URL.{Colors.ENDC}"
-            )
-        else:
-            log.error(f"API Access Check Failed ({code}): {e}")
-        return False
-    except httpx.RequestError as e:
-        log.error(f"Network Error during access check: {e}")
-        return False
 
 
 def list_existing_folders(client: httpx.Client, profile_id: str) -> Dict[str, str]:
@@ -635,6 +601,79 @@ def list_existing_folders(client: httpx.Client, profile_id: str) -> Dict[str, st
     except (httpx.HTTPError, KeyError) as e:
         log.error(f"Failed to list existing folders: {sanitize_for_log(e)}")
         return {}
+
+
+def verify_access_and_get_folders(
+    client: httpx.Client, profile_id: str
+) -> Optional[Dict[str, str]]:
+    """
+    Combines access check and fetching existing folders into a single request.
+    Returns:
+        Dict of {folder_name: folder_id} if successful.
+        None if access is denied or request fails after retries.
+    """
+    url = f"{API_BASE}/{profile_id}/groups"
+
+    for attempt in range(MAX_RETRIES):
+        try:
+            # Don't use _api_get because we need custom error handling for 4xx
+            resp = client.get(url)
+            resp.raise_for_status()
+
+            # Success! Parse and return
+            try:
+                data = resp.json()
+                folders = data.get("body", {}).get("groups", [])
+                return {
+                    f["group"].strip(): f["PK"]
+                    for f in folders
+                    if f.get("group") and f.get("PK")
+                }
+            except (KeyError, ValueError) as e:
+                log.error(f"Failed to parse folders data: {e}")
+                return None
+
+        except httpx.HTTPStatusError as e:
+            code = e.response.status_code
+            if code in (401, 403, 404):
+                if code == 401:
+                    log.critical(
+                        f"{Colors.FAIL}❌ Authentication Failed: The API Token is invalid.{Colors.ENDC}"
+                    )
+                    log.critical(
+                        f"{Colors.FAIL}   Please check your token at: https://controld.com/account/manage-account{Colors.ENDC}"
+                    )
+                elif code == 403:
+                    log.critical(
+                        f"{Colors.FAIL}🚫 Access Denied: Token lacks permission for Profile {profile_id}.{Colors.ENDC}"
+                    )
+                elif code == 404:
+                    log.critical(
+                        f"{Colors.FAIL}🔍 Profile Not Found: The ID '{profile_id}' does not exist.{Colors.ENDC}"
+                    )
+                    log.critical(
+                        f"{Colors.FAIL}   Please verify the Profile ID from your Control D Dashboard URL.{Colors.ENDC}"
+                    )
+                return None
+
+            # For 5xx errors, retry
+            if attempt == MAX_RETRIES - 1:
+                log.error(f"API Request Failed ({code}): {e}")
+                return None
+
+        except httpx.RequestError as e:
+            if attempt == MAX_RETRIES - 1:
+                log.error(f"Network Error: {e}")
+                return None
+
+        # Wait before retry (exponential backoff)
+        wait_time = RETRY_DELAY * (2**attempt)
+        log.warning(
+            f"Request failed (attempt {attempt + 1}/{MAX_RETRIES}). Retrying in {wait_time}s..."
+        )
+        time.sleep(wait_time)
+
+    return None
 
 
 def get_all_existing_rules(
@@ -1142,11 +1181,12 @@ def sync_profile(
         # Initial client for getting existing state AND processing folders
         # Optimization: Reuse the same client session to keep TCP connections alive
         with _api_client() as client:
-            # Check for API access problems first (401/403/404)
-            if not check_api_access(client, profile_id):
+            # Check for API access problems first (401/403/404) AND get existing folders in one go
+            existing_folders = verify_access_and_get_folders(client, profile_id)
+            if existing_folders is None:
+                # Access check failed (logged already)
                 return False
 
-            existing_folders = list_existing_folders(client, profile_id)
             if not no_delete:
                 deletion_occurred = False
                 for folder_data in folder_data_list:
