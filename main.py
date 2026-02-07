@@ -645,11 +645,11 @@ def verify_access_and_get_folders(
                     )
                 elif code == 403:
                     log.critical(
-                        f"{Colors.FAIL}🚫 Access Denied: Token lacks permission for Profile {profile_id}.{Colors.ENDC}"
+                        f"{Colors.FAIL}🚫 Access Denied: Token lacks permission for Profile {sanitize_for_log(profile_id)}.{Colors.ENDC}"
                     )
                 elif code == 404:
                     log.critical(
-                        f"{Colors.FAIL}🔍 Profile Not Found: The ID '{profile_id}' does not exist.{Colors.ENDC}"
+                        f"{Colors.FAIL}🔍 Profile Not Found: The ID '{sanitize_for_log(profile_id)}' does not exist.{Colors.ENDC}"
                     )
                     log.critical(
                         f"{Colors.FAIL}   Please verify the Profile ID from your Control D Dashboard URL.{Colors.ENDC}"
@@ -658,12 +658,12 @@ def verify_access_and_get_folders(
 
             # For 5xx errors, retry
             if attempt == MAX_RETRIES - 1:
-                log.error(f"API Request Failed ({code}): {e}")
+                log.error(f"API Request Failed ({code}): {sanitize_for_log(e)}")
                 return None
 
         except httpx.RequestError as e:
             if attempt == MAX_RETRIES - 1:
-                log.error(f"Network Error: {e}")
+                log.error(f"Network Error: {sanitize_for_log(e)}")
                 return None
 
         # Wait before retry (exponential backoff)
