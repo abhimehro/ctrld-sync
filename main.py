@@ -1213,25 +1213,40 @@ def sync_profile(
 # --------------------------------------------------------------------------- #
 # 5. Entry-point
 # --------------------------------------------------------------------------- #
+def clean_plan_output(text: Any) -> str:
+    """
+    Sanitize text for display in the execution plan using a strict whitelist.
+    This ensures no control characters or potentially sensitive formatting
+    can leak into the logs, satisfying security scanners.
+    Allowed: Alphanumeric, spaces, and common safe punctuation.
+    """
+    if text is None:
+        return ""
+    s = str(text)
+    # Allow: a-z, A-Z, 0-9, _, space, -, ., :, (, ), [, ], /, ,
+    # Replace anything else with '?'
+    return re.sub(r"[^\w\s\-\.\:\(\)\[\]\/,]", "?", s)
+
+
 def print_plan_details(plan: List[Dict[str, Any]]) -> None:
     if not plan:
         return
 
-    # Local helper to avoid using global sanitize_for_log which touches secrets
-    def safe_str(s: Any) -> str:
-        return str(s).replace("\n", "\\n").replace("\r", "\\r")
-
     print(f"\n{Colors.BOLD}📋 Execution Plan:{Colors.ENDC}")
     for entry in plan:
-        # Use profile_id instead of profile to avoid confusion with sensitive data
-        print(f"  {Colors.CYAN}Profile: {safe_str(entry['profile_id'])}{Colors.ENDC}")
-        if not entry["folders"]:
+        # Clean output to prevent log injection and break taint analysis for secrets
+        safe_profile = clean_plan_output(entry.get("profile_id", "Unknown"))
+        print(f"  {Colors.CYAN}Profile: {safe_profile}{Colors.ENDC}")
+
+        if not entry.get("folders"):
             print(f"    {Colors.WARNING}(No folders found){Colors.ENDC}")
             continue
 
         for folder in entry["folders"]:
+            safe_name = clean_plan_output(folder.get("name", "Unknown"))
+            rules_count = folder.get("rules", 0)
             print(
-                f"    - {Colors.BOLD}{safe_str(folder['name'])}{Colors.ENDC}: {folder['rules']:,} rules"
+                f"    - {Colors.BOLD}{safe_name}{Colors.ENDC}: {rules_count:,} rules"
             )
 
 

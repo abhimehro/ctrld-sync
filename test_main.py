@@ -540,3 +540,19 @@ def test_print_plan_details(capsys, monkeypatch):
     assert "2,000 rules" in stdout
     assert "Profile: p2" in stdout
     assert "(No folders found)" in stdout
+
+
+# Case 15: clean_plan_output sanitizes correctly
+def test_clean_plan_output(monkeypatch):
+    m = reload_main_with_env(monkeypatch)
+
+    # Allowed characters
+    assert m.clean_plan_output("abc-123_DEF .:/,") == "abc-123_DEF .:/,"
+    # Disallowed characters replaced by ?
+    assert m.clean_plan_output("bad<chars>!") == "bad?chars??"
+    # Newlines replaced
+    assert m.clean_plan_output("line1\nline2") == "line1\nline2"
+    # None handling
+    assert m.clean_plan_output(None) == ""
+    # Integers handled
+    assert m.clean_plan_output(123) == "123"
