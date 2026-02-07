@@ -518,13 +518,13 @@ def test_print_plan_details(capsys, monkeypatch):
 
     plan = [
         {
-            "profile": "p1",
+            "profile_id": "p1",
             "folders": [
                 {"name": "Folder 1", "rules": 10},
                 {"name": "Folder 2", "rules": 2000},
             ],
         },
-        {"profile": "p2", "folders": []},
+        {"profile_id": "p2", "folders": []},
     ]
 
     m.print_plan_details(plan)

@@ -1087,7 +1087,7 @@ def sync_profile(
             return False
 
         # Build plan entries
-        plan_entry = {"profile": profile_id, "folders": []}
+        plan_entry = {"profile_id": profile_id, "folders": []}
         for folder_data in folder_data_list:
             grp = folder_data["group"]
             name = grp["group"].strip()
@@ -1217,16 +1217,21 @@ def print_plan_details(plan: List[Dict[str, Any]]) -> None:
     if not plan:
         return
 
+    # Local helper to avoid using global sanitize_for_log which touches secrets
+    def safe_str(s: Any) -> str:
+        return str(s).replace("\n", "\\n").replace("\r", "\\r")
+
     print(f"\n{Colors.BOLD}📋 Execution Plan:{Colors.ENDC}")
     for entry in plan:
-        print(f"  {Colors.CYAN}Profile: {entry['profile']}{Colors.ENDC}")
+        # Use profile_id instead of profile to avoid confusion with sensitive data
+        print(f"  {Colors.CYAN}Profile: {safe_str(entry['profile_id'])}{Colors.ENDC}")
         if not entry["folders"]:
             print(f"    {Colors.WARNING}(No folders found){Colors.ENDC}")
             continue
 
         for folder in entry["folders"]:
             print(
-                f"    - {Colors.BOLD}{folder['name']}{Colors.ENDC}: {folder['rules']:,} rules"
+                f"    - {Colors.BOLD}{safe_str(folder['name'])}{Colors.ENDC}: {folder['rules']:,} rules"
             )
 
 
@@ -1345,7 +1350,7 @@ def main():
                 success_count += 1
 
             # RESTORED STATS LOGIC: Calculate actual counts from the plan
-            entry = next((p for p in plan if p["profile"] == profile_id), None)
+            entry = next((p for p in plan if p["profile_id"] == profile_id), None)
             folder_count = len(entry["folders"]) if entry else 0
             rule_count = sum(f["rules"] for f in entry["folders"]) if entry else 0
 
@@ -1371,7 +1376,7 @@ def main():
         )
 
         # Try to recover stats for the interrupted profile
-        entry = next((p for p in plan if p["profile"] == profile_id), None)
+        entry = next((p for p in plan if p["profile_id"] == profile_id), None)
         folder_count = len(entry["folders"]) if entry else 0
         rule_count = sum(f["rules"] for f in entry["folders"]) if entry else 0
 
