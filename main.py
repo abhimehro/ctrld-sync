@@ -340,6 +340,12 @@ def validate_folder_url(url: str) -> bool:
         if not hostname:
             return False
 
+        if parsed.username or parsed.password:
+            log.warning(
+                f"Skipping unsafe URL (credentials detected): {sanitize_for_log(url)}"
+            )
+            return False
+
         # Check for potentially malicious hostnames
         if hostname.lower() in ("localhost", "127.0.0.1", "::1"):
             log.warning(
@@ -1370,9 +1376,14 @@ def main():
         )
 
     if args.plan_json:
-        with open(args.plan_json, "w", encoding="utf-8") as f:
-            json.dump(plan, f, indent=2)
-        log.info("Plan written to %s", args.plan_json)
+        try:
+            # Securely create file with 600 permissions
+            fd = os.open(args.plan_json, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                json.dump(plan, f, indent=2)
+            log.info("Plan written to %s", args.plan_json)
+        except OSError as e:
+            log.error(f"Failed to write plan to {args.plan_json}: {e}")
 
     # Print Summary Table
     # Determine the width for the Profile ID column (min 25)

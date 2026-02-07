@@ -1,5 +1,6 @@
 import importlib
 import os
+import stat
 import sys
 from unittest.mock import MagicMock, call, patch
 
@@ -510,3 +511,80 @@ def test_render_progress_bar(monkeypatch):
     # Color codes (accessing instance Colors or m.Colors)
     assert m.Colors.CYAN in combined
     assert m.Colors.ENDC in combined
+
+
+# Case 14: validate_folder_url rejects URLs with credentials
+def test_validate_folder_url_rejects_credentials(monkeypatch):
+    m = reload_main_with_env(monkeypatch)
+    mock_log = MagicMock()
+    monkeypatch.setattr(m, "log", mock_log)
+
+    # Use a mock for socket.getaddrinfo so we don't hit network or fail DNS
+    # But validate_folder_url logic for credentials happens BEFORE DNS.
+    # So we don't strictly need to mock DNS if it returns early.
+    # However, if it falls through (fails logic), it hits DNS.
+    # To be safe and isolated, mock getaddrinfo.
+    with patch("socket.getaddrinfo") as mock_dns:
+        mock_dns.return_value = [(2, 1, 6, "", ("1.1.1.1", 443))]
+        # URL with credentials
+        url = "https://user:pass@example.com/list.json"
+        assert m.validate_folder_url(url) is False
+        assert mock_log.warning.called
+        # Check that warning message contains "credentials detected"
+        # call_args is (args, kwargs)
+        args, _ = mock_log.warning.call_args
+        assert "credentials detected" in args[0]
+
+
+# Case 15: plan.json is created with secure permissions
+def test_plan_json_secure_permissions(monkeypatch, tmp_path, capsys):
+    # Prepare environment
+    monkeypatch.setenv("TOKEN", "dummy")
+    m = reload_main_with_env(monkeypatch)
+
+    # Mock args
+    plan_file = tmp_path / "plan.json"
+    mock_args = MagicMock()
+    mock_args.plan_json = str(plan_file)
+    mock_args.dry_run = True
+    mock_args.profiles = "p1"
+    # Empty folder_url to avoid fetch logic
+    mock_args.folder_url = []
+    mock_args.no_delete = False
+
+    monkeypatch.setattr(m, "parse_args", lambda: mock_args)
+    m.TOKEN = "dummy"
+
+    # Mock warm_up_cache to avoid actual network
+    monkeypatch.setattr(m, "warm_up_cache", MagicMock())
+
+    # Mock sync_profile so it returns True and populates plan
+    def mock_sync(pid, urls, dry_run, no_delete, plan_accumulator=None):
+        if plan_accumulator is not None:
+            # Add a dummy plan entry
+            plan_accumulator.append({
+                "profile": pid,
+                "folders": [{"name": "F1", "rules": 10, "action": 0, "status": 1}]
+            })
+        return True
+
+    monkeypatch.setattr(m, "sync_profile", mock_sync)
+
+    # Run main, expect SystemExit(0) on success
+    with pytest.raises(SystemExit) as e:
+        m.main()
+    assert e.value.code == 0
+
+    # Verify file exists
+    assert plan_file.exists()
+
+    # Verify permissions on POSIX
+    if os.name != "nt":
+        mode = os.stat(plan_file).st_mode
+        # Check permissions are 600 (rw-------)
+        # S_IRWXG = 0o070 (group rwx)
+        # S_IRWXO = 0o007 (other rwx)
+        assert not (mode & stat.S_IRWXG), "Group should have no permissions"
+        assert not (mode & stat.S_IRWXO), "Others should have no permissions"
+        assert mode & stat.S_IRUSR, "Owner should have read"
+        assert mode & stat.S_IWUSR, "Owner should have write"
