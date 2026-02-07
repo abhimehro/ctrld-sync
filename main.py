@@ -1213,6 +1213,23 @@ def sync_profile(
 # --------------------------------------------------------------------------- #
 # 5. Entry-point
 # --------------------------------------------------------------------------- #
+def print_plan_details(plan: List[Dict[str, Any]]) -> None:
+    if not plan:
+        return
+
+    print(f"\n{Colors.BOLD}📋 Execution Plan:{Colors.ENDC}")
+    for entry in plan:
+        print(f"  {Colors.CYAN}Profile: {entry['profile']}{Colors.ENDC}")
+        if not entry["folders"]:
+            print(f"    {Colors.WARNING}(No folders found){Colors.ENDC}")
+            continue
+
+        for folder in entry["folders"]:
+            print(
+                f"    - {Colors.BOLD}{folder['name']}{Colors.ENDC}: {folder['rules']:,} rules"
+            )
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Control D folder sync")
     parser.add_argument(
@@ -1373,6 +1390,9 @@ def main():
         with open(args.plan_json, "w", encoding="utf-8") as f:
             json.dump(plan, f, indent=2)
         log.info("Plan written to %s", args.plan_json)
+
+    if args.dry_run:
+        print_plan_details(plan)
 
     # Print Summary Table
     # Determine the width for the Profile ID column (min 25)

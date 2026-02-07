@@ -510,3 +510,33 @@ def test_render_progress_bar(monkeypatch):
     # Color codes (accessing instance Colors or m.Colors)
     assert m.Colors.CYAN in combined
     assert m.Colors.ENDC in combined
+
+
+# Case 14: print_plan_details prints execution plan correctly
+def test_print_plan_details(capsys, monkeypatch):
+    m = reload_main_with_env(monkeypatch, no_color=None, isatty=True)
+
+    plan = [
+        {
+            "profile": "p1",
+            "folders": [
+                {"name": "Folder 1", "rules": 10},
+                {"name": "Folder 2", "rules": 2000},
+            ],
+        },
+        {"profile": "p2", "folders": []},
+    ]
+
+    m.print_plan_details(plan)
+
+    captured = capsys.readouterr()
+    stdout = captured.out
+
+    assert "📋 Execution Plan:" in stdout
+    assert "Profile: p1" in stdout
+    assert "Folder 1" in stdout
+    assert "10 rules" in stdout
+    assert "Folder 2" in stdout
+    assert "2,000 rules" in stdout
+    assert "Profile: p2" in stdout
+    assert "(No folders found)" in stdout
