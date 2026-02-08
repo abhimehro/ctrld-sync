@@ -163,7 +163,7 @@ def sanitize_for_log(text: Any) -> str:
 
 def print_plan_details(plan_entry: Dict[str, Any]) -> None:
     """Pretty prints the plan details."""
-    profile = plan_entry.get("profile", "unknown")
+    profile = sanitize_for_log(plan_entry.get("profile", "unknown"))
     folders = plan_entry.get("folders", [])
 
     if USE_COLORS:
@@ -182,7 +182,7 @@ def print_plan_details(plan_entry: Dict[str, Any]) -> None:
     sorted_folders = sorted(folders, key=lambda x: x["name"])
 
     for folder in sorted_folders:
-        name = folder["name"]
+        name = sanitize_for_log(folder["name"])
         rules = folder["rules"]
 
         if USE_COLORS:
