@@ -159,23 +159,37 @@ def sanitize_for_log(text: Any) -> str:
     return safe
 
 
-def render_progress_bar(
-    current: int, total: int, label: str, prefix: str = "🚀"
-) -> None:
-    if not USE_COLORS or total == 0:
+
+
+def print_plan_details(plan_entry: Dict[str, Any]) -> None:
+    """Pretty prints the plan details."""
+    profile = plan_entry.get("profile", "unknown")
+    folders = plan_entry.get("folders", [])
+
+    if USE_COLORS:
+        print(f"\n{Colors.HEADER}📝 Plan Details for {profile}:{Colors.ENDC}")
+    else:
+        print(f"\nPlan Details for {profile}:")
+
+    if not folders:
+        if USE_COLORS:
+            print(f"  {Colors.WARNING}No folders to sync.{Colors.ENDC}")
+        else:
+            print("  No folders to sync.")
         return
 
-    width = 20
-    progress = min(1.0, current / total)
-    filled = int(width * progress)
-    bar = "█" * filled + "░" * (width - filled)
-    percent = int(progress * 100)
+    # Sort folders by name for consistent output
+    sorted_folders = sorted(folders, key=lambda x: x["name"])
 
-    # Use \033[K to clear line residue
-    sys.stderr.write(
-        f"\r\033[K{Colors.CYAN}{prefix} {label}: [{bar}] {percent}% ({current}/{total}){Colors.ENDC}"
-    )
-    sys.stderr.flush()
+    for folder in sorted_folders:
+        name = folder["name"]
+        rules = folder["rules"]
+
+        if USE_COLORS:
+            print(f"  • {Colors.BOLD}{name}{Colors.ENDC}: {rules} rules")
+        else:
+            print(f"  - {name}: {rules} rules")
+    print("")
 
 
 def countdown_timer(seconds: int, message: str = "Waiting") -> None:
@@ -1129,6 +1143,7 @@ def sync_profile(
             plan_accumulator.append(plan_entry)
 
         if dry_run:
+            print_plan_details(plan_entry)
             log.info("Dry-run complete: no API calls were made.")
             return True
 
