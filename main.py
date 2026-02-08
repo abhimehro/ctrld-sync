@@ -191,9 +191,11 @@ def print_plan_details(plan_entry: Dict[str, Any]) -> None:
         rules_count = str(folder.get("rules", 0))
 
         if USE_COLORS:
-            print(f"  • {Colors.BOLD}{clean_name}{Colors.ENDC}: {rules_count} rules")  # codeql[py/clear-text-logging-sensitive-data]
+            # codeql[py/clear-text-logging-sensitive-data]
+            print(f"  • {Colors.BOLD}{clean_name}{Colors.ENDC}: {rules_count} rules")
         else:
-            print(f"  - {clean_name}: {rules_count} rules")  # codeql[py/clear-text-logging-sensitive-data]
+            # codeql[py/clear-text-logging-sensitive-data]
+            print(f"  - {clean_name}: {rules_count} rules")
     print("")
 
 
