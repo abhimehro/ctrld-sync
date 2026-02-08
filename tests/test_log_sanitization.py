@@ -67,5 +67,35 @@ class TestLogSanitization(unittest.TestCase):
         self.assertTrue(found_sanitized, "Should find sanitized name in logs")
         self.assertFalse(found_raw, "Should not find raw name in logs")
 
+    def test_sanitize_for_log_redacts_basic_auth(self):
+        """Test that sanitize_for_log redacts Basic Auth credentials in URLs."""
+        url = "https://user:password123@example.com/folder.json"
+        sanitized = main.sanitize_for_log(url)
+        self.assertNotIn("password123", sanitized)
+        self.assertIn("[REDACTED]", sanitized)
+
+    def test_sanitize_for_log_redacts_query_params(self):
+        """Test that sanitize_for_log redacts sensitive query parameters."""
+        url = "https://example.com/api?secret=mysecretkey"
+        sanitized = main.sanitize_for_log(url)
+        self.assertNotIn("mysecretkey", sanitized)
+        self.assertIn("secret=[REDACTED]", sanitized)
+
+    def test_sanitize_for_log_redacts_multiple_params(self):
+        """Test redaction of multiple sensitive params while preserving safe ones."""
+        url = "https://example.com/api?id=123&token=abc&name=user&api_key=def"
+        sanitized = main.sanitize_for_log(url)
+        self.assertIn("id=123", sanitized)
+        self.assertIn("name=user", sanitized)
+        self.assertIn("token=[REDACTED]", sanitized)
+        self.assertIn("api_key=[REDACTED]", sanitized)
+
+    def test_sanitize_for_log_case_insensitive(self):
+        """Test that query param redaction is case-insensitive."""
+        url = "https://example.com/api?TOKEN=mytoken"
+        sanitized = main.sanitize_for_log(url)
+        self.assertNotIn("mytoken", sanitized)
+        self.assertIn("[REDACTED]", sanitized)
+
 if __name__ == '__main__':
     unittest.main()
