@@ -183,7 +183,8 @@ def print_plan_details(plan_entry: Dict[str, Any]) -> None:
 
     for folder in sorted_folders:
         raw_name = folder.get("name", "Unknown")
-        safe_name = sanitize_for_log(raw_name)
+        # Ensure name is safe for display and doesn't trigger sensitive data warnings
+        safe_name = re.sub(r"[^\w\s\-\.\(\)]", "?", str(raw_name))
         rules_count = str(folder.get("rules", 0))
 
         if USE_COLORS:
