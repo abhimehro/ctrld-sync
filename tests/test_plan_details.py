@@ -9,8 +9,8 @@ def test_print_plan_details_no_colors(capsys):
         plan_entry = {
             "profile": "test_profile",
             "folders": [
-                {"name": "Folder A", "rules": 10},
-                {"name": "Folder B", "rules": 5},
+                {"label": "Folder A", "rules": 10},
+                {"label": "Folder B", "rules": 5},
             ]
         }
         main.print_plan_details(plan_entry)
@@ -25,12 +25,6 @@ def test_print_plan_details_no_colors(capsys):
 
 def test_print_plan_details_with_colors(capsys):
     """Test print_plan_details when USE_COLORS is True."""
-    # We need to ensure Colors has values. Since main.Colors is initialized based on environment,
-    # we might need to patch it or reload main with mocked environment.
-    # However, main.Colors values are constant strings if USE_COLORS was true during import,
-    # or empty strings if false.
-
-    # Let's mock Colors class to ensure it has color codes for this test
     class MockColors:
         HEADER = "<HEADER>"
         BOLD = "<BOLD>"
@@ -41,7 +35,7 @@ def test_print_plan_details_with_colors(capsys):
         plan_entry = {
             "profile": "test_profile",
             "folders": [
-                {"name": "Folder A", "rules": 10},
+                {"label": "Folder A", "rules": 10},
             ]
         }
         main.print_plan_details(plan_entry)
