@@ -149,6 +149,13 @@ USER_AGENT = "Control-D-Sync/0.1.0"
 PROFILE_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
 RULE_PATTERN = re.compile(r"^[a-zA-Z0-9.\-_:*\/]+$")
 
+# Pre-compiled patterns for log sanitization
+_BASIC_AUTH_PATTERN = re.compile(r"://[^/@]+@")
+_SENSITIVE_PARAM_PATTERN = re.compile(
+    r"([?&#])(token|key|secret|password|auth|access_token|api_key)=[^&#\s]*",
+    flags=re.IGNORECASE,
+)
+
 
 def sanitize_for_log(text: Any) -> str:
     """Sanitize text for logging.
@@ -164,16 +171,10 @@ def sanitize_for_log(text: Any) -> str:
         s = s.replace(TOKEN, "[REDACTED]")
 
     # Redact Basic Auth in URLs (e.g. https://user:pass@host)
-    s = re.sub(r"://[^/@]+@", "://[REDACTED]@", s)
+    s = _BASIC_AUTH_PATTERN.sub("://[REDACTED]@", s)
 
     # Redact sensitive query parameters (handles ?, &, and # separators)
-    sensitive_keys = r"token|key|secret|password|auth|access_token|api_key"
-    s = re.sub(
-        r"([?&#])(" + sensitive_keys + r")=[^&#\s]*",
-        r"\1\2=[REDACTED]",
-        s,
-        flags=re.IGNORECASE,
-    )
+    s = _SENSITIVE_PARAM_PATTERN.sub(r"\1\2=[REDACTED]", s)
 
     # repr() safely escapes control characters (e.g., \n -> \\n, \x1b -> \\x1b)
     # This prevents log injection and terminal hijacking.
