@@ -151,6 +151,19 @@ def sanitize_for_log(text: Any) -> str:
     s = str(text)
     if TOKEN and TOKEN in s:
         s = s.replace(TOKEN, "[REDACTED]")
+
+    # Redact Basic Auth in URLs (e.g. https://user:pass@host)
+    s = re.sub(r"://[^/@]+@", "://[REDACTED]@", s)
+
+    # Redact sensitive query parameters
+    sensitive_keys = r"token|key|secret|password|auth|access_token|api_key"
+    s = re.sub(
+        r"([?&])(" + sensitive_keys + r")=[^&\s]+",
+        r"\1\2=[REDACTED]",
+        s,
+        flags=re.IGNORECASE,
+    )
+
     # repr() safely escapes control characters (e.g., \n -> \\n, \x1b -> \\x1b)
     # This prevents log injection and terminal hijacking.
     safe = repr(s)

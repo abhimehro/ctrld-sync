@@ -67,5 +67,25 @@ class TestLogSanitization(unittest.TestCase):
         self.assertTrue(found_sanitized, "Should find sanitized name in logs")
         self.assertFalse(found_raw, "Should not find raw name in logs")
 
+    def test_sanitize_for_log_redacts_credentials(self):
+        """Test that sanitize_for_log redacts Basic Auth and sensitive query params."""
+        # Test Basic Auth
+        url_with_auth = "https://user:password123@example.com/folder.json"
+        sanitized = main.sanitize_for_log(url_with_auth)
+        self.assertNotIn("password123", sanitized)
+        self.assertIn("[REDACTED]", sanitized)
+
+        # Test Query Params
+        url_with_param = "https://example.com/folder.json?secret=mysecretkey"
+        sanitized_param = main.sanitize_for_log(url_with_param)
+        self.assertNotIn("mysecretkey", sanitized_param)
+        self.assertIn("[REDACTED]", sanitized_param)
+
+        # Test Case Insensitivity
+        url_with_token = "https://example.com/folder.json?TOKEN=mytoken"
+        sanitized_token = main.sanitize_for_log(url_with_token)
+        self.assertNotIn("mytoken", sanitized_token)
+        self.assertIn("[REDACTED]", sanitized_token)
+
 if __name__ == '__main__':
     unittest.main()
