@@ -182,13 +182,14 @@ def print_plan_details(plan_entry: Dict[str, Any]) -> None:
     sorted_folders = sorted(folders, key=lambda x: x["name"])
 
     for folder in sorted_folders:
-        name = sanitize_for_log(folder["name"])
-        rules = folder["rules"]
+        raw_name = folder.get("name", "Unknown")
+        safe_name = sanitize_for_log(raw_name)
+        rules_count = str(folder.get("rules", 0))
 
         if USE_COLORS:
-            print(f"  • {Colors.BOLD}{name}{Colors.ENDC}: {rules} rules")
+            print(f"  • {Colors.BOLD}{safe_name}{Colors.ENDC}: {rules_count} rules")
         else:
-            print(f"  - {name}: {rules} rules")
+            print(f"  - {safe_name}: {rules_count} rules")
     print("")
 
 
