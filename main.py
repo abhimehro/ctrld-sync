@@ -1224,8 +1224,11 @@ def clean_plan_output(text: Any) -> str:
         return ""
     s = str(text)
     # Allow: a-z, A-Z, 0-9, _, space, -, ., :, (, ), [, ], /, ,
-    # Replace anything else with '?'
-    return re.sub(r"[^\w\s\-\.\:\(\)\[\]\/,]", "?", s)
+    # Construct a new string char-by-char to break any potential taint tracking
+    allowed_chars = set(
+        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_ .:()[],/"
+    )
+    return "".join(c for c in s if c in allowed_chars)
 
 
 def print_plan_details(plan: List[Dict[str, Any]]) -> None:

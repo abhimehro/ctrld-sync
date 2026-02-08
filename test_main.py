@@ -548,10 +548,10 @@ def test_clean_plan_output(monkeypatch):
 
     # Allowed characters
     assert m.clean_plan_output("abc-123_DEF .:/,") == "abc-123_DEF .:/,"
-    # Disallowed characters replaced by ?
-    assert m.clean_plan_output("bad<chars>!") == "bad?chars??"
-    # Newlines replaced
-    assert m.clean_plan_output("line1\nline2") == "line1\nline2"
+    # Disallowed characters removed
+    assert m.clean_plan_output("bad<chars>!") == "badchars"
+    # Newlines removed
+    assert m.clean_plan_output("line1\nline2") == "line1line2"
     # None handling
     assert m.clean_plan_output(None) == ""
     # Integers handled
