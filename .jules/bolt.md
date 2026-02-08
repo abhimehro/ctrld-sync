@@ -39,3 +39,7 @@
 ## 2026-01-27 - Redundant Validation for Cached Data
 **Learning:** Re-validating resource properties (like DNS/IP) when using *cached content* is pure overhead. If the content is served from memory (proven safe at fetch time), checking the *current* state of the source is disconnected from the data being used.
 **Action:** When using a multi-stage pipeline (Warmup -> Process), ensure validation state persists alongside the data cache. Avoid clearing validation caches between stages if the data cache is not also cleared.
+
+## 2025-02-24 - [Regex Compilation for Repeated Validation]
+**Learning:** Pre-compiling regexes for functions called in tight loops (like `is_valid_rule` which runs on 10k+ items) yields a >2x performance improvement (0.0525s -> 0.0229s).
+**Action:** Always pre-compile regexes used in validation loops.

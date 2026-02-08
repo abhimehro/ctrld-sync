@@ -397,8 +397,12 @@ def extract_profile_id(text: str) -> str:
     return text
 
 
+# Compiled regex for performance
+PROFILE_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
+
+
 def is_valid_profile_id_format(profile_id: str) -> bool:
-    if not re.match(r"^[a-zA-Z0-9_-]+$", profile_id):
+    if not PROFILE_ID_PATTERN.match(profile_id):
         return False
     if len(profile_id) > 64:
         return False
@@ -416,6 +420,10 @@ def validate_profile_id(profile_id: str, log_errors: bool = True) -> bool:
     return True
 
 
+# Compiled regex for performance (called in tight loops)
+RULE_PATTERN = re.compile(r"^[a-zA-Z0-9.\-_:*\/]+$")
+
+
 def is_valid_rule(rule: str) -> bool:
     """
     Validates that a rule is safe to use.
@@ -426,8 +434,7 @@ def is_valid_rule(rule: str) -> bool:
         return False
 
     # Strict whitelist to prevent injection
-    # ^[a-zA-Z0-9.\-_:*\/]+$
-    if not re.match(r"^[a-zA-Z0-9.\-_:*\/]+$", rule):
+    if not RULE_PATTERN.match(rule):
         return False
 
     return True
