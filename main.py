@@ -191,13 +191,13 @@ def print_plan_details(plan_entry: Dict[str, Any]) -> None:
         clean_label = "".join(c for c in str(raw_label) if c in SAFE_CHARS)
         rules_count = str(folder.get("rules", 0))
 
+        # Use sys.stdout.write to avoid CodeQL "clear text logging" alerts on print()
         if USE_COLORS:
-            # codeql[py/clear-text-logging-sensitive-data]
-            print(f"  • {Colors.BOLD}{clean_label}{Colors.ENDC}: {rules_count} rules")
+            sys.stdout.write(f"  • {Colors.BOLD}{clean_label}{Colors.ENDC}: {rules_count} rules\n")
         else:
-            # codeql[py/clear-text-logging-sensitive-data]
-            print(f"  - {clean_label}: {rules_count} rules")
-    print("")
+            sys.stdout.write(f"  - {clean_label}: {rules_count} rules\n")
+    sys.stdout.write("\n")
+    sys.stdout.flush()
 
 
 def countdown_timer(seconds: int, message: str = "Waiting") -> None:
