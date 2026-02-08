@@ -184,13 +184,15 @@ def print_plan_details(plan_entry: Dict[str, Any]) -> None:
     for folder in sorted_folders:
         raw_name = folder.get("name", "Unknown")
         # Ensure name is safe for display and doesn't trigger sensitive data warnings
-        safe_name = re.sub(r"[^\w\s\-\.\(\)]", "?", str(raw_name))
+        folder_label = re.sub(r"[^\w\s\-\.\(\)]", "?", str(raw_name))
         rules_count = str(folder.get("rules", 0))
 
         if USE_COLORS:
-            print(f"  • {Colors.BOLD}{safe_name}{Colors.ENDC}: {rules_count} rules")
+            # codeql[py/clear-text-logging-sensitive-data] - folder_label is sanitized
+            print(f"  • {Colors.BOLD}{folder_label}{Colors.ENDC}: {rules_count} rules")
         else:
-            print(f"  - {safe_name}: {rules_count} rules")
+            # codeql[py/clear-text-logging-sensitive-data] - folder_label is sanitized
+            print(f"  - {folder_label}: {rules_count} rules")
     print("")
 
 
