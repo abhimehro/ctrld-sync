@@ -449,11 +449,15 @@ def validate_folder_url(url: str) -> bool:
                         )
                         return False
             except (socket.gaierror, ValueError, OSError) as e:
-                log.warning(f"Failed to resolve/validate domain {hostname}: {e}")
+                log.warning(
+                    f"Failed to resolve/validate domain {hostname}: {sanitize_for_log(e)}"
+                )
                 return False
 
     except Exception as e:
-        log.warning(f"Failed to validate URL {sanitize_for_log(url)}: {e}")
+        log.warning(
+            f"Failed to validate URL {sanitize_for_log(url)}: {sanitize_for_log(e)}"
+        )
         return False
 
     return True
@@ -697,10 +701,10 @@ def check_api_access(client: httpx.Client, profile_id: str) -> bool:
                 f"{Colors.FAIL}   Please verify the Profile ID from your Control D Dashboard URL.{Colors.ENDC}"
             )
         else:
-            log.error(f"API Access Check Failed ({code}): {e}")
+            log.error(f"API Access Check Failed ({code}): {sanitize_for_log(e)}")
         return False
     except httpx.RequestError as e:
-        log.error(f"Network Error during access check: {e}")
+        log.error(f"Network Error during access check: {sanitize_for_log(e)}")
         return False
 
 
@@ -852,7 +856,7 @@ def get_all_existing_rules(
         except Exception as e:
             # We log error but don't stop the whole process;
             # individual folder failure shouldn't crash the sync
-            log.warning(f"Error fetching rules for folder {folder_id}: {e}")
+            log.warning(f"Error fetching rules for folder {folder_id}: {sanitize_for_log(e)}")
             return []
 
     try:
@@ -888,7 +892,9 @@ def get_all_existing_rules(
                         all_rules.update(result)
                 except Exception as e:
                     folder_id = future_to_folder[future]
-                    log.warning(f"Failed to fetch rules for folder ID {folder_id}: {e}")
+                    log.warning(
+                        f"Failed to fetch rules for folder ID {folder_id}: {sanitize_for_log(e)}"
+                    )
 
         log.info(f"Total existing rules across all folders: {len(all_rules)}")
         return all_rules
@@ -1024,7 +1030,9 @@ def create_folder(
                         )
                         return str(grp["PK"])
             except Exception as e:
-                log.warning(f"Error fetching groups on attempt {attempt}: {e}")
+                log.warning(
+                    f"Error fetching groups on attempt {attempt}: {sanitize_for_log(e)}"
+                )
 
             if attempt < MAX_RETRIES:
                 wait_time = FOLDER_CREATION_DELAY * (attempt + 1)
