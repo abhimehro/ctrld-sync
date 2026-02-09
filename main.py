@@ -740,7 +740,7 @@ def verify_access_and_get_folders(
                 # Ensure we got the expected top-level JSON structure.
                 # We defensively validate types here so that unexpected but valid
                 # JSON (e.g., a list or a scalar) doesn't cause AttributeError/TypeError
-                # and crash the sync logic.
+                # and cause the operation to fail unexpectedly.
                 if not isinstance(data, dict):
                     log.error(
                         "Failed to parse folders data: expected JSON object at top level, "
@@ -773,15 +773,18 @@ def verify_access_and_get_folders(
                         continue
                     name = f.get("group")
                     pk = f.get("PK")
+                    # Skip entries with empty or None values for required fields
                     if not name or not pk:
                         continue
                     result[str(name).strip()] = str(pk)
 
                 return result
-            except (KeyError, ValueError, TypeError, AttributeError) as e:
+            except (ValueError, TypeError, AttributeError) as err:
                 # As a final safeguard, catch any remaining parsing/shape errors so
                 # that a malformed response cannot crash the caller.
-                log.error(f"Failed to parse folders data: {sanitize_for_log(e)}")
+                log.error(
+                    "Failed to parse folders data: %s", sanitize_for_log(err)
+                )
                 return None
 
         except httpx.HTTPStatusError as e:
