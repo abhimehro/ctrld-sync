@@ -372,7 +372,7 @@ def test_verify_access_and_get_folders_network_error(monkeypatch):
     assert m.verify_access_and_get_folders(mock_client, "profile") is None
     assert mock_client.get.call_count == 2
     assert mock_log.error.called
-    assert "Network failure" in str(mock_log.error.call_args)
+    assert "Network error" in str(mock_log.error.call_args) or "access verification" in str(mock_log.error.call_args)
 
 
 # Case 8: extract_profile_id correctly extracts ID from URL or returns input

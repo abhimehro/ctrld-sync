@@ -775,7 +775,9 @@ def verify_access_and_get_folders(
 
         except httpx.RequestError as e:
             if attempt == MAX_RETRIES - 1:
-                log.error(f"Network Error: {sanitize_for_log(e)}")
+                log.error(
+                    f"Network error during access verification: {sanitize_for_log(e)}"
+                )
                 return None
 
         wait_time = RETRY_DELAY * (2**attempt)
@@ -784,6 +786,7 @@ def verify_access_and_get_folders(
         )
         time.sleep(wait_time)
 
+    log.error("Access verification failed after all retries")
     return None
 
 
