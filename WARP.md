@@ -91,7 +91,8 @@ The entire tool lives in `main.py` and is structured into clear phases:
    - `sanitize_for_log()` – Redacts `TOKEN` values from any log messages.
 
 4. **Control D API helpers**
-   - `list_existing_folders()` – Returns a `{folder_name -> folder_id}` mapping for a profile.
+   - `verify_access_and_get_folders()` – Combines the API access check and fetching existing folders into a single request. Returns `{folder_name -> folder_id}` on success.
+   - `list_existing_folders()` – Helper that returns a `{folder_name -> folder_id}` mapping (used as fallback).
    - `get_all_existing_rules()` – Collects all existing rule PKs from both the root and each folder, using a `ThreadPoolExecutor` to parallelize per-folder fetches while accumulating into a shared `set` guarded by a lock.
    - `delete_folder()` – Deletes a folder by ID with error-logged failures.
    - `create_folder()` – Creates a folder and tries to read its ID directly from the response; if that fails, it polls `GET /groups` with increasing waits (using `FOLDER_CREATION_DELAY`) until the new folder appears.
@@ -111,7 +112,8 @@ The entire tool lives in `main.py` and is structured into clear phases:
      2. Builds a `plan_entry` summarizing folder names, rule counts, and per-action breakdown (for `rule_groups`), appending it to the shared `plan_accumulator`.
      3. If `dry_run=True`, stops here after logging a summary message.
      4. Otherwise, reuses a single `_api_client()` instance to:
-        - List and optionally delete existing folders with matching names (`--no-delete` skips this step).
+        - Verify access and list existing folders in one request (`verify_access_and_get_folders`).
+        - Optionally delete existing folders with matching names (`--no-delete` skips this step).
         - If any deletions occurred, waits ~60 seconds (`countdown_timer`) to let Control D fully process the removals.
         - Build the global `existing_rules` set.
         - Sequentially process each folder (executor with `max_workers=1` to avoid rate-limit and ordering issues), calling `_process_single_folder()` for each.
