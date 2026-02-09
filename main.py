@@ -1149,12 +1149,10 @@ def push_rules(
                 log.debug(f"Response content: {sanitize_for_log(e.response.text)}")
             return None
 
-    # Optimization 3: Batch processing with conditional parallelism
-    # Single batch: run synchronously to avoid thread pool overhead (common for small folders).
-    # Multiple batches: use up to 3 workers to speed up writes without hitting aggressive rate limits.
-    if total_batches == 1:
-        # Avoid thread pool overhead for single batch (very common for small folders)
-        result = process_batch(1, batches[0])
+    # Helper function to handle batch results and update progress
+    # This avoids code duplication between single-batch and multi-batch paths
+    def _handle_batch_result(result: Optional[List[str]]):
+        nonlocal successful_batches
         if result:
             successful_batches += 1
             existing_rules.update(result)
@@ -1163,6 +1161,14 @@ def push_rules(
             total_batches,
             f"Folder {sanitize_for_log(folder_name)}",
         )
+
+    # Optimization 3: Batch processing with conditional parallelism
+    # Single batch: run synchronously to avoid thread pool overhead (common for small folders).
+    # Multiple batches: use up to 3 workers to speed up writes without hitting aggressive rate limits.
+    if total_batches == 1:
+        # Avoid thread pool overhead for single batch (very common for small folders)
+        result = process_batch(1, batches[0])
+        _handle_batch_result(result)
     else:
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
             futures = {
@@ -1172,15 +1178,7 @@ def push_rules(
 
             for future in concurrent.futures.as_completed(futures):
                 result = future.result()
-                if result:
-                    successful_batches += 1
-                    existing_rules.update(result)
-
-                render_progress_bar(
-                    successful_batches,
-                    total_batches,
-                    f"Folder {sanitize_for_log(folder_name)}",
-                )
+                _handle_batch_result(result)
 
     if successful_batches == total_batches:
         if USE_COLORS:
