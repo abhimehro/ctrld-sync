@@ -171,7 +171,9 @@ class TestExceptionLogging(unittest.TestCase):
 
             # Action - this will try the direct ID extraction, fail, and log
             try:
-                main.create_folder(client, profile_id, folder_name)
+                # Pass placeholder MagicMock instances for additional required arguments.
+                # We only care about logging/redaction behavior, not the actual folder creation.
+                main.create_folder(client, profile_id, folder_name, MagicMock(), MagicMock())
             except Exception:
                 pass  # We expect this might fail, we're testing the logging
 
