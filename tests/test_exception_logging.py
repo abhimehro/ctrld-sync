@@ -182,12 +182,17 @@ class TestExceptionLogging(unittest.TestCase):
             debug_calls = mock_log.debug.call_args_list
 
             for call in debug_calls:
-                logged_message = str(call)
+                # Extract the logged message from the first positional arg
+                logged_message = str(call[0][0])
                 # The message should not contain raw exception data
-                # that might have tokens. Note: This is checking the
-                # general pattern. In real scenarios, the exception
-                # might contain URLs with tokens
-                pass  # Debug logging happened with sanitization
+                # that might have tokens. In this test, the mocked
+                # response includes "token=ABC123" in the data, so we
+                # verify that value is not leaked to the logs.
+                self.assertNotIn(
+                    "ABC123",
+                    logged_message,
+                    "Token value leaked in debug logs!"
+                )
 
     @patch('main.log')
     def test_retry_request_redacts_exception(self, mock_log):
