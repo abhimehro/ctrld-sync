@@ -740,7 +740,7 @@ def verify_access_and_get_folders(
                 # Ensure we got the expected top-level JSON structure.
                 # We defensively validate types here so that unexpected but valid
                 # JSON (e.g., a list or a scalar) doesn't cause AttributeError/TypeError
-                # and crash the sync logic.
+                # and cause the operation to fail unexpectedly.
                 if not isinstance(data, dict):
                     log.error(
                         "Failed to parse folders data: expected JSON object at top level, "
@@ -773,15 +773,18 @@ def verify_access_and_get_folders(
                         continue
                     name = f.get("group")
                     pk = f.get("PK")
+                    # Skip entries with empty or None values for required fields
                     if not name or not pk:
                         continue
                     result[str(name).strip()] = str(pk)
 
                 return result
-            except (KeyError, ValueError, TypeError, AttributeError) as e:
+            except (ValueError, TypeError, AttributeError) as err:
                 # As a final safeguard, catch any remaining parsing/shape errors so
                 # that a malformed response cannot crash the caller.
-                log.error(f"Failed to parse folders data: {sanitize_for_log(e)}")
+                log.error(
+                    "Failed to parse folders data: %s", sanitize_for_log(err)
+                )
                 return None
 
         except httpx.HTTPStatusError as e:
@@ -796,7 +799,11 @@ def verify_access_and_get_folders(
                     )
                 elif code == 403:
                     log.critical(
-                        f"{Colors.FAIL}🚫 Access Denied: Token lacks permission for Profile {sanitize_for_log(profile_id)}.{Colors.ENDC}"
+                        "%s🚫 Access Denied: Token lacks permission for "
+                        "Profile %s.%s",
+                        Colors.FAIL,
+                        sanitize_for_log(profile_id),
+                        Colors.ENDC,
                     )
                 elif code == 404:
                     log.critical(
@@ -811,22 +818,22 @@ def verify_access_and_get_folders(
                 log.error(f"API Request Failed ({code}): {sanitize_for_log(e)}")
                 return None
 
-        except httpx.RequestError as e:
+        except httpx.RequestError as err:
             if attempt == MAX_RETRIES - 1:
                 log.error(
-                    f"Network error during access verification: {sanitize_for_log(e)}"
+                    "Network error during access verification: %s",
+                    sanitize_for_log(err),
                 )
                 return None
 
         wait_time = RETRY_DELAY * (2**attempt)
         log.warning(
-            f"Request failed (attempt {attempt + 1}/{MAX_RETRIES}). Retrying in {wait_time}s..."
+            "Request failed (attempt %d/%d). Retrying in %ds...",
+            attempt + 1,
+            MAX_RETRIES,
+            wait_time,
         )
         time.sleep(wait_time)
-
-    log.error("Access verification failed after all retries")
-    return None
-
 
 def get_all_existing_rules(
     client: httpx.Client,

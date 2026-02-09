@@ -332,6 +332,7 @@ def test_verify_access_and_get_folders_404(monkeypatch):
 
 
 def test_verify_access_and_get_folders_500_retry(monkeypatch):
+    """Test that verify_access_and_get_folders retries on 500 errors."""
     m = reload_main_with_env(monkeypatch)
     mock_client = MagicMock()
 
@@ -356,6 +357,7 @@ def test_verify_access_and_get_folders_500_retry(monkeypatch):
 
 
 def test_verify_access_and_get_folders_network_error(monkeypatch):
+    """Test that verify_access_and_get_folders handles network errors."""
     m = reload_main_with_env(monkeypatch)
     mock_client = MagicMock()
 
@@ -372,7 +374,8 @@ def test_verify_access_and_get_folders_network_error(monkeypatch):
     assert m.verify_access_and_get_folders(mock_client, "profile") is None
     assert mock_client.get.call_count == 2
     assert mock_log.error.called
-    assert "Network error" in str(mock_log.error.call_args) or "access verification" in str(mock_log.error.call_args)
+    error_msg = str(mock_log.error.call_args)
+    assert "Network error" in error_msg or "access verification" in error_msg
 
 
 # Case 8: extract_profile_id correctly extracts ID from URL or returns input
