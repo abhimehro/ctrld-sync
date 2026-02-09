@@ -117,12 +117,13 @@ def test_env_permission_check_warns_on_insecure_permissions(monkeypatch, tmp_pat
     # Run the permission check logic
     main.check_env_permissions(str(env_file))
 
-    # Verify warning was written
+    # Verify auto-fix message was written
     mock_stderr.write.assert_called()
     call_args = mock_stderr.write.call_args[0][0]
-    assert "Security Warning" in call_args
-    assert "readable by others" in call_args
+    assert "Fixed" in call_args or "fixed" in call_args
+    assert "permissions" in call_args
     assert "644" in call_args
+    assert "600" in call_args
 
 
 @pytest.mark.skipif(
