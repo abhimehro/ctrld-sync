@@ -1,8 +1,5 @@
 import unittest
 from unittest.mock import MagicMock, patch
-import concurrent.futures
-import sys
-import os
 
 # pytest adds root to sys.path usually, but to be safe we can use relative import or assume root is in path
 # if running via 'uv run pytest', root is in path.
