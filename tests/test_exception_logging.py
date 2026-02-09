@@ -4,15 +4,8 @@ import httpx
 import main
 
 class TestExceptionLogging(unittest.TestCase):
-    def setUp(self):
-        # Set a dummy token for redaction testing
-        self.original_token = main.TOKEN
-        main.TOKEN = "SECRET_TOKEN_123"
-
-    def tearDown(self):
-        main.TOKEN = self.original_token
-
     @patch('main.log')
+    @patch('main.TOKEN', 'SECRET_TOKEN_123')
     def test_check_api_access_redacts_exception(self, mock_log):
         # Setup
         client = MagicMock()
