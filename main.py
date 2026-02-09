@@ -152,6 +152,29 @@ RULE_PATTERN = re.compile(r"^[a-zA-Z0-9.\-_:*\/]+$")
 # Parallel processing configuration
 DELETE_WORKERS = 3  # Conservative for DELETE operations due to rate limits
 
+# Security: Dangerous characters for folder names
+# XSS and HTML injection characters
+_DANGEROUS_FOLDER_CHARS = set("<>\"'`")
+# Path separators (prevent confusion and directory traversal attempts)
+_DANGEROUS_FOLDER_CHARS.update(["/", "\\"])
+
+# Security: Unicode Bidi control characters (prevent RTLO/homograph attacks)
+# These characters can be used to mislead users about file extensions or content
+# See: https://en.wikipedia.org/wiki/Right-to-left_override
+_BIDI_CONTROL_CHARS = {
+    "\u202a",  # LEFT-TO-RIGHT EMBEDDING (LRE)
+    "\u202b",  # RIGHT-TO-LEFT EMBEDDING (RLE)
+    "\u202c",  # POP DIRECTIONAL FORMATTING (PDF)
+    "\u202d",  # LEFT-TO-RIGHT OVERRIDE (LRO)
+    "\u202e",  # RIGHT-TO-LEFT OVERRIDE (RLO) - primary attack vector
+    "\u2066",  # LEFT-TO-RIGHT ISOLATE (LRI)
+    "\u2067",  # RIGHT-TO-LEFT ISOLATE (RLI)
+    "\u2068",  # FIRST STRONG ISOLATE (FSI)
+    "\u2069",  # POP DIRECTIONAL ISOLATE (PDI)
+    "\u200e",  # LEFT-TO-RIGHT MARK (LRM) - defense in depth
+    "\u200f",  # RIGHT-TO-LEFT MARK (RLM) - defense in depth
+}
+
 # Pre-compiled patterns for log sanitization
 _BASIC_AUTH_PATTERN = re.compile(r"://[^/@]+@")
 _SENSITIVE_PARAM_PATTERN = re.compile(
@@ -471,16 +494,20 @@ def is_valid_rule(rule: str) -> bool:
 
 def is_valid_folder_name(name: str) -> bool:
     """
-    Validates folder name to prevent XSS and ensure printability.
-    Allowed: Anything printable except < > " ' `
+    Validates folder name to prevent XSS, path traversal, and homograph attacks.
+    
+    Blocks:
+    - XSS/HTML injection characters: < > " ' `
+    - Path separators: / \\
+    - Unicode Bidi control characters (RTLO spoofing)
+    - Empty or whitespace-only names
+    - Non-printable characters
     """
     if not name or not name.strip() or not name.isprintable():
         return False
 
-    # Block XSS and HTML injection characters
-    # Allow: ( ) [ ] { } for folder names (e.g. "Work (Private)")
-    dangerous_chars = set("<>\"'`")
-    if any(c in dangerous_chars for c in name):
+    # Check for dangerous characters (pre-compiled at module level for performance)
+    if any(c in _DANGEROUS_FOLDER_CHARS or c in _BIDI_CONTROL_CHARS for c in name):
         return False
 
     return True
