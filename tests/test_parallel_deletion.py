@@ -106,12 +106,12 @@ def test_parallel_deletion_handles_exceptions(mock_env, monkeypatch):
     monkeypatch.setattr(main, "get_all_existing_rules", lambda *args: set())
     monkeypatch.setattr(main, "countdown_timer", lambda *args: None)
     monkeypatch.setattr(main, "_process_single_folder", lambda *args: True)
-    
+
     # Mock validate_folder_url with cache_clear method
     mock_validate = MagicMock(return_value=True)
     mock_validate.cache_clear = MagicMock()
     monkeypatch.setattr(main, "validate_folder_url", mock_validate)
-    
+
     monkeypatch.setattr(
         main, "fetch_folder_data", lambda url: {"group": {"group": "Folder1"}}
     )
@@ -159,12 +159,12 @@ def test_parallel_deletion_sanitizes_exception(mock_env, monkeypatch):
     monkeypatch.setattr(main, "get_all_existing_rules", lambda *args: set())
     monkeypatch.setattr(main, "countdown_timer", lambda *args: None)
     monkeypatch.setattr(main, "_process_single_folder", lambda *args: True)
-    
+
     # Mock validate_folder_url with cache_clear method
     mock_validate = MagicMock(return_value=True)
     mock_validate.cache_clear = MagicMock()
     monkeypatch.setattr(main, "validate_folder_url", mock_validate)
-    
+
     monkeypatch.setattr(
         main, "fetch_folder_data", lambda url: {"group": {"group": "TestFolder"}}
     )
