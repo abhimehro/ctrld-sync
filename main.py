@@ -718,6 +718,75 @@ def list_existing_folders(client: httpx.Client, profile_id: str) -> Dict[str, st
         return {}
 
 
+def verify_access_and_get_folders(
+    client: httpx.Client, profile_id: str
+) -> Optional[Dict[str, str]]:
+    """Combine access check and folder listing into a single API request.
+
+    Returns:
+        Dict of {folder_name: folder_id} on success.
+        None if access is denied or the request fails after retries.
+    """
+    url = f"{API_BASE}/{profile_id}/groups"
+
+    for attempt in range(MAX_RETRIES):
+        try:
+            resp = client.get(url)
+            resp.raise_for_status()
+
+            try:
+                data = resp.json()
+                folders = data.get("body", {}).get("groups", [])
+                return {
+                    f["group"].strip(): f["PK"]
+                    for f in folders
+                    if f.get("group") and f.get("PK")
+                }
+            except (KeyError, ValueError) as e:
+                log.error(f"Failed to parse folders data: {sanitize_for_log(e)}")
+                return None
+
+        except httpx.HTTPStatusError as e:
+            code = e.response.status_code
+            if code in (401, 403, 404):
+                if code == 401:
+                    log.critical(
+                        f"{Colors.FAIL}❌ Authentication Failed: The API Token is invalid.{Colors.ENDC}"
+                    )
+                    log.critical(
+                        f"{Colors.FAIL}   Please check your token at: https://controld.com/account/manage-account{Colors.ENDC}"
+                    )
+                elif code == 403:
+                    log.critical(
+                        f"{Colors.FAIL}🚫 Access Denied: Token lacks permission for Profile {sanitize_for_log(profile_id)}.{Colors.ENDC}"
+                    )
+                elif code == 404:
+                    log.critical(
+                        f"{Colors.FAIL}🔍 Profile Not Found: The ID '{sanitize_for_log(profile_id)}' does not exist.{Colors.ENDC}"
+                    )
+                    log.critical(
+                        f"{Colors.FAIL}   Please verify the Profile ID from your Control D Dashboard URL.{Colors.ENDC}"
+                    )
+                return None
+
+            if attempt == MAX_RETRIES - 1:
+                log.error(f"API Request Failed ({code}): {sanitize_for_log(e)}")
+                return None
+
+        except httpx.RequestError as e:
+            if attempt == MAX_RETRIES - 1:
+                log.error(f"Network Error: {sanitize_for_log(e)}")
+                return None
+
+        wait_time = RETRY_DELAY * (2**attempt)
+        log.warning(
+            f"Request failed (attempt {attempt + 1}/{MAX_RETRIES}). Retrying in {wait_time}s..."
+        )
+        time.sleep(wait_time)
+
+    return None
+
+
 def get_all_existing_rules(
     client: httpx.Client,
     profile_id: str,
@@ -1224,11 +1293,11 @@ def sync_profile(
         # Initial client for getting existing state AND processing folders
         # Optimization: Reuse the same client session to keep TCP connections alive
         with _api_client() as client:
-            # Check for API access problems first (401/403/404)
-            if not check_api_access(client, profile_id):
+            # Verify access and list existing folders in one request
+            existing_folders = verify_access_and_get_folders(client, profile_id)
+            if existing_folders is None:
                 return False
 
-            existing_folders = list_existing_folders(client, profile_id)
             if not no_delete:
                 deletion_occurred = False
 

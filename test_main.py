@@ -248,16 +248,27 @@ def test_interactive_prompts_show_hints(monkeypatch, capsys):
     assert "https://controld.com/account/manage-account" in stdout
 
 
-# Case 7: check_api_access handles success and errors correctly
-def test_check_api_access_success(monkeypatch):
+# Case 7: verify_access_and_get_folders handles success and errors correctly
+def test_verify_access_and_get_folders_success(monkeypatch):
     m = reload_main_with_env(monkeypatch)
     mock_client = MagicMock()
-    mock_client.get.return_value.raise_for_status.return_value = None
+    mock_response = MagicMock()
+    mock_response.json.return_value = {
+        "body": {
+            "groups": [
+                {"group": "Folder A", "PK": "id_a"},
+                {"group": "Folder B", "PK": "id_b"}
+            ]
+        }
+    }
+    mock_client.get.return_value = mock_response
+    mock_response.raise_for_status.return_value = None
 
-    assert m.check_api_access(mock_client, "valid_profile") is True
+    result = m.verify_access_and_get_folders(mock_client, "valid_profile")
+    assert result == {"Folder A": "id_a", "Folder B": "id_b"}
 
 
-def test_check_api_access_401(monkeypatch):
+def test_verify_access_and_get_folders_401(monkeypatch):
     m = reload_main_with_env(monkeypatch)
     mock_client = MagicMock()
 
@@ -273,14 +284,14 @@ def test_check_api_access_401(monkeypatch):
     mock_log = MagicMock()
     monkeypatch.setattr(m, "log", mock_log)
 
-    assert m.check_api_access(mock_client, "invalid_token") is False
+    assert m.verify_access_and_get_folders(mock_client, "invalid_token") is None
     assert mock_log.critical.call_count >= 1
     # Check for authentication failed message
     args = str(mock_log.critical.call_args_list)
     assert "Authentication Failed" in args
 
 
-def test_check_api_access_403(monkeypatch):
+def test_verify_access_and_get_folders_403(monkeypatch):
     m = reload_main_with_env(monkeypatch)
     mock_client = MagicMock()
 
@@ -295,12 +306,12 @@ def test_check_api_access_403(monkeypatch):
     mock_log = MagicMock()
     monkeypatch.setattr(m, "log", mock_log)
 
-    assert m.check_api_access(mock_client, "forbidden_profile") is False
+    assert m.verify_access_and_get_folders(mock_client, "forbidden_profile") is None
     assert mock_log.critical.call_count == 1
     assert "Access Denied" in str(mock_log.critical.call_args)
 
 
-def test_check_api_access_404(monkeypatch):
+def test_verify_access_and_get_folders_404(monkeypatch):
     m = reload_main_with_env(monkeypatch)
     mock_client = MagicMock()
 
@@ -315,12 +326,12 @@ def test_check_api_access_404(monkeypatch):
     mock_log = MagicMock()
     monkeypatch.setattr(m, "log", mock_log)
 
-    assert m.check_api_access(mock_client, "missing_profile") is False
+    assert m.verify_access_and_get_folders(mock_client, "missing_profile") is None
     assert mock_log.critical.call_count >= 1
     assert "Profile Not Found" in str(mock_log.critical.call_args_list)
 
 
-def test_check_api_access_generic_http_error(monkeypatch):
+def test_verify_access_and_get_folders_500_retry(monkeypatch):
     m = reload_main_with_env(monkeypatch)
     mock_client = MagicMock()
 
@@ -334,13 +345,17 @@ def test_check_api_access_generic_http_error(monkeypatch):
 
     mock_log = MagicMock()
     monkeypatch.setattr(m, "log", mock_log)
+    monkeypatch.setattr(m, "RETRY_DELAY", 0.001)
+    monkeypatch.setattr("time.sleep", lambda x: None)
+    monkeypatch.setattr(m, "MAX_RETRIES", 2)
 
-    assert m.check_api_access(mock_client, "profile") is False
+    assert m.verify_access_and_get_folders(mock_client, "profile") is None
+    assert mock_client.get.call_count == 2
     assert mock_log.error.called
     assert "500" in str(mock_log.error.call_args)
 
 
-def test_check_api_access_network_error(monkeypatch):
+def test_verify_access_and_get_folders_network_error(monkeypatch):
     m = reload_main_with_env(monkeypatch)
     mock_client = MagicMock()
 
@@ -350,8 +365,12 @@ def test_check_api_access_network_error(monkeypatch):
 
     mock_log = MagicMock()
     monkeypatch.setattr(m, "log", mock_log)
+    monkeypatch.setattr(m, "RETRY_DELAY", 0.001)
+    monkeypatch.setattr("time.sleep", lambda x: None)
+    monkeypatch.setattr(m, "MAX_RETRIES", 2)
 
-    assert m.check_api_access(mock_client, "profile") is False
+    assert m.verify_access_and_get_folders(mock_client, "profile") is None
+    assert mock_client.get.call_count == 2
     assert mock_log.error.called
     assert "Network failure" in str(mock_log.error.call_args)
 
