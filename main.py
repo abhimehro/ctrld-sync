@@ -149,6 +149,9 @@ USER_AGENT = "Control-D-Sync/0.1.0"
 PROFILE_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
 RULE_PATTERN = re.compile(r"^[a-zA-Z0-9.\-_:*\/]+$")
 
+# Parallel processing configuration
+DELETE_WORKERS = 3  # Conservative for DELETE operations due to rate limits
+
 # Pre-compiled patterns for log sanitization
 _BASIC_AUTH_PATTERN = re.compile(r"://[^/@]+@")
 _SENSITIVE_PARAM_PATTERN = re.compile(
@@ -1183,16 +1186,40 @@ def sync_profile(
             existing_folders = list_existing_folders(client, profile_id)
             if not no_delete:
                 deletion_occurred = False
+
+                # Identify folders to delete
+                folders_to_delete = []
                 for folder_data in folder_data_list:
                     name = folder_data["group"]["group"].strip()
                     if name in existing_folders:
-                        # Optimization: Maintain local state of folders to avoid re-fetching
-                        # delete_folder returns True on success
-                        if delete_folder(
-                            client, profile_id, name, existing_folders[name]
-                        ):
-                            del existing_folders[name]
-                            deletion_occurred = True
+                        folders_to_delete.append((name, existing_folders[name]))
+
+                if folders_to_delete:
+                    # Parallel delete to speed up the "clean slate" phase
+                    # Using DELETE_WORKERS (3) for balance between speed and rate limits
+                    with concurrent.futures.ThreadPoolExecutor(
+                        max_workers=DELETE_WORKERS
+                    ) as delete_executor:
+                        future_to_name = {
+                            delete_executor.submit(
+                                delete_folder, client, profile_id, name, folder_id
+                            ): name
+                            for name, folder_id in folders_to_delete
+                        }
+
+                        for future in concurrent.futures.as_completed(future_to_name):
+                            name = future_to_name[future]
+                            try:
+                                if future.result():
+                                    del existing_folders[name]
+                                    deletion_occurred = True
+                            except Exception as exc:
+                                # Sanitize both name and exception to prevent log injection
+                                log.error(
+                                    "Failed to delete folder %s: %s",
+                                    sanitize_for_log(name),
+                                    sanitize_for_log(exc),
+                                )
 
                 # CRITICAL FIX: Increased wait time for massive folders to clear
                 if deletion_occurred:
