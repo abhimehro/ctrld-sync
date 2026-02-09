@@ -104,7 +104,11 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 def check_env_permissions(env_path: str = ".env") -> None:
     """
-    Check .env file permissions and warn if readable by others.
+    Check .env file permissions and auto-fix if readable by others.
+    
+    Security: Automatically sets permissions to 600 (owner read/write only)
+    if the file is world-readable. This prevents other users on the system
+    from stealing secrets stored in .env files.
 
     Args:
         env_path: Path to the .env file to check (default: ".env")
@@ -112,25 +116,40 @@ def check_env_permissions(env_path: str = ".env") -> None:
     if not os.path.exists(env_path):
         return
 
+    # Windows doesn't have Unix permissions
+    if os.name == "nt":
+        # Just warn on Windows, can't auto-fix
+        sys.stderr.write(
+            f"{Colors.WARNING}⚠️  Security Warning: "
+            f"Please ensure {env_path} is only readable by you.{Colors.ENDC}\n"
+        )
+        return
+
     try:
         file_stat = os.stat(env_path)
         # Check if group or others have any permission
         if file_stat.st_mode & (stat.S_IRWXG | stat.S_IRWXO):
-            platform_hint = (
-                "Please secure your .env file so it is only readable by " "the owner."
-            )
-            if os.name != "nt":
-                platform_hint += " For example: 'chmod 600 .env'."
             perms = format(stat.S_IMODE(file_stat.st_mode), "03o")
-            sys.stderr.write(
-                f"{Colors.WARNING}⚠️  Security Warning: .env file is "
-                f"readable by others ({perms})! {platform_hint}"
-                f"{Colors.ENDC}\n"
-            )
-    except Exception as error:
+            
+            # Auto-fix: Set to 600 (owner read/write only)
+            try:
+                os.chmod(env_path, 0o600)
+                sys.stderr.write(
+                    f"{Colors.GREEN}✓ Fixed {env_path} permissions "
+                    f"(was {perms}, now set to 600){Colors.ENDC}\n"
+                )
+            except OSError as fix_error:
+                # Auto-fix failed, show warning with instructions
+                sys.stderr.write(
+                    f"{Colors.WARNING}⚠️  Security Warning: {env_path} is "
+                    f"readable by others ({perms})! Auto-fix failed: {fix_error}. "
+                    f"Please run: chmod 600 {env_path}{Colors.ENDC}\n"
+                )
+    except OSError as error:
+        # More specific exception type as suggested by bot review
         exception_type = type(error).__name__
         sys.stderr.write(
-            f"{Colors.WARNING}⚠️  Security Warning: Could not check .env "
+            f"{Colors.WARNING}⚠️  Security Warning: Could not check {env_path} "
             f"permissions ({exception_type}: {error}){Colors.ENDC}\n"
         )
 
