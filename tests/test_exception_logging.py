@@ -148,51 +148,71 @@ class TestExceptionLogging(unittest.TestCase):
 
     @patch('main.log')
     @patch('main._api_post')
-    def test_create_folder_redacts_exception(self, mock_api_post, mock_log):
+    @patch('main._api_get')
+    def test_create_folder_redacts_exception(
+        self, mock_api_get, mock_api_post, mock_log
+    ):
         """Test that create_folder redacts tokens in debug log messages."""
         # Setup
         client = MagicMock()
         profile_id = "test_profile"
         folder_name = "Test Folder"
 
-        # Mock the API response to return data but cause an exception
-        # when trying to extract the ID
+        # Create an exception with a sensitive token in the message
+        sensitive_url = "https://api.controld.com/create?token=SECRET_XYZ_789"
+        error_with_token = ValueError(
+            f"Failed to parse response from {sensitive_url}"
+        )
+
+        # Mock json() to raise an exception with the sensitive URL
         mock_response = MagicMock()
-        mock_response.json.return_value = {
-            "body": {
-                "groups": "invalid_format_causes_exception_with_token=ABC123"
-            }
-        }
+        mock_response.json.side_effect = error_with_token
         mock_api_post.return_value = mock_response
 
-        # We need to also mock list_existing_folders to avoid the fallback
-        with patch('main.list_existing_folders') as mock_list:
-            mock_list.return_value = {}
+        # Mock the fallback polling to return empty results quickly
+        mock_get_response = MagicMock()
+        mock_get_response.json.return_value = {"body": {"groups": []}}
+        mock_api_get.return_value = mock_get_response
 
-            # Action - this will try the direct ID extraction, fail, and log
-            try:
-                # Pass placeholder MagicMock instances for additional required arguments.
-                # We only care about logging/redaction behavior, not the actual folder creation.
-                main.create_folder(client, profile_id, folder_name, MagicMock(), MagicMock())
-            except Exception:
-                pass  # We expect this might fail, we're testing the logging
+        # Mock time.sleep to avoid actual delays
+        with patch('main.time.sleep'):
+            # Action - this will try to call json(), catch exception, and log
+            result = main.create_folder(client, profile_id, folder_name, 1, 1)
 
-        # Assertion - if debug was called, verify redaction
-        if mock_log.debug.called:
-            debug_calls = mock_log.debug.call_args_list
+        # Should return None after retries fail
+        self.assertIsNone(result)
 
-            for call in debug_calls:
-                # Extract the logged message from the first positional arg
-                logged_message = str(call[0][0])
-                # The message should not contain raw exception data
-                # that might have tokens. In this test, the mocked
-                # response includes "token=ABC123" in the data, so we
-                # verify that value is not leaked to the logs.
+        # Assertion - verify debug was called and sanitization worked
+        self.assertTrue(
+            mock_log.debug.called,
+            "log.debug should have been called for exception"
+        )
+
+        debug_calls = mock_log.debug.call_args_list
+        logged_messages = [str(call[0][0]) for call in debug_calls]
+
+        # At least one debug message should be about the POST response error
+        found_relevant_log = False
+        for logged_message in logged_messages:
+            if "Could not extract ID from POST response" in logged_message:
+                found_relevant_log = True
+                # Verify the secret token is redacted
                 self.assertNotIn(
-                    "ABC123",
+                    "SECRET_XYZ_789",
                     logged_message,
-                    "Token value leaked in debug logs!"
+                    "Secret token leaked in debug logs!"
                 )
+                # Verify redaction placeholder is present
+                self.assertIn(
+                    "[REDACTED]",
+                    logged_message,
+                    "Redaction placeholder missing in debug logs!"
+                )
+
+        self.assertTrue(
+            found_relevant_log,
+            "Expected debug log about POST response error not found"
+        )
 
     @patch('main.log')
     def test_retry_request_redacts_exception(self, mock_log):
