@@ -262,6 +262,7 @@ def test_octal_permission_format():
         ("_sip._tcp.example.com", True),
         ("valid-domain-with-hyphens.com", True),
         ("sub.domain.example.com", True),
+        ("@RU", True),
         # Invalid Inputs (should fail)
         # These contain characters NOT in the whitelist (and some not in the old blacklist)
         ("example.com && rm -rf /", False),  # Contains spaces and &
@@ -269,7 +270,7 @@ def test_octal_permission_format():
         ("example.com|nc 1.2.3.4 80", False),  # Contains | and space
         ("example.com; ls", False),  # Contains ; and space
         ("<script>alert(1)</script>", False),  # Contains < > ( )
-        ("invalid@email.com", False),  # Contains @ (not allowed in whitelist)
+        ("invalid@email.com", True),  # Contains @ (now allowed in whitelist)
         (
             "http://example.com",
             True,

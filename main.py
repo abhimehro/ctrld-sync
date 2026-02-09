@@ -105,7 +105,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 def check_env_permissions(env_path: str = ".env") -> None:
     """
     Check .env file permissions and auto-fix if readable by others.
-    
+
     Security: Automatically sets permissions to 600 (owner read/write only)
     if the file is world-readable. This prevents other users on the system
     from stealing secrets stored in .env files.
@@ -130,7 +130,7 @@ def check_env_permissions(env_path: str = ".env") -> None:
         # Check if group or others have any permission
         if file_stat.st_mode & (stat.S_IRWXG | stat.S_IRWXO):
             perms = format(stat.S_IMODE(file_stat.st_mode), "03o")
-            
+
             # Auto-fix: Set to 600 (owner read/write only)
             try:
                 os.chmod(env_path, 0o600)
@@ -165,7 +165,7 @@ USER_AGENT = "Control-D-Sync/0.1.0"
 
 # Pre-compiled regex patterns for hot-path validation (>2x speedup on 10k+ items)
 PROFILE_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
-RULE_PATTERN = re.compile(r"^[a-zA-Z0-9.\-_:*\/]+$")
+RULE_PATTERN = re.compile(r"^[a-zA-Z0-9.\-_:*/@]+$")
 
 # Parallel processing configuration
 DELETE_WORKERS = 3  # Conservative for DELETE operations due to rate limits
@@ -517,7 +517,7 @@ def is_valid_rule(rule: str) -> bool:
 def is_valid_folder_name(name: str) -> bool:
     """
     Validates folder name to prevent XSS, path traversal, and homograph attacks.
-    
+
     Blocks:
     - XSS/HTML injection characters: < > " ' `
     - Path separators: / \\
@@ -617,7 +617,7 @@ def _gh_get(url: str) -> Dict:
     with _cache_lock:
         if url in _cache:
             return _cache[url]
-    
+
     # Fetch data if not cached
     # Explicitly let HTTPError propagate (no need to catch just to re-raise)
     with _gh.stream("GET", url) as r:
@@ -1468,7 +1468,7 @@ def parse_args() -> argparse.Namespace:
 def main():
     # SECURITY: Check .env permissions (after Colors is defined for NO_COLOR support)
     check_env_permissions()
-    
+
     global TOKEN
     args = parse_args()
     profiles_arg = (
