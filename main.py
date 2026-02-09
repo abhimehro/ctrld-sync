@@ -787,9 +787,7 @@ def verify_access_and_get_folders(
             except (ValueError, TypeError, AttributeError) as err:
                 # As a final safeguard, catch any remaining parsing/shape errors so
                 # that a malformed response cannot crash the caller.
-                log.error(
-                    "Failed to parse folders data: %s", sanitize_for_log(err)
-                )
+                log.error("Failed to parse folders data: %s", sanitize_for_log(err))
                 return None
 
         except httpx.HTTPStatusError as e:
@@ -840,6 +838,7 @@ def verify_access_and_get_folders(
         )
         time.sleep(wait_time)
 
+
 def get_all_existing_rules(
     client: httpx.Client,
     profile_id: str,
@@ -857,7 +856,9 @@ def get_all_existing_rules(
         except Exception as e:
             # We log error but don't stop the whole process;
             # individual folder failure shouldn't crash the sync
-            log.warning(f"Error fetching rules for folder {folder_id}: {sanitize_for_log(e)}")
+            log.warning(
+                f"Error fetching rules for folder {folder_id}: {sanitize_for_log(e)}"
+            )
             return []
 
     try:
@@ -1016,8 +1017,7 @@ def create_folder(
                         return str(grp["PK"])
         except Exception as e:
             log.debug(
-                f"Could not extract ID from POST response: "
-                f"{sanitize_for_log(e)}"
+                f"Could not extract ID from POST response: " f"{sanitize_for_log(e)}"
             )
 
         # 2. Fallback: Poll for the new folder (The Robust Retry Logic)
