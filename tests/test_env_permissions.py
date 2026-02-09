@@ -2,21 +2,19 @@
 
 import os
 import stat
-import sys
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 
 # Set TOKEN before importing main to avoid issues with load_dotenv()
 os.environ.setdefault("TOKEN", "test-token-123")
 os.environ.setdefault("NO_COLOR", "1")
 
-from main import check_env_permissions
-
 
 def test_env_permissions_auto_fix_success():
     """Test successful auto-fix of insecure .env permissions."""
+    # Import here to avoid side effects during test collection
+    from main import check_env_permissions
+    
     # Set up POSIX environment
     with patch("os.name", "posix"), \
          patch("os.path.exists", return_value=True):
@@ -52,6 +50,9 @@ def test_env_permissions_auto_fix_success():
 
 def test_env_permissions_auto_fix_failure():
     """Test warning when auto-fix fails."""
+    # Import here to avoid side effects during test collection
+    from main import check_env_permissions
+    
     with patch("os.name", "posix"), \
          patch("os.path.exists", return_value=True):
         
@@ -77,6 +78,9 @@ def test_env_permissions_auto_fix_failure():
 
 def test_env_permissions_windows_warning():
     """Test that Windows shows a warning (no auto-fix)."""
+    # Import here to avoid side effects during test collection
+    from main import check_env_permissions
+    
     with patch("os.name", "nt"), \
          patch("os.path.exists", return_value=True):
         
@@ -94,6 +98,9 @@ def test_env_permissions_windows_warning():
 
 def test_env_permissions_secure_file_no_output():
     """Test that secure permissions don't trigger any output."""
+    # Import here to avoid side effects during test collection
+    from main import check_env_permissions
+    
     with patch("os.name", "posix"), \
          patch("os.path.exists", return_value=True):
         
@@ -113,6 +120,9 @@ def test_env_permissions_secure_file_no_output():
 
 def test_env_permissions_file_not_exists():
     """Test that missing .env file is silently ignored."""
+    # Import here to avoid side effects during test collection
+    from main import check_env_permissions
+    
     with patch("os.path.exists", return_value=False):
         # Mock stderr
         mock_stderr = MagicMock()
@@ -125,6 +135,9 @@ def test_env_permissions_file_not_exists():
 
 def test_env_permissions_stat_error():
     """Test handling of os.stat errors."""
+    # Import here to avoid side effects during test collection
+    from main import check_env_permissions
+    
     with patch("os.name", "posix"), \
          patch("os.path.exists", return_value=True), \
          patch("os.stat", side_effect=OSError("Access denied")):
@@ -143,6 +156,9 @@ def test_env_permissions_stat_error():
 
 def test_env_permissions_respects_custom_path():
     """Test that custom .env path is respected."""
+    # Import here to avoid side effects during test collection
+    from main import check_env_permissions
+    
     with patch("os.name", "posix"), \
          patch("os.path.exists", return_value=True):
         

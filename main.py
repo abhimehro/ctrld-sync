@@ -154,8 +154,7 @@ def check_env_permissions(env_path: str = ".env") -> None:
         )
 
 
-# SECURITY: Check .env permissions (after Colors is defined for NO_COLOR support)
-check_env_permissions()
+# SECURITY: Check .env permissions will be called in main() to avoid side effects at import time
 log = logging.getLogger("control-d-sync")
 
 # --------------------------------------------------------------------------- #
@@ -1337,6 +1336,9 @@ def parse_args() -> argparse.Namespace:
 
 
 def main():
+    # SECURITY: Check .env permissions (after Colors is defined for NO_COLOR support)
+    check_env_permissions()
+    
     global TOKEN
     args = parse_args()
     profiles_arg = (

@@ -127,7 +127,7 @@ def test_parallel_deletion_handles_exceptions(mock_env, monkeypatch):
     monkeypatch.setattr(main.log, "error", mock_error)
 
     # Should not crash, should log error
-    result = main.sync_profile("test-profile", ["url"], no_delete=False)
+    main.sync_profile("test-profile", ["url"], no_delete=False)
 
     # Verify error was logged
     assert len(log_calls) > 0, "Expected error to be logged"
