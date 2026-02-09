@@ -1149,8 +1149,9 @@ def push_rules(
                 log.debug(f"Response content: {sanitize_for_log(e.response.text)}")
             return None
 
-    # Optimization 3: Parallelize batch processing
-    # Using 3 workers to speed up writes without hitting aggressive rate limits.
+    # Optimization 3: Batch processing with conditional parallelism
+    # Single batch: run synchronously to avoid thread pool overhead (common for small folders).
+    # Multiple batches: use up to 3 workers to speed up writes without hitting aggressive rate limits.
     if total_batches == 1:
         # Avoid thread pool overhead for single batch (very common for small folders)
         result = process_batch(1, batches[0])
