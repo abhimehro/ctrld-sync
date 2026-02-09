@@ -718,6 +718,124 @@ def list_existing_folders(client: httpx.Client, profile_id: str) -> Dict[str, st
         return {}
 
 
+def verify_access_and_get_folders(
+    client: httpx.Client, profile_id: str
+) -> Optional[Dict[str, str]]:
+    """Combine access check and folder listing into a single API request.
+
+    Returns:
+        Dict of {folder_name: folder_id} on success.
+        None if access is denied or the request fails after retries.
+    """
+    url = f"{API_BASE}/{profile_id}/groups"
+
+    for attempt in range(MAX_RETRIES):
+        try:
+            resp = client.get(url)
+            resp.raise_for_status()
+
+            try:
+                data = resp.json()
+
+                # Ensure we got the expected top-level JSON structure.
+                # We defensively validate types here so that unexpected but valid
+                # JSON (e.g., a list or a scalar) doesn't cause AttributeError/TypeError
+                # and crash the sync logic.
+                if not isinstance(data, dict):
+                    log.error(
+                        "Failed to parse folders data: expected JSON object at top level, "
+                        f"got {type(data).__name__}"
+                    )
+                    return None
+
+                body = data.get("body")
+                if not isinstance(body, dict):
+                    log.error(
+                        "Failed to parse folders data: expected 'body' to be an object, "
+                        f"got {type(body).__name__ if body is not None else 'None'}"
+                    )
+                    return None
+
+                folders = body.get("groups", [])
+                if not isinstance(folders, list):
+                    log.error(
+                        "Failed to parse folders data: expected 'body[\"groups\"]' to be a list, "
+                        f"got {type(folders).__name__}"
+                    )
+                    return None
+
+                # Only process entries that are dicts and have the required keys.
+                result: Dict[str, str] = {}
+                for f in folders:
+                    if not isinstance(f, dict):
+                        # Skip non-dict entries instead of crashing; this protects
+                        # against partial data corruption or unexpected API changes.
+                        continue
+                    name = f.get("group")
+                    pk = f.get("PK")
+                    if not name or not pk:
+                        continue
+                    result[str(name).strip()] = str(pk)
+
+                return result
+            except (KeyError, ValueError, TypeError, AttributeError) as e:
+                # As a final safeguard, catch any remaining parsing/shape errors so
+                # that a malformed response cannot crash the caller.
+                log.error(f"Failed to parse folders data: {sanitize_for_log(e)}")
+                return None
+
+        except httpx.HTTPStatusError as e:
+            code = e.response.status_code
+            if code in (401, 403, 404):
+                if code == 401:
+                    log.critical(
+                        f"{Colors.FAIL}❌ Authentication Failed: The API Token is invalid.{Colors.ENDC}"
+                    )
+                    log.critical(
+                        f"{Colors.FAIL}   Please check your token at: https://controld.com/account/manage-account{Colors.ENDC}"
+                    )
+                elif code == 403:
+                    log.critical(
+                        "%s🚫 Access Denied: Token lacks permission for "
+                        "Profile %s.%s",
+                        Colors.FAIL,
+                        sanitize_for_log(profile_id),
+                        Colors.ENDC,
+                    )
+                elif code == 404:
+                    log.critical(
+                        f"{Colors.FAIL}🔍 Profile Not Found: The ID '{sanitize_for_log(profile_id)}' does not exist.{Colors.ENDC}"
+                    )
+                    log.critical(
+                        f"{Colors.FAIL}   Please verify the Profile ID from your Control D Dashboard URL.{Colors.ENDC}"
+                    )
+                return None
+
+            if attempt == MAX_RETRIES - 1:
+                log.error(f"API Request Failed ({code}): {sanitize_for_log(e)}")
+                return None
+
+        except httpx.RequestError as err:
+            if attempt == MAX_RETRIES - 1:
+                log.error(
+                    "Network error during access verification: %s",
+                    sanitize_for_log(err),
+                )
+                return None
+
+        wait_time = RETRY_DELAY * (2**attempt)
+        log.warning(
+            "Request failed (attempt %d/%d). Retrying in %ds...",
+            attempt + 1,
+            MAX_RETRIES,
+            wait_time,
+        )
+        time.sleep(wait_time)
+
+    log.error("Access verification failed after all retries")
+    return None
+
+
 def get_all_existing_rules(
     client: httpx.Client,
     profile_id: str,
@@ -1224,11 +1342,11 @@ def sync_profile(
         # Initial client for getting existing state AND processing folders
         # Optimization: Reuse the same client session to keep TCP connections alive
         with _api_client() as client:
-            # Check for API access problems first (401/403/404)
-            if not check_api_access(client, profile_id):
+            # Verify access and list existing folders in one request
+            existing_folders = verify_access_and_get_folders(client, profile_id)
+            if existing_folders is None:
                 return False
 
-            existing_folders = list_existing_folders(client, profile_id)
             if not no_delete:
                 deletion_occurred = False
 

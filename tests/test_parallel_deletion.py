@@ -36,9 +36,10 @@ def test_parallel_deletion_uses_threadpool(mock_env, monkeypatch):
         __enter__=lambda self: mock_client, __exit__=lambda *args: None
     )
     monkeypatch.setattr(main, "_api_client", lambda: mock_client_ctx)
-    monkeypatch.setattr(main, "check_api_access", lambda *args: True)
     monkeypatch.setattr(
-        main, "list_existing_folders", lambda *args: {"FolderA": "id1", "FolderB": "id2"}
+        main,
+        "verify_access_and_get_folders",
+        lambda *args: {"FolderA": "id1", "FolderB": "id2"},
     )
     monkeypatch.setattr(main, "delete_folder", lambda *args: True)
     monkeypatch.setattr(main, "get_all_existing_rules", lambda *args: set())
@@ -93,9 +94,10 @@ def test_parallel_deletion_handles_exceptions(mock_env, monkeypatch):
         __enter__=lambda self: mock_client, __exit__=lambda *args: None
     )
     monkeypatch.setattr(main, "_api_client", lambda: mock_client_ctx)
-    monkeypatch.setattr(main, "check_api_access", lambda *args: True)
     monkeypatch.setattr(
-        main, "list_existing_folders", lambda *args: {"Folder1": "id1"}
+        main,
+        "verify_access_and_get_folders",
+        lambda *args: {"Folder1": "id1"},
     )
 
     # Mock delete_folder to raise an exception
@@ -146,9 +148,10 @@ def test_parallel_deletion_sanitizes_exception(mock_env, monkeypatch):
         __enter__=lambda self: mock_client, __exit__=lambda *args: None
     )
     monkeypatch.setattr(main, "_api_client", lambda: mock_client_ctx)
-    monkeypatch.setattr(main, "check_api_access", lambda *args: True)
     monkeypatch.setattr(
-        main, "list_existing_folders", lambda *args: {"TestFolder": "id1"}
+        main,
+        "verify_access_and_get_folders",
+        lambda *args: {"TestFolder": "id1"},
     )
 
     # Mock delete_folder to raise exception with potentially dangerous content
