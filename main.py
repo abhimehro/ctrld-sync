@@ -835,10 +835,6 @@ def verify_access_and_get_folders(
         )
         time.sleep(wait_time)
 
-    log.error("Access verification failed after all retries")
-    return None
-
-
 def get_all_existing_rules(
     client: httpx.Client,
     profile_id: str,
