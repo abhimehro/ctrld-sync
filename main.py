@@ -606,7 +606,8 @@ def _retry_request(request_func, max_retries=MAX_RETRIES, delay=RETRY_DELAY):
                 raise
             wait_time = delay * (2**attempt)
             log.warning(
-                f"Request failed (attempt {attempt + 1}/{max_retries}): {e}. Retrying in {wait_time}s..."
+                f"Request failed (attempt {attempt + 1}/{max_retries}): "
+                f"{sanitize_for_log(e)}. Retrying in {wait_time}s..."
             )
             time.sleep(wait_time)
 
@@ -948,7 +949,8 @@ def warm_up_cache(urls: Sequence[str]) -> None:
                     sys.stderr.flush()
 
                 log.warning(
-                    f"Failed to pre-fetch {sanitize_for_log(futures[future])}: {e}"
+                    f"Failed to pre-fetch {sanitize_for_log(futures[future])}: "
+                    f"{sanitize_for_log(e)}"
                 )
                 # Restore progress bar after warning
                 render_progress_bar(completed, total, "Warming up cache", prefix="⏳")
@@ -1013,7 +1015,10 @@ def create_folder(
                         )
                         return str(grp["PK"])
         except Exception as e:
-            log.debug(f"Could not extract ID from POST response: {e}")
+            log.debug(
+                f"Could not extract ID from POST response: "
+                f"{sanitize_for_log(e)}"
+            )
 
         # 2. Fallback: Poll for the new folder (The Robust Retry Logic)
         for attempt in range(MAX_RETRIES + 1):
