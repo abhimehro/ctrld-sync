@@ -39,3 +39,7 @@
 ## 2026-01-27 - Redundant Validation for Cached Data
 **Learning:** Re-validating resource properties (like DNS/IP) when using *cached content* is pure overhead. If the content is served from memory (proven safe at fetch time), checking the *current* state of the source is disconnected from the data being used.
 **Action:** When using a multi-stage pipeline (Warmup -> Process), ensure validation state persists alongside the data cache. Avoid clearing validation caches between stages if the data cache is not also cleared.
+
+## 2026-01-28 - [Thread Pool Overhead on Small Batches]
+**Learning:** Creating a `ThreadPoolExecutor` has measurable overhead (thread creation, context switching). For small tasks (e.g., a single batch of API requests), the overhead of the thread pool can exceed the benefit of parallelization, especially when the task itself is just a single synchronous I/O call.
+**Action:** Always check if the workload justifies the overhead of a thread pool. For single-item or very small workloads, bypass the pool and execute synchronously.

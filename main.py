@@ -1151,23 +1151,35 @@ def push_rules(
 
     # Optimization 3: Parallelize batch processing
     # Using 3 workers to speed up writes without hitting aggressive rate limits.
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-        futures = {
-            executor.submit(process_batch, i, batch): i
-            for i, batch in enumerate(batches, 1)
-        }
+    if total_batches == 1:
+        # Avoid thread pool overhead for single batch (very common for small folders)
+        result = process_batch(1, batches[0])
+        if result:
+            successful_batches += 1
+            existing_rules.update(result)
+        render_progress_bar(
+            successful_batches,
+            total_batches,
+            f"Folder {sanitize_for_log(folder_name)}",
+        )
+    else:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            futures = {
+                executor.submit(process_batch, i, batch): i
+                for i, batch in enumerate(batches, 1)
+            }
 
-        for future in concurrent.futures.as_completed(futures):
-            result = future.result()
-            if result:
-                successful_batches += 1
-                existing_rules.update(result)
+            for future in concurrent.futures.as_completed(futures):
+                result = future.result()
+                if result:
+                    successful_batches += 1
+                    existing_rules.update(result)
 
-            render_progress_bar(
-                successful_batches,
-                total_batches,
-                f"Folder {sanitize_for_log(folder_name)}",
-            )
+                render_progress_bar(
+                    successful_batches,
+                    total_batches,
+                    f"Folder {sanitize_for_log(folder_name)}",
+                )
 
     if successful_batches == total_batches:
         if USE_COLORS:
