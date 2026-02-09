@@ -736,13 +736,51 @@ def verify_access_and_get_folders(
 
             try:
                 data = resp.json()
-                folders = data.get("body", {}).get("groups", [])
-                return {
-                    f["group"].strip(): f["PK"]
-                    for f in folders
-                    if f.get("group") and f.get("PK")
-                }
-            except (KeyError, ValueError) as e:
+
+                # Ensure we got the expected top-level JSON structure.
+                # We defensively validate types here so that unexpected but valid
+                # JSON (e.g., a list or a scalar) doesn't cause AttributeError/TypeError
+                # and crash the sync logic.
+                if not isinstance(data, dict):
+                    log.error(
+                        "Failed to parse folders data: expected JSON object at top level, "
+                        f"got {type(data).__name__}"
+                    )
+                    return None
+
+                body = data.get("body")
+                if not isinstance(body, dict):
+                    log.error(
+                        "Failed to parse folders data: expected 'body' to be an object, "
+                        f"got {type(body).__name__ if body is not None else 'None'}"
+                    )
+                    return None
+
+                folders = body.get("groups", [])
+                if not isinstance(folders, list):
+                    log.error(
+                        "Failed to parse folders data: expected 'body[\"groups\"]' to be a list, "
+                        f"got {type(folders).__name__}"
+                    )
+                    return None
+
+                # Only process entries that are dicts and have the required keys.
+                result: Dict[str, str] = {}
+                for f in folders:
+                    if not isinstance(f, dict):
+                        # Skip non-dict entries instead of crashing; this protects
+                        # against partial data corruption or unexpected API changes.
+                        continue
+                    name = f.get("group")
+                    pk = f.get("PK")
+                    if not name or not pk:
+                        continue
+                    result[str(name).strip()] = str(pk)
+
+                return result
+            except (KeyError, ValueError, TypeError, AttributeError) as e:
+                # As a final safeguard, catch any remaining parsing/shape errors so
+                # that a malformed response cannot crash the caller.
                 log.error(f"Failed to parse folders data: {sanitize_for_log(e)}")
                 return None
 
