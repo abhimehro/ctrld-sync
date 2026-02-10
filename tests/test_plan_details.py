@@ -2,12 +2,12 @@
 
 from unittest.mock import patch
 
-import main
-
 
 def test_print_plan_details_no_colors(capsys):
     """Test print_plan_details output when colors are disabled."""
-    with patch("main.USE_COLORS", False):
+    import main
+
+    with patch.object(main, "USE_COLORS", False):
         plan_entry = {
             "profile": "test_profile",
             "folders": [
@@ -29,7 +29,9 @@ def test_print_plan_details_no_colors(capsys):
 
 def test_print_plan_details_empty_folders(capsys):
     """Test print_plan_details with no folders."""
-    with patch("main.USE_COLORS", False):
+    import main
+
+    with patch.object(main, "USE_COLORS", False):
         plan_entry = {"profile": "test_profile", "folders": []}
         main.print_plan_details(plan_entry)
 
@@ -42,7 +44,9 @@ def test_print_plan_details_empty_folders(capsys):
 
 def test_print_plan_details_with_colors(capsys):
     """Test print_plan_details output when colors are enabled."""
-    with patch("main.USE_COLORS", True):
+    import main
+
+    with patch.object(main, "USE_COLORS", True):
         plan_entry = {
             "profile": "test_profile",
             "folders": [{"name": "Folder A", "rules": 10}],
