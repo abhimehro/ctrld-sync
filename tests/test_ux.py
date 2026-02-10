@@ -2,6 +2,7 @@
 import sys
 from unittest.mock import MagicMock
 import main
+import pytest
 
 def test_countdown_timer_visuals(monkeypatch):
     """Verify that countdown_timer writes a progress bar to stderr."""
@@ -44,3 +45,16 @@ def test_countdown_timer_no_colors(monkeypatch):
     mock_stderr.write.assert_not_called()
     # Should call sleep exactly once with full seconds
     mock_sleep.assert_called_once_with(3)
+
+@pytest.mark.parametrize("seconds, expected", [
+    (5.2, "5.2s"),
+    (0.0, "0.0s"),
+    (59.9, "59.9s"),
+    (60.0, "1m 00s"),
+    (65.5, "1m 05s"),
+    (125.0, "2m 05s"),
+    (3600.0, "60m 00s"),
+])
+def test_format_duration(seconds, expected):
+    """Verify format_duration output for various inputs."""
+    assert main.format_duration(seconds) == expected
