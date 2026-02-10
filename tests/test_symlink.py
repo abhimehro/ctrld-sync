@@ -13,8 +13,8 @@ def test_check_env_permissions_skips_symlink(tmp_path):
     target_file = tmp_path / "target_file"
     target_file.write_text("target content")
 
-    # Set permissions to 777 (world-writable)
-    target_file.chmod(0o777)
+    # Set permissions to 644 (world-readable)
+    target_file.chmod(0o644)
     initial_mode = target_file.stat().st_mode
 
     # Create a symlink to the target
@@ -38,7 +38,7 @@ def test_check_env_permissions_skips_symlink(tmp_path):
     # Verify target permissions are UNCHANGED
     final_mode = target_file.stat().st_mode
     assert final_mode == initial_mode
-    assert (final_mode & 0o777) == 0o777  # Still 777, not 600
+    assert (final_mode & 0o777) == 0o644  # Still 644, not 600
 
 def test_check_env_permissions_fixes_file(tmp_path):
     """
@@ -51,8 +51,8 @@ def test_check_env_permissions_fixes_file(tmp_path):
     env_file = tmp_path / ".env_file"
     env_file.write_text("content")
 
-    # Set permissions to 777
-    env_file.chmod(0o777)
+    # Set permissions to 644 (world-readable)
+    env_file.chmod(0o644)
 
     # Run check_env_permissions
     with patch("sys.stderr") as mock_stderr:

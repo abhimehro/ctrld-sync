@@ -53,14 +53,16 @@ def test_fix_env_creates_secure_file(tmp_path):
     os.chdir(tmp_path)
     try:
         # Use realistic token (starts with api. or long)
+        # nosec - testing token, not real secret
         token = "api.1234567890abcdef"
         profile = "12345abc"
 
         with open(".env", "w") as f:
             f.write(f"TOKEN={token}\nPROFILE={profile}")
 
-        # Set permissions to 777
-        os.chmod(".env", 0o777)
+        # Set permissions to 644 (world-readable), which should be fixed to 600
+        # 0o777 is flagged by bandit B103
+        os.chmod(".env", 0o644)
 
         # Run fix_env
         fix_env.fix_env()
