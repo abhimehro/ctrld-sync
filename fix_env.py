@@ -59,12 +59,28 @@ def fix_env():
     # Write back with standard quotes
     new_content = f'TOKEN="{escape_val(real_token)}"\nPROFILE="{escape_val(real_profiles)}"\n'
     
-    with open('.env', 'w') as f:
-        f.write(new_content)
-    
-    # SECURITY: Ensure .env is only readable by the owner (600) on Unix-like systems
-    if os.name != 'nt':
-        os.chmod('.env', stat.S_IRUSR | stat.S_IWUSR)
+    # Security: Check for symlinks to prevent overwriting arbitrary files
+    if os.path.islink('.env'):
+        print("Security Warning: .env is a symlink. Aborting to avoid overwriting target.")
+        return
+
+    # Security: Write using os.open to ensure 600 permissions at creation time
+    # This prevents a race condition where the file is world-readable before chmod
+    try:
+        # O_TRUNC to overwrite if exists, O_CREAT to create if not
+        flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
+        mode = stat.S_IRUSR | stat.S_IWUSR  # 0o600
+
+        fd = os.open('.env', flags, mode)
+        with os.fdopen(fd, 'w') as f:
+            f.write(new_content)
+            # Enforce permissions on the file descriptor directly (safe against race conditions)
+            if os.name != 'nt':
+                os.chmod(fd, mode)
+
+    except OSError as e:
+        print(f"Error writing .env: {e}")
+        return
 
     print("Fixed .env file: standardized quotes and corrected variable assignments.")
     print("Security: .env permissions set to 600 (read/write only by owner).")

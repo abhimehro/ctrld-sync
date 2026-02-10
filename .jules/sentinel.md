@@ -17,3 +17,11 @@
 **Learning:** `httpx.HTTPStatusError` (raised by `raise_for_status()`) inherits from `httpx.HTTPError`. Generic `except httpx.HTTPError:` blocks will catch it and retry client errors unless explicitly handled.
 
 **Prevention:** Inside retry loops, catch `httpx.HTTPStatusError` first. Check `response.status_code`. If `400 <= code < 500` (and not `429`), re-raise immediately.
+
+## 2026-02-09 - Insecure Symlink Follow in Permission Fix
+
+**Vulnerability:** The `check_env_permissions` function used `os.chmod` on `.env` without checking if it was a symlink. An attacker could symlink `.env` to a system file (e.g., `/etc/passwd`), causing the script to change its permissions to 600, leading to Denial of Service or security issues. Additionally, `fix_env.py` overwrote `.env` insecurely, allowing arbitrary file overwrite via symlink.
+
+**Learning:** `os.chmod` and `open()` follow symlinks by default in Python (and most POSIX environments).
+
+**Prevention:** Always use `os.path.islink()` to check for symlinks before modifying file metadata or content if the path is user-controlled or in a writable directory. Use `os.open` with `O_CREAT | O_WRONLY | O_TRUNC` and `os.chmod(fd)` on the file descriptor to avoid race conditions (TOCTOU) and ensure operations apply to the file itself, not a symlink target.
