@@ -600,6 +600,14 @@ def _retry_request(request_func, max_retries=MAX_RETRIES, delay=RETRY_DELAY):
             response.raise_for_status()
             return response
         except (httpx.HTTPError, httpx.TimeoutException) as e:
+            # Security: Don't retry on client errors (4xx) unless it's rate limiting (429)
+            if isinstance(e, httpx.HTTPStatusError):
+                status = e.response.status_code
+                if 400 <= status < 500 and status != 429:
+                    if hasattr(e, "response") and e.response is not None:
+                        log.debug(f"Response content: {sanitize_for_log(e.response.text)}")
+                    raise
+
             if attempt == max_retries - 1:
                 if hasattr(e, "response") and e.response is not None:
                     log.debug(f"Response content: {sanitize_for_log(e.response.text)}")
