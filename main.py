@@ -228,6 +228,16 @@ def sanitize_for_log(text: Any) -> str:
     return safe
 
 
+def format_duration(seconds: float) -> str:
+    """Formats duration in a human-readable way (e.g., 2m 05s)."""
+    if seconds < 60:
+        return f"{seconds:.1f}s"
+
+    minutes = int(seconds // 60)
+    rem_seconds = int(seconds % 60)
+    return f"{minutes}m {rem_seconds:02d}s"
+
+
 def print_plan_details(plan_entry: Dict[str, Any]) -> None:
     """Pretty-print the folder-level breakdown during a dry-run."""
     profile = sanitize_for_log(plan_entry.get("profile", "unknown"))
@@ -836,7 +846,7 @@ def verify_access_and_get_folders(
             MAX_RETRIES,
             wait_time,
         )
-        time.sleep(wait_time)
+        countdown_timer(int(wait_time), "Retrying")
 
 
 def get_all_existing_rules(
@@ -1044,7 +1054,7 @@ def create_folder(
                 log.info(
                     f"Folder '{sanitize_for_log(name)}' not found yet. Retrying in {wait_time}s..."
                 )
-                time.sleep(wait_time)
+                countdown_timer(int(wait_time), "Waiting for folder")
 
         log.error(
             f"Folder {sanitize_for_log(name)} was not found after creation and retries."
@@ -1651,7 +1661,7 @@ def main():
             f"{res['profile']:<{profile_col_width}} | "
             f"{res['folders']:>10} | "
             f"{res['rules']:>10,} | "
-            f"{res['duration']:>9.1f}s | "
+            f"{format_duration(res['duration']):>10} | "
             f"{status_color}{res['status_label']:<15}{Colors.ENDC}"
         )
         total_folders += res["folders"]
@@ -1682,7 +1692,7 @@ def main():
         f"{'TOTAL':<{profile_col_width}} | "
         f"{total_folders:>10} | "
         f"{total_rules:>10,} | "
-        f"{total_duration:>9.1f}s | "
+        f"{format_duration(total_duration):>10} | "
         f"{total_status_color}{total_status_text:<15}{Colors.ENDC}"
     )
     print("=" * table_width + "\n")

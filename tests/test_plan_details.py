@@ -1,21 +1,19 @@
 """Tests for the print_plan_details dry-run output function."""
 
-from unittest.mock import patch
-
 import main
 
 
-def test_print_plan_details_no_colors(capsys):
+def test_print_plan_details_no_colors(capsys, monkeypatch):
     """Test print_plan_details output when colors are disabled."""
-    with patch("main.USE_COLORS", False):
-        plan_entry = {
-            "profile": "test_profile",
-            "folders": [
-                {"name": "Folder B", "rules": 5},
-                {"name": "Folder A", "rules": 10},
-            ],
-        }
-        main.print_plan_details(plan_entry)
+    monkeypatch.setattr(main, "USE_COLORS", False)
+    plan_entry = {
+        "profile": "test_profile",
+        "folders": [
+            {"name": "Folder B", "rules": 5},
+            {"name": "Folder A", "rules": 10},
+        ],
+    }
+    main.print_plan_details(plan_entry)
 
     captured = capsys.readouterr()
     output = captured.out
@@ -27,11 +25,11 @@ def test_print_plan_details_no_colors(capsys):
     assert output.index("Folder A") < output.index("Folder B")
 
 
-def test_print_plan_details_empty_folders(capsys):
+def test_print_plan_details_empty_folders(capsys, monkeypatch):
     """Test print_plan_details with no folders."""
-    with patch("main.USE_COLORS", False):
-        plan_entry = {"profile": "test_profile", "folders": []}
-        main.print_plan_details(plan_entry)
+    monkeypatch.setattr(main, "USE_COLORS", False)
+    plan_entry = {"profile": "test_profile", "folders": []}
+    main.print_plan_details(plan_entry)
 
     captured = capsys.readouterr()
     output = captured.out
@@ -40,14 +38,14 @@ def test_print_plan_details_empty_folders(capsys):
     assert "No folders to sync." in output
 
 
-def test_print_plan_details_with_colors(capsys):
+def test_print_plan_details_with_colors(capsys, monkeypatch):
     """Test print_plan_details output when colors are enabled."""
-    with patch("main.USE_COLORS", True):
-        plan_entry = {
-            "profile": "test_profile",
-            "folders": [{"name": "Folder A", "rules": 10}],
-        }
-        main.print_plan_details(plan_entry)
+    monkeypatch.setattr(main, "USE_COLORS", True)
+    plan_entry = {
+        "profile": "test_profile",
+        "folders": [{"name": "Folder A", "rules": 10}],
+    }
+    main.print_plan_details(plan_entry)
 
     captured = capsys.readouterr()
     output = captured.out
