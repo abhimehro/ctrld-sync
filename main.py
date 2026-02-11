@@ -1074,13 +1074,15 @@ def push_rules(
 
     original_count = len(hostnames)
 
-    # Optimization 1: Deduplicate input list while preserving order
-    # Optimization 2: Check directly against existing_rules to avoid O(N) copy.
-    seen = set()
+    # Optimization 1: Deduplicate input list while preserving order using dict.fromkeys()
+    # This is significantly faster than using a 'seen' set in the loop for large lists.
+    # It also naturally deduplicates invalid rules, preventing log spam.
+    unique_hostnames = dict.fromkeys(hostnames)
+
     filtered_hostnames = []
     skipped_unsafe = 0
 
-    for h in hostnames:
+    for h in unique_hostnames:
         if not is_valid_rule(h):
             log.warning(
                 f"Skipping unsafe rule in {sanitize_for_log(folder_name)}: {sanitize_for_log(h)}"
@@ -1088,9 +1090,8 @@ def push_rules(
             skipped_unsafe += 1
             continue
 
-        if h not in existing_rules and h not in seen:
+        if h not in existing_rules:
             filtered_hostnames.append(h)
-            seen.add(h)
 
     if skipped_unsafe > 0:
         log.warning(
