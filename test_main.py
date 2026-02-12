@@ -532,3 +532,21 @@ def test_render_progress_bar(monkeypatch):
     # Color codes (accessing instance Colors or m.Colors)
     assert m.Colors.CYAN in combined
     assert m.Colors.ENDC in combined
+
+
+# Case 14: get_validated_input handles KeyboardInterrupt gracefully
+def test_get_validated_input_interrupt(monkeypatch, capsys):
+    m = reload_main_with_env(monkeypatch)
+
+    # Mock input to raise KeyboardInterrupt
+    monkeypatch.setattr("builtins.input", MagicMock(side_effect=KeyboardInterrupt))
+
+    with pytest.raises(SystemExit) as e:
+        m.get_validated_input("Prompt: ", lambda x: True, "Error")
+
+    # Check exit code is 130
+    assert e.value.code == 130
+
+    # Check friendly message
+    captured = capsys.readouterr()
+    assert "Input cancelled" in captured.out
