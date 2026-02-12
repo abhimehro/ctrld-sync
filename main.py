@@ -21,6 +21,7 @@ import json
 import logging
 import os
 import re
+import shutil
 import socket
 import stat
 import sys
@@ -271,7 +272,10 @@ def countdown_timer(seconds: int, message: str = "Waiting") -> None:
         time.sleep(seconds)
         return
 
-    width = 15
+    # Dynamic width: ~40% of terminal, clamped between 15 and 50 chars
+    cols, _ = shutil.get_terminal_size(fallback=(80, 24))
+    width = max(15, min(50, int(cols * 0.4)))
+
     for remaining in range(seconds, 0, -1):
         progress = (seconds - remaining + 1) / seconds
         filled = int(width * progress)
@@ -293,7 +297,10 @@ def render_progress_bar(
     if not USE_COLORS or total == 0:
         return
 
-    width = 15
+    # Dynamic width: ~40% of terminal, clamped between 15 and 50 chars
+    cols, _ = shutil.get_terminal_size(fallback=(80, 24))
+    width = max(15, min(50, int(cols * 0.4)))
+
     progress = min(1.0, current / total)
     filled = int(width * progress)
     bar = "█" * filled + "░" * (width - filled)
@@ -325,10 +332,14 @@ def get_validated_input(
 ) -> str:
     """Prompts for input until the validator returns True."""
     while True:
-        if is_password:
-            value = getpass.getpass(prompt).strip()
-        else:
-            value = input(prompt).strip()
+        try:
+            if is_password:
+                value = getpass.getpass(prompt).strip()
+            else:
+                value = input(prompt).strip()
+        except (KeyboardInterrupt, EOFError):
+            print(f"\n{Colors.WARNING}⚠️  Input cancelled.{Colors.ENDC}")
+            sys.exit(130)
 
         if not value:
             print(f"{Colors.FAIL}❌ Value cannot be empty{Colors.ENDC}")
