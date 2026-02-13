@@ -233,9 +233,8 @@ def format_duration(seconds: float) -> str:
     if seconds < 60:
         return f"{seconds:.1f}s"
 
-    minutes = int(seconds // 60)
-    rem_seconds = int(seconds % 60)
-    return f"{minutes}m {rem_seconds:02d}s"
+    minutes, rem_seconds = divmod(int(seconds), 60)
+    return f'{minutes}m {rem_seconds:02d}s'
 
 
 def print_plan_details(plan_entry: Dict[str, Any]) -> None:
