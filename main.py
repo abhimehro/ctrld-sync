@@ -1501,7 +1501,7 @@ def main():
                     f"{Colors.BOLD}Enter Control D Profile ID:{Colors.ENDC} ",
                     validate_profile_input,
                     "Invalid ID(s) or URL(s). Must be a valid Profile ID or "
-                    "Control D Profile URL. Comma-separate for multiple.",
+                    "a Control D Profile URL. Comma-separate for multiple.",
                 )
                 profile_ids = [
                     extract_profile_id(p) for p in p_input.split(",") if p.strip()
