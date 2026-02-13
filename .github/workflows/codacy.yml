@@ -54,8 +54,82 @@ jobs:
           # This will handover control about PR rejection to the GitHub side
           max-allowed-issues: 2147483647
 
+      # GitHub code scanning rejects SARIF files that contain 0 `runs` entries.
+      # Codacy can occasionally emit a SARIF skeleton with an empty `runs: []` list
+      # (e.g., when no analyzers ran or no results were produced).
+      #
+      # SECURITY: We normalize the SARIF payload locally (no network calls, no secrets)
+      # so we can still upload a "0 findings" run and keep CI green.
+      - name: Normalize SARIF for GitHub upload (ensure at least one run)
+        id: sarif
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import sys
+
+          sarif_in = "results.sarif"
+          sarif_out = sarif_in
+
+          if not os.path.exists(sarif_in):
+              print(f"::error file={sarif_in}::SARIF output missing; Codacy step should have produced it")
+              sys.exit(1)
+
+          try:
+              with open(sarif_in, "r", encoding="utf-8") as f:
+                  sarif = json.load(f)
+          except json.JSONDecodeError as e:
+              print(f"::error file={sarif_in}::Invalid SARIF JSON: {e}")
+              sys.exit(1)
+
+          runs = sarif.get("runs")
+          if not isinstance(runs, list) or len(runs) == 0:
+              # SECURITY: If Codacy emits 0 runs, GitHub will reject the upload and mark CI red.
+              # We keep CI green by uploading a valid "0 findings" run, but we still emit a
+              # warning because 0 runs can also indicate a misconfiguration or an analysis no-op.
+              print(
+                  "::warning::Codacy produced SARIF with 0 runs; inserting an empty run so GitHub upload-sarif succeeds. "
+                  "If this happens frequently, verify Codacy analyzers/config so scans are not accidentally skipped."
+              )
+
+              # NOTE: A single empty run is valid SARIF and satisfies the GitHub API.
+              sarif["runs"] = [
+                  {
+                      "tool": {
+                          "driver": {
+                              "name": "Codacy Analysis CLI",
+                              "informationUri": "https://github.com/codacy/codacy-analysis-cli",
+                              "version": os.environ.get("CODACY_ANALYSIS_CLI_VERSION", ""),
+                          }
+                      },
+                      "results": [],
+                  }
+              ]
+
+              # NOTE: Write to a new file instead of modifying in-place.
+              # The Codacy action can occasionally produce a read-only SARIF file.
+              sarif_out = "results.normalized.sarif"
+              with open(sarif_out, "w", encoding="utf-8") as f:
+                  json.dump(sarif, f, indent=2)
+
+              print(
+                  f"Inserted minimal empty SARIF run and wrote normalized output to {sarif_out} for upload."
+              )
+          else:
+              print(f"SARIF contains {len(runs)} run(s); no normalization needed.")
+
+          github_output = os.environ.get("GITHUB_OUTPUT")
+          if not github_output:
+              print("::error::GITHUB_OUTPUT not set; cannot pass SARIF path to subsequent step")
+              sys.exit(1)
+
+          with open(github_output, "a", encoding="utf-8") as f:
+              f.write(f"sarif_file={sarif_out}\n")
+          PY
+
       # Upload the SARIF file generated in the previous step
       - name: Upload SARIF results file
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: results.sarif
+          sarif_file: ${{ steps.sarif.outputs.sarif_file }}
