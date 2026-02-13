@@ -1,5 +1,11 @@
 # Control D Sync
 
+[![Sync](https://github.com/abhimehro/ctrld-sync/actions/workflows/sync.yml/badge.svg)](https://github.com/abhimehro/ctrld-sync/actions/workflows/sync.yml)
+[![Bandit](https://github.com/abhimehro/ctrld-sync/actions/workflows/bandit.yml/badge.svg)](https://github.com/abhimehro/ctrld-sync/actions/workflows/bandit.yml)
+[![Codacy Security Scan](https://github.com/abhimehro/ctrld-sync/actions/workflows/codacy.yml/badge.svg)](https://github.com/abhimehro/ctrld-sync/actions/workflows/codacy.yml)
+[![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A tiny Python script that keeps your Control D Folders in sync with a set of
 remote block-lists.
 
@@ -46,6 +52,32 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
 
 3. **Configure Folders**
    Edit the `FOLDER_URLS` list in `main.py` to include the URLs of the JSON block-lists you want to sync.
+   
+   **Example configuration:**
+   ```python
+   DEFAULT_FOLDER_URLS = [
+       # Allow lists
+       "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/controld/apple-private-relay-allow-folder.json",
+       "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/controld/microsoft-allow-folder.json",
+       
+       # Block lists
+       "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/controld/badware-hoster-folder.json",
+       "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/controld/native-tracker-amazon-folder.json",
+       
+       # Custom block lists
+       "https://raw.githubusercontent.com/yokoffing/Control-D-Config/main/folders/potentially-malicious-ips.json",
+   ]
+   ```
+   
+   The script includes 23 default folder URLs from [hagezi's dns-blocklists](https://github.com/hagezi/dns-blocklists) covering:
+   - Native tracker blocking (Amazon, Apple, Samsung, etc.)
+   - Badware and spam protection
+   - Allow lists for common services
+   
+   You can add your own JSON block-list URLs or use command-line arguments:
+   ```bash
+   uv run python main.py --folder-url https://example.com/my-blocklist.json
+   ```
 
 > [!NOTE]
 > Currently only Folders with one action are supported.
@@ -72,3 +104,47 @@ The included GitHub Actions workflow (`.github/workflows/ci.yml`) runs a dry-run
 ## Requirements
 - Python 3.13+
 - `uv` (for dependency management)
+
+## Release Process
+
+This project uses manual releases via GitHub Releases. To create a new release:
+
+1. **Ensure all changes are tested and merged to `main`**
+   ```bash
+   # Verify tests pass
+   pytest tests/
+   
+   # Verify security scans pass
+   bandit -r main.py -ll
+   ```
+
+2. **Update version in `pyproject.toml`**
+   ```toml
+   [project]
+   version = "0.2.0"  # Increment appropriately
+   ```
+
+3. **Create and push a version tag**
+   ```bash
+   git tag -a v0.2.0 -m "Release v0.2.0: Description of changes"
+   git push origin v0.2.0
+   ```
+
+4. **Create GitHub Release**
+   - Go to [Releases](https://github.com/abhimehro/ctrld-sync/releases)
+   - Click "Draft a new release"
+   - Select the tag you just created
+   - Add release notes highlighting:
+     - New features
+     - Bug fixes
+     - Breaking changes (if any)
+     - Security updates
+   - Publish the release
+
+**Release Checklist:**
+- [ ] All tests passing
+- [ ] Security scans clean (Bandit, Codacy)
+- [ ] Version updated in `pyproject.toml`
+- [ ] Git tag created and pushed
+- [ ] GitHub Release created with notes
+- [ ] Release announcement (optional)
