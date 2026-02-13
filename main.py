@@ -1053,7 +1053,16 @@ def create_folder(
                 log.info(
                     f"Folder '{sanitize_for_log(name)}' not found yet. Retrying in {wait_time}s..."
                 )
-                countdown_timer(int(wait_time), "Waiting for folder")
+                # Local countdown with line clearing to avoid trailing characters when digits shrink (e.g., 10→9)
+                for remaining in range(int(wait_time), 0, -1):
+                    # Clear the current line and print updated countdown on the same line
+                    sys.stdout.write("\r\033[K")
+                    sys.stdout.write(f"Waiting for folder: {remaining}s")
+                    sys.stdout.flush()
+                    time.sleep(1)
+                # Clear the line once more so subsequent logs start on a fresh line
+                sys.stdout.write("\r\033[K")
+                sys.stdout.flush()
 
         log.error(
             f"Folder {sanitize_for_log(name)} was not found after creation and retries."
