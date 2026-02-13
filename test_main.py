@@ -550,3 +550,84 @@ def test_get_validated_input_interrupt(monkeypatch, capsys):
     # Check friendly message
     captured = capsys.readouterr()
     assert "Input cancelled" in captured.out
+
+
+# Case 15: get_validated_input handles both KeyboardInterrupt and EOFError for regular and password inputs
+@pytest.mark.parametrize("exception", [KeyboardInterrupt, EOFError])
+@pytest.mark.parametrize(
+    "is_password,mock_path",
+    [(False, "builtins.input"), (True, "getpass.getpass")],
+)
+def test_get_validated_input_graceful_exit_comprehensive(
+    monkeypatch, capsys, exception, is_password, mock_path
+):
+    """Test graceful exit on user cancellation (Ctrl+C/Ctrl+D) for both regular and password inputs."""
+    m = reload_main_with_env(monkeypatch)
+
+    # Mock input to raise the specified exception
+    monkeypatch.setattr(mock_path, MagicMock(side_effect=exception))
+
+    with pytest.raises(SystemExit) as e:
+        m.get_validated_input(
+            "Prompt: ", lambda x: True, "Error", is_password=is_password
+        )
+
+    # Check exit code is 130 (standard for SIGINT)
+    assert e.value.code == 130
+
+    # Check friendly cancellation message is displayed
+    captured = capsys.readouterr()
+    assert "Input cancelled" in captured.out
+
+
+# Case 16: _get_progress_bar_width returns correct values based on terminal size
+def test_get_progress_bar_width(monkeypatch):
+    """Test dynamic progress bar width calculation with various terminal sizes."""
+    m = reload_main_with_env(monkeypatch)
+
+    # Test very narrow terminal (30 cols) -> min clamp at 15
+    monkeypatch.setattr("shutil.get_terminal_size", lambda fallback: (30, 24))
+    width = m._get_progress_bar_width()
+    assert width == 15  # 30 * 0.4 = 12, clamped to min 15
+
+    # Test narrow terminal (50 cols) -> 40% = 20
+    monkeypatch.setattr("shutil.get_terminal_size", lambda fallback: (50, 24))
+    width = m._get_progress_bar_width()
+    assert width == 20  # 50 * 0.4 = 20
+
+    # Test standard terminal (80 cols) -> 40% = 32
+    monkeypatch.setattr("shutil.get_terminal_size", lambda fallback: (80, 24))
+    width = m._get_progress_bar_width()
+    assert width == 32  # 80 * 0.4 = 32
+
+    # Test medium terminal (100 cols) -> 40% = 40
+    monkeypatch.setattr("shutil.get_terminal_size", lambda fallback: (100, 24))
+    width = m._get_progress_bar_width()
+    assert width == 40  # 100 * 0.4 = 40
+
+    # Test wide terminal (200 cols) -> max clamp at 50
+    monkeypatch.setattr("shutil.get_terminal_size", lambda fallback: (200, 24))
+    width = m._get_progress_bar_width()
+    assert width == 50  # 200 * 0.4 = 80, clamped to max 50
+
+
+# Case 17: countdown_timer and render_progress_bar use dynamic width helper
+def test_progress_functions_use_dynamic_width(monkeypatch):
+    """Verify that progress functions call the width helper."""
+    m = reload_main_with_env(monkeypatch, no_color=None, isatty=True)
+    mock_stderr = MagicMock()
+    monkeypatch.setattr(sys, "stderr", mock_stderr)
+
+    # Mock terminal size to verify it's being used
+    monkeypatch.setattr("shutil.get_terminal_size", lambda fallback: (120, 24))
+
+    # Test render_progress_bar uses dynamic width
+    m.render_progress_bar(5, 10, "Test")
+    width_120 = m._get_progress_bar_width()  # Should be 48 (120 * 0.4)
+    assert width_120 == 48
+
+    # Check that the progress bar output reflects the dynamic width
+    writes = [args[0] for args, _ in mock_stderr.write.call_args_list]
+    combined = "".join(writes)
+    # With width 48, at 50% progress we should have 24 filled chars
+    assert "█" * 24 in combined or len([c for c in combined if c == "█"]) == 24
