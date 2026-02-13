@@ -268,7 +268,7 @@ def test_keyboard_interrupt_during_setup(monkeypatch, capsys):
 
     # Mock input to raise KeyboardInterrupt (simulating Ctrl+C)
     monkeypatch.setattr(
-        "builtins.input", MagicMock(side_effect=KeyboardInterrupt("User pressed Ctrl+C"))
+        "builtins.input", MagicMock(side_effect=KeyboardInterrupt())
     )
 
     # Mock parse_args
