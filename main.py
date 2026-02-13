@@ -261,13 +261,25 @@ def print_plan_details(plan_entry: Dict[str, Any]) -> None:
             print("  No folders to sync.")
         return
 
+    # Calculate max width for alignment
+    max_name_len = max(
+        (len(sanitize_for_log(f.get("name", ""))) for f in folders), default=0
+    )
+    max_rules_len = max((len(f"{f.get('rules', 0):,}") for f in folders), default=0)
+
     for folder in sorted(folders, key=lambda f: f.get("name", "")):
         name = sanitize_for_log(folder.get("name", "Unknown"))
         rules_count = folder.get("rules", 0)
+        formatted_rules = f"{rules_count:,}"
+
         if USE_COLORS:
-            print(f"  • {Colors.BOLD}{name}{Colors.ENDC}: {rules_count} rules")
+            print(
+                f"  • {Colors.BOLD}{name:<{max_name_len}}{Colors.ENDC} : {formatted_rules:>{max_rules_len}} rules"
+            )
         else:
-            print(f"  - {name}: {rules_count} rules")
+            print(
+                f"  - {name:<{max_name_len}} : {formatted_rules:>{max_rules_len}} rules"
+            )
 
     print("")
 
@@ -942,7 +954,7 @@ def get_all_existing_rules(
                         f"Failed to fetch rules for folder ID {folder_id}: {sanitize_for_log(e)}"
                     )
 
-        log.info(f"Total existing rules across all folders: {len(all_rules)}")
+        log.info(f"Total existing rules across all folders: {len(all_rules):,}")
         return all_rules
     except Exception as e:
         log.error(f"Failed to get existing rules: {sanitize_for_log(e)}")
@@ -965,7 +977,7 @@ def warm_up_cache(urls: Sequence[str]) -> None:
 
     total = len(urls_to_process)
     if not USE_COLORS:
-        log.info(f"Warming up cache for {total} URLs...")
+        log.info(f"Warming up cache for {total:,} URLs...")
 
     # OPTIMIZATION: Combine validation (DNS) and fetching (HTTP) in one task
     # to allow validation latency to be parallelized.
@@ -1181,10 +1193,7 @@ def push_rules(
             _api_post_form(client, f"{API_BASE}/{profile_id}/rules", data=data)
             if not USE_COLORS:
                 log.info(
-                    "Folder %s – batch %d: added %d rules",
-                    sanitize_for_log(folder_name),
-                    batch_idx,
-                    len(batch_data),
+                    f"Folder {sanitize_for_log(folder_name)} – batch {batch_idx}: added {len(batch_data):,} rules"
                 )
             return batch_data
         except httpx.HTTPError as e:
@@ -1233,14 +1242,12 @@ def push_rules(
     if successful_batches == total_batches:
         if USE_COLORS:
             sys.stderr.write(
-                f"\r\033[K{Colors.GREEN}✅ Folder {sanitize_for_log(folder_name)}: Finished ({len(filtered_hostnames)} rules){Colors.ENDC}\n"
+                f"\r\033[K{Colors.GREEN}✅ Folder {sanitize_for_log(folder_name)}: Finished ({len(filtered_hostnames):,} rules){Colors.ENDC}\n"
             )
             sys.stderr.flush()
         else:
             log.info(
-                "Folder %s – finished (%d new rules added)",
-                sanitize_for_log(folder_name),
-                len(filtered_hostnames),
+                f"Folder {sanitize_for_log(folder_name)} – finished ({len(filtered_hostnames):,} new rules added)"
             )
         return True
     else:
