@@ -4,10 +4,10 @@ import sys
 from unittest.mock import patch
 import main
 
+
 # Helper to get current main module (handles reloading by other tests)
 def get_main():
     return sys.modules.get("main", main)
-
 def test_print_plan_details_no_colors(capsys):
     """Test print_plan_details output when colors are disabled."""
     current_main = get_main()
