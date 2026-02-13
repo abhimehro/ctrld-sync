@@ -2,7 +2,6 @@
 
 import os
 import stat
-import sys
 from unittest.mock import MagicMock, patch, call
 
 
