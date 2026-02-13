@@ -1533,7 +1533,7 @@ def main():
         sys.stderr.write(
             f"\n{Colors.WARNING}⚠️  Sync cancelled by user.{Colors.ENDC}\n"
         )
-        sys.exit(130)
+        exit(130)
 
     plan: List[Dict[str, Any]] = []
     success_count = 0
