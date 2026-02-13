@@ -47,3 +47,7 @@
 ## 2026-01-28 - [Avoid ThreadPoolExecutor Overhead]
 **Learning:** `ThreadPoolExecutor` context management and thread creation overhead is non-negligible for single-item or very small workloads. If a parallelizable task only has 1 unit of work (e.g., 1 batch), running it synchronously in the main thread is faster and uses less memory than spinning up a pool.
 **Action:** Check the size of the workload before creating a `ThreadPoolExecutor`. If `len(tasks) == 1`, bypass the executor and run directly.
+
+## 2024-05-24 - [Skip Validation for Known Data]
+**Learning:** Performing expensive validation (e.g. regex) on data that is already known to be valid (e.g. exists in trusted remote state) is redundant. Checking existence in a local set (O(1)) before validation avoids CPU overhead for duplicates.
+**Action:** In filtering loops, check "is already processed/known" before "is valid", especially if "valid" implies "safe to process" and "known" implies "already processed".
