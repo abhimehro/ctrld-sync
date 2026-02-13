@@ -1529,7 +1529,7 @@ def main():
 
         warm_up_cache(folder_urls)
 
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, EOFError):
         sys.stderr.write(
             f"\n{Colors.WARNING}⚠️  Sync cancelled by user.{Colors.ENDC}\n"
         )
