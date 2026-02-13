@@ -687,9 +687,11 @@ def test_check_env_permissions_secure(monkeypatch):
     # Test case where permissions are already fine
     mock_open.reset_mock()
     mock_fchmod.reset_mock()
+    mock_close.reset_mock()
     mock_stat_result.st_mode = 0o100600 # rw-------
 
     m.check_env_permissions(".env")
 
     assert mock_open.called
     assert not mock_fchmod.called
+    mock_close.assert_called_with(123)
