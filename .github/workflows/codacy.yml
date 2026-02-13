@@ -82,6 +82,14 @@ jobs:
 
           runs = sarif.get("runs")
           if not isinstance(runs, list) or len(runs) == 0:
+              # SECURITY: If Codacy emits 0 runs, GitHub will reject the upload and mark CI red.
+              # We keep CI green by uploading a valid "0 findings" run, but we still emit a
+              # warning because 0 runs can also indicate a misconfiguration or an analysis no-op.
+              print(
+                  "::warning::Codacy produced SARIF with 0 runs; inserting an empty run so GitHub upload-sarif succeeds. "
+                  "If this happens frequently, verify Codacy analyzers/config so scans are not accidentally skipped."
+              )
+
               # NOTE: A single empty run is valid SARIF and satisfies the GitHub API.
               sarif["runs"] = [
                   {
