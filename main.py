@@ -229,12 +229,23 @@ def sanitize_for_log(text: Any) -> str:
 
 
 def format_duration(seconds: float) -> str:
-    """Formats duration in a human-readable way (e.g., 2m 05s)."""
-    if seconds < 60:
-        return f"{seconds:.1f}s"
+    """Formats duration in a human-readable way (e.g., 2m 05s).
 
-    minutes, rem_seconds = divmod(int(seconds), 60)
-    return f'{minutes}m {rem_seconds:02d}s'
+    We first round to the nearest whole second to avoid surprising
+    outputs around boundaries (e.g., 59.95s -> 1m 00s instead of
+    60.0s) and then derive minutes/seconds from that integer.
+    """
+    # Round once to whole seconds so behavior is consistent around the 60s
+    # boundary and we don't under-report longer durations due to truncation.
+    total_seconds = int(round(seconds))
+
+    if total_seconds < 60:
+        # For sub-minute durations, show whole seconds for clarity and to
+        # match the rounded value used for longer durations.
+        return f"{total_seconds}s"
+
+    minutes, rem_seconds = divmod(total_seconds, 60)
+    return f"{minutes}m {rem_seconds:02d}s"
 
 
 def print_plan_details(plan_entry: Dict[str, Any]) -> None:
@@ -276,12 +287,14 @@ def countdown_timer(seconds: int, message: str = "Waiting") -> None:
         progress = (seconds - remaining + 1) / seconds
         filled = int(width * progress)
         bar = "█" * filled + "░" * (width - filled)
+        # Clear line (\033[K) to prevent trailing characters when digits shrink
         sys.stderr.write(
-            f"\r{Colors.CYAN}⏳ {message}: [{bar}] {remaining}s...{Colors.ENDC}"
+            f"\r\033[K{Colors.CYAN}⏳ {message}: [{bar}] {remaining}s...{Colors.ENDC}"
         )
         sys.stderr.flush()
         time.sleep(1)
 
+    # Clear the line one final time before showing completion message
     sys.stderr.write(f"\r\033[K{Colors.GREEN}✅ {message}: Done!{Colors.ENDC}\n")
     sys.stderr.flush()
 
@@ -618,7 +631,8 @@ def _retry_request(request_func, max_retries=MAX_RETRIES, delay=RETRY_DELAY):
                 f"Request failed (attempt {attempt + 1}/{max_retries}): "
                 f"{sanitize_for_log(e)}. Retrying in {wait_time}s..."
             )
-            time.sleep(wait_time)
+            # Use countdown timer for user feedback during retries (when interactive)
+            countdown_timer(int(wait_time), "Retrying")
 
 
 def _gh_get(url: str) -> Dict:
@@ -1053,16 +1067,8 @@ def create_folder(
                 log.info(
                     f"Folder '{sanitize_for_log(name)}' not found yet. Retrying in {wait_time}s..."
                 )
-                # Local countdown with line clearing to avoid trailing characters when digits shrink (e.g., 10→9)
-                for remaining in range(int(wait_time), 0, -1):
-                    # Clear the current line and print updated countdown on the same line
-                    sys.stdout.write("\r\033[K")
-                    sys.stdout.write(f"Waiting for folder: {remaining}s")
-                    sys.stdout.flush()
-                    time.sleep(1)
-                # Clear the line once more so subsequent logs start on a fresh line
-                sys.stdout.write("\r\033[K")
-                sys.stdout.flush()
+                # Use countdown timer for consistent UX with other retry operations
+                countdown_timer(int(wait_time), "Waiting for folder")
 
         log.error(
             f"Folder {sanitize_for_log(name)} was not found after creation and retries."
