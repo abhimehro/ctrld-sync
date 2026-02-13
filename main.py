@@ -266,15 +266,24 @@ def print_plan_details(plan_entry: Dict[str, Any]) -> None:
     print("")
 
 
+def _get_progress_bar_width() -> int:
+    """Calculate dynamic progress bar width based on terminal size.
+    
+    Returns width clamped between 15 and 50 characters, approximately
+    40% of terminal width. This ensures progress bars are readable on
+    narrow terminals while utilizing space on wider displays.
+    """
+    cols, _ = shutil.get_terminal_size(fallback=(80, 24))
+    return max(15, min(50, int(cols * 0.4)))
+
+
 def countdown_timer(seconds: int, message: str = "Waiting") -> None:
     """Shows a countdown timer if strictly in a TTY, otherwise just sleeps."""
     if not USE_COLORS:
         time.sleep(seconds)
         return
 
-    # Dynamic width: ~40% of terminal, clamped between 15 and 50 chars
-    cols, _ = shutil.get_terminal_size(fallback=(80, 24))
-    width = max(15, min(50, int(cols * 0.4)))
+    width = _get_progress_bar_width()
 
     for remaining in range(seconds, 0, -1):
         progress = (seconds - remaining + 1) / seconds
@@ -297,9 +306,7 @@ def render_progress_bar(
     if not USE_COLORS or total == 0:
         return
 
-    # Dynamic width: ~40% of terminal, clamped between 15 and 50 chars
-    cols, _ = shutil.get_terminal_size(fallback=(80, 24))
-    width = max(15, min(50, int(cols * 0.4)))
+    width = _get_progress_bar_width()
 
     progress = min(1.0, current / total)
     filled = int(width * progress)
