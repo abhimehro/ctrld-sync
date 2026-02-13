@@ -1483,10 +1483,15 @@ def main():
             if not profile_ids:
                 print(f"{Colors.CYAN}ℹ Profile ID is missing.{Colors.ENDC}")
                 print(
-                    f"{Colors.CYAN}  You can find this in the URL of your profile in the Control D Dashboard at https://controld.com/dashboard/profiles (or just paste the URL).{Colors.ENDC}"
+                    f"{Colors.CYAN}  Find it in your profile URL at "
+                    f"https://controld.com/dashboard/profiles{Colors.ENDC}"
+                )
+                print(
+                    f"{Colors.CYAN}  (You can also paste the full profile URL).{Colors.ENDC}"
                 )
 
                 def validate_profile_input(value: str) -> bool:
+                    """Validate comma-separated profile IDs or URLs."""
                     ids = [extract_profile_id(p) for p in value.split(",") if p.strip()]
                     return bool(ids) and all(
                         validate_profile_id(pid, log_errors=False) for pid in ids
@@ -1495,7 +1500,8 @@ def main():
                 p_input = get_validated_input(
                     f"{Colors.BOLD}Enter Control D Profile ID:{Colors.ENDC} ",
                     validate_profile_input,
-                    "Invalid ID(s) or URL(s). Must be a valid Profile ID or a Control D Profile URL. Comma-separate for multiple.",
+                    "Invalid ID(s) or URL(s). Must be a valid Profile ID or "
+                    "a Control D Profile URL. Comma-separate for multiple.",
                 )
                 profile_ids = [
                     extract_profile_id(p) for p in p_input.split(",") if p.strip()

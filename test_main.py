@@ -244,8 +244,63 @@ def test_interactive_prompts_show_hints(monkeypatch, capsys):
     captured = capsys.readouterr()
     stdout = captured.out
 
-    assert "You can find this in the URL of your profile" in stdout
+    # Verify both hint URLs are displayed
+    assert "https://controld.com/dashboard/profiles" in stdout
     assert "https://controld.com/account/manage-account" in stdout
+
+
+def test_keyboard_interrupt_during_setup(monkeypatch, capsys):
+    """Test that KeyboardInterrupt during setup phase exits gracefully with code 130."""
+    # Ensure environment is clean
+    monkeypatch.delenv("PROFILE", raising=False)
+    monkeypatch.delenv("TOKEN", raising=False)
+
+    # Prevent dotenv from loading .env file
+    import dotenv
+
+    monkeypatch.setattr(dotenv, "load_dotenv", lambda: None)
+
+    # Reload main with isatty=True to trigger interactive mode
+    m = reload_main_with_env(monkeypatch, isatty=True)
+
+    # Mock sys.stdin.isatty to return True
+    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
+
+    # Mock input to raise KeyboardInterrupt (simulating Ctrl+C)
+    monkeypatch.setattr(
+        "builtins.input", MagicMock(side_effect=KeyboardInterrupt())
+    )
+
+    # Mock parse_args
+    mock_args = MagicMock()
+    mock_args.profiles = None
+    mock_args.folder_url = None
+    mock_args.dry_run = False
+    mock_args.no_delete = False
+    mock_args.plan_json = None
+    monkeypatch.setattr(m, "parse_args", lambda: mock_args)
+
+    # Mock exit to capture the exit code
+    exit_code = None
+
+    def mock_exit(code):
+        nonlocal exit_code
+        exit_code = code
+        raise SystemExit(code)
+
+    monkeypatch.setattr("builtins.exit", mock_exit)
+
+    # Run main and expect SystemExit
+    with pytest.raises(SystemExit):
+        m.main()
+
+    # Verify exit code is 130 (standard for Ctrl+C)
+    assert exit_code == 130
+
+    # Verify user-friendly cancellation message
+    captured = capsys.readouterr()
+    stderr = captured.err
+    assert "Sync cancelled by user" in stderr
 
 
 # Case 7: verify_access_and_get_folders handles success and errors correctly
@@ -451,7 +506,7 @@ def test_interactive_input_extracts_id(monkeypatch, capsys):
 
     # Verify prompt text update
     captured = capsys.readouterr()
-    assert "(or just paste the URL)" in captured.out
+    assert "(You can also paste the full profile URL)" in captured.out
 
 
 # Case 10: validate_profile_id respects log_errors flag
