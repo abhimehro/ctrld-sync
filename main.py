@@ -1484,12 +1484,10 @@ def main():
                 print(f"{Colors.CYAN}ℹ Profile ID is missing.{Colors.ENDC}")
                 print(
                     f"{Colors.CYAN}  Find it in your profile URL at "
-                    f"https://controld.com/dashboard/profiles"
-                    f"{Colors.ENDC}"
+                    f"https://controld.com/dashboard/profiles{Colors.ENDC}"
                 )
                 print(
-                    f"{Colors.CYAN}  (You can also paste the full profile URL)."
-                    f"{Colors.ENDC}"
+                    f"{Colors.CYAN}  (You can also paste the full profile URL).{Colors.ENDC}"
                 )
 
                 def validate_profile_input(value: str) -> bool:
