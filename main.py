@@ -1121,6 +1121,10 @@ def push_rules(
     skipped_unsafe = 0
 
     for h in unique_hostnames:
+        # Optimization: Check existence first to skip regex validation for known rules
+        if h in existing_rules:
+            continue
+
         if not is_valid_rule(h):
             log.warning(
                 f"Skipping unsafe rule in {sanitize_for_log(folder_name)}: {sanitize_for_log(h)}"
@@ -1128,8 +1132,7 @@ def push_rules(
             skipped_unsafe += 1
             continue
 
-        if h not in existing_rules:
-            filtered_hostnames.append(h)
+        filtered_hostnames.append(h)
 
     if skipped_unsafe > 0:
         log.warning(
