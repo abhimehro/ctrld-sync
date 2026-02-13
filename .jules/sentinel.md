@@ -25,3 +25,11 @@
 **Learning:** `os.chmod` and `open()` follow symlinks by default in Python (and most POSIX environments).
 
 **Prevention:** Always use `os.path.islink()` to check for symlinks before modifying file metadata or content if the path is user-controlled or in a writable directory. Use `os.open` with `O_CREAT | O_WRONLY | O_TRUNC` and `os.chmod(fd)` on the file descriptor to avoid race conditions (TOCTOU) and ensure operations apply to the file itself, not a symlink target.
+
+## 2026-10-24 - TOCTOU Race Condition in File Permission Checks
+
+**Vulnerability:** The `check_env_permissions` function checked for symlinks (`os.path.islink`) and then modified permissions (`os.chmod`) using the file path. This created a Time-of-Check Time-of-Use (TOCTOU) race condition where an attacker could swap the file with a symlink between the check and the modification.
+
+**Learning:** Path-based checks (`os.path.islink`, `os.stat`) followed by path-based operations (`os.chmod`) are inherently racy. File descriptors are the only way to pin the resource.
+
+**Prevention:** Use `os.open` with `O_NOFOLLOW` to open the file securely (failing if it's a symlink). Then use file-descriptor-based operations: `os.fstat(fd)` to check modes and `os.fchmod(fd, mode)` to modify permissions. This ensures operations apply to the exact inode opened.

@@ -631,3 +631,65 @@ def test_progress_functions_use_dynamic_width(monkeypatch):
     combined = "".join(writes)
     # With width 48, at 50% progress we should have 24 filled chars
     assert "█" * 24 in combined or len([c for c in combined if c == "█"]) == 24
+
+
+# Case 18: check_env_permissions uses secure file operations
+def test_check_env_permissions_secure(monkeypatch):
+    m = reload_main_with_env(monkeypatch)
+
+    # Mock os.path.exists and os.path.islink
+    monkeypatch.setattr("os.path.exists", lambda x: True)
+    monkeypatch.setattr("os.path.islink", lambda x: False)
+    monkeypatch.setattr("os.name", "posix")
+
+    # Mock low-level file operations
+    mock_open = MagicMock(return_value=123)
+    mock_close = MagicMock()
+    mock_fstat = MagicMock()
+    mock_fchmod = MagicMock()
+
+    monkeypatch.setattr("os.open", mock_open)
+    monkeypatch.setattr("os.close", mock_close)
+    monkeypatch.setattr("os.fstat", mock_fstat)
+    monkeypatch.setattr("os.fchmod", mock_fchmod, raising=False)
+
+    # Mock stat result: world readable (needs fix)
+    # 0o666 = rw-rw-rw-
+    mock_stat_result = MagicMock()
+    mock_stat_result.st_mode = 0o100666 # Regular file, rw-rw-rw-
+    mock_fstat.return_value = mock_stat_result
+
+    # Capture stderr
+    mock_stderr = MagicMock()
+    monkeypatch.setattr(sys, "stderr", mock_stderr)
+
+    # Run
+    m.check_env_permissions(".env")
+
+    # Verify os.open called with O_NOFOLLOW
+    assert mock_open.called
+    args, _ = mock_open.call_args
+    # Check flags
+    expected_flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    assert args[1] == expected_flags
+
+    # Verify fchmod called
+    mock_fchmod.assert_called_with(123, 0o600)
+
+    # Verify close called
+    mock_close.assert_called_with(123)
+
+    # Verify success message
+    writes = [args[0] for args, _ in mock_stderr.write.call_args_list]
+    combined = "".join(writes)
+    assert "Fixed .env permissions" in combined
+
+    # Test case where permissions are already fine
+    mock_open.reset_mock()
+    mock_fchmod.reset_mock()
+    mock_stat_result.st_mode = 0o100600 # rw-------
+
+    m.check_env_permissions(".env")
+
+    assert mock_open.called
+    assert not mock_fchmod.called

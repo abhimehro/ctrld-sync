@@ -136,25 +136,31 @@ def check_env_permissions(env_path: str = ".env") -> None:
         return
 
     try:
-        file_stat = os.stat(env_path)
-        # Check if group or others have any permission
-        if file_stat.st_mode & (stat.S_IRWXG | stat.S_IRWXO):
-            perms = format(stat.S_IMODE(file_stat.st_mode), "03o")
+        # Security: Use low-level file descriptor operations to avoid TOCTOU (Time-of-Check Time-of-Use)
+        # race conditions. We open the file with O_NOFOLLOW to ensure we don't follow symlinks.
+        fd = os.open(env_path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        try:
+            file_stat = os.fstat(fd)
+            # Check if group or others have any permission
+            if file_stat.st_mode & (stat.S_IRWXG | stat.S_IRWXO):
+                perms = format(stat.S_IMODE(file_stat.st_mode), "03o")
 
-            # Auto-fix: Set to 600 (owner read/write only)
-            try:
-                os.chmod(env_path, 0o600)
-                sys.stderr.write(
-                    f"{Colors.GREEN}✓ Fixed {env_path} permissions "
-                    f"(was {perms}, now set to 600){Colors.ENDC}\n"
-                )
-            except OSError as fix_error:
-                # Auto-fix failed, show warning with instructions
-                sys.stderr.write(
-                    f"{Colors.WARNING}⚠️  Security Warning: {env_path} is "
-                    f"readable by others ({perms})! Auto-fix failed: {fix_error}. "
-                    f"Please run: chmod 600 {env_path}{Colors.ENDC}\n"
-                )
+                # Auto-fix: Set to 600 (owner read/write only) using fchmod on the open descriptor
+                try:
+                    os.fchmod(fd, 0o600)
+                    sys.stderr.write(
+                        f"{Colors.GREEN}✓ Fixed {env_path} permissions "
+                        f"(was {perms}, now set to 600){Colors.ENDC}\n"
+                    )
+                except OSError as fix_error:
+                    # Auto-fix failed, show warning with instructions
+                    sys.stderr.write(
+                        f"{Colors.WARNING}⚠️  Security Warning: {env_path} is "
+                        f"readable by others ({perms})! Auto-fix failed: {fix_error}. "
+                        f"Please run: chmod 600 {env_path}{Colors.ENDC}\n"
+                    )
+        finally:
+            os.close(fd)
     except OSError as error:
         # More specific exception type as suggested by bot review
         exception_type = type(error).__name__
