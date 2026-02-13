@@ -263,11 +263,13 @@ def print_plan_details(plan_entry: Dict[str, Any]) -> None:
 
     # Calculate max width for alignment
     max_name_len = max(
-        (len(sanitize_for_log(f.get("name", ""))) for f in folders), default=0
+        # Use the same default ("Unknown") as when printing, so alignment is accurate
+        (len(sanitize_for_log(f.get("name", "Unknown"))) for f in folders),
+        default=0,
     )
     max_rules_len = max((len(f"{f.get('rules', 0):,}") for f in folders), default=0)
 
-    for folder in sorted(folders, key=lambda f: f.get("name", "")):
+    for folder in sorted(folders, key=lambda f: f.get("name", "Unknown")):
         name = sanitize_for_log(folder.get("name", "Unknown"))
         rules_count = folder.get("rules", 0)
         formatted_rules = f"{rules_count:,}"
