@@ -51,7 +51,7 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
    For GitHub Actions, set `TOKEN` and `PROFILE` secrets to the raw values (not the full `TOKEN=...` / `PROFILE=...` lines).
 
 3. **Configure Folders**
-   Edit the `FOLDER_URLS` list in `main.py` to include the URLs of the JSON block-lists you want to sync.
+   Edit the `DEFAULT_FOLDER_URLS` list in `main.py` to include the URLs of the JSON block-lists you want to sync.
    
    **Example configuration:**
    ```python
