@@ -5,12 +5,16 @@ import os
 import sys
 from unittest.mock import patch
 
-import main
 
+# NOTE: Avoid importing `main` at module import time.
+# Some tests delete `sys.modules["main"]` to force a clean import under different env/TTY
+# settings; holding a stale module reference can cause patches to target the wrong module.
 
 def test_print_plan_details_no_colors(capsys):
     """Test print_plan_details output when colors are disabled."""
-    with patch("main.USE_COLORS", False):
+    import main as m
+
+    with patch.object(m, "USE_COLORS", False):
         plan_entry = {
             "profile": "test_profile",
             "folders": [
@@ -18,7 +22,7 @@ def test_print_plan_details_no_colors(capsys):
                 {"name": "Folder A", "rules": 10},
             ],
         }
-        main.print_plan_details(plan_entry)
+        m.print_plan_details(plan_entry)
 
     captured = capsys.readouterr()
     output = captured.out
@@ -32,9 +36,11 @@ def test_print_plan_details_no_colors(capsys):
 
 def test_print_plan_details_empty_folders(capsys):
     """Test print_plan_details with no folders."""
-    with patch("main.USE_COLORS", False):
+    import main as m
+
+    with patch.object(m, "USE_COLORS", False):
         plan_entry = {"profile": "test_profile", "folders": []}
-        main.print_plan_details(plan_entry)
+        m.print_plan_details(plan_entry)
 
     captured = capsys.readouterr()
     output = captured.out
@@ -45,27 +51,22 @@ def test_print_plan_details_empty_folders(capsys):
 
 def test_print_plan_details_with_colors(capsys):
     """Test print_plan_details output when colors are enabled."""
-    # Force USE_COLORS=True for this test, but also ensure Colors class is populated
-    # The Colors class is defined at import time based on USE_COLORS.
-    # If main was imported previously with USE_COLORS=False, Colors attributes are empty strings.
-    # We must reload main with an environment that forces USE_COLORS=True, or mock Colors.
+    # Force USE_COLORS=True for this test, and reload `main` so the `Colors` class is
+    # created with non-empty ANSI codes.
 
-    with patch.dict(os.environ, {"NO_COLOR": ""}):
-        with patch("sys.stderr.isatty", return_value=True), patch("sys.stdout.isatty", return_value=True):
-            # Robust reload: handle case where main module reference is stale
-            if "main" in sys.modules:
-                importlib.reload(sys.modules["main"])
-            else:
-                import main
-                importlib.reload(main)
+    with patch.dict(os.environ, {"NO_COLOR": ""}, clear=False):
+        with patch("sys.stderr.isatty", return_value=True), patch(
+            "sys.stdout.isatty", return_value=True
+        ):
+            import main as m
 
-            # Now verify output with colors
+            m = importlib.reload(m)
+
             plan_entry = {
                 "profile": "test_profile",
                 "folders": [{"name": "Folder A", "rules": 10}],
             }
-            # Use the module from sys.modules to ensure we use the reloaded one
-            sys.modules["main"].print_plan_details(plan_entry)
+            m.print_plan_details(plan_entry)
 
             captured = capsys.readouterr()
             output = captured.out

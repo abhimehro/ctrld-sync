@@ -43,3 +43,7 @@
 ## 2024-05-22 - Ordered Deduplication Optimization
 **Learning:** `dict.fromkeys(list)` is significantly faster (~2x) than a Python loop with `seen = set()` for deduplicating large lists while preserving order. It also naturally deduplicates invalid items if validation happens after, which prevents log spam.
 **Action:** Use `dict.fromkeys()` for ordered deduplication of large inputs instead of manual loop with `seen` set.
+
+## 2026-01-28 - [Avoid ThreadPoolExecutor Overhead]
+**Learning:** `ThreadPoolExecutor` context management and thread creation overhead is non-negligible for single-item or very small workloads. If a parallelizable task only has 1 unit of work (e.g., 1 batch), running it synchronously in the main thread is faster and uses less memory than spinning up a pool.
+**Action:** Check the size of the workload before creating a `ThreadPoolExecutor`. If `len(tasks) == 1`, bypass the executor and run directly.
