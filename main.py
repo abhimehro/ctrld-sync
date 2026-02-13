@@ -116,6 +116,15 @@ def check_env_permissions(env_path: str = ".env") -> None:
     if not os.path.exists(env_path):
         return
 
+    # Security: Don't follow symlinks when checking/fixing permissions
+    # This prevents attacks where .env is symlinked to a system file (e.g., /etc/passwd)
+    if os.path.islink(env_path):
+        sys.stderr.write(
+            f"{Colors.WARNING}⚠️  Security Warning: {env_path} is a symlink. "
+            f"Skipping permission fix to avoid damaging target file.{Colors.ENDC}\n"
+        )
+        return
+
     # Windows doesn't have Unix permissions
     if os.name == "nt":
         # Just warn on Windows, can't auto-fix
