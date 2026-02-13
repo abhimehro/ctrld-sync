@@ -651,7 +651,7 @@ def test_check_env_permissions_secure(monkeypatch):
     monkeypatch.setattr("os.open", mock_open)
     monkeypatch.setattr("os.close", mock_close)
     monkeypatch.setattr("os.fstat", mock_fstat)
-    monkeypatch.setattr("os.fchmod", mock_fchmod, raising=False)
+    monkeypatch.setattr("os.fchmod", mock_fchmod)
 
     # Mock stat result: world readable (needs fix)
     # 0o666 = rw-rw-rw-
