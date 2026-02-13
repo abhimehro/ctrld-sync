@@ -353,15 +353,34 @@ def get_validated_input(
     prompt: str,
     validator: Callable[[str], bool],
     error_msg: str,
-    is_password: bool = False,
 ) -> str:
     """Prompts for input until the validator returns True."""
     while True:
         try:
-            if is_password:
-                value = getpass.getpass(prompt).strip()
-            else:
-                value = input(prompt).strip()
+            value = input(prompt).strip()
+        except (KeyboardInterrupt, EOFError):
+            print(f"\n{Colors.WARNING}⚠️  Input cancelled.{Colors.ENDC}")
+            sys.exit(130)
+
+        if not value:
+            print(f"{Colors.FAIL}❌ Value cannot be empty{Colors.ENDC}")
+            continue
+
+        if validator(value):
+            return value
+
+        print(f"{Colors.FAIL}❌ {error_msg}{Colors.ENDC}")
+
+
+def get_password(
+    prompt: str,
+    validator: Callable[[str], bool],
+    error_msg: str,
+) -> str:
+    """Prompts for password input until the validator returns True."""
+    while True:
+        try:
+            value = getpass.getpass(prompt).strip()
         except (KeyboardInterrupt, EOFError):
             print(f"\n{Colors.WARNING}⚠️  Input cancelled.{Colors.ENDC}")
             sys.exit(130)
@@ -1574,11 +1593,10 @@ def main():
                 f"{Colors.CYAN}  You can generate one at: https://controld.com/account/manage-account{Colors.ENDC}"
             )
 
-            t_input = get_validated_input(
+            t_input = get_password(
                 f"{Colors.BOLD}Enter Control D API Token:{Colors.ENDC} ",
                 lambda x: len(x) > 8,
                 "Token seems too short. Please check your API token.",
-                is_password=True,
             )
             TOKEN = t_input
 
