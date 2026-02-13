@@ -151,7 +151,7 @@ def test_env_permission_check_no_warn_on_secure_permissions(monkeypatch, tmp_pat
 
 
 def test_env_permission_check_handles_stat_error(monkeypatch):
-    """Test that permission check handles stat() errors gracefully."""
+    """Test that permission check handles os.open() errors gracefully."""
     # Import main to get access to check_env_permissions
     import main
 
@@ -159,13 +159,15 @@ def test_env_permission_check_handles_stat_error(monkeypatch):
     mock_stderr = MagicMock()
     monkeypatch.setattr(sys, "stderr", mock_stderr)
 
-    # Mock os.stat to raise an exception
-    def mock_stat(path):
+    # Mock os.open to raise an exception
+    def mock_open(*args, **kwargs):
         raise PermissionError("Cannot access file")
 
-    monkeypatch.setattr(os, "stat", mock_stat)
+    monkeypatch.setattr(os, "open", mock_open)
     # Mock os.path.exists to return True so the check proceeds
     monkeypatch.setattr(os.path, "exists", lambda x: True)
+    # Mock os.path.islink to return False
+    monkeypatch.setattr(os.path, "islink", lambda x: False)
 
     # Run the permission check - should handle the error gracefully
     main.check_env_permissions(".env")
