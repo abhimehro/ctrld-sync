@@ -51,7 +51,7 @@ class TestCSVInjection(unittest.TestCase):
             # Should NOT start with quote (unless repr escaped something inside and used different quotes, but for simple strings it shouldn't)
             # Actually, repr("NormalString") is 'NormalString'. Stripped -> NormalString.
             # repr("Folder Name") is 'Folder Name'. Stripped -> Folder Name.
-            self.assertFalse(sanitized.startswith("'") and sanitized.endswith("'"),
+            self.assertFalse(sanitized.startswith(("'", '"')),
                              f"Input '{inp}' should have outer quotes stripped. Got: {sanitized}")
 
             # For strict check:
