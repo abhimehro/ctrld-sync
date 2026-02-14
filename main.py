@@ -269,25 +269,25 @@ def print_plan_details(plan_entry: Dict[str, Any]) -> None:
         return safe
 
     # Calculate max width for alignment
-    max_name_len = max(
-        (len(_safe_str(f.get("name", ""))) for f in folders), default=0
-    )
-    # Fixed width for rule count (enough for 99,999,999) to avoid CodeQL false positives
-    count_width = 10
+    width = max((len(_safe_str(f.get("name", ""))) for f in folders), default=0)
+    # Fixed width for count
+    c_width = 10
 
-    for folder in sorted(folders, key=lambda f: f.get("name", "")):
-        folder_label = _safe_str(folder.get("name", "Unknown"))
-        item_count = folder.get("rules", 0)
-        item_count_str = f"{item_count:,}"
+    for item in sorted(folders, key=lambda f: f.get("name", "")):
+        label = _safe_str(item.get("name", "Unknown"))
+        count_val = item.get("rules", 0)
+        count_str = f"{count_val:,}"
+
+        # Pre-format aligned strings to simplify print expression
+        padded_label = f"{label:<{width}}"
+        padded_count = f"{count_str:>{c_width}}"
 
         if USE_COLORS:
-            print(
-                f"  • {Colors.BOLD}{folder_label:<{max_name_len}}{Colors.ENDC} : {item_count_str:>{count_width}} rules"
-            )
+            line = f"  • {Colors.BOLD}{padded_label}{Colors.ENDC} : {padded_count} items"
+            print(line)
         else:
-            print(
-                f"  - {folder_label:<{max_name_len}} : {item_count_str:>{count_width}} rules"
-            )
+            line = f"  - {padded_label} : {padded_count} items"
+            print(line)
 
     print("")
 
