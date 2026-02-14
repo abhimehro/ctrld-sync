@@ -243,7 +243,7 @@ def sanitize_for_log(text: Any) -> str:
     # Security: Prevent CSV Injection (Formula Injection)
     # If the string starts with =, +, -, or @, we keep the quotes from repr()
     # to force spreadsheet software to treat it as a string literal.
-    if s and str(s)[0] in ("=", "+", "-", "@"):
+    if s and s.startswith(("=", "+", "-", "@")):
         return safe
 
     if len(safe) >= 2 and safe[0] == safe[-1] and safe[0] in ("'", '"'):
