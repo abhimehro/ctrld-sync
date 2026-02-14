@@ -244,14 +244,6 @@ def sanitize_for_log(text: Any) -> str:
     return safe
 
 
-def _safe_str(s: Any) -> str:
-    """Escape control characters without touching global secrets (avoids CodeQL taint)."""
-    safe = repr(str(s))
-    if len(safe) >= 2 and safe[0] == safe[-1] and safe[0] in ("'", '"'):
-        return safe[1:-1]
-    return safe
-
-
 def print_plan_details(plan_entry: Dict[str, Any]) -> None:
     """Pretty-print the folder-level breakdown during a dry-run."""
     profile = sanitize_for_log(plan_entry.get("profile", "unknown"))
@@ -270,13 +262,16 @@ def print_plan_details(plan_entry: Dict[str, Any]) -> None:
         return
 
     # Calculate max width for alignment
-    width = max((len(_safe_str(f.get("name", ""))) for f in folders), default=0)
+    # Use sanitize_for_log to ensure secrets are redacted, satisfying CodeQL
+    width = max(
+        (len(sanitize_for_log(f.get("name", ""))) for f in folders), default=0
+    )
     # Fixed width for count
     c_width = 10
 
     for item in sorted(folders, key=lambda f: f.get("name", "")):
         # Extract primitive values into a safe local scope
-        label = _safe_str(item.get("name", "Unknown"))
+        label = sanitize_for_log(item.get("name", "Unknown"))
         count_val = item.get("rules", 0)
         count_str = f"{count_val:,}"
 
