@@ -265,7 +265,8 @@ def print_plan_details(plan_entry: Dict[str, Any]) -> None:
     max_name_len = max(
         (len(sanitize_for_log(f.get("name", ""))) for f in folders), default=0
     )
-    max_digits_len = max((len(f"{f.get('rules', 0):,}") for f in folders), default=0)
+    # Fixed width for rule count (enough for 99,999,999) to avoid CodeQL false positives
+    count_width = 10
 
     for folder in sorted(folders, key=lambda f: f.get("name", "")):
         name = sanitize_for_log(folder.get("name", "Unknown"))
@@ -274,11 +275,11 @@ def print_plan_details(plan_entry: Dict[str, Any]) -> None:
 
         if USE_COLORS:
             print(
-                f"  • {Colors.BOLD}{name:<{max_name_len}}{Colors.ENDC} : {item_count_str:>{max_digits_len}} rules"
+                f"  • {Colors.BOLD}{name:<{max_name_len}}{Colors.ENDC} : {item_count_str:>{count_width}} rules"
             )
         else:
             print(
-                f"  - {name:<{max_name_len}} : {item_count_str:>{max_digits_len}} rules"
+                f"  - {name:<{max_name_len}} : {item_count_str:>{count_width}} rules"
             )
 
     print("")
