@@ -2,7 +2,7 @@
 description: |
   This workflow performs systematic backlog management by working through issues and pull requests.
   Operates in two phases: research entire backlog to categorize and prioritize items, then
-  systematically close, resolve, or advance selected items. Creates discussions to track
+  systematically close, resolve, or advance selected items. Creates tracking issues to track
   progress and gather maintainer feedback, helping reduce technical debt.
 
 on:
@@ -51,7 +51,7 @@ To decide which phase to perform:
 
 1. First check for existing open issue titled "${{ github.workflow }}" using `list_issues`. Double check the issue is actually still open - if it's closed you need to ignore it. If found, and open, read it and maintainer comments. If not found, then perform Phase 1 and nothing else.
 
-2. If the discussion exists and is open, then perform Phase 2.
+2. If the issue exists and is open, then perform Phase 2.
 
 ## Phase 1 - Backlog research
 

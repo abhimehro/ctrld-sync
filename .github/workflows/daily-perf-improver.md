@@ -4,7 +4,7 @@ description: |
   It builds the project and analyzes performance metrics to find optimization opportunities.
   Operates in three phases: research performance landscape and create plan, infer build steps
   and create performance engineering guides, then implement optimizations and measure impact.
-  Creates discussions to coordinate and draft PRs with improvements.
+  Creates tracking issues to coordinate and draft PRs with improvements.
 
 on:
   schedule: daily

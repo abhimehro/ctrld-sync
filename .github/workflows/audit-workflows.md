@@ -55,7 +55,7 @@ Generate 2 charts from past 30 days workflow data:
 2. **Token & Cost**: Daily tokens (bar/area) + cost line + 7-day moving average
 
 Save to: `/tmp/gh-aw/python/charts/{workflow_health,token_cost}_trends.png`
-Upload charts, embed in discussion with 2-3 sentence analysis each.
+Upload charts, embed in issue with 2-3 sentence analysis each.
 
 ---
 
@@ -83,7 +83,7 @@ Output is saved to: /tmp/gh-aw/aw-mcp/logs
 
 ### Report Formatting Guidelines
 
-**Header Levels**: Use h3 (###) or lower for all headers in your audit report. The discussion title serves as h1, so content headers should start at h3.
+**Header Levels**: Use h3 (###) or lower for all headers in your audit report. The issue title serves as h1, so content headers should start at h3.
 
 **Progressive Disclosure**: The template already uses appropriate `<details>` tags - maintain this pattern for any additional long sections.
 
