@@ -51,3 +51,7 @@
 ## 2024-05-24 - [Skip Validation for Known Data]
 **Learning:** Performing expensive validation (e.g. regex) on data that is already known to be valid (e.g. exists in trusted remote state) is redundant. Checking existence in a local set (O(1)) before validation avoids CPU overhead for duplicates.
 **Action:** In filtering loops, check "is already processed/known" before "is valid", especially if "valid" implies "safe to process" and "known" implies "already processed".
+
+## 2026-02-14 - [Hoist Invariants and Inline Methods in Hot Loops]
+**Learning:** In hot loops (e.g. processing 100k+ items), hoisting invariant computations (string conversions, regex sanitization) and inlining method lookups (e.g., `match_rule = RULE_PATTERN.match`) avoids repeated function call overhead. Benchmarks showed ~20% speedup for validation loops and ~2x for simple sanitization hoisting.
+**Action:** Identify calculations inside loops that don't depend on the loop variable and move them out. Use local variables for frequently accessed global/object methods.

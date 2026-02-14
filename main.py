@@ -1126,12 +1126,16 @@ def push_rules(
     filtered_hostnames = []
     skipped_unsafe = 0
 
+    # Optimization 2: Inline regex match and check existence
+    # Using a local reference to the match method avoids function call overhead
+    # in the hot loop. This provides a measurable speedup for large lists.
+    match_rule = RULE_PATTERN.match
+
     for h in unique_hostnames:
-        # Optimization: Check existence first to skip regex validation for known rules
         if h in existing_rules:
             continue
 
-        if not is_valid_rule(h):
+        if not match_rule(h):
             log.warning(
                 f"Skipping unsafe rule in {sanitize_for_log(folder_name)}: {sanitize_for_log(h)}"
             )
@@ -1167,11 +1171,18 @@ def push_rules(
 
     total_batches = len(batches)
 
+    # Optimization: Hoist loop invariants to avoid redundant computations
+    str_do = str(do)
+    str_status = str(status)
+    str_group = str(folder_id)
+    sanitized_folder_name = sanitize_for_log(folder_name)
+    progress_label = f"Folder {sanitized_folder_name}"
+
     def process_batch(batch_idx: int, batch_data: List[str]) -> Optional[List[str]]:
         data = {
-            "do": str(do),
-            "status": str(status),
-            "group": str(folder_id),
+            "do": str_do,
+            "status": str_status,
+            "group": str_group,
         }
         # Optimization: Use pre-calculated keys and zip for faster dict update
         # strict=False is intentional: batch_data may be shorter than BATCH_KEYS for final batch
@@ -1182,7 +1193,7 @@ def push_rules(
             if not USE_COLORS:
                 log.info(
                     "Folder %s – batch %d: added %d rules",
-                    sanitize_for_log(folder_name),
+                    sanitized_folder_name,
                     batch_idx,
                     len(batch_data),
                 )
@@ -1191,7 +1202,7 @@ def push_rules(
             if USE_COLORS:
                 sys.stderr.write("\n")
             log.error(
-                f"Failed to push batch {batch_idx} for folder {sanitize_for_log(folder_name)}: {sanitize_for_log(e)}"
+                f"Failed to push batch {batch_idx} for folder {sanitized_folder_name}: {sanitize_for_log(e)}"
             )
             if hasattr(e, "response") and e.response is not None:
                 log.debug(f"Response content: {sanitize_for_log(e.response.text)}")
@@ -1209,7 +1220,7 @@ def push_rules(
         render_progress_bar(
             successful_batches,
             total_batches,
-            f"Folder {sanitize_for_log(folder_name)}",
+            progress_label,
         )
     else:
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
@@ -1227,7 +1238,7 @@ def push_rules(
                 render_progress_bar(
                     successful_batches,
                     total_batches,
-                    f"Folder {sanitize_for_log(folder_name)}",
+                    progress_label,
                 )
 
     if successful_batches == total_batches:
