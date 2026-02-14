@@ -265,20 +265,20 @@ def print_plan_details(plan_entry: Dict[str, Any]) -> None:
     max_name_len = max(
         (len(sanitize_for_log(f.get("name", ""))) for f in folders), default=0
     )
-    max_rules_len = max((len(f"{f.get('rules', 0):,}") for f in folders), default=0)
+    max_count_len = max((len(f"{f.get('rules', 0):,}") for f in folders), default=0)
 
     for folder in sorted(folders, key=lambda f: f.get("name", "")):
         name = sanitize_for_log(folder.get("name", "Unknown"))
-        rules_count = folder.get("rules", 0)
-        formatted_rules = f"{rules_count:,}"
+        rule_count = folder.get("rules", 0)
+        rule_count_str = f"{rule_count:,}"
 
         if USE_COLORS:
             print(
-                f"  • {Colors.BOLD}{name:<{max_name_len}}{Colors.ENDC} : {formatted_rules:>{max_rules_len}} rules"
+                f"  • {Colors.BOLD}{name:<{max_name_len}}{Colors.ENDC} : {rule_count_str:>{max_count_len}} rules"
             )
         else:
             print(
-                f"  - {name:<{max_name_len}} : {formatted_rules:>{max_rules_len}} rules"
+                f"  - {name:<{max_name_len}} : {rule_count_str:>{max_count_len}} rules"
             )
 
     print("")
