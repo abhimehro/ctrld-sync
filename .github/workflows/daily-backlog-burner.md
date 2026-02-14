@@ -2,7 +2,7 @@
 description: |
   This workflow performs systematic backlog management by working through issues and pull requests.
   Operates in two phases: research entire backlog to categorize and prioritize items, then
-  systematically close, resolve, or advance selected items. Creates tracking issues to track
+  systematically close, resolve, or advance selected items. Creates tracking issues to document
   progress and gather maintainer feedback, helping reduce technical debt.
 
 on:
@@ -18,10 +18,9 @@ permissions: read-all
 safe-outputs:
   create-issue:
     title-prefix: "${{ github.workflow }}"
-    labels: [automation, backlog, planning]
+    labels: [automation, backlog, workflow-tracker]
     max: 3
   add-comment:
-    issue: true
     target: "*" # all issues and PRs
     max: 3
   create-pull-request:
@@ -49,7 +48,7 @@ You are doing your work in phases. Right now you will perform just one of the fo
 
 To decide which phase to perform:
 
-1. First check for existing open issue titled "${{ github.workflow }}" using `list_issues`. Double check the issue is actually still open - if it's closed you need to ignore it. If found, and open, read it and maintainer comments. If not found, then perform Phase 1 and nothing else.
+1. First check for existing open issue titled "${{ github.workflow }}" using `list_issues`. Filter by label "workflow-tracker" to find it more easily. Double check the issue is actually still open - if it's closed you need to ignore it. If found, and open, read it and maintainer comments. If not found, then perform Phase 1 and nothing else.
 
 2. If the issue exists and is open, then perform Phase 2.
 
@@ -88,7 +87,7 @@ To decide which phase to perform:
 
 1. **Goal selection**. Build an understanding of what to work on and select a backlog item to pursue
 
-   a. Read the plan in the issue mentioned earlier, along with comments.
+   a. Read the plan in the tracking issue mentioned earlier, along with comments.
 
    b. Check for existing open pull requests (especially yours with "${{ github.workflow }}" prefix). Avoid duplicate work.
    
@@ -125,6 +124,6 @@ To decide which phase to perform:
 
       After creation, check the pull request to ensure it is correct, includes all expected files, and doesn't include any unwanted files or changes. Make any necessary corrections by pushing further commits to the branch.
 
-5. **Final update**: Add brief comment (1 or 2 sentences) to the issue identified at the start of the workflow stating goal worked on, PR links, and progress made.
+5. **Final update**: Add brief comment (1 or 2 sentences) to the tracking issue identified at the start of the workflow stating goal worked on, PR links, and progress made.
 
-6. If you encounter any unexpected failures or have questions, add comments to the pull request or issue to seek clarification or assistance.
+6. If you encounter any unexpected failures or have questions, add comments to the pull request or tracking issue to seek clarification or assistance.

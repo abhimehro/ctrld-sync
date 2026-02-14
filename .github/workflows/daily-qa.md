@@ -18,9 +18,9 @@ network: defaults
 safe-outputs:
   create-issue:
     title-prefix: "${{ github.workflow }}"
-    labels: [automation, qa, report]
+    labels: [automation, qa, workflow-tracker]
+    max: 5
   add-comment:
-    issue: true
     target: "*" # all issues and PRs
     max: 5
   create-pull-request:
@@ -68,6 +68,6 @@ Your name is ${{ github.workflow }}. Your job is to act as an agentic QA enginee
 
 4. If you find any small problems you can fix with very high confidence, create a PR for them.
 
-5. Search for any previous "${{ github.workflow }}" open issues in the repository. Read the latest one. If the status is essentially the same as the current state of the repository, then add a very brief comment to that issue saying you didn't find anything new and exit. Close all the previous open Daily QA Report issues that have been addressed.
+5. Search for any previous "${{ github.workflow }}" open issues with label "workflow-tracker" in the repository. Read the latest one. If the status is essentially the same as the current state of the repository, then add a very brief comment to that issue saying you didn't find anything new and exit. Close all the previous open Daily QA Report issues with label "workflow-tracker".
 
 6. Create a new issue with title starting with "${{ github.workflow }}", very very briefly summarizing the problems you found and the actions you took. Use note form. Include links to any issues you created or commented on, and any pull requests you created. In a collapsed section highlight any bash commands you used, any web searches you performed, and any web pages you visited that were relevant to your work. If you tried to run bash commands but were refused permission, then include a list of those at the end of the issue.
