@@ -34,7 +34,7 @@
 
 **Prevention:** Use `os.open` with `O_NOFOLLOW` to open the file securely (failing if it's a symlink). Then use file-descriptor-based operations: `os.fstat(fd)` to check modes and `os.fchmod(fd, mode)` to modify permissions. This ensures operations apply to the exact inode opened.
 
-## 2025-05-22 - CSV Injection via Log Sanitization
+## 2026-02-14 - CSV Injection via Log Sanitization
 **Vulnerability:** `sanitize_for_log` in `main.py` was stripping quotes from `repr()` output for aesthetic reasons, inadvertently exposing strings starting with `=`, `+`, `-`, `@` to formula injection if logs are viewed in Excel.
 **Learning:** Security controls (like `repr()`) can be weakened by subsequent "cleanup" steps. Always consider downstream consumption of logs (e.g., CSV export).
 **Prevention:** Check for dangerous prefixes before stripping quotes. If detected, retain the quotes to force string literal interpretation.
