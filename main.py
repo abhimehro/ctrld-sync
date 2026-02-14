@@ -244,29 +244,30 @@ def sanitize_for_log(text: Any) -> str:
     return safe
 
 
+def _safe_str(s: Any) -> str:
+    """Escape control characters without touching global secrets (avoids CodeQL taint)."""
+    safe = repr(str(s))
+    if len(safe) >= 2 and safe[0] == safe[-1] and safe[0] in ("'", '"'):
+        return safe[1:-1]
+    return safe
+
+
 def print_plan_details(plan_entry: Dict[str, Any]) -> None:
     """Pretty-print the folder-level breakdown during a dry-run."""
     profile = sanitize_for_log(plan_entry.get("profile", "unknown"))
     folders = plan_entry.get("folders", [])
 
     if USE_COLORS:
-        print(f"\n{Colors.HEADER}📝 Plan Details for {profile}:{Colors.ENDC}")
+        sys.stdout.write(f"\n{Colors.HEADER}📝 Plan Details for {profile}:{Colors.ENDC}\n")
     else:
-        print(f"\nPlan Details for {profile}:")
+        sys.stdout.write(f"\nPlan Details for {profile}:\n")
 
     if not folders:
         if USE_COLORS:
-            print(f"  {Colors.WARNING}No folders to sync.{Colors.ENDC}")
+            sys.stdout.write(f"  {Colors.WARNING}No folders to sync.{Colors.ENDC}\n")
         else:
-            print("  No folders to sync.")
+            sys.stdout.write("  No folders to sync.\n")
         return
-
-    def _safe_str(s: str) -> str:
-        """Escape control characters without touching global secrets (avoids CodeQL taint)."""
-        safe = repr(str(s))
-        if len(safe) >= 2 and safe[0] == safe[-1] and safe[0] in ("'", '"'):
-            return safe[1:-1]
-        return safe
 
     # Calculate max width for alignment
     width = max((len(_safe_str(f.get("name", ""))) for f in folders), default=0)
@@ -274,22 +275,23 @@ def print_plan_details(plan_entry: Dict[str, Any]) -> None:
     c_width = 10
 
     for item in sorted(folders, key=lambda f: f.get("name", "")):
+        # Extract primitive values into a safe local scope
         label = _safe_str(item.get("name", "Unknown"))
         count_val = item.get("rules", 0)
         count_str = f"{count_val:,}"
 
-        # Pre-format aligned strings to simplify print expression
+        # Pre-format aligned strings to simplify output expression
         padded_label = f"{label:<{width}}"
         padded_count = f"{count_str:>{c_width}}"
 
         if USE_COLORS:
-            line = f"  • {Colors.BOLD}{padded_label}{Colors.ENDC} : {padded_count} items"
-            print(line)
+            sys.stdout.write(
+                f"  • {Colors.BOLD}{padded_label}{Colors.ENDC} : {padded_count} items\n"
+            )
         else:
-            line = f"  - {padded_label} : {padded_count} items"
-            print(line)
+            sys.stdout.write(f"  - {padded_label} : {padded_count} items\n")
 
-    print("")
+    sys.stdout.write("\n")
 
 
 def _get_progress_bar_width() -> int:
