@@ -12,9 +12,9 @@ imports:
 - github/gh-aw/.github/workflows/shared/reporting.md@94662b1dee8ce96c876ba9f33b3ab8be32de82a4
 - github/gh-aw/.github/workflows/shared/trending-charts-simple.md@94662b1dee8ce96c876ba9f33b3ab8be32de82a4
 safe-outputs:
-  create-discussion:
-    category: audits
-    close-older-discussions: true
+  create-issue:
+    labels: [automation, audit, report]
+    close-older-issues: true
     max: 1
   upload-asset: null
 description: Daily audit of all agentic workflow runs from the last 24 hours to identify issues, missing tools, errors, and improvement opportunities
@@ -87,7 +87,7 @@ Output is saved to: /tmp/gh-aw/aw-mcp/logs
 
 **Progressive Disclosure**: The template already uses appropriate `<details>` tags - maintain this pattern for any additional long sections.
 
-**Create Discussion**: Always create report with audit findings including summary, statistics, missing tools, errors, affected workflows, recommendations, and historical context.
+**Create Issue**: Always create report with audit findings including summary, statistics, missing tools, errors, affected workflows, recommendations, and historical context.
 ```markdown
 # 🔍 Agentic Workflow Audit Report - [DATE]
 
@@ -174,4 +174,4 @@ Output is saved to: /tmp/gh-aw/aw-mcp/logs
 
 Memory structure: `/tmp/gh-aw/repo-memory/default/{audits,patterns,metrics}/*.json`
 
-Always create discussion with findings and update repo memory.
+Always create issue with findings and update repo memory.
