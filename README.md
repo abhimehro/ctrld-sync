@@ -182,8 +182,26 @@ When updating dependencies:
 
 2. **Update `requirements.txt`** (manual sync required)
    ```bash
-   # Extract dependencies from pyproject.toml
-   # Update requirements.txt to match
+   # Extract runtime dependencies from pyproject.toml
+   python3 -c "
+   import re
+   with open('pyproject.toml') as f:
+       content = f.read()
+       deps_match = re.search(r'dependencies = \[(.*?)\]', content, re.DOTALL)
+       if deps_match:
+           deps = [d.strip().strip('\"') for d in deps_match.group(1).split(',') if d.strip()]
+           for dep in deps:
+               print(dep)
+   " > requirements.txt.tmp
+   
+   # Add header and move into place
+   cat > requirements.txt << 'EOF'
+# Runtime dependencies - manually synchronized with pyproject.toml
+# This file is maintained for CI caching purposes only
+# Source of truth: pyproject.toml [project.dependencies]
+EOF
+   cat requirements.txt.tmp >> requirements.txt
+   rm requirements.txt.tmp
    ```
 
 3. **Verify locally**
@@ -218,6 +236,30 @@ If you suspect cache issues:
 
 3. **Verify dependencies match**:
    ```bash
-   diff <(grep -v "^#" requirements.txt | grep -v "^$") \
-        <(grep "dependencies" -A10 pyproject.toml | grep "^    " | tr -d '",' | xargs -n1)
+   # Compare runtime dependencies (excluding dev dependencies)
+   # This checks that requirements.txt matches pyproject.toml
+   python3 -c "
+   import re
+   
+   # Parse pyproject.toml dependencies
+   with open('pyproject.toml') as f:
+       content = f.read()
+       deps_section = re.search(r'dependencies = \[(.*?)\]', content, re.DOTALL)
+       if deps_section:
+           deps = [d.strip().strip('\"') for d in deps_section.group(1).split(',') if d.strip()]
+   
+   # Parse requirements.txt (skip comments)
+   with open('requirements.txt') as f:
+       reqs = [line.strip() for line in f if line.strip() and not line.startswith('#')]
+   
+   # Compare
+   deps_set = set(deps)
+   reqs_set = set(reqs)
+   if deps_set == reqs_set:
+       print('✓ Dependencies match')
+   else:
+       print('✗ Dependencies mismatch!')
+       print(f'  In pyproject.toml only: {deps_set - reqs_set}')
+       print(f'  In requirements.txt only: {reqs_set - deps_set}')
+   "
    ```
