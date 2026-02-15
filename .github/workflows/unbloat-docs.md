@@ -84,7 +84,6 @@ tools:
   - mkdir *
   - cp *
   - mv *
-  - git *
   cache-memory: true
   edit: null
   github:
