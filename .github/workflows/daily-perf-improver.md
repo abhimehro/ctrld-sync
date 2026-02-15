@@ -20,10 +20,9 @@ network: defaults
 safe-outputs:
   create-issue:
     title-prefix: "${{ github.workflow }}"
-    labels: [automation, performance, planning]
+    labels: [automation, performance, workflow-tracker]
     max: 5
   add-comment:
-    issue: true
     target: "*" # can add a comment to any one single issue or pull request
   create-pull-request:
     draft: true
@@ -69,7 +68,7 @@ You are doing your work in phases. Right now you will perform just one of the fo
 
 To decide which phase to perform:
 
-1. First check for existing open issue titled "${{ github.workflow }}" using `list_issues`. Double check the issue is actually still open - if it's closed you need to ignore it. If found, and open, read it and maintainer comments. If not found, then perform Phase 1 and nothing else.
+1. First check for existing open issue titled "${{ github.workflow }}" using `list_issues`. Filter by label "workflow-tracker" to find it more easily. Double check the issue is actually still open - if it's closed you need to ignore it. If found, and open, read it and maintainer comments. If not found, then perform Phase 1 and nothing else.
 
 2. Next check if `.github/actions/daily-perf-improver/build-steps/action.yml` exists. If yes then read it. If not then perform Phase 2 and nothing else.
 
@@ -139,7 +138,7 @@ To decide which phase to perform:
 
 6. Test build steps manually. If fixes needed then update the PR branch. If unable to resolve then create issue and exit.
 
-7. Add brief comment (1 or 2 sentences) to the issue identified at the start of the workflow stating progress made and giving links to the PR created.
+7. Add brief comment (1 or 2 sentences) to the tracking issue identified at the start of the workflow stating progress made and giving links to the PR created.
 
 8. Exit this entire workflow, do not proceed to Phase 3 on this run. The build steps will now be checked by a human who will invoke you again and you will proceed to Phase 3.
 
@@ -149,7 +148,7 @@ To decide which phase to perform:
 
    a. Repository is now performance-ready. Review `build-steps/action.yml` and `build-steps.log` to understand setup. If build failed then create fix PR and exit.
    
-   b. Read the plan in the issue mentioned earlier, along with comments.
+   b. Read the plan in the tracking issue mentioned earlier, along with comments.
 
    c. Check for existing performance PRs (especially yours with "${{ github.workflow }}" prefix). Avoid duplicate work.
    
@@ -208,4 +207,4 @@ To decide which phase to perform:
 
    b. If failed or lessons learned then add more files to the PR branch to update relevant performance guide in `.github/copilot/instructions/` with insights. Create a new guide if needed, or split, merge or delete existing guides as appropriate. This is your chance to improve the performance engineering documentation for next time, so you and your team don't make the same mistakes again! Make the most of it!
 
-5. **Final update**: Add brief comment (1 or 2 sentences) to the issue identified at the start of the workflow stating goal worked on, PR links, and progress made.
+5. **Final update**: Add brief comment (1 or 2 sentences) to the tracking issue identified at the start of the workflow stating goal worked on, PR links, and progress made.
