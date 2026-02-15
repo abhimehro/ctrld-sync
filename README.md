@@ -90,7 +90,7 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
    ```
 
 5. **Run in CI**
-The included GitHub Actions workflow (`.github/workflows/ci.yml`) runs a dry-run daily at 02:00 UTC and on PRs, writes `plan.json`, and uploads it as an artifact for review.
+   The included GitHub Actions workflow (`.github/workflows/sync.yml`) runs a dry-run daily at 02:00 UTC and on PRs, writes `plan.json`, and uploads it as an artifact for review.
 
 ### Configure GitHub Actions
 
@@ -148,3 +148,126 @@ This project uses manual releases via GitHub Releases. To create a new release:
 - [ ] Git tag created and pushed
 - [ ] GitHub Release created with notes
 - [ ] Release announcement (optional)
+
+## CI/CD & Dependency Caching
+
+### How Caching Works
+
+The GitHub Actions workflows use automatic dependency caching to speed up CI runs:
+
+- **Cache Key**: Includes the SHA-256 hash of `requirements.txt` along with the runner OS, Python version, and other factors (managed by `actions/setup-python@v5`)
+- **Cache Location**: `~/.cache/pip` (managed by `actions/setup-python@v5`)
+- **Invalidation**: Automatic when `requirements.txt` changes, or when environment details like Python version or runner OS change (per `actions/setup-python` caching behavior)
+
+### Expected Performance
+
+- **First run** (cold cache): ~30-40 seconds for dependency installation
+- **Subsequent runs** (warm cache): ~5-10 seconds for cache restoration
+- **Cache hit rate**: Expected >80% for typical PR/commit workflows
+
+### Maintaining Dependencies
+
+**Important**: `requirements.txt` must stay synchronized with `pyproject.toml`
+
+When updating dependencies:
+
+1. **Update `pyproject.toml`**
+   ```toml
+   [project]
+   dependencies = [
+       "httpx>=0.28.1",
+       "python-dotenv>=1.1.1",
+   ]
+   ```
+
+2. **Update `requirements.txt`** (manual sync required)
+   ```bash
+   # Extract runtime dependencies from pyproject.toml
+   python3 -c "
+   import sys
+   try:
+       import tomllib  # Python 3.11+
+   except ModuleNotFoundError:
+       try:
+           import tomli as tomllib  # Fallback for older Python versions (requires 'tomli' package)
+       except ModuleNotFoundError:
+           sys.stderr.write('Error: No TOML parser available. Install the \"tomli\" package for Python <3.11.\n')
+           sys.exit(1)
+   
+   with open('pyproject.toml', 'rb') as f:
+       data = tomllib.load(f)
+   
+   deps = data.get('project', {}).get('dependencies') or []
+   for dep in deps:
+       print(dep)
+   " > requirements.txt.tmp
+   
+   # Add header and move into place
+   cat > requirements.txt << 'EOF'
+# Runtime dependencies - manually synchronized with pyproject.toml
+# This file is maintained for CI caching purposes only
+# Source of truth: pyproject.toml [project.dependencies]
+EOF
+   cat requirements.txt.tmp >> requirements.txt
+   rm requirements.txt.tmp
+   ```
+
+3. **Verify locally**
+   ```bash
+   pip install -r requirements.txt
+   python main.py --help  # Smoke test
+   ```
+
+### Why requirements.txt?
+
+The project uses a flat layout (scripts in root directory), which doesn't support `pip install -e .` without additional configuration. Using `requirements.txt` for CI is a minimal-change approach that:
+
+- ✅ Enables effective pip caching via `actions/setup-python@v5`
+- ✅ Provides explicit cache key for reproducible builds
+- ✅ Maintains simplicity (no src/ layout migration required)
+- ✅ Keeps `pyproject.toml` as single source of truth for version declarations
+
+### Cache Debugging
+
+If you suspect cache issues:
+
+1. **Check cache hit/miss** in workflow logs:
+   ```
+   Run actions/setup-python@v5
+   Cache restored successfully: true
+   ```
+
+2. **Manually clear cache** (if needed):
+   - Go to Actions → Caches
+   - Delete relevant pip cache entries
+   - Re-run workflow to rebuild cache
+
+3. **Verify dependencies match**:
+   ```bash
+   # Compare runtime dependencies (excluding dev dependencies)
+   # This checks that requirements.txt matches pyproject.toml
+   python3 -c "
+   import tomllib
+   
+   # Parse pyproject.toml dependencies using a real TOML parser
+   with open('pyproject.toml', 'rb') as f:
+       data = tomllib.load(f)
+   project = data.get('project', {})
+   deps = project.get('dependencies', []) or []
+   deps = [d.strip() for d in deps if isinstance(d, str) and d.strip()]
+   
+   # Parse requirements.txt (skip comments)
+   with open('requirements.txt') as f:
+       reqs = [line.strip() for line in f if line.strip() and not line.startswith('#')]
+   
+   # Compare
+   deps_set = set(deps)
+   reqs_set = set(reqs)
+   if deps_set == reqs_set:
+       print('✓ Dependencies match')
+   else:
+       print('✗ Dependencies mismatch!')
+       print(f'  In pyproject.toml only: {deps_set - reqs_set}')
+       print(f'  In requirements.txt only: {reqs_set - deps_set}')
+   "
+   ```
