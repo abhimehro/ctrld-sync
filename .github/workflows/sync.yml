@@ -16,7 +16,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      # PERFORMANCE: Caching pip dependencies speeds up CI by ~30-40%
+      # PERFORMANCE: Caching pip dependencies significantly speeds up CI
       # Cache key is based on requirements.txt hash, automatically invalidating when deps change
       # See: https://github.com/actions/setup-python#caching-packages-dependencies
       - name: Set up Python
@@ -26,8 +26,8 @@ jobs:
           cache: 'pip'
           cache-dependency-path: 'requirements.txt'
 
-      # SECURITY: Install from requirements.txt ensures we use declared dependency versions
-      # This protects against supply chain attacks where malicious packages match names
+      # REPRODUCIBILITY: Install from requirements.txt to centralize and document dependencies
+      # This also aligns installs with the cache key derived from requirements.txt
       - name: Install dependencies
         run: pip install -r requirements.txt
 

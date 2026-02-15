@@ -155,9 +155,9 @@ This project uses manual releases via GitHub Releases. To create a new release:
 
 The GitHub Actions workflows use automatic dependency caching to speed up CI runs:
 
-- **Cache Key**: Generated from the SHA-256 hash of `requirements.txt`
+- **Cache Key**: Includes the SHA-256 hash of `requirements.txt` along with the runner OS, Python version, and other factors (managed by `actions/setup-python@v5`)
 - **Cache Location**: `~/.cache/pip` (managed by `actions/setup-python@v5`)
-- **Invalidation**: Automatic when `requirements.txt` changes
+- **Invalidation**: Automatic when `requirements.txt` changes, or when environment details like Python version or runner OS change (per `actions/setup-python` caching behavior)
 
 ### Expected Performance
 
@@ -184,14 +184,22 @@ When updating dependencies:
    ```bash
    # Extract runtime dependencies from pyproject.toml
    python3 -c "
-   import re
-   with open('pyproject.toml') as f:
-       content = f.read()
-       deps_match = re.search(r'dependencies = \[(.*?)\]', content, re.DOTALL)
-       if deps_match:
-           deps = [d.strip().strip('\"') for d in deps_match.group(1).split(',') if d.strip()]
-           for dep in deps:
-               print(dep)
+   import sys
+   try:
+       import tomllib  # Python 3.11+
+   except ModuleNotFoundError:
+       try:
+           import tomli as tomllib  # Fallback for older Python versions (requires 'tomli' package)
+       except ModuleNotFoundError:
+           sys.stderr.write('Error: No TOML parser available. Install the \"tomli\" package for Python <3.11.\n')
+           sys.exit(1)
+   
+   with open('pyproject.toml', 'rb') as f:
+       data = tomllib.load(f)
+   
+   deps = data.get('project', {}).get('dependencies') or []
+   for dep in deps:
+       print(dep)
    " > requirements.txt.tmp
    
    # Add header and move into place
@@ -239,14 +247,14 @@ If you suspect cache issues:
    # Compare runtime dependencies (excluding dev dependencies)
    # This checks that requirements.txt matches pyproject.toml
    python3 -c "
-   import re
+   import tomllib
    
-   # Parse pyproject.toml dependencies
-   with open('pyproject.toml') as f:
-       content = f.read()
-       deps_section = re.search(r'dependencies = \[(.*?)\]', content, re.DOTALL)
-       if deps_section:
-           deps = [d.strip().strip('\"') for d in deps_section.group(1).split(',') if d.strip()]
+   # Parse pyproject.toml dependencies using a real TOML parser
+   with open('pyproject.toml', 'rb') as f:
+       data = tomllib.load(f)
+   project = data.get('project', {})
+   deps = project.get('dependencies', []) or []
+   deps = [d.strip() for d in deps if isinstance(d, str) and d.strip()]
    
    # Parse requirements.txt (skip comments)
    with open('requirements.txt') as f:
