@@ -1711,6 +1711,9 @@ def parse_args() -> argparse.Namespace:
 def main():
     # SECURITY: Check .env permissions (after Colors is defined for NO_COLOR support)
     check_env_permissions()
+    
+    # Load persistent cache from disk (graceful degradation on any error)
+    load_disk_cache()
 
     global TOKEN
     args = parse_args()
@@ -1929,6 +1932,27 @@ def main():
         f"{total_status_color}{total_status_text:<15}{Colors.ENDC}"
     )
     print("=" * table_width + "\n")
+    
+    # Display cache statistics if any cache activity occurred
+    if _cache_stats["hits"] + _cache_stats["misses"] + _cache_stats["validations"] > 0:
+        print(f"{Colors.BOLD}Cache Statistics:{Colors.ENDC}")
+        print(f"  • Hits (in-memory):     {_cache_stats['hits']:>6,}")
+        print(f"  • Misses (downloaded):  {_cache_stats['misses']:>6,}")
+        print(f"  • Validations (304):    {_cache_stats['validations']:>6,}")
+        if _cache_stats["errors"] > 0:
+            print(f"  • Errors (non-fatal):   {_cache_stats['errors']:>6,}")
+        
+        # Calculate cache effectiveness
+        total_requests = _cache_stats["hits"] + _cache_stats["misses"] + _cache_stats["validations"]
+        if total_requests > 0:
+            # Hits + validations = avoided full downloads
+            cache_effectiveness = (_cache_stats["hits"] + _cache_stats["validations"]) / total_requests * 100
+            print(f"  • Cache effectiveness:  {cache_effectiveness:>6.1f}%")
+        print()
+    
+    # Save cache to disk after successful sync (non-fatal if it fails)
+    if not args.dry_run:
+        save_disk_cache()
 
     total = len(profile_ids or ["dry-run-placeholder"])
     log.info(f"All profiles processed: {success_count}/{total} successful")
