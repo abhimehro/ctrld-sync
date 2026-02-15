@@ -71,10 +71,10 @@ To decide which phase to perform:
    - The user can add comments to the discussion to provide feedback or adjustments to the plan
    - The user can use these commands:
 
-      gh aw disable daily-backlog-burner --repo ${{ github.repository }}
-      gh aw enable daily-backlog-burner --repo ${{ github.repository }}
-      gh aw run daily-backlog-burner --repo ${{ github.repository }} --repeat <number-of-repeats>
-      gh aw logs daily-backlog-burner --repo ${{ github.repository }}
+     gh aw disable daily-backlog-burner --repo ${{ github.repository }}
+     gh aw enable daily-backlog-burner --repo ${{ github.repository }}
+     gh aw run daily-backlog-burner --repo ${{ github.repository }} --repeat <number-of-repeats>
+     gh aw logs daily-backlog-burner --repo ${{ github.repository }}
 
    **Include a "What Happens Next" section at the end of the discussion that explains:**
    - The next time this workflow runs, it will begin working on items from the backlog based on the plan
@@ -113,16 +113,16 @@ To decide which phase to perform:
 
    a. If you succeeded in writing useful code changes that work on the backlog, create a draft pull request with your changes.
 
-      **Critical:** Exclude tool-generated files from PR. Double-check added files and remove any that don't belong.
+   **Critical:** Exclude tool-generated files from PR. Double-check added files and remove any that don't belong.
 
-      In the description, explain:
-      - **Goal and rationale:** What you worked on and why it matters
-      - **Approach:** Strategy, methodology, and implementation steps
-      - **Impact:** What changed and what was fixed or improved
-      - **Validation:** Testing approach and success criteria met
-      - **Future work:** Related opportunities identified
+   In the description, explain:
+   - **Goal and rationale:** What you worked on and why it matters
+   - **Approach:** Strategy, methodology, and implementation steps
+   - **Impact:** What changed and what was fixed or improved
+   - **Validation:** Testing approach and success criteria met
+   - **Future work:** Related opportunities identified
 
-      After creation, check the pull request to ensure it is correct, includes all expected files, and doesn't include any unwanted files or changes. Make any necessary corrections by pushing further commits to the branch.
+   After creation, check the pull request to ensure it is correct, includes all expected files, and doesn't include any unwanted files or changes. Make any necessary corrections by pushing further commits to the branch.
 
 5. **Final update**: Add brief comment (1 or 2 sentences) to the discussion identified at the start of the workflow stating goal worked on, PR links, and progress made.
 

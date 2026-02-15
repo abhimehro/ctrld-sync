@@ -77,21 +77,23 @@ To decide which phase to perform:
 ## Phase 1 - Performance research
 
 1. Research performance landscape in this repo:
-  - Current performance testing practices and tooling
-  - User-facing performance concerns (load times, responsiveness, throughput)
-  - System performance bottlenecks (compute, memory, I/O, network)
-  - Maintainer performance priorities and success metrics
-  - Development/build performance issues affecting performance engineering
-  - Existing performance documentation and measurement approaches
 
-  **Identify optimization targets:**
-  - User experience bottlenecks (slow page loads, UI lag, high resource usage)
-  - System inefficiencies (algorithms, data structures, resource utilization)
-  - Development workflow pain points affecting performance engineering (build times, test execution, CI duration)
-  - Infrastructure concerns (scaling, deployment, monitoring)
-  - Performance engineering gaps (lack of guides, rapidity, measurement strategies)
+   - Current performance testing practices and tooling
+   - User-facing performance concerns (load times, responsiveness, throughput)
+   - System performance bottlenecks (compute, memory, I/O, network)
+   - Maintainer performance priorities and success metrics
+   - Development/build performance issues affecting performance engineering
+   - Existing performance documentation and measurement approaches
 
-  **Goal:** Enable engineers to quickly measure performance impact across different dimensions using appropriate tools - from quick synthetic tests to realistic user scenarios.
+   **Identify optimization targets:**
+
+   - User experience bottlenecks (slow page loads, UI lag, high resource usage)
+   - System inefficiencies (algorithms, data structures, resource utilization)
+   - Development workflow pain points affecting performance engineering (build times, test execution, CI duration)
+   - Infrastructure concerns (scaling, deployment, monitoring)
+   - Performance engineering gaps (lack of guides, rapidity, measurement strategies)
+
+   **Goal:** Enable engineers to quickly measure performance impact across different dimensions using appropriate tools - from quick synthetic tests to realistic user scenarios.
 
 2. Use this research to create a discussion with title "${{ github.workflow }} - Research and Plan"
 
@@ -99,10 +101,10 @@ To decide which phase to perform:
    - The user can add comments to the discussion to provide feedback or adjustments to the plan
    - The user can use these commands:
 
-      gh aw disable daily-perf-improver --repo ${{ github.repository }}
-      gh aw enable daily-perf-improver --repo ${{ github.repository }}
-      gh aw run daily-perf-improver --repo ${{ github.repository }} --repeat <number-of-repeats>
-      gh aw logs daily-perf-improver --repo ${{ github.repository }}
+     gh aw disable daily-perf-improver --repo ${{ github.repository }}
+     gh aw enable daily-perf-improver --repo ${{ github.repository }}
+     gh aw run daily-perf-improver --repo ${{ github.repository }} --repeat <number-of-repeats>
+     gh aw logs daily-perf-improver --repo ${{ github.repository }}
 
    **Include a "What Happens Next" section at the end of the discussion that explains:**
    - The next time this workflow runs, Phase 2 will be performed, which will analyze the codebase to create build steps configuration and performance engineering guides
@@ -121,10 +123,11 @@ To decide which phase to perform:
 3. Create `.github/actions/daily-perf-improver/build-steps/action.yml` with validated build steps. Each step must log output to `build-steps.log` in repo root. Cross-check against existing CI/devcontainer configs.
 
 4. Create 1-5 performance engineering guides in `.github/copilot/instructions/` covering relevant areas (e.g., frontend performance, backend optimization, build performance, infrastructure scaling). Each guide should be maximum 500 words and should succinctly document practical, non-obvious, repo-specific details regarding:
-  - Performance measurement strategies and tooling
-  - Common bottlenecks and optimization techniques
-  - Success metrics and testing approaches
-  - How to do explore performance efficiently using focused, maximally-efficient measurements and rebuilds
+
+   - Performance measurement strategies and tooling
+   - Common bottlenecks and optimization techniques
+   - Success metrics and testing approaches
+   - How to do explore performance efficiently using focused, maximally-efficient measurements and rebuilds
 
 5. Create PR with title "${{ github.workflow }} - Updates to complete configuration" containing files from steps 3-4. Request maintainer review.
 
@@ -163,21 +166,20 @@ To decide which phase to perform:
    a. Create a new branch starting with "perf/".
 
    b. Work towards the performance improvement goal you selected. Consider approaches like:
-     - **Code optimization:** Algorithm improvements, data structure changes, caching
-     - **User experience:** Reducing load times, improving responsiveness, optimizing assets
-     - **System efficiency:** Resource utilization, concurrency, I/O optimization
-     - **Performance engineering workflow:** Build optimization, test performance, CI improvements for faster performance engineering
-     - **Infrastructure:** Scaling strategies, deployment efficiency, monitoring setup
+   - **Code optimization:** Algorithm improvements, data structure changes, caching
+   - **User experience:** Reducing load times, improving responsiveness, optimizing assets
+   - **System efficiency:** Resource utilization, concurrency, I/O optimization
+   - **Performance engineering workflow:** Build optimization, test performance, CI improvements for faster performance engineering
+   - **Infrastructure:** Scaling strategies, deployment efficiency, monitoring setup
 
-     **Measurement strategy:**
-     Plan before/after measurements using appropriate methods for your performance target - synthetic benchmarks for algorithms, user journey tests for UX, load tests for scalability, or build time comparisons for developer experience. Choose reliable measurement approaches that clearly demonstrate impact.
+   **Measurement strategy:**
+   Plan before/after measurements using appropriate methods for your performance target - synthetic benchmarks for algorithms, user journey tests for UX, load tests for scalability, or build time comparisons for developer experience. Choose reliable measurement approaches that clearly demonstrate impact.
 
    c. Ensure the code still works as expected and that any existing relevant tests pass. Add new tests if appropriate and make sure they pass too.
 
    d. Measure performance impact. Document measurement attempts even if unsuccessful. If no improvement then iterate, revert, or try different approach.
 
 3. **Finalizing changes**
-
    1. Apply any automatic code formatting used in the repo. If necessary check CI files to understand what code formatting is used.
 
    b. Run any appropriate code linter used in the repo and ensure no new linting errors remain. If necessary check CI files to understand what code linting is used.
@@ -186,24 +188,23 @@ To decide which phase to perform:
 
    a. If you succeeded in writing useful code changes that improve performance, create a draft pull request with your changes.
 
-      **Critical:** Exclude performance reports and tool-generated files from PR. Double-check added files and remove any that don't belong.
+   **Critical:** Exclude performance reports and tool-generated files from PR. Double-check added files and remove any that don't belong.
 
-      Include a description of the improvements with evidence of impact. In the description, explain:
+   Include a description of the improvements with evidence of impact. In the description, explain:
+   - **Goal and rationale:** Performance target chosen and why it matters
+   - **Approach:** Strategy, methodology, and implementation steps
+   - **Impact measurement:** How performance was tested and results achieved
+   - **Trade-offs:** What changed (complexity, maintainability, resource usage)
+   - **Validation:** Testing approach and success criteria met
+   - **Future work:** Additional opportunities identified
 
-      - **Goal and rationale:** Performance target chosen and why it matters
-      - **Approach:** Strategy, methodology, and implementation steps
-      - **Impact measurement:** How performance was tested and results achieved
-      - **Trade-offs:** What changed (complexity, maintainability, resource usage)
-      - **Validation:** Testing approach and success criteria met
-      - **Future work:** Additional opportunities identified
+   **Performance evidence section:**
+   Document performance impact with appropriate evidence - timing data, resource usage, user metrics, or other relevant measurements. Be transparent about measurement limitations and methodology. Mark estimates clearly.
 
-      **Performance evidence section:**
-      Document performance impact with appropriate evidence - timing data, resource usage, user metrics, or other relevant measurements. Be transparent about measurement limitations and methodology. Mark estimates clearly.
+   **Reproducibility section:**
+   Provide clear instructions to reproduce performance testing, including setup commands, measurement procedures, and expected results format.
 
-      **Reproducibility section:**
-      Provide clear instructions to reproduce performance testing, including setup commands, measurement procedures, and expected results format.
-
-      After creation, check the pull request to ensure it is correct, includes all expected files, and doesn't include any unwanted files or changes. Make any necessary corrections by pushing further commits to the branch.
+   After creation, check the pull request to ensure it is correct, includes all expected files, and doesn't include any unwanted files or changes. Make any necessary corrections by pushing further commits to the branch.
 
    b. If failed or lessons learned then add more files to the PR branch to update relevant performance guide in `.github/copilot/instructions/` with insights. Create a new guide if needed, or split, merge or delete existing guides as appropriate. This is your chance to improve the performance engineering documentation for next time, so you and your team don't make the same mistakes again! Make the most of it!
 
