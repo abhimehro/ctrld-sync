@@ -9,7 +9,6 @@ runs:
       with:
         python-version: '3.13'
         cache: 'pip'
-      shell: bash
 
     - name: Install dependencies
       shell: bash
