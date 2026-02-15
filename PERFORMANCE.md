@@ -2,6 +2,8 @@
 
 This guide documents performance measurement, optimization strategies, and known characteristics for ctrld-sync. Use this to understand how to measure, improve, and maintain performance.
 
+> **Note:** This guide is intentionally placed in the repository root rather than `.github/copilot/instructions/` for better visibility and maintainability. Performance documentation benefits from being easily discoverable by all developers, not just those working with Copilot workflows. A single consolidated guide is more maintainable for a project of this size than multiple separate files.
+
 ---
 
 ## Current Performance Characteristics
@@ -48,7 +50,7 @@ def timed(func):
         start = time.perf_counter()
         result = func(*args, **kwargs)
         elapsed = time.perf_counter() - start
-        logging.info(f"⏱️  {func.__name__} completed in {elapsed:.2f}s")
+        log.info(f"⏱️  {func.__name__} completed in {elapsed:.2f}s")
         return result
     return wrapper
 ```
@@ -63,29 +65,34 @@ def fetch_folder_data(url: str) -> Dict[str, Any]:
 
 ### Manual Timing for Workflow Stages
 
-For main sync workflow, add checkpoints:
+For main sync workflow, add checkpoints (pseudocode showing the pattern):
 
 ```python
-def sync_profile(profile_id: str, client: httpx.Client):
+def example_sync_workflow():
+    """
+    Pseudocode example showing timing checkpoint pattern.
+    Adapt this to your actual workflow functions.
+    """
     t0 = time.perf_counter()
     
     # Stage 1: Fetch folders
     t1 = time.perf_counter()
-    folders = fetch_all_folders(profile_id, client)
+    # Your actual folder fetching logic here
+    folder_data_list = []  # Results from concurrent futures
     t2 = time.perf_counter()
-    logging.info(f"⏱️  Fetched {len(folders)} folders in {t2-t1:.2f}s")
+    log.info(f"⏱️  Fetched {len(folder_data_list)} folders in {t2-t1:.2f}s")
     
     # Stage 2: Delete folders
-    delete_folders(folders, client)
+    # Your actual folder deletion logic here
     t3 = time.perf_counter()
-    logging.info(f"⏱️  Deleted folders in {t3-t2:.2f}s")
+    log.info(f"⏱️  Deleted folders in {t3-t2:.2f}s")
     
     # Stage 3: Push rules
-    push_all_rules(folders, client)
+    # Your actual rule pushing logic here
     t4 = time.perf_counter()
-    logging.info(f"⏱️  Pushed rules in {t4-t3:.2f}s")
+    log.info(f"⏱️  Pushed rules in {t4-t3:.2f}s")
     
-    logging.info(f"⏱️  TOTAL sync time: {t4-t0:.2f}s")
+    log.info(f"⏱️  TOTAL sync time: {t4-t0:.2f}s")
 ```
 
 **Why this matters:** Without baseline numbers, every optimization is a guess. Start here.
@@ -101,6 +108,8 @@ Track API calls as a first-class metric. Reducing calls is the fastest path to c
 Add a call counter to your API wrapper:
 
 ```python
+import threading
+
 class APICallTracker:
     def __init__(self):
         self.calls = {"GET": 0, "POST": 0, "DELETE": 0}

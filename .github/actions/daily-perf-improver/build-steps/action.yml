@@ -21,7 +21,7 @@ runs:
       shell: bash
       run: |
         echo "=== Installing dev dependencies ===" | tee -a build-steps.log
-        pip install pytest pytest-mock 2>&1 | tee -a build-steps.log
+        pip install pytest pytest-mock memory_profiler 2>&1 | tee -a build-steps.log
         echo "✓ Dev dependencies installed" | tee -a build-steps.log
 
     - name: Verify installation
