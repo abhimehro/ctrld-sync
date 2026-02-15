@@ -105,6 +105,49 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
 - Python 3.13+
 - `uv` (for dependency management)
 
+## Testing
+
+This project includes a comprehensive test suite to ensure code quality and correctness.
+
+### Running Tests
+
+**Basic test execution:**
+```bash
+# Install dev dependencies first
+pip install pytest pytest-mock pytest-xdist
+
+# Run all tests
+pytest tests/
+```
+
+**Parallel test execution (recommended):**
+```bash
+# Run tests in parallel using all available CPU cores
+pytest tests/ -n auto
+
+# Run with specific number of workers
+pytest tests/ -n 4
+```
+
+**Note on parallel execution:** The test suite is currently small (~78 tests, <1s execution time), so parallel execution overhead may result in longer wall-clock time compared to sequential execution. However, pytest-xdist is included for:
+- **Test isolation verification** - Ensures tests don't share state
+- **Future scalability** - As the test suite grows, parallel execution will provide significant speedups
+- **CI optimization** - May benefit from parallelization in CI environments with different characteristics
+
+### Development Workflow
+
+For active development with frequent test runs:
+```bash
+# Run tests sequentially (faster for small test suites)
+pytest tests/ -v
+
+# Run specific test file
+pytest tests/test_security.py -v
+
+# Run tests matching pattern
+pytest tests/ -k "test_validation" -v
+```
+
 ## Release Process
 
 This project uses manual releases via GitHub Releases. To create a new release:

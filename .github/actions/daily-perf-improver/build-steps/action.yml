@@ -21,7 +21,7 @@ runs:
       shell: bash
       run: |
         echo "=== Installing dev dependencies ===" | tee -a build-steps.log
-        pip install pytest pytest-mock memory_profiler 2>&1 | tee -a build-steps.log
+        pip install pytest pytest-mock pytest-xdist memory_profiler 2>&1 | tee -a build-steps.log
         echo "✓ Dev dependencies installed" | tee -a build-steps.log
 
     - name: Verify installation
@@ -42,7 +42,7 @@ runs:
       shell: bash
       run: |
         echo "=== Running test suite ===" | tee -a build-steps.log
-        pytest tests/ -v 2>&1 | tee -a build-steps.log
+        pytest tests/ -n auto -v 2>&1 | tee -a build-steps.log
         echo "✓ Tests completed" | tee -a build-steps.log
       # Allow build to continue even with test failures so the agent can analyze
       # failures and attempt fixes. The agent checks build-steps.log for issues.
