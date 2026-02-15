@@ -7,10 +7,17 @@ import os
 # Add root to path to import main
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import main
+import importlib
 
 class TestPushRulesPerf(unittest.TestCase):
     def setUp(self):
+        # Dynamically import main to handle reloads by other tests
+        if 'main' in sys.modules:
+            self.main = sys.modules['main']
+        else:
+            import main
+            self.main = main
+
         self.client = MagicMock()
         self.profile_id = "test_profile"
         self.folder_name = "test_folder"
@@ -50,7 +57,7 @@ class TestPushRulesPerf(unittest.TestCase):
         # For this test, we mock _api_post_form?
         # No, _api_post_form calls client.post.
 
-        main.push_rules(
+        self.main.push_rules(
             self.profile_id,
             self.folder_name,
             self.folder_id,
@@ -84,7 +91,7 @@ class TestPushRulesPerf(unittest.TestCase):
 
         mock_as_completed.return_value = [mock_future, mock_future] # 2 batches
 
-        main.push_rules(
+        self.main.push_rules(
             self.profile_id,
             self.folder_name,
             self.folder_id,
@@ -108,7 +115,7 @@ class TestPushRulesPerf(unittest.TestCase):
         # h1 is already known, h2 is new
         existing_rules = {"h1"}
 
-        main.push_rules(
+        self.main.push_rules(
             self.profile_id,
             self.folder_name,
             self.folder_id,
