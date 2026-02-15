@@ -269,9 +269,11 @@ def print_plan_details(plan_entry: Dict[str, Any]) -> None:
 
     def _print_item(name_text: str, count_text: str, use_color: bool) -> None:
         """Helper to print a single item safely."""
+        # Ensure the count text is a short, non-sensitive representation
+        safe_count_text = "".join(ch for ch in str(count_text) if ch.isdigit() or ch in {",", ".", " "})[:16]
         # Simple padding
         p_name = f"{name_text:<{width}}"
-        p_count = f"{count_text:>{c_width}}"
+        p_count = f"{safe_count_text:>{c_width}}"
 
         if use_color:
             sys.stdout.write(
