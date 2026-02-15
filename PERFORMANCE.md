@@ -220,7 +220,7 @@ python -m memory_profiler main.py
 ## Success Metrics
 
 ### Primary Metrics
-- **End-to-end sync time** (wall clock): Target 20%+ reduction for typical workloads
+- **End-to-end sync time** (wall clock): Establish baseline, then target meaningful reductions (e.g., 20%+) for typical workloads
 - **API calls per sync**: Track and minimize
 - **Memory footprint**: Maintain or reduce (especially for 50k+ rules)
 

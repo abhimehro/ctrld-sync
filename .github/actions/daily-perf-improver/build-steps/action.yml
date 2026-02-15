@@ -45,6 +45,8 @@ runs:
         echo "=== Running test suite ===" | tee -a build-steps.log
         pytest tests/ -v 2>&1 | tee -a build-steps.log
         echo "✓ Tests completed" | tee -a build-steps.log
+      # Allow build to continue even with test failures so the agent can analyze
+      # failures and attempt fixes. The agent checks build-steps.log for issues.
       continue-on-error: true
 
     - name: Summary
