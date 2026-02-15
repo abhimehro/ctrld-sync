@@ -482,18 +482,56 @@ def load_disk_cache() -> None:
         if not cache_file.exists():
             log.debug("No existing cache file found, starting fresh")
             return
-        
+
         with open(cache_file, "r", encoding="utf-8") as f:
             data = json.load(f)
-        
-        # Validate cache structure
+
+        # Validate cache structure at the top level
         if not isinstance(data, dict):
-            log.warning("Cache file has invalid format, ignoring")
+            log.warning("Cache file has invalid format (root is not a dict), ignoring")
             return
-        
-        _disk_cache = data
-        log.info(f"Loaded {len(_disk_cache):,} entries from disk cache")
-        
+
+        # Sanitize individual cache entries to ensure graceful degradation:
+        # - keys must be strings
+        # - values must be dicts
+        # - each entry must contain at least a 'data' field
+        sanitized_cache: Dict[str, Any] = {}
+        dropped_entries = 0
+
+        for key, value in data.items():
+            if not isinstance(key, str):
+                dropped_entries += 1
+                log.debug("Dropping cache entry with non-string key: %r", key)
+                continue
+
+            if not isinstance(value, dict):
+                dropped_entries += 1
+                log.debug("Dropping cache entry %r: value is not a dict", key)
+                continue
+
+            if "data" not in value:
+                dropped_entries += 1
+                log.debug("Dropping cache entry %r: missing required 'data' field", key)
+                continue
+
+            sanitized_cache[key] = value
+
+        if not sanitized_cache:
+            # If nothing is valid, start with an empty cache instead of crashing later
+            _disk_cache = {}
+            log.warning("Cache file contained no valid entries; starting with empty cache")
+            return
+
+        if dropped_entries:
+            log.info(
+                "Loaded %d valid entries from disk cache (dropped %d malformed entries)",
+                len(sanitized_cache),
+                dropped_entries,
+            )
+        else:
+            log.info("Loaded %d entries from disk cache", len(sanitized_cache))
+
+        _disk_cache = sanitized_cache
     except json.JSONDecodeError as e:
         log.warning(f"Corrupted cache file (invalid JSON), starting fresh: {e}")
         _cache_stats["errors"] += 1
@@ -795,10 +833,15 @@ def _gh_get(url: str) -> Dict:
     if cached_entry:
         # Send conditional request using cached ETag/Last-Modified
         # Server returns 304 if content hasn't changed
-        if "etag" in cached_entry:
-            headers["If-None-Match"] = cached_entry["etag"]
-        if "last_modified" in cached_entry:
-            headers["If-Modified-Since"] = cached_entry["last_modified"]
+        # NOTE: Cached values may be None if the server didn't send these headers.
+        # httpx requires header values to be str/bytes, so we only add headers
+        # when the cached value is truthy.
+        etag = cached_entry.get("etag")
+        if etag:
+            headers["If-None-Match"] = etag
+        last_modified = cached_entry.get("last_modified")
+        if last_modified:
+            headers["If-Modified-Since"] = last_modified
     
     # Fetch data (or validate cache)
     # Explicitly let HTTPError propagate (no need to catch just to re-raise)
@@ -822,10 +865,67 @@ def _gh_get(url: str) -> Dict:
                     # Shouldn't happen, but handle gracefully
                     log.warning(f"Got 304 but no cached data for {sanitize_for_log(url)}, re-fetching")
                     _cache_stats["errors"] += 1
-                    # Fall through to fetch without headers
+                    # Close the original streaming response before retrying
+                    r.close()
+                    # Retry without conditional headers using streaming again so that
+                    # MAX_RESPONSE_SIZE and related protections still apply.
                     headers = {}
-                    # Retry without conditional headers
-                    r = _gh.get(url)
+                    with _gh.stream("GET", url, headers=headers) as r_retry:
+                        r_retry.raise_for_status()
+                        
+                        # 1. Check Content-Length header if present
+                        cl = r_retry.headers.get("Content-Length")
+                        if cl:
+                            try:
+                                if int(cl) > MAX_RESPONSE_SIZE:
+                                    raise ValueError(
+                                        f"Response too large from {sanitize_for_log(url)} "
+                                        f"({int(cl) / (1024 * 1024):.2f} MB)"
+                                    )
+                            except ValueError as e:
+                                # Only catch the conversion error, let the size error propagate
+                                if "Response too large" in str(e):
+                                    raise e
+                                log.warning(
+                                    f"Malformed Content-Length header from {sanitize_for_log(url)}: {cl!r}. "
+                                    "Falling back to streaming size check."
+                                )
+                        
+                        # 2. Stream and check actual size
+                        chunks = []
+                        current_size = 0
+                        for chunk in r_retry.iter_bytes():
+                            current_size += len(chunk)
+                            if current_size > MAX_RESPONSE_SIZE:
+                                raise ValueError(
+                                    f"Response too large from {sanitize_for_log(url)} "
+                                    f"(> {MAX_RESPONSE_SIZE / (1024 * 1024):.2f} MB)"
+                                )
+                            chunks.append(chunk)
+                        
+                        try:
+                            data = json.loads(b"".join(chunks))
+                        except json.JSONDecodeError as e:
+                            raise ValueError(
+                                f"Invalid JSON response from {sanitize_for_log(url)}"
+                            ) from e
+                        
+                        # Store cache headers for future conditional requests
+                        # ETag is preferred over Last-Modified (more reliable)
+                        etag = r_retry.headers.get("ETag")
+                        last_modified = r_retry.headers.get("Last-Modified")
+                        
+                        # Update disk cache with new data and headers
+                        _disk_cache[url] = {
+                            "data": data,
+                            "etag": etag,
+                            "last_modified": last_modified,
+                            "fetched_at": time.time(),
+                            "last_validated": time.time(),
+                        }
+                        
+                        _cache_stats["misses"] += 1
+                        return data
             
             r.raise_for_status()
             
@@ -1711,12 +1811,14 @@ def parse_args() -> argparse.Namespace:
 def main():
     # SECURITY: Check .env permissions (after Colors is defined for NO_COLOR support)
     check_env_permissions()
-    
-    # Load persistent cache from disk (graceful degradation on any error)
-    load_disk_cache()
 
     global TOKEN
     args = parse_args()
+
+    # Load persistent cache from disk (graceful degradation on any error)
+    # NOTE: Called only after successful argument parsing so that `--help` or
+    #       argument errors do not perform unnecessary filesystem I/O or logging.
+    load_disk_cache()
     profiles_arg = (
         _clean_env_kv(args.profiles or os.getenv("PROFILE", ""), "PROFILE") or ""
     )
