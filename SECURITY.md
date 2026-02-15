@@ -18,8 +18,9 @@ We take security vulnerabilities seriously. If you discover a security issue, pl
 ### How to Report
 
 1. **DO NOT** open a public GitHub issue for security vulnerabilities
-2. Email the maintainer directly at the email associated with the GitHub account
-3. Include the following in your report:
+2. Use GitHub's private security reporting feature by navigating to this repository's **Security** tab and selecting **"Report a vulnerability"**.
+3. If that option is not available, email our security contact at `security@example.com`.
+4. Include the following in your report:
    - Description of the vulnerability
    - Steps to reproduce the issue
    - Potential impact
