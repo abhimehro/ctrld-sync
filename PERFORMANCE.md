@@ -121,7 +121,7 @@ def _api_get(client, url, **kwargs):
     # existing implementation
 
 # At end of sync:
-logging.info(api_tracker.summary())
+log.info(api_tracker.summary())
 ```
 
 **Target metric:** Calls per 1,000 rules processed. Lower is better.
