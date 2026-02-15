@@ -148,3 +148,76 @@ This project uses manual releases via GitHub Releases. To create a new release:
 - [ ] Git tag created and pushed
 - [ ] GitHub Release created with notes
 - [ ] Release announcement (optional)
+
+## CI/CD & Dependency Caching
+
+### How Caching Works
+
+The GitHub Actions workflows use automatic dependency caching to speed up CI runs:
+
+- **Cache Key**: Generated from the SHA-256 hash of `requirements.txt`
+- **Cache Location**: `~/.cache/pip` (managed by `actions/setup-python@v5`)
+- **Invalidation**: Automatic when `requirements.txt` changes
+
+### Expected Performance
+
+- **First run** (cold cache): ~30-40 seconds for dependency installation
+- **Subsequent runs** (warm cache): ~5-10 seconds for cache restoration
+- **Cache hit rate**: Expected >80% for typical PR/commit workflows
+
+### Maintaining Dependencies
+
+**Important**: `requirements.txt` must stay synchronized with `pyproject.toml`
+
+When updating dependencies:
+
+1. **Update `pyproject.toml`**
+   ```toml
+   [project]
+   dependencies = [
+       "httpx>=0.28.1",
+       "python-dotenv>=1.1.1",
+   ]
+   ```
+
+2. **Update `requirements.txt`** (manual sync required)
+   ```bash
+   # Extract dependencies from pyproject.toml
+   # Update requirements.txt to match
+   ```
+
+3. **Verify locally**
+   ```bash
+   pip install -r requirements.txt
+   python main.py --help  # Smoke test
+   ```
+
+### Why requirements.txt?
+
+The project uses a flat layout (scripts in root directory), which doesn't support `pip install -e .` without additional configuration. Using `requirements.txt` for CI is a minimal-change approach that:
+
+- ✅ Enables effective pip caching via `actions/setup-python@v5`
+- ✅ Provides explicit cache key for reproducible builds
+- ✅ Maintains simplicity (no src/ layout migration required)
+- ✅ Keeps `pyproject.toml` as single source of truth for version declarations
+
+### Cache Debugging
+
+If you suspect cache issues:
+
+1. **Check cache hit/miss** in workflow logs:
+   ```
+   Run actions/setup-python@v5
+   Cache restored successfully: true
+   ```
+
+2. **Manually clear cache** (if needed):
+   - Go to Actions → Caches
+   - Delete relevant pip cache entries
+   - Re-run workflow to rebuild cache
+
+3. **Verify dependencies match**:
+   ```bash
+   diff <(grep -v "^#" requirements.txt | grep -v "^$") \
+        <(grep "dependencies" -A10 pyproject.toml | grep "^    " | tr -d '",' | xargs -n1)
+   ```
