@@ -1,0 +1,5 @@
+# Runtime dependencies - auto-generated from pyproject.toml
+# DO NOT EDIT: This file is maintained for CI caching purposes
+# Source of truth is pyproject.toml [project.dependencies]
+httpx>=0.28.1
+python-dotenv>=1.1.1
