@@ -114,7 +114,7 @@ This project includes a comprehensive test suite to ensure code quality and corr
 **Basic test execution:**
 ```bash
 # Install dev dependencies first
-pip install -e ".[dev]"  # or: pip install pytest pytest-mock pytest-xdist
+pip install pytest pytest-mock pytest-xdist
 
 # Run all tests
 pytest tests/
