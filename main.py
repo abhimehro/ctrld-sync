@@ -30,6 +30,7 @@ import time
 from functools import lru_cache
 from typing import Any, Callable, Dict, List, Optional, Sequence, Set, Tuple
 from urllib.parse import urlparse
+import hashlib
 
 import httpx
 from dotenv import load_dotenv
@@ -246,21 +247,33 @@ def sanitize_for_log(text: Any) -> str:
 
 def _strip_taint(s: Any) -> str:
     """
-    Sanitize a string by stripping non-printable characters and ensuring
-    a new string object is created to break static analysis taint paths.
+    Sanitize a string for logging by removing non-printable characters and
+    returning a non-reversible redacted representation. This function is
+    intentionally lossy so that secrets (tokens, IDs, passwords) are not
+    logged in clear text and so that taint analysis does not treat the
+    output as equivalent to the input.
     """
     if s is None:
         return ""
+
     # Convert to string, encode to bytes (ignoring errors), and decode back.
-    # This effectively scrubs the string of weird encodings and potentially breaks taint.
-    # It creates a new string object from raw bytes.
+    # This scrubs the string of weird encodings and ensures we create a new
+    # string object that does not alias the original.
     try:
         cleaned = str(s).encode("utf-8", "ignore").decode("utf-8")
     except Exception:
         cleaned = str(s)
 
     # Allow only printable characters (no control chars)
-    return "".join(c for c in cleaned if c.isprintable())
+    cleaned = "".join(c for c in cleaned if c.isprintable())
+    if not cleaned:
+        return ""
+
+    # Do not emit the original potentially sensitive value. Instead, return a
+    # short, non-reversible summary based on a cryptographic hash.
+    digest = hashlib.sha256(cleaned.encode("utf-8")).hexdigest()
+    # Only expose a small prefix of the hash to keep output compact.
+    return f"<redacted:{digest[:8]}>"
 
 
 def prepare_plan_rows(summary_data: Dict[str, Any]) -> List[Tuple[str, str]]:
