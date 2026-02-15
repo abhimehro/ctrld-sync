@@ -90,7 +90,7 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
    ```
 
 5. **Run in CI**
-The included GitHub Actions workflow (`.github/workflows/ci.yml`) runs a dry-run daily at 02:00 UTC and on PRs, writes `plan.json`, and uploads it as an artifact for review.
+The included GitHub Actions workflow (`.github/workflows/sync.yml`) runs a dry-run daily at 02:00 UTC and on PRs, writes `plan.json`, and uploads it as an artifact for review.
 
 ### Configure GitHub Actions
 
