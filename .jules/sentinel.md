@@ -33,3 +33,11 @@
 **Learning:** Path-based checks (`os.path.islink`, `os.stat`) followed by path-based operations (`os.chmod`) are inherently racy. File descriptors are the only way to pin the resource.
 
 **Prevention:** Use `os.open` with `O_NOFOLLOW` to open the file securely (failing if it's a symlink). Then use file-descriptor-based operations: `os.fstat(fd)` to check modes and `os.fchmod(fd, mode)` to modify permissions. This ensures operations apply to the exact inode opened.
+
+## 2026-10-24 - Insecure Bootstrapping Order (.env Loading)
+
+**Vulnerability:** The application called `load_dotenv()` at module level, *before* running security checks on `.env` file permissions. This created a race window where secrets could be read from a world-readable file before the permission fix was applied.
+
+**Learning:** Global initialization code (like `load_dotenv()`) runs immediately on import. Security checks that must run before sensitive operations should be placed in `main()` or an initialization function, and sensitive operations (loading secrets) should be deferred until checks pass.
+
+**Prevention:** Move `load_dotenv()` inside `main()` after `check_env_permissions()`. Re-initialize global variables (like `TOKEN`) that depend on environment variables to ensure they pick up the loaded values.
