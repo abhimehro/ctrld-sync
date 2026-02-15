@@ -1,0 +1,55 @@
+name: 'Build Steps for Performance Testing'
+description: 'Sets up the environment and validates build for performance testing'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
+        cache: 'pip'
+      shell: bash
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        echo "=== Installing dependencies ===" | tee -a build-steps.log
+        pip install httpx python-dotenv 2>&1 | tee -a build-steps.log
+        echo "✓ Dependencies installed" | tee -a build-steps.log
+
+    - name: Install dev dependencies for testing
+      shell: bash
+      run: |
+        echo "=== Installing dev dependencies ===" | tee -a build-steps.log
+        pip install pytest pytest-mock 2>&1 | tee -a build-steps.log
+        echo "✓ Dev dependencies installed" | tee -a build-steps.log
+
+    - name: Verify installation
+      shell: bash
+      run: |
+        echo "=== Verifying Python environment ===" | tee -a build-steps.log
+        python --version 2>&1 | tee -a build-steps.log
+        pip list 2>&1 | tee -a build-steps.log
+        echo "✓ Environment verified" | tee -a build-steps.log
+
+    - name: Validate main module
+      shell: bash
+      run: |
+        echo "=== Validating main module ===" | tee -a build-steps.log
+        python -c "import main; print('✓ main.py imports successfully')" 2>&1 | tee -a build-steps.log
+
+    - name: Run test suite
+      shell: bash
+      run: |
+        echo "=== Running test suite ===" | tee -a build-steps.log
+        pytest tests/ -v 2>&1 | tee -a build-steps.log
+        echo "✓ Tests completed" | tee -a build-steps.log
+      continue-on-error: true
+
+    - name: Summary
+      shell: bash
+      run: |
+        echo "=== Build steps summary ===" | tee -a build-steps.log
+        echo "Environment is ready for performance testing" | tee -a build-steps.log
+        echo "See build-steps.log for complete output" | tee -a build-steps.log
