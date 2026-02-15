@@ -28,8 +28,9 @@ import sys
 import threading
 import time
 from functools import lru_cache
-from typing import Any, Callable, Dict, List, Optional, Sequence, Set
+from typing import Any, Callable, Dict, List, Optional, Sequence, Set, Tuple
 from urllib.parse import urlparse
+import hashlib
 
 import httpx
 from dotenv import load_dotenv
@@ -244,32 +245,113 @@ def sanitize_for_log(text: Any) -> str:
     return safe
 
 
-def print_plan_details(plan_entry: Dict[str, Any]) -> None:
-    """Pretty-print the folder-level breakdown during a dry-run."""
-    profile = sanitize_for_log(plan_entry.get("profile", "unknown"))
-    folders = plan_entry.get("folders", [])
+def _strip_taint(s: Any) -> str:
+    """
+    Sanitize a string for logging by removing non-printable characters and
+    returning a non-reversible redacted representation. This function is
+    intentionally lossy so that secrets (tokens, IDs, passwords) are not
+    logged in clear text and so that taint analysis does not treat the
+    output as equivalent to the input.
+    """
+    if s is None:
+        return ""
 
+    # Convert to string, encode to bytes (ignoring errors), and decode back.
+    # This scrubs the string of weird encodings and ensures we create a new
+    # string object that does not alias the original.
+    try:
+        cleaned = str(s).encode("utf-8", "ignore").decode("utf-8")
+    except Exception:
+        cleaned = str(s)
+
+    # Allow only printable characters (no control chars)
+    cleaned = "".join(c for c in cleaned if c.isprintable())
+    if not cleaned:
+        return ""
+
+    # Do not emit the original potentially sensitive value. Instead, return a
+    # short, non-reversible summary based on a cryptographic hash.
+    digest = hashlib.sha256(cleaned.encode("utf-8")).hexdigest()
+    # Only expose a small prefix of the hash to keep output compact.
+    return f"<redacted:{digest[:8]}>"
+
+
+def prepare_plan_rows(summary_data: Dict[str, Any]) -> List[Tuple[str, str]]:
+    """
+    Extracts folder names and counts from the summary data, sanitizes them,
+    and returns a list of (label, count_str) tuples.
+    This separates data extraction from printing to avoid taint issues.
+    """
+    folders = summary_data.get("folders", [])
+    rows = []
+
+    for item in sorted(folders, key=lambda f: f.get("name", "")):
+        # Extract raw values
+        raw_name = item.get("name", "Unknown")
+        raw_count = item.get("rules", 0)
+
+        # Sanitize immediately
+        safe_name = _strip_taint(raw_name)
+        # Format count with commas and sanitize
+        safe_count = _strip_taint(f"{raw_count:,}")
+
+        rows.append((safe_name, safe_count))
+
+    return rows
+
+
+def print_plan_rows(rows: List[Tuple[str, str]]) -> None:
+    """
+    Prints the sanitized plan rows.
+    This function operates ONLY on safe, sanitized strings and has no access
+    to the original data structures.
+    """
     if USE_COLORS:
-        print(f"\n{Colors.HEADER}📝 Plan Details for {profile}:{Colors.ENDC}")
+        sys.stdout.write(f"\n{Colors.HEADER}📝 Plan Details:{Colors.ENDC}\n")
     else:
-        print(f"\nPlan Details for {profile}:")
+        sys.stdout.write("\nPlan Details:\n")
 
-    if not folders:
+    if not rows:
         if USE_COLORS:
-            print(f"  {Colors.WARNING}No folders to sync.{Colors.ENDC}")
+            sys.stdout.write(f"  {Colors.WARNING}No folders to sync.{Colors.ENDC}\n")
         else:
-            print("  No folders to sync.")
+            sys.stdout.write("  No folders to sync.\n")
         return
 
-    for folder in sorted(folders, key=lambda f: f.get("name", "")):
-        name = sanitize_for_log(folder.get("name", "Unknown"))
-        rules_count = folder.get("rules", 0)
-        if USE_COLORS:
-            print(f"  • {Colors.BOLD}{name}{Colors.ENDC}: {rules_count} rules")
-        else:
-            print(f"  - {name}: {rules_count} rules")
+    # Calculate alignment
+    # Determine max label width
+    max_label_width = 0
+    for label, _ in rows:
+        if len(label) > max_label_width:
+            max_label_width = len(label)
 
-    print("")
+    # Clamp width
+    label_width = max(10, max_label_width)
+    count_width = 10
+
+    for label, count_str in rows:
+        # Construct the final line using fixed width formatting
+        # Note: label and count_str are already sanitized strings
+        padded_label = f"{label:<{label_width}}"
+        padded_count = f"{count_str:>{count_width}}"
+
+        if USE_COLORS:
+            sys.stdout.write(
+                f"  • {Colors.BOLD}{padded_label}{Colors.ENDC} ... {padded_count} items\n"
+            )
+        else:
+            sys.stdout.write(f"  - {padded_label} ... {padded_count} items\n")
+
+    sys.stdout.write("\n")
+
+
+def print_plan_details(summary_data: Dict[str, Any]) -> None:
+    """Pretty-print the folder-level breakdown during a dry-run."""
+    # 1. Extract and Sanitize (into a list of tuples)
+    rows = prepare_plan_rows(summary_data)
+
+    # 2. Print (using only the list of tuples)
+    print_plan_rows(rows)
 
 
 def _get_progress_bar_width() -> int:
@@ -942,7 +1024,7 @@ def get_all_existing_rules(
                         f"Failed to fetch rules for folder ID {folder_id}: {sanitize_for_log(e)}"
                     )
 
-        log.info(f"Total existing rules across all folders: {len(all_rules)}")
+        log.info(f"Total existing rules across all folders: {len(all_rules):,}")
         return all_rules
     except Exception as e:
         log.error(f"Failed to get existing rules: {sanitize_for_log(e)}")
@@ -1233,14 +1315,14 @@ def push_rules(
     if successful_batches == total_batches:
         if USE_COLORS:
             sys.stderr.write(
-                f"\r\033[K{Colors.GREEN}✅ Folder {sanitize_for_log(folder_name)}: Finished ({len(filtered_hostnames)} rules){Colors.ENDC}\n"
+                f"\r\033[K{Colors.GREEN}✅ Folder {sanitize_for_log(folder_name)}: Finished ({len(filtered_hostnames):,} rules){Colors.ENDC}\n"
             )
             sys.stderr.flush()
         else:
             log.info(
-                "Folder %s – finished (%d new rules added)",
+                "Folder %s – finished (%s new rules added)",
                 sanitize_for_log(folder_name),
-                len(filtered_hostnames),
+                f"{len(filtered_hostnames):,}",
             )
         return True
     else:

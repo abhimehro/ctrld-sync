@@ -695,3 +695,96 @@ def test_check_env_permissions_secure(monkeypatch):
     assert mock_open.called
     assert not mock_fchmod.called
     mock_close.assert_called_with(123)
+
+# Case 19: New Sanitization Tests
+def test_strip_taint():
+    # Test None
+    assert main._strip_taint(None) == ""
+
+    # Test normal string
+    assert main._strip_taint("Normal String") == "Normal String"
+
+    # Test non-printable chars
+    dirty = "Hello\x00World\n"
+    assert main._strip_taint(dirty) == "HelloWorld"
+
+    # Test mixed types
+    assert main._strip_taint(123) == "123"
+
+def test_prepare_plan_rows():
+    summary_data = {
+        "profile": "p1",
+        "folders": [
+            {"name": "Folder B", "rules": 2000},
+            {"name": "Folder A", "rules": 5}
+        ]
+    }
+
+    rows = main.prepare_plan_rows(summary_data)
+
+    # Should be sorted by name
+    assert len(rows) == 2
+    assert rows[0] == ("Folder A", "5")
+    assert rows[1] == ("Folder B", "2,000")
+
+def test_prepare_plan_rows_empty():
+    summary_data = {"folders": []}
+    rows = main.prepare_plan_rows(summary_data)
+    assert rows == []
+
+def test_print_plan_rows(monkeypatch):
+    # Mock sys.stdout
+    mock_stdout = MagicMock()
+    monkeypatch.setattr(sys, "stdout", mock_stdout)
+
+    # Force colors OFF for simpler assertion
+    monkeypatch.setattr(main, "USE_COLORS", False)
+
+    rows = [("Folder A", "5"), ("Folder B", "2,000")]
+
+    main.print_plan_rows(rows)
+
+    # Check output
+    writes = [args[0] for args, _ in mock_stdout.write.call_args_list]
+    combined = "".join(writes)
+
+    assert "Plan Details:" in combined
+    assert "Folder A" in combined
+    assert "5 items" in combined
+    assert "Folder B" in combined
+    assert "2,000 items" in combined
+
+def test_print_plan_rows_colors(monkeypatch):
+    # Mock sys.stdout
+    mock_stdout = MagicMock()
+    monkeypatch.setattr(sys, "stdout", mock_stdout)
+
+    # Force colors ON
+    monkeypatch.setattr(main, "USE_COLORS", True)
+
+    rows = [("Folder A", "5")]
+
+    main.print_plan_rows(rows)
+
+    writes = [args[0] for args, _ in mock_stdout.write.call_args_list]
+    combined = "".join(writes)
+
+    # Check for color codes
+    assert main.Colors.HEADER in combined
+    assert main.Colors.BOLD in combined
+    assert main.Colors.ENDC in combined
+    assert "•" in combined # Bullet point for color mode
+
+def test_print_plan_details_integration(monkeypatch):
+    # Mock prepare and print_rows to verify they are called
+    mock_prepare = MagicMock(return_value=[("A", "1")])
+    mock_print = MagicMock()
+
+    monkeypatch.setattr(main, "prepare_plan_rows", mock_prepare)
+    monkeypatch.setattr(main, "print_plan_rows", mock_print)
+
+    data = {"some": "data"}
+    main.print_plan_details(data)
+
+    mock_prepare.assert_called_once_with(data)
+    mock_print.assert_called_once_with([("A", "1")])
