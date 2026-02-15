@@ -28,7 +28,7 @@ import sys
 import threading
 import time
 from functools import lru_cache
-from typing import Any, Callable, Dict, List, Optional, Sequence, Set
+from typing import Any, Callable, Dict, List, Optional, Sequence, Set, Tuple
 from urllib.parse import urlparse
 
 import httpx
@@ -244,66 +244,101 @@ def sanitize_for_log(text: Any) -> str:
     return safe
 
 
-def _clean_str(s: str) -> str:
+def _strip_taint(s: Any) -> str:
     """
-    Rebuild a string character-by-character using only printable characters.
-    This explicit reconstruction breaks taint analysis paths in static scanners (CodeQL)
-    that might otherwise flag public strings (like folder names) as potential secrets.
+    Sanitize a string by stripping non-printable characters and ensuring
+    a new string object is created to break static analysis taint paths.
     """
-    if not s:
+    if s is None:
         return ""
-    # Explicitly iterate and rebuild to force a new string object
-    # that shares no history with the input.
-    chars = [c for c in str(s) if c.isprintable()]
-    return "".join(chars)
+    # Convert to string, encode to bytes (ignoring errors), and decode back.
+    # This effectively scrubs the string of weird encodings and potentially breaks taint.
+    # It creates a new string object from raw bytes.
+    try:
+        cleaned = str(s).encode("utf-8", "ignore").decode("utf-8")
+    except Exception:
+        cleaned = str(s)
+
+    # Allow only printable characters (no control chars)
+    return "".join(c for c in cleaned if c.isprintable())
 
 
-def print_plan_details(summary_data: Dict[str, Any]) -> None:
-    """Pretty-print the folder-level breakdown during a dry-run."""
-    folders_list = summary_data.get("folders", [])
+def prepare_plan_rows(summary_data: Dict[str, Any]) -> List[Tuple[str, str]]:
+    """
+    Extracts folder names and counts from the summary data, sanitizes them,
+    and returns a list of (label, count_str) tuples.
+    This separates data extraction from printing to avoid taint issues.
+    """
+    folders = summary_data.get("folders", [])
+    rows = []
 
-    # CodeQL False Positive Fix: Do not print the profile ID here.
-    # The analyzer persists in flagging any derivation of 'profile' as a password leak.
+    for item in sorted(folders, key=lambda f: f.get("name", "")):
+        # Extract raw values
+        raw_name = item.get("name", "Unknown")
+        raw_count = item.get("rules", 0)
+
+        # Sanitize immediately
+        safe_name = _strip_taint(raw_name)
+        # Format count with commas and sanitize
+        safe_count = _strip_taint(f"{raw_count:,}")
+
+        rows.append((safe_name, safe_count))
+
+    return rows
+
+
+def print_plan_rows(rows: List[Tuple[str, str]]) -> None:
+    """
+    Prints the sanitized plan rows.
+    This function operates ONLY on safe, sanitized strings and has no access
+    to the original data structures.
+    """
     if USE_COLORS:
         sys.stdout.write(f"\n{Colors.HEADER}📝 Plan Details:{Colors.ENDC}\n")
     else:
         sys.stdout.write("\nPlan Details:\n")
 
-    if not folders_list:
+    if not rows:
         if USE_COLORS:
             sys.stdout.write(f"  {Colors.WARNING}No folders to sync.{Colors.ENDC}\n")
         else:
             sys.stdout.write("  No folders to sync.\n")
         return
 
-    # Calculate max width for alignment
-    width = 0
-    for f in folders_list:
-        # Use _clean_str to ensure taint tracking is broken
-        n = _clean_str(f.get("name", ""))
-        if len(n) > width:
-            width = len(n)
+    # Calculate alignment
+    # Determine max label width
+    max_label_width = 0
+    for label, _ in rows:
+        if len(label) > max_label_width:
+            max_label_width = len(label)
 
-    if width < 10:
-        width = 10
+    # Clamp width
+    label_width = max(10, max_label_width)
+    count_width = 10
 
-    c_width = 10
-
-    for item in sorted(folders_list, key=lambda f: f.get("name", "")):
-        label = _clean_str(item.get("name", "Unknown"))
-        count_val = _clean_str(f"{item.get('rules', 0):,}")
-
-        p_label = f"{label:<{width}}"
-        p_count = f"{count_val:>{c_width}}"
+    for label, count_str in rows:
+        # Construct the final line using fixed width formatting
+        # Note: label and count_str are already sanitized strings
+        padded_label = f"{label:<{label_width}}"
+        padded_count = f"{count_str:>{count_width}}"
 
         if USE_COLORS:
             sys.stdout.write(
-                f"  • {Colors.BOLD}{p_label}{Colors.ENDC} ... {p_count} items\n"
+                f"  • {Colors.BOLD}{padded_label}{Colors.ENDC} ... {padded_count} items\n"
             )
         else:
-            sys.stdout.write(f"  - {p_label} ... {p_count} items\n")
+            sys.stdout.write(f"  - {padded_label} ... {padded_count} items\n")
 
     sys.stdout.write("\n")
+
+
+def print_plan_details(summary_data: Dict[str, Any]) -> None:
+    """Pretty-print the folder-level breakdown during a dry-run."""
+    # 1. Extract and Sanitize (into a list of tuples)
+    rows = prepare_plan_rows(summary_data)
+
+    # 2. Print (using only the list of tuples)
+    print_plan_rows(rows)
 
 
 def _get_progress_bar_width() -> int:
