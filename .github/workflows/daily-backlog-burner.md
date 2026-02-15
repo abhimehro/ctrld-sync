@@ -2,7 +2,7 @@
 description: |
   This workflow performs systematic backlog management by working through issues and pull requests.
   Operates in two phases: research entire backlog to categorize and prioritize items, then
-  systematically close, resolve, or advance selected items. Creates tracking issues to document
+  systematically close, resolve, or advance selected items. Creates discussions to track
   progress and gather maintainer feedback, helping reduce technical debt.
 
 on:
@@ -16,9 +16,9 @@ network: defaults
 permissions: read-all
 
 safe-outputs:
-  create-issue:
+  create-discussion:
     title-prefix: "${{ github.workflow }}"
-    labels: [automation, backlog, workflow-tracker]
+    category: "ideas"
     max: 3
   add-comment:
     target: "*" # all issues and PRs
@@ -48,9 +48,9 @@ You are doing your work in phases. Right now you will perform just one of the fo
 
 To decide which phase to perform:
 
-1. First check for existing open issue titled "${{ github.workflow }}" using `list_issues`. Filter by label "workflow-tracker" to find it more easily. Double check the issue is actually still open - if it's closed you need to ignore it. If found, and open, read it and maintainer comments. If not found, then perform Phase 1 and nothing else.
+1. First check for existing open discussion titled "${{ github.workflow }}" using `list_discussions`. Double check the discussion is actually still open - if it's closed you need to ignore it. If found, and open, read it and maintainer comments. If not found, then perform Phase 1 and nothing else.
 
-2. If the issue exists and is open, then perform Phase 2.
+2. If the discussion exists and is open, then perform Phase 2.
 
 ## Phase 1 - Backlog research
 
@@ -64,11 +64,11 @@ To decide which phase to perform:
    - Estimate the effort required to address each issue, considering factors such as complexity, dependencies, and potential impact
    - Identify any patterns or common themes among the issues, such as recurring bugs, feature requests, or areas of improvement
    - Look for any issues that may be duplicates or closely related to each other, and consider whether they can be consolidated or linked together
-    
-2. Use this research to create an issue with title "${{ github.workflow }} - Research, Roadmap and Plan". This issue should be a comprehensive plan for dealing with the backlog in this repo, and summarize your findings from the backlog research, including any patterns or themes you identified, and your recommendations for addressing the backlog.
 
-   **Include a "How to Control this Workflow" section at the end of the issue that explains:**
-   - The user can add comments to the issue to provide feedback or adjustments to the plan
+2. Use this research to create a discussion with title "${{ github.workflow }} - Research, Roadmap and Plan". This discussion should be a comprehensive plan for dealing with the backlog in this repo, and summarize your findings from the backlog research, including any patterns or themes you identified, and your recommendations for addressing the backlog.
+
+   **Include a "How to Control this Workflow" section at the end of the discussion that explains:**
+   - The user can add comments to the discussion to provide feedback or adjustments to the plan
    - The user can use these commands:
 
       gh aw disable daily-backlog-burner --repo ${{ github.repository }}
@@ -76,7 +76,7 @@ To decide which phase to perform:
       gh aw run daily-backlog-burner --repo ${{ github.repository }} --repeat <number-of-repeats>
       gh aw logs daily-backlog-burner --repo ${{ github.repository }}
 
-   **Include a "What Happens Next" section at the end of the issue that explains:**
+   **Include a "What Happens Next" section at the end of the discussion that explains:**
    - The next time this workflow runs, it will begin working on items from the backlog based on the plan
    - If running in "repeat" mode, the workflow will automatically run again to continue working on backlog items
    - Humans can review this research and add comments to adjust priorities before the workflow continues
@@ -87,18 +87,18 @@ To decide which phase to perform:
 
 1. **Goal selection**. Build an understanding of what to work on and select a backlog item to pursue
 
-   a. Read the plan in the tracking issue mentioned earlier, along with comments.
+   a. Read the plan in the discussion mentioned earlier, along with comments.
 
    b. Check for existing open pull requests (especially yours with "${{ github.workflow }}" prefix). Avoid duplicate work.
-   
-   c. If plan needs updating then comment on planning issue with revised plan and rationale. Consider maintainer feedback.
-  
+
+   c. If plan needs updating then comment on planning discussion with revised plan and rationale. Consider maintainer feedback.
+
    d. Select a goal to pursue from the plan. Ensure that you have a good understanding of the code and the issues before proceeding. Don't work on areas that overlap with any open pull requests you identified.
 
 2. **Work towards your selected goal**. For the backlog item you selected, do the following:
 
    a. Create a new branch.
-   
+
    b. Make the changes to work towards the goal you selected.
 
    c. Ensure the code still works as expected and that any existing relevant tests pass. Add new tests if appropriate and make sure they pass too.
@@ -106,7 +106,7 @@ To decide which phase to perform:
 3. **Finalizing changes**
 
    a. Apply any automatic code formatting used in the repo. If necessary check CI files to understand what code formatting is used.
-   
+
    b. Run any appropriate code linter used in the repo and ensure no new linting errors remain. If necessary check CI files to understand what code linting is used.
 
 4. **Results and learnings**
@@ -124,6 +124,6 @@ To decide which phase to perform:
 
       After creation, check the pull request to ensure it is correct, includes all expected files, and doesn't include any unwanted files or changes. Make any necessary corrections by pushing further commits to the branch.
 
-5. **Final update**: Add brief comment (1 or 2 sentences) to the tracking issue identified at the start of the workflow stating goal worked on, PR links, and progress made.
+5. **Final update**: Add brief comment (1 or 2 sentences) to the discussion identified at the start of the workflow stating goal worked on, PR links, and progress made.
 
-6. If you encounter any unexpected failures or have questions, add comments to the pull request or tracking issue to seek clarification or assistance.
+6. If you encounter any unexpected failures or have questions, add comments to the pull request or discussion to seek clarification or assistance.
