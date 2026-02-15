@@ -55,6 +55,7 @@ def timed(func):
 
 Usage:
 ```python
+from typing import Any, Dict
 @timed
 def fetch_folder_data(url: str) -> Dict[str, Any]:
     # existing implementation
