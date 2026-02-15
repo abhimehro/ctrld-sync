@@ -178,16 +178,21 @@ Keep it simple. Add to `.github/workflows/sync.yml`:
 ```yaml
 - name: Performance smoke test
   run: |
-    python -c "
+    python - << 'PYCODE'
     import time
-    from main import sync_profile
+
     start = time.perf_counter()
-    # Mock sync with synthetic 10k rules
+
+    # TODO: Replace this with a real sync_profile(...) call for your project
+    # For example, you might trigger a sync with a synthetic 10k-rule profile.
+    # The sleep below is just a placeholder to keep this example runnable.
+    time.sleep(1)
+
     elapsed = time.perf_counter() - start
     if elapsed > 60:
         raise Exception(f'Sync too slow: {elapsed:.2f}s')
     print(f'✓ Performance OK: {elapsed:.2f}s')
-    "
+    PYCODE
 ```
 
 **Goal:** Catch major regressions (>50% slower), not minor noise.
