@@ -146,11 +146,25 @@ from main import push_rules
 def test_push_rules_benchmark_10k():
     """Benchmark pushing 10,000 rules."""
     hostnames = [f"example{i}.com" for i in range(10_000)]
-    
+
+    # Minimal example setup. In your real tests, reuse the fixtures/setup you use elsewhere,
+    # e.g. from tests like `test_push_rules_perf.py`.
+    profile_id = "benchmark-profile-id"
+    folder_name = "benchmark-folder"
+    folder_id = "benchmark-folder-id"
+
+    class DummyClient:
+        """
+        Placeholder HTTP client for benchmarking example.
+        Replace with your real client or test fixture that matches push_rules expectations.
+        """
+        pass
+
+    mock_client = DummyClient()
+
     start = time.perf_counter()
     push_rules(profile_id, folder_name, folder_id, 1, 1, hostnames, set(), mock_client)
     elapsed = time.perf_counter() - start
-    
     # Fail if significantly slower than baseline (update threshold after establishing baseline)
     assert elapsed < 30.0, f"10k rules took {elapsed:.2f}s (expected <30s)"
 ```
