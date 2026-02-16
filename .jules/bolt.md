@@ -51,3 +51,7 @@
 ## 2024-05-24 - [Skip Validation for Known Data]
 **Learning:** Performing expensive validation (e.g. regex) on data that is already known to be valid (e.g. exists in trusted remote state) is redundant. Checking existence in a local set (O(1)) before validation avoids CPU overhead for duplicates.
 **Action:** In filtering loops, check "is already processed/known" before "is valid", especially if "valid" implies "safe to process" and "known" implies "already processed".
+
+## 2026-02-04 - [Optimize Buffer for Large Downloads]
+**Learning:** When downloading large files (e.g., blocklists), the default chunk size of HTTP libraries might be small, leading to excessive loop iterations and list operations. Increasing the buffer size (e.g., to 16KB) reduces CPU overhead during I/O-bound operations.
+**Action:** When using `iter_bytes()` or similar streaming methods for large resources, explicitly set a larger `chunk_size` (e.g., 16384) to improve throughput and reduce CPU usage.
