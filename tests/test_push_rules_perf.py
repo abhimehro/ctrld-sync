@@ -7,10 +7,13 @@ import os
 # Add root to path to import main
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import main
-
 class TestPushRulesPerf(unittest.TestCase):
     def setUp(self):
+        # Ensure we are using the current main module instance (in case of reloads)
+        global main
+        if 'main' in sys.modules:
+            main = sys.modules['main']
+
         self.client = MagicMock()
         self.profile_id = "test_profile"
         self.folder_name = "test_folder"
@@ -50,7 +53,7 @@ class TestPushRulesPerf(unittest.TestCase):
         # For this test, we mock _api_post_form?
         # No, _api_post_form calls client.post.
 
-        main.push_rules(
+        self.main.push_rules(
             self.profile_id,
             self.folder_name,
             self.folder_id,
@@ -84,7 +87,7 @@ class TestPushRulesPerf(unittest.TestCase):
 
         mock_as_completed.return_value = [mock_future, mock_future] # 2 batches
 
-        main.push_rules(
+        self.main.push_rules(
             self.profile_id,
             self.folder_name,
             self.folder_id,
@@ -98,31 +101,31 @@ class TestPushRulesPerf(unittest.TestCase):
         # This should ALWAYS be True
         self.assertTrue(mock_executor.called, "ThreadPoolExecutor should be called for multi-batch")
 
-    @patch("main.is_valid_rule")
-    def test_push_rules_skips_validation_for_existing(self, mock_is_valid):
+    def test_push_rules_skips_validation_for_existing(self):
         """
         Test that is_valid_rule is NOT called for rules that are already in existing_rules.
         """
-        mock_is_valid.return_value = True
-        hostnames = ["h1", "h2"]
-        # h1 is already known, h2 is new
-        existing_rules = {"h1"}
+        with patch.object(main, "is_valid_rule") as mock_is_valid:
+            mock_is_valid.return_value = True
+            hostnames = ["h1", "h2"]
+            # h1 is already known, h2 is new
+            existing_rules = {"h1"}
 
-        main.push_rules(
-            self.profile_id,
-            self.folder_name,
-            self.folder_id,
-            self.do,
-            self.status,
-            hostnames,
-            existing_rules,
-            self.client
-        )
+            main.push_rules(
+                self.profile_id,
+                self.folder_name,
+                self.folder_id,
+                self.do,
+                self.status,
+                hostnames,
+                existing_rules,
+                self.client
+            )
 
-        # h1 is in existing_rules, so we should skip validation for it.
-        # h2 is NOT in existing_rules, so we should validate it.
-        # So is_valid_rule should be called EXACTLY once, with "h2".
-        mock_is_valid.assert_called_once_with("h2")
+            # h1 is in existing_rules, so we should skip validation for it.
+            # h2 is NOT in existing_rules, so we should validate it.
+            # So is_valid_rule should be called EXACTLY once, with "h2".
+            mock_is_valid.assert_called_once_with("h2")
 
 if __name__ == '__main__':
     unittest.main()

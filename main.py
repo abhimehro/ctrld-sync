@@ -39,7 +39,7 @@ from dotenv import load_dotenv
 # --------------------------------------------------------------------------- #
 # 0. Bootstrap – load secrets and configure logging
 # --------------------------------------------------------------------------- #
-load_dotenv()
+# SECURITY: load_dotenv() moved to main() to ensure permissions are checked first
 
 # Respect NO_COLOR standard (https://no-color.org/)
 if os.getenv("NO_COLOR"):
@@ -241,6 +241,13 @@ def sanitize_for_log(text: Any) -> str:
     # repr() safely escapes control characters (e.g., \n -> \\n, \x1b -> \\x1b)
     # This prevents log injection and terminal hijacking.
     safe = repr(s)
+
+    # Security: Prevent CSV Injection (Formula Injection)
+    # If the string starts with =, +, -, or @, we keep the quotes from repr()
+    # to force spreadsheet software to treat it as a string literal.
+    if s and s.startswith(("=", "+", "-", "@")):
+        return safe
+
     if len(safe) >= 2 and safe[0] == safe[-1] and safe[0] in ("'", '"'):
         return safe[1:-1]
     return safe
@@ -263,13 +270,27 @@ def print_plan_details(plan_entry: Dict[str, Any]) -> None:
             print("  No folders to sync.")
         return
 
-    for folder in sorted(folders, key=lambda f: f.get("name", "")):
+    # Calculate max width for alignment
+    max_name_len = max(
+        # Use the same default ("Unknown") as when printing, so alignment is accurate
+        (len(sanitize_for_log(f.get("name", "Unknown"))) for f in folders),
+        default=0,
+    )
+    max_rules_len = max((len(f"{f.get('rules', 0):,}") for f in folders), default=0)
+
+    for folder in sorted(folders, key=lambda f: f.get("name", "Unknown")):
         name = sanitize_for_log(folder.get("name", "Unknown"))
         rules_count = folder.get("rules", 0)
+        formatted_rules = f"{rules_count:,}"
+
         if USE_COLORS:
-            print(f"  • {Colors.BOLD}{name}{Colors.ENDC}: {rules_count} rules")
+            print(
+                f"  • {Colors.BOLD}{name:<{max_name_len}}{Colors.ENDC} : {formatted_rules:>{max_rules_len}} rules"
+            )
         else:
-            print(f"  - {name}: {rules_count} rules")
+            print(
+                f"  - {name:<{max_name_len}} : {formatted_rules:>{max_rules_len}} rules"
+            )
 
     print("")
 
@@ -286,8 +307,23 @@ def _get_progress_bar_width() -> int:
 
 
 def countdown_timer(seconds: int, message: str = "Waiting") -> None:
-    """Shows a countdown timer if strictly in a TTY, otherwise just sleeps."""
+    """Show a countdown in interactive/color mode; in no-color/non-interactive
+    mode, sleep silently for short waits and log periodic heartbeat messages
+    for longer waits."""
     if not USE_COLORS:
+        # UX Improvement: For long waits in non-interactive/no-color mode (e.g. CI),
+        # log periodic updates instead of sleeping silently.
+        if seconds > 10:
+            step = 10
+            for remaining in range(seconds, 0, -step):
+                # Don't log the first one if we already logged "Waiting..." before calling this
+                if remaining < seconds:
+                    log.info(f"{sanitize_for_log(message)}: {remaining}s remaining...")
+
+                sleep_time = min(step, remaining)
+                time.sleep(sleep_time)
+            return
+
         time.sleep(seconds)
         return
 
@@ -343,15 +379,34 @@ def get_validated_input(
     prompt: str,
     validator: Callable[[str], bool],
     error_msg: str,
-    is_password: bool = False,
 ) -> str:
     """Prompts for input until the validator returns True."""
     while True:
         try:
-            if is_password:
-                value = getpass.getpass(prompt).strip()
-            else:
-                value = input(prompt).strip()
+            value = input(prompt).strip()
+        except (KeyboardInterrupt, EOFError):
+            print(f"\n{Colors.WARNING}⚠️  Input cancelled.{Colors.ENDC}")
+            sys.exit(130)
+
+        if not value:
+            print(f"{Colors.FAIL}❌ Value cannot be empty{Colors.ENDC}")
+            continue
+
+        if validator(value):
+            return value
+
+        print(f"{Colors.FAIL}❌ {error_msg}{Colors.ENDC}")
+
+
+def get_password(
+    prompt: str,
+    validator: Callable[[str], bool],
+    error_msg: str,
+) -> str:
+    """Prompts for password input until the validator returns True."""
+    while True:
+        try:
+            value = getpass.getpass(prompt).strip()
         except (KeyboardInterrupt, EOFError):
             print(f"\n{Colors.WARNING}⚠️  Input cancelled.{Colors.ENDC}")
             sys.exit(130)
@@ -716,6 +771,16 @@ def is_valid_folder_name(name: str) -> bool:
     if any(c in _DANGEROUS_FOLDER_CHARS or c in _BIDI_CONTROL_CHARS for c in name):
         return False
 
+    # Security: Block path traversal attempts
+    # Check stripped name to prevent whitespace bypass (e.g. " . ")
+    clean_name = name.strip()
+    if clean_name in (".", ".."):
+        return False
+
+    # Security: Block command option injection (if name is passed to shell)
+    if clean_name.startswith("-"):
+        return False
+
     return True
 
 
@@ -950,7 +1015,8 @@ def _gh_get(url: str) -> Dict:
             # 2. Stream and check actual size
             chunks = []
             current_size = 0
-            for chunk in r.iter_bytes():
+            # Optimization: Use 16KB chunks to reduce loop overhead/appends for large files
+            for chunk in r.iter_bytes(chunk_size=16 * 1024):
                 current_size += len(chunk)
                 if current_size > MAX_RESPONSE_SIZE:
                     raise ValueError(
@@ -1224,7 +1290,7 @@ def get_all_existing_rules(
                         f"Failed to fetch rules for folder ID {folder_id}: {sanitize_for_log(e)}"
                     )
 
-        log.info(f"Total existing rules across all folders: {len(all_rules)}")
+        log.info(f"Total existing rules across all folders: {len(all_rules):,}")
         return all_rules
     except Exception as e:
         log.error(f"Failed to get existing rules: {sanitize_for_log(e)}")
@@ -1247,7 +1313,7 @@ def warm_up_cache(urls: Sequence[str]) -> None:
 
     total = len(urls_to_process)
     if not USE_COLORS:
-        log.info(f"Warming up cache for {total} URLs...")
+        log.info(f"Warming up cache for {total:,} URLs...")
 
     # OPTIMIZATION: Combine validation (DNS) and fetching (HTTP) in one task
     # to allow validation latency to be parallelized.
@@ -1463,10 +1529,7 @@ def push_rules(
             _api_post_form(client, f"{API_BASE}/{profile_id}/rules", data=data)
             if not USE_COLORS:
                 log.info(
-                    "Folder %s – batch %d: added %d rules",
-                    sanitize_for_log(folder_name),
-                    batch_idx,
-                    len(batch_data),
+                    f"Folder {sanitize_for_log(folder_name)} – batch {batch_idx}: added {len(batch_data):,} rules"
                 )
             return batch_data
         except httpx.HTTPError as e:
@@ -1515,14 +1578,12 @@ def push_rules(
     if successful_batches == total_batches:
         if USE_COLORS:
             sys.stderr.write(
-                f"\r\033[K{Colors.GREEN}✅ Folder {sanitize_for_log(folder_name)}: Finished ({len(filtered_hostnames)} rules){Colors.ENDC}\n"
+                f"\r\033[K{Colors.GREEN}✅ Folder {sanitize_for_log(folder_name)}: Finished ({len(filtered_hostnames):,} rules){Colors.ENDC}\n"
             )
             sys.stderr.flush()
         else:
             log.info(
-                "Folder %s – finished (%d new rules added)",
-                sanitize_for_log(folder_name),
-                len(filtered_hostnames),
+                f"Folder {sanitize_for_log(folder_name)} – finished ({len(filtered_hostnames):,} new rules added)"
             )
         return True
     else:
@@ -1810,9 +1871,14 @@ def parse_args() -> argparse.Namespace:
 
 def main():
     # SECURITY: Check .env permissions (after Colors is defined for NO_COLOR support)
+    # This must happen BEFORE load_dotenv() to prevent reading secrets from world-readable files
     check_env_permissions()
+    load_dotenv()
 
     global TOKEN
+    # Re-initialize TOKEN to pick up values from .env (since load_dotenv was delayed)
+    TOKEN = _clean_env_kv(os.getenv("TOKEN"), "TOKEN")
+
     args = parse_args()
 
     # Load persistent cache from disk (graceful degradation on any error)
@@ -1854,11 +1920,10 @@ def main():
                 f"{Colors.CYAN}  You can generate one at: https://controld.com/account/manage-account{Colors.ENDC}"
             )
 
-            t_input = get_validated_input(
+            t_input = get_password(
                 f"{Colors.BOLD}Enter Control D API Token:{Colors.ENDC} ",
                 lambda x: len(x) > 8,
                 "Token seems too short. Please check your API token.",
-                is_password=True,
             )
             TOKEN = t_input
 
