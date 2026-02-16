@@ -11,7 +11,7 @@ class TestPushRulesPerf(unittest.TestCase):
     def setUp(self):
         # Dynamically import main to handle reloads by other tests
         if 'main' in sys.modules:
-            self.main = sys.modules['main']
+            self.main = importlib.reload(sys.modules['main'])
         else:
             import main
             self.main = main
