@@ -1000,7 +1000,8 @@ def _gh_get(url: str) -> Dict:
             # 2. Stream and check actual size
             chunks = []
             current_size = 0
-            for chunk in r.iter_bytes():
+            # Optimization: Use 16KB chunks to reduce loop overhead/appends for large files
+            for chunk in r.iter_bytes(chunk_size=16 * 1024):
                 current_size += len(chunk)
                 if current_size > MAX_RESPONSE_SIZE:
                     raise ValueError(
