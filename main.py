@@ -15,6 +15,7 @@ Nothing fancy, just works.
 
 import argparse
 import concurrent.futures
+import contextlib
 import getpass
 import ipaddress
 import json
@@ -1459,6 +1460,7 @@ def push_rules(
     hostnames: List[str],
     existing_rules: Set[str],
     client: httpx.Client,
+    batch_executor: Optional[concurrent.futures.Executor] = None,
 ) -> bool:
     if not hostnames:
         log.info("Folder %s - no rules to push", sanitize_for_log(folder_name))
@@ -1571,7 +1573,13 @@ def push_rules(
             progress_label,
         )
     else:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        # Use provided executor or create a local one (fallback)
+        if batch_executor:
+            executor_ctx = contextlib.nullcontext(batch_executor)
+        else:
+            executor_ctx = concurrent.futures.ThreadPoolExecutor(max_workers=3)
+
+        with executor_ctx as executor:
             futures = {
                 executor.submit(process_batch, i, batch): i
                 for i, batch in enumerate(batches, 1)
@@ -1615,6 +1623,7 @@ def _process_single_folder(
     profile_id: str,
     existing_rules: Set[str],
     client: httpx.Client,
+    batch_executor: Optional[concurrent.futures.Executor] = None,
 ) -> bool:
     grp = folder_data["group"]
     name = grp["group"].strip()
@@ -1643,6 +1652,7 @@ def _process_single_folder(
                 hostnames,
                 existing_rules,
                 client,
+                batch_executor=batch_executor,
             ):
                 folder_success = False
     else:
@@ -1656,6 +1666,7 @@ def _process_single_folder(
             hostnames,
             existing_rules,
             client,
+            batch_executor=batch_executor,
         ):
             folder_success = False
 
@@ -1769,9 +1780,11 @@ def sync_profile(
         # This prevents API rate limits and ensures stability for large folders.
         max_workers = 1
 
-        # Initial client for getting existing state AND processing folders
-        # Optimization: Reuse the same client session to keep TCP connections alive
-        with _api_client() as client:
+        # Shared executor for rate-limited operations (DELETE, push_rules batches)
+        # Reusing this executor prevents thread churn and enforces global rate limits.
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=DELETE_WORKERS
+        ) as shared_executor, _api_client() as client:
             # Verify access and list existing folders in one request
             existing_folders = verify_access_and_get_folders(client, profile_id)
             if existing_folders is None:
@@ -1789,30 +1802,27 @@ def sync_profile(
 
                 if folders_to_delete:
                     # Parallel delete to speed up the "clean slate" phase
-                    # Using DELETE_WORKERS (3) for balance between speed and rate limits
-                    with concurrent.futures.ThreadPoolExecutor(
-                        max_workers=DELETE_WORKERS
-                    ) as delete_executor:
-                        future_to_name = {
-                            delete_executor.submit(
-                                delete_folder, client, profile_id, name, folder_id
-                            ): name
-                            for name, folder_id in folders_to_delete
-                        }
+                    # Use shared_executor (3 workers)
+                    future_to_name = {
+                        shared_executor.submit(
+                            delete_folder, client, profile_id, name, folder_id
+                        ): name
+                        for name, folder_id in folders_to_delete
+                    }
 
-                        for future in concurrent.futures.as_completed(future_to_name):
-                            name = future_to_name[future]
-                            try:
-                                if future.result():
-                                    del existing_folders[name]
-                                    deletion_occurred = True
-                            except Exception as exc:
-                                # Sanitize both name and exception to prevent log injection
-                                log.error(
-                                    "Failed to delete folder %s: %s",
-                                    sanitize_for_log(name),
-                                    sanitize_for_log(exc),
-                                )
+                    for future in concurrent.futures.as_completed(future_to_name):
+                        name = future_to_name[future]
+                        try:
+                            if future.result():
+                                del existing_folders[name]
+                                deletion_occurred = True
+                        except Exception as exc:
+                            # Sanitize both name and exception to prevent log injection
+                            log.error(
+                                "Failed to delete folder %s: %s",
+                                sanitize_for_log(name),
+                                sanitize_for_log(exc),
+                            )
 
                 # CRITICAL FIX: Increased wait time for massive folders to clear
                 if deletion_occurred:
@@ -1837,6 +1847,7 @@ def sync_profile(
                         profile_id,
                         existing_rules,
                         client,  # Pass the persistent client
+                        batch_executor=shared_executor,
                     ): folder_data
                     for folder_data in folder_data_list
                 }
