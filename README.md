@@ -118,6 +118,9 @@ pip install pytest pytest-mock pytest-xdist
 
 # Run all tests
 pytest tests/
+
+# Pytest configuration is in pyproject.toml with sensible defaults
+# Tests are verbose by default (-v) with strict marker/config enforcement
 ```
 
 **Parallel test execution (recommended):**
