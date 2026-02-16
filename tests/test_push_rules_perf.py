@@ -101,31 +101,34 @@ class TestPushRulesPerf(unittest.TestCase):
         # This should ALWAYS be True
         self.assertTrue(mock_executor.called, "ThreadPoolExecutor should be called for multi-batch")
 
-    def test_push_rules_skips_validation_for_existing(self):
+    @patch.object(main, "RULE_PATTERN")
+    def test_push_rules_skips_validation_for_existing(self, mock_rule_pattern):
         """
-        Test that is_valid_rule is NOT called for rules that are already in existing_rules.
+        Test that RULE_PATTERN.match is NOT called for rules that are already in existing_rules.
         """
-        with patch.object(main, "is_valid_rule") as mock_is_valid:
-            mock_is_valid.return_value = True
-            hostnames = ["h1", "h2"]
-            # h1 is already known, h2 is new
-            existing_rules = {"h1"}
+        # Configure the mock match method
+        mock_match = mock_rule_pattern.match
+        mock_match.return_value = True
 
-            main.push_rules(
-                self.profile_id,
-                self.folder_name,
-                self.folder_id,
-                self.do,
-                self.status,
-                hostnames,
-                existing_rules,
-                self.client
-            )
+        hostnames = ["h1", "h2"]
+        # h1 is already known, h2 is new
+        existing_rules = {"h1"}
 
-            # h1 is in existing_rules, so we should skip validation for it.
-            # h2 is NOT in existing_rules, so we should validate it.
-            # So is_valid_rule should be called EXACTLY once, with "h2".
-            mock_is_valid.assert_called_once_with("h2")
+        main.push_rules(
+            self.profile_id,
+            self.folder_name,
+            self.folder_id,
+            self.do,
+            self.status,
+            hostnames,
+            existing_rules,
+            self.client
+        )
+
+        # h1 is in existing_rules, so we should skip validation for it.
+        # h2 is NOT in existing_rules, so we should validate it.
+        # So match should be called EXACTLY once, with "h2".
+        mock_match.assert_called_once_with("h2")
 
 if __name__ == '__main__':
     unittest.main()
