@@ -241,6 +241,13 @@ def sanitize_for_log(text: Any) -> str:
     # repr() safely escapes control characters (e.g., \n -> \\n, \x1b -> \\x1b)
     # This prevents log injection and terminal hijacking.
     safe = repr(s)
+
+    # Security: Prevent CSV Injection (Formula Injection)
+    # If the string starts with =, +, -, or @, we keep the quotes from repr()
+    # to force spreadsheet software to treat it as a string literal.
+    if s and s.startswith(("=", "+", "-", "@")):
+        return safe
+
     if len(safe) >= 2 and safe[0] == safe[-1] and safe[0] in ("'", '"'):
         return safe[1:-1]
     return safe
