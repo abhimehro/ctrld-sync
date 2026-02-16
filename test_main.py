@@ -495,8 +495,8 @@ def test_get_validated_input_retry(monkeypatch, capsys):
     assert "Error message" in captured.out
 
 
-# Case 12: get_validated_input works with getpass
-def test_get_validated_input_password(monkeypatch):
+# Case 12: get_password works with getpass
+def test_get_password(monkeypatch):
     m = reload_main_with_env(monkeypatch)
 
     getpass_mock = MagicMock(return_value="secret")
@@ -504,7 +504,7 @@ def test_get_validated_input_password(monkeypatch):
 
     validator = lambda x: True
 
-    result = m.get_validated_input("Password: ", validator, "Error", is_password=True)
+    result = m.get_password("Password: ", validator, "Error")
 
     assert result == "secret"
     getpass_mock.assert_called_once()
@@ -552,25 +552,53 @@ def test_get_validated_input_interrupt(monkeypatch, capsys):
     assert "Input cancelled" in captured.out
 
 
-# Case 15: get_validated_input handles both KeyboardInterrupt and EOFError for regular and password inputs
+def test_get_password_interrupt(monkeypatch, capsys):
+    m = reload_main_with_env(monkeypatch)
+
+    # Mock input to raise KeyboardInterrupt
+    monkeypatch.setattr("getpass.getpass", MagicMock(side_effect=KeyboardInterrupt))
+
+    with pytest.raises(SystemExit) as e:
+        m.get_password("Prompt: ", lambda x: True, "Error")
+
+    # Check exit code is 130
+    assert e.value.code == 130
+
+    # Check friendly message
+    captured = capsys.readouterr()
+    assert "Input cancelled" in captured.out
+
+
+# Case 15: get_validated_input and get_password handle both KeyboardInterrupt and EOFError
 @pytest.mark.parametrize("exception", [KeyboardInterrupt, EOFError])
-@pytest.mark.parametrize(
-    "is_password,mock_path",
-    [(False, "builtins.input"), (True, "getpass.getpass")],
-)
-def test_get_validated_input_graceful_exit_comprehensive(
-    monkeypatch, capsys, exception, is_password, mock_path
-):
-    """Test graceful exit on user cancellation (Ctrl+C/Ctrl+D) for both regular and password inputs."""
+def test_get_validated_input_graceful_exit(monkeypatch, capsys, exception):
+    """Test graceful exit on user cancellation (Ctrl+C/Ctrl+D) for regular inputs."""
     m = reload_main_with_env(monkeypatch)
 
     # Mock input to raise the specified exception
-    monkeypatch.setattr(mock_path, MagicMock(side_effect=exception))
+    monkeypatch.setattr("builtins.input", MagicMock(side_effect=exception))
 
     with pytest.raises(SystemExit) as e:
-        m.get_validated_input(
-            "Prompt: ", lambda x: True, "Error", is_password=is_password
-        )
+        m.get_validated_input("Prompt: ", lambda x: True, "Error")
+
+    # Check exit code is 130 (standard for SIGINT)
+    assert e.value.code == 130
+
+    # Check friendly cancellation message is displayed
+    captured = capsys.readouterr()
+    assert "Input cancelled" in captured.out
+
+
+@pytest.mark.parametrize("exception", [KeyboardInterrupt, EOFError])
+def test_get_password_graceful_exit(monkeypatch, capsys, exception):
+    """Test graceful exit on user cancellation (Ctrl+C/Ctrl+D) for password inputs."""
+    m = reload_main_with_env(monkeypatch)
+
+    # Mock input to raise the specified exception
+    monkeypatch.setattr("getpass.getpass", MagicMock(side_effect=exception))
+
+    with pytest.raises(SystemExit) as e:
+        m.get_password("Prompt: ", lambda x: True, "Error")
 
     # Check exit code is 130 (standard for SIGINT)
     assert e.value.code == 130

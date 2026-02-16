@@ -41,3 +41,7 @@
 **Learning:** Global initialization code (like `load_dotenv()`) runs immediately on import. Security checks that must run before sensitive operations should be placed in `main()` or an initialization function, and sensitive operations (loading secrets) should be deferred until checks pass.
 
 **Prevention:** Move `load_dotenv()` inside `main()` after `check_env_permissions()`. Re-initialize global variables (like `TOKEN`) that depend on environment variables to ensure they pick up the loaded values.
+## 2026-02-14 - CSV Injection via Log Sanitization
+**Vulnerability:** `sanitize_for_log` in `main.py` was stripping quotes from `repr()` output for aesthetic reasons, inadvertently exposing strings starting with `=`, `+`, `-`, `@` to formula injection if logs are viewed in Excel.
+**Learning:** Security controls (like `repr()`) can be weakened by subsequent "cleanup" steps. Always consider downstream consumption of logs (e.g., CSV export).
+**Prevention:** Check for dangerous prefixes before stripping quotes. If detected, retain the quotes to force string literal interpretation.
