@@ -7,8 +7,6 @@ import os
 # Add root to path to import main
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import main
-
 class TestPushRulesPerf(unittest.TestCase):
     def setUp(self):
         # Ensure we are using the current main module instance (in case of reloads)
@@ -55,7 +53,7 @@ class TestPushRulesPerf(unittest.TestCase):
         # For this test, we mock _api_post_form?
         # No, _api_post_form calls client.post.
 
-        main.push_rules(
+        self.main.push_rules(
             self.profile_id,
             self.folder_name,
             self.folder_id,
@@ -89,7 +87,7 @@ class TestPushRulesPerf(unittest.TestCase):
 
         mock_as_completed.return_value = [mock_future, mock_future] # 2 batches
 
-        main.push_rules(
+        self.main.push_rules(
             self.profile_id,
             self.folder_name,
             self.folder_id,
