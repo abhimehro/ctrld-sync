@@ -55,3 +55,6 @@
 ## 2026-02-14 - [Hoist Invariants and Inline Methods in Hot Loops]
 **Learning:** In hot loops (e.g. processing 100k+ items), hoisting invariant computations (string conversions, regex sanitization) and inlining method lookups (e.g., `match_rule = RULE_PATTERN.match`) avoids repeated function call overhead. Benchmarks showed ~20% speedup for validation loops and ~2x for simple sanitization hoisting.
 **Action:** Identify calculations inside loops that don't depend on the loop variable and move them out. Use local variables for frequently accessed global/object methods.
+## 2026-02-04 - [Optimize Buffer for Large Downloads]
+**Learning:** When downloading large files (e.g., blocklists), the default chunk size of HTTP libraries might be small, leading to excessive loop iterations and list operations. Increasing the buffer size (e.g., to 16KB) reduces CPU overhead during I/O-bound operations.
+**Action:** When using `iter_bytes()` or similar streaming methods for large resources, explicitly set a larger `chunk_size` (e.g., 16384) to improve throughput and reduce CPU usage.

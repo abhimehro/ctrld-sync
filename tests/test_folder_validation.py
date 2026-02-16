@@ -72,5 +72,23 @@ def test_folder_name_security():
                     is False
                 ), f"Bidi character {description} (U+{ord(char):04X}) should be blocked in '{test_name}'"
 
+        # Case 8: Path Traversal (Security Hardening)
+        # Block '.' and '..' which could be used for path traversal
+        path_traversal_cases = [".", ".."]
+        for pt_name in path_traversal_cases:
+            pt_data = {"group": {"group": pt_name}}
+            assert (
+                main.validate_folder_data(pt_data, f"http://pt-{pt_name}.com") is False
+            ), f"Path traversal name '{pt_name}' should be blocked"
+
+        # Case 9: Command Option Injection (Security Hardening)
+        # Block names starting with '-' which could be interpreted as flags
+        option_injection_cases = ["-flag", "--flag", "-v", "--verbose"]
+        for opt_name in option_injection_cases:
+            opt_data = {"group": {"group": opt_name}}
+            assert (
+                main.validate_folder_data(opt_data, f"http://opt-{opt_name}.com") is False
+            ), f"Option injection name '{opt_name}' should be blocked"
+
     finally:
         main.log = original_log
