@@ -20,6 +20,7 @@ import ipaddress
 import json
 import logging
 import os
+import platform
 import re
 import shutil
 import socket
@@ -28,6 +29,7 @@ import sys
 import threading
 import time
 from functools import lru_cache
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Set
 from urllib.parse import urlparse
 
@@ -438,6 +440,155 @@ _cache: Dict[str, Dict] = {}
 # This prevents deadlocks when _fetch_if_valid calls fetch_folder_data which calls _gh_get
 _cache_lock = threading.RLock()
 
+# --------------------------------------------------------------------------- #
+# 3a. Persistent Disk Cache Support
+# --------------------------------------------------------------------------- #
+# Disk cache stores validated blocklist data with HTTP cache headers (ETag, Last-Modified)
+# to enable fast cold-start syncs via conditional HTTP requests (304 Not Modified)
+_disk_cache: Dict[str, Dict[str, Any]] = {}  # Loaded from disk on startup
+_cache_stats = {"hits": 0, "misses": 0, "validations": 0, "errors": 0}
+
+
+def get_cache_dir() -> Path:
+    """
+    Returns platform-specific cache directory for ctrld-sync.
+    
+    Uses standard cache locations:
+    - Linux/Unix: ~/.cache/ctrld-sync
+    - macOS: ~/Library/Caches/ctrld-sync
+    - Windows: %LOCALAPPDATA%/ctrld-sync/cache
+    
+    SECURITY: No user input in path construction - prevents path traversal attacks
+    """
+    system = platform.system()
+    if system == "Darwin":  # macOS
+        return Path.home() / "Library" / "Caches" / "ctrld-sync"
+    elif system == "Windows":
+        appdata = os.getenv("LOCALAPPDATA", str(Path.home() / "AppData" / "Local"))
+        return Path(appdata) / "ctrld-sync" / "cache"
+    else:  # Linux, Unix, and others
+        # Follow XDG Base Directory spec
+        xdg_cache = os.getenv("XDG_CACHE_HOME")
+        if xdg_cache:
+            return Path(xdg_cache) / "ctrld-sync"
+        return Path.home() / ".cache" / "ctrld-sync"
+
+
+def load_disk_cache() -> None:
+    """
+    Loads persistent cache from disk on startup.
+    
+    GRACEFUL DEGRADATION: Any error (corrupted JSON, permissions, etc.) 
+    is logged but ignored - we simply start with empty cache.
+    This protects against crashes from corrupted cache files.
+    """
+    global _disk_cache, _cache_stats
+    
+    try:
+        cache_file = get_cache_dir() / "blocklists.json"
+        if not cache_file.exists():
+            log.debug("No existing cache file found, starting fresh")
+            return
+
+        with open(cache_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        # Validate cache structure at the top level
+        if not isinstance(data, dict):
+            log.warning("Cache file has invalid format (root is not a dict), ignoring")
+            return
+
+        # Sanitize individual cache entries to ensure graceful degradation:
+        # - keys must be strings
+        # - values must be dicts
+        # - each entry must contain at least a 'data' field
+        sanitized_cache: Dict[str, Any] = {}
+        dropped_entries = 0
+
+        for key, value in data.items():
+            if not isinstance(key, str):
+                dropped_entries += 1
+                log.debug("Dropping cache entry with non-string key: %r", key)
+                continue
+
+            if not isinstance(value, dict):
+                dropped_entries += 1
+                log.debug("Dropping cache entry %r: value is not a dict", key)
+                continue
+
+            if "data" not in value:
+                dropped_entries += 1
+                log.debug("Dropping cache entry %r: missing required 'data' field", key)
+                continue
+
+            sanitized_cache[key] = value
+
+        if not sanitized_cache:
+            # If nothing is valid, start with an empty cache instead of crashing later
+            _disk_cache = {}
+            log.warning("Cache file contained no valid entries; starting with empty cache")
+            return
+
+        if dropped_entries:
+            log.info(
+                "Loaded %d valid entries from disk cache (dropped %d malformed entries)",
+                len(sanitized_cache),
+                dropped_entries,
+            )
+        else:
+            log.info("Loaded %d entries from disk cache", len(sanitized_cache))
+
+        _disk_cache = sanitized_cache
+    except json.JSONDecodeError as e:
+        log.warning(f"Corrupted cache file (invalid JSON), starting fresh: {e}")
+        _cache_stats["errors"] += 1
+    except PermissionError as e:
+        log.warning(f"Cannot read cache file (permission denied), starting fresh: {e}")
+        _cache_stats["errors"] += 1
+    except Exception as e:
+        # Catch-all for unexpected errors (disk full, etc.)
+        log.warning(f"Failed to load cache, starting fresh: {sanitize_for_log(e)}")
+        _cache_stats["errors"] += 1
+
+
+def save_disk_cache() -> None:
+    """
+    Saves persistent cache to disk after successful sync.
+    
+    SECURITY: Creates cache directory with user-only permissions (0o700)
+    to prevent other users from reading cached blocklist data.
+    """
+    try:
+        cache_dir = get_cache_dir()
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Set directory permissions to user-only (rwx------)
+        # This prevents other users from reading cached data
+        if platform.system() != "Windows":
+            cache_dir.chmod(0o700)
+        
+        cache_file = cache_dir / "blocklists.json"
+        
+        # Write atomically: write to temp file, then rename
+        # This prevents corrupted cache if process is killed mid-write
+        temp_file = cache_file.with_suffix(".tmp")
+        with open(temp_file, "w", encoding="utf-8") as f:
+            json.dump(_disk_cache, f, indent=2)
+        
+        # Set file permissions to user-only (rw-------)
+        if platform.system() != "Windows":
+            temp_file.chmod(0o600)
+        
+        # Atomic rename (POSIX guarantees atomicity)
+        temp_file.replace(cache_file)
+        
+        log.debug(f"Saved {len(_disk_cache):,} entries to disk cache")
+        
+    except Exception as e:
+        # Cache save failures are non-fatal - we just won't have cache next time
+        log.warning(f"Failed to save cache (non-fatal): {sanitize_for_log(e)}")
+        _cache_stats["errors"] += 1
+
 
 @lru_cache(maxsize=128)
 def validate_folder_url(url: str) -> bool:
@@ -664,53 +815,184 @@ def _retry_request(request_func, max_retries=MAX_RETRIES, delay=RETRY_DELAY):
 
 
 def _gh_get(url: str) -> Dict:
+    """
+    Fetch blocklist data from URL with HTTP cache header support.
+    
+    CACHING STRATEGY:
+    1. Check in-memory cache first (fastest)
+    2. Check disk cache and send conditional request (If-None-Match/If-Modified-Since)
+    3. If 304 Not Modified: reuse cached data (cache validation)
+    4. If 200 OK: download new data and update cache
+    
+    SECURITY: Validates data structure regardless of cache source
+    """
+    global _cache_stats
+    
     # First check: Quick check without holding lock for long
     with _cache_lock:
         if url in _cache:
+            _cache_stats["hits"] += 1
             return _cache[url]
-
-    # Fetch data if not cached
+    
+    # Check disk cache for conditional request headers
+    headers = {}
+    cached_entry = _disk_cache.get(url)
+    if cached_entry:
+        # Send conditional request using cached ETag/Last-Modified
+        # Server returns 304 if content hasn't changed
+        # NOTE: Cached values may be None if the server didn't send these headers.
+        # httpx requires header values to be str/bytes, so we only add headers
+        # when the cached value is truthy.
+        etag = cached_entry.get("etag")
+        if etag:
+            headers["If-None-Match"] = etag
+        last_modified = cached_entry.get("last_modified")
+        if last_modified:
+            headers["If-Modified-Since"] = last_modified
+    
+    # Fetch data (or validate cache)
     # Explicitly let HTTPError propagate (no need to catch just to re-raise)
-    with _gh.stream("GET", url) as r:
-        r.raise_for_status()
-
-        # 1. Check Content-Length header if present
-        cl = r.headers.get("Content-Length")
-        if cl:
-            try:
-                if int(cl) > MAX_RESPONSE_SIZE:
+    try:
+        with _gh.stream("GET", url, headers=headers) as r:
+            # Handle 304 Not Modified - cached data is still valid
+            if r.status_code == 304:
+                if cached_entry and "data" in cached_entry:
+                    log.debug(f"Cache validated (304) for {sanitize_for_log(url)}")
+                    _cache_stats["validations"] += 1
+                    
+                    # Update in-memory cache with validated data
+                    data = cached_entry["data"]
+                    with _cache_lock:
+                        _cache[url] = data
+                    
+                    # Update timestamp in disk cache to track last validation
+                    cached_entry["last_validated"] = time.time()
+                    return data
+                else:
+                    # Shouldn't happen, but handle gracefully
+                    log.warning(f"Got 304 but no cached data for {sanitize_for_log(url)}, re-fetching")
+                    _cache_stats["errors"] += 1
+                    # Close the original streaming response before retrying
+                    r.close()
+                    # Retry without conditional headers using streaming again so that
+                    # MAX_RESPONSE_SIZE and related protections still apply.
+                    headers = {}
+                    with _gh.stream("GET", url, headers=headers) as r_retry:
+                        r_retry.raise_for_status()
+                        
+                        # 1. Check Content-Length header if present
+                        cl = r_retry.headers.get("Content-Length")
+                        if cl:
+                            try:
+                                if int(cl) > MAX_RESPONSE_SIZE:
+                                    raise ValueError(
+                                        f"Response too large from {sanitize_for_log(url)} "
+                                        f"({int(cl) / (1024 * 1024):.2f} MB)"
+                                    )
+                            except ValueError as e:
+                                # Only catch the conversion error, let the size error propagate
+                                if "Response too large" in str(e):
+                                    raise e
+                                log.warning(
+                                    f"Malformed Content-Length header from {sanitize_for_log(url)}: {cl!r}. "
+                                    "Falling back to streaming size check."
+                                )
+                        
+                        # 2. Stream and check actual size
+                        chunks = []
+                        current_size = 0
+                        for chunk in r_retry.iter_bytes():
+                            current_size += len(chunk)
+                            if current_size > MAX_RESPONSE_SIZE:
+                                raise ValueError(
+                                    f"Response too large from {sanitize_for_log(url)} "
+                                    f"(> {MAX_RESPONSE_SIZE / (1024 * 1024):.2f} MB)"
+                                )
+                            chunks.append(chunk)
+                        
+                        try:
+                            data = json.loads(b"".join(chunks))
+                        except json.JSONDecodeError as e:
+                            raise ValueError(
+                                f"Invalid JSON response from {sanitize_for_log(url)}"
+                            ) from e
+                        
+                        # Store cache headers for future conditional requests
+                        # ETag is preferred over Last-Modified (more reliable)
+                        etag = r_retry.headers.get("ETag")
+                        last_modified = r_retry.headers.get("Last-Modified")
+                        
+                        # Update disk cache with new data and headers
+                        _disk_cache[url] = {
+                            "data": data,
+                            "etag": etag,
+                            "last_modified": last_modified,
+                            "fetched_at": time.time(),
+                            "last_validated": time.time(),
+                        }
+                        
+                        _cache_stats["misses"] += 1
+                        return data
+            
+            r.raise_for_status()
+            
+            # 1. Check Content-Length header if present
+            cl = r.headers.get("Content-Length")
+            if cl:
+                try:
+                    if int(cl) > MAX_RESPONSE_SIZE:
+                        raise ValueError(
+                            f"Response too large from {sanitize_for_log(url)} "
+                            f"({int(cl) / (1024 * 1024):.2f} MB)"
+                        )
+                except ValueError as e:
+                    # Only catch the conversion error, let the size error propagate
+                    if "Response too large" in str(e):
+                        raise e
+                    log.warning(
+                        f"Malformed Content-Length header from {sanitize_for_log(url)}: {cl!r}. "
+                        "Falling back to streaming size check."
+                    )
+            
+            # 2. Stream and check actual size
+            chunks = []
+            current_size = 0
+            for chunk in r.iter_bytes():
+                current_size += len(chunk)
+                if current_size > MAX_RESPONSE_SIZE:
                     raise ValueError(
                         f"Response too large from {sanitize_for_log(url)} "
-                        f"({int(cl) / (1024 * 1024):.2f} MB)"
+                        f"(> {MAX_RESPONSE_SIZE / (1024 * 1024):.2f} MB)"
                     )
-            except ValueError as e:
-                # Only catch the conversion error, let the size error propagate
-                if "Response too large" in str(e):
-                    raise e
-                log.warning(
-                    f"Malformed Content-Length header from {sanitize_for_log(url)}: {cl!r}. "
-                    "Falling back to streaming size check."
-                )
-
-        # 2. Stream and check actual size
-        chunks = []
-        current_size = 0
-        for chunk in r.iter_bytes():
-            current_size += len(chunk)
-            if current_size > MAX_RESPONSE_SIZE:
+                chunks.append(chunk)
+            
+            try:
+                data = json.loads(b"".join(chunks))
+            except json.JSONDecodeError as e:
                 raise ValueError(
-                    f"Response too large from {sanitize_for_log(url)} "
-                    f"(> {MAX_RESPONSE_SIZE / (1024 * 1024):.2f} MB)"
-                )
-            chunks.append(chunk)
-
-        try:
-            data = json.loads(b"".join(chunks))
-        except json.JSONDecodeError as e:
-            raise ValueError(
-                f"Invalid JSON response from {sanitize_for_log(url)}"
-            ) from e
-
+                    f"Invalid JSON response from {sanitize_for_log(url)}"
+                ) from e
+            
+            # Store cache headers for future conditional requests
+            # ETag is preferred over Last-Modified (more reliable)
+            etag = r.headers.get("ETag")
+            last_modified = r.headers.get("Last-Modified")
+            
+            # Update disk cache with new data and headers
+            _disk_cache[url] = {
+                "data": data,
+                "etag": etag,
+                "last_modified": last_modified,
+                "fetched_at": time.time(),
+                "last_validated": time.time(),
+            }
+            
+            _cache_stats["misses"] += 1
+    
+    except httpx.HTTPStatusError as e:
+        # Re-raise with original exception (don't catch and re-raise)
+        raise
+    
     # Double-checked locking: Check again after fetch to avoid duplicate fetches
     # If another thread already cached it while we were fetching, use theirs
     # for consistency (return _cache[url] instead of data to ensure single source of truth)
@@ -1539,6 +1821,11 @@ def main():
 
     global TOKEN
     args = parse_args()
+
+    # Load persistent cache from disk (graceful degradation on any error)
+    # NOTE: Called only after successful argument parsing so that `--help` or
+    #       argument errors do not perform unnecessary filesystem I/O or logging.
+    load_disk_cache()
     profiles_arg = (
         _clean_env_kv(args.profiles or os.getenv("PROFILE", ""), "PROFILE") or ""
     )
@@ -1754,6 +2041,27 @@ def main():
         f"{total_status_color}{total_status_text:<15}{Colors.ENDC}"
     )
     print("=" * table_width + "\n")
+    
+    # Display cache statistics if any cache activity occurred
+    if _cache_stats["hits"] + _cache_stats["misses"] + _cache_stats["validations"] > 0:
+        print(f"{Colors.BOLD}Cache Statistics:{Colors.ENDC}")
+        print(f"  • Hits (in-memory):     {_cache_stats['hits']:>6,}")
+        print(f"  • Misses (downloaded):  {_cache_stats['misses']:>6,}")
+        print(f"  • Validations (304):    {_cache_stats['validations']:>6,}")
+        if _cache_stats["errors"] > 0:
+            print(f"  • Errors (non-fatal):   {_cache_stats['errors']:>6,}")
+        
+        # Calculate cache effectiveness
+        total_requests = _cache_stats["hits"] + _cache_stats["misses"] + _cache_stats["validations"]
+        if total_requests > 0:
+            # Hits + validations = avoided full downloads
+            cache_effectiveness = (_cache_stats["hits"] + _cache_stats["validations"]) / total_requests * 100
+            print(f"  • Cache effectiveness:  {cache_effectiveness:>6.1f}%")
+        print()
+    
+    # Save cache to disk after successful sync (non-fatal if it fails)
+    if not args.dry_run:
+        save_disk_cache()
 
     total = len(profile_ids or ["dry-run-placeholder"])
     log.info(f"All profiles processed: {success_count}/{total} successful")

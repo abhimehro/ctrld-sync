@@ -215,10 +215,11 @@ class TestCacheOptimization(unittest.TestCase):
         
         tracker = FetchTracker()
         
-        def mock_stream_get(method, url):
+        def mock_stream_get(method, url, headers=None):
             """Mock the streaming GET request."""
             tracker.increment()
             mock_response = MagicMock()
+            mock_response.status_code = 200
             mock_response.raise_for_status = MagicMock()
             mock_response.headers = {"Content-Length": "100"}
             # Return JSON bytes properly
