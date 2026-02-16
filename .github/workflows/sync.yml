@@ -16,14 +16,20 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      # PERFORMANCE: Caching pip dependencies significantly speeds up CI
+      # Cache key is based on requirements.txt hash, automatically invalidating when deps change
+      # See: https://github.com/actions/setup-python#caching-packages-dependencies
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
           cache: 'pip'
+          cache-dependency-path: 'requirements.txt'
 
+      # REPRODUCIBILITY: Install from requirements.txt to centralize and document dependencies
+      # This also aligns installs with the cache key derived from requirements.txt
       - name: Install dependencies
-        run: pip install httpx python-dotenv
+        run: pip install -r requirements.txt
 
       - name: Run sync script
         env:
