@@ -286,7 +286,9 @@ def _get_progress_bar_width() -> int:
 
 
 def countdown_timer(seconds: int, message: str = "Waiting") -> None:
-    """Shows a countdown timer if strictly in a TTY, otherwise just sleeps."""
+    """Show a countdown in interactive/color mode; in no-color/non-interactive
+    mode, sleep silently for short waits and log periodic heartbeat messages
+    for longer waits."""
     if not USE_COLORS:
         # UX Improvement: For long waits in non-interactive/no-color mode (e.g. CI),
         # log periodic updates instead of sleeping silently.
