@@ -7,8 +7,6 @@ import os
 # Add root to path to import main
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import importlib
-
 class TestPushRulesPerf(unittest.TestCase):
     def setUp(self):
         # Dynamically import main to handle reloads by other tests
