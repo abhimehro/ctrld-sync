@@ -11,6 +11,11 @@ import main
 
 class TestPushRulesPerf(unittest.TestCase):
     def setUp(self):
+        # Ensure we are using the current main module instance (in case of reloads)
+        global main
+        if 'main' in sys.modules:
+            main = sys.modules['main']
+
         self.client = MagicMock()
         self.profile_id = "test_profile"
         self.folder_name = "test_folder"

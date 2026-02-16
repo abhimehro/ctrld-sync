@@ -39,7 +39,7 @@ from dotenv import load_dotenv
 # --------------------------------------------------------------------------- #
 # 0. Bootstrap – load secrets and configure logging
 # --------------------------------------------------------------------------- #
-load_dotenv()
+# SECURITY: load_dotenv() moved to main() to ensure permissions are checked first
 
 # Respect NO_COLOR standard (https://no-color.org/)
 if os.getenv("NO_COLOR"):
@@ -754,6 +754,16 @@ def is_valid_folder_name(name: str) -> bool:
 
     # Check for dangerous characters (pre-compiled at module level for performance)
     if any(c in _DANGEROUS_FOLDER_CHARS or c in _BIDI_CONTROL_CHARS for c in name):
+        return False
+
+    # Security: Block path traversal attempts
+    # Check stripped name to prevent whitespace bypass (e.g. " . ")
+    clean_name = name.strip()
+    if clean_name in (".", ".."):
+        return False
+
+    # Security: Block command option injection (if name is passed to shell)
+    if clean_name.startswith("-"):
         return False
 
     return True
@@ -1845,9 +1855,14 @@ def parse_args() -> argparse.Namespace:
 
 def main():
     # SECURITY: Check .env permissions (after Colors is defined for NO_COLOR support)
+    # This must happen BEFORE load_dotenv() to prevent reading secrets from world-readable files
     check_env_permissions()
+    load_dotenv()
 
     global TOKEN
+    # Re-initialize TOKEN to pick up values from .env (since load_dotenv was delayed)
+    TOKEN = _clean_env_kv(os.getenv("TOKEN"), "TOKEN")
+
     args = parse_args()
 
     # Load persistent cache from disk (graceful degradation on any error)
