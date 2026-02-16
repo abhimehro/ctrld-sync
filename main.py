@@ -297,7 +297,7 @@ def countdown_timer(seconds: int, message: str = "Waiting") -> None:
             for remaining in range(seconds, 0, -step):
                 # Don't log the first one if we already logged "Waiting..." before calling this
                 if remaining < seconds:
-                    log.info(f"{message}: {remaining}s remaining...")
+                    log.info(f"{sanitize_for_log(message)}: {remaining}s remaining...")
 
                 sleep_time = min(step, remaining)
                 time.sleep(sleep_time)
