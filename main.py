@@ -1088,7 +1088,7 @@ def check_api_access(client: httpx.Client, profile_id: str) -> bool:
             )
         elif code == 404:
             log.critical(
-                f"{Colors.FAIL}🔍 Profile Not Found: The ID '{profile_id}' does not exist.{Colors.ENDC}"
+                f"{Colors.FAIL}🔍 Profile Not Found: The ID '{sanitize_for_log(profile_id)}' does not exist.{Colors.ENDC}"
             )
             log.critical(
                 f"{Colors.FAIL}   Please verify the Profile ID from your Control D Dashboard URL.{Colors.ENDC}"
@@ -1360,11 +1360,15 @@ def delete_folder(
 ) -> bool:
     try:
         _api_delete(client, f"{API_BASE}/{profile_id}/groups/{folder_id}")
-        log.info("Deleted folder %s (ID %s)", sanitize_for_log(name), folder_id)
+        log.info(
+            "Deleted folder %s (ID %s)",
+            sanitize_for_log(name),
+            sanitize_for_log(folder_id),
+        )
         return True
     except httpx.HTTPError as e:
         log.error(
-            f"Failed to delete folder {sanitize_for_log(name)} (ID {folder_id}): {sanitize_for_log(e)}"
+            f"Failed to delete folder {sanitize_for_log(name)} (ID {sanitize_for_log(folder_id)}): {sanitize_for_log(e)}"
         )
         return False
 
@@ -1393,7 +1397,9 @@ def create_folder(
             if isinstance(body, dict) and "group" in body and "PK" in body["group"]:
                 pk = body["group"]["PK"]
                 log.info(
-                    "Created folder %s (ID %s) [Direct]", sanitize_for_log(name), pk
+                    "Created folder %s (ID %s) [Direct]",
+                    sanitize_for_log(name),
+                    sanitize_for_log(pk),
                 )
                 return str(pk)
 
@@ -1404,7 +1410,7 @@ def create_folder(
                         log.info(
                             "Created folder %s (ID %s) [Direct]",
                             sanitize_for_log(name),
-                            grp["PK"],
+                            sanitize_for_log(grp["PK"]),
                         )
                         return str(grp["PK"])
         except Exception as e:
@@ -1423,7 +1429,7 @@ def create_folder(
                         log.info(
                             "Created folder %s (ID %s) [Polled]",
                             sanitize_for_log(name),
-                            grp["PK"],
+                            sanitize_for_log(grp["PK"]),
                         )
                         return str(grp["PK"])
             except Exception as e:
