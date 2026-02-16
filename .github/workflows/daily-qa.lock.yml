@@ -23,12 +23,12 @@
 #
 # This workflow performs adhoc quality assurance by validating project health daily.
 # Checks that code builds and runs, tests pass, documentation is clear, and code
-# is well-structured. Creates tracking issues for findings and can submit draft PRs
+# is well-structured. Creates discussions for findings and can submit draft PRs
 # with improvements. Provides continuous quality monitoring throughout development.
 #
 # Source: githubnext/agentics/workflows/daily-qa.md@69b5e3ae5fa7f35fa555b0a22aee14c36ab57ebb
 #
-# frontmatter-hash: 39cab4d853ebb351a0c405874719a4bb8b834221d4fb889748fd4304e6b0dd79
+# frontmatter-hash: 0b32e1430f4a0652cd39bc23aa8df6ac442f350da2299739fd722ea824dbada5
 
 name: "Daily QA"
 "on":
@@ -199,40 +199,25 @@ jobs:
           mkdir -p /tmp/gh-aw/safeoutputs
           mkdir -p /tmp/gh-aw/mcp-logs/safeoutputs
           cat > /opt/gh-aw/safeoutputs/config.json << 'GH_AW_SAFE_OUTPUTS_CONFIG_EOF'
-          {"add_comment":{"max":5,"target":"*"},"create_issue":{"max":5},"create_pull_request":{},"missing_data":{},"missing_tool":{},"noop":{"max":1}}
+          {"add_comment":{"max":5,"target":"*"},"create_discussion":{"expires":168,"max":1},"create_pull_request":{},"missing_data":{},"missing_tool":{},"noop":{"max":1}}
           GH_AW_SAFE_OUTPUTS_CONFIG_EOF
           cat > /opt/gh-aw/safeoutputs/tools.json << 'GH_AW_SAFE_OUTPUTS_TOOLS_EOF'
           [
             {
-              "description": "Create a new GitHub issue for tracking bugs, feature requests, or tasks. Use this for actionable work items that need assignment, labeling, and status tracking. For reports, announcements, or status updates that don't require task tracking, use create_discussion instead. CONSTRAINTS: Maximum 5 issue(s) can be created. Title will be prefixed with \"${{ github.workflow }}\". Labels [automation qa workflow-tracker] will be automatically added.",
+              "description": "Create a GitHub discussion for announcements, Q\u0026A, reports, status updates, or community conversations. Use this for content that benefits from threaded replies, doesn't require task tracking, or serves as documentation. For actionable work items that need assignment and status tracking, use create_issue instead. CONSTRAINTS: Maximum 1 discussion(s) can be created. Title will be prefixed with \"${{ github.workflow }}\". Discussions will be created in category \"q-a\".",
               "inputSchema": {
                 "additionalProperties": false,
                 "properties": {
                   "body": {
-                    "description": "Detailed issue description in Markdown. Do NOT repeat the title as a heading since it already appears as the issue's h1. Include context, reproduction steps, or acceptance criteria as appropriate.",
+                    "description": "Discussion content in Markdown. Do NOT repeat the title as a heading since it already appears as the discussion's h1. Include all relevant context, findings, or questions.",
                     "type": "string"
                   },
-                  "labels": {
-                    "description": "Labels to categorize the issue (e.g., 'bug', 'enhancement'). Labels must exist in the repository.",
-                    "items": {
-                      "type": "string"
-                    },
-                    "type": "array"
-                  },
-                  "parent": {
-                    "description": "Parent issue number for creating sub-issues. This is the numeric ID from the GitHub URL (e.g., 42 in github.com/owner/repo/issues/42). Can also be a temporary_id (e.g., 'aw_abc123', 'aw_Test123') from a previously created issue in the same workflow run.",
-                    "type": [
-                      "number",
-                      "string"
-                    ]
-                  },
-                  "temporary_id": {
-                    "description": "Unique temporary identifier for referencing this issue before it's created. Format: 'aw_' followed by 3 to 8 alphanumeric characters (e.g., 'aw_abc1', 'aw_Test123'). Use '#aw_ID' in body text to reference other issues by their temporary_id; these are replaced with actual issue numbers after creation.",
-                    "pattern": "^aw_[A-Za-z0-9]{4,8}$",
+                  "category": {
+                    "description": "Discussion category by name (e.g., 'General'), slug (e.g., 'general'), or ID. If omitted, uses the first available category. Category must exist in the repository.",
                     "type": "string"
                   },
                   "title": {
-                    "description": "Concise issue title summarizing the bug, feature, or task. The title appears as the main heading, so keep it brief and descriptive.",
+                    "description": "Concise discussion title summarizing the topic. The title appears as the main heading, so keep it brief and descriptive.",
                     "type": "string"
                   }
                 },
@@ -242,7 +227,7 @@ jobs:
                 ],
                 "type": "object"
               },
-              "name": "create_issue"
+              "name": "create_discussion"
             },
             {
               "description": "Add a comment to an existing GitHub issue, pull request, or discussion. Use this to provide feedback, answer questions, or add information to an existing conversation. For creating new items, use create_issue, create_discussion, or create_pull_request instead. CONSTRAINTS: Maximum 5 comment(s) can be added. Target: *.",
@@ -385,7 +370,7 @@ jobs:
                 }
               }
             },
-            "create_issue": {
+            "create_discussion": {
               "defaultMax": 1,
               "fields": {
                 "body": {
@@ -394,21 +379,14 @@ jobs:
                   "sanitize": true,
                   "maxLength": 65000
                 },
-                "labels": {
-                  "type": "array",
-                  "itemType": "string",
-                  "itemSanitize": true,
-                  "itemMaxLength": 128
-                },
-                "parent": {
-                  "issueOrPRNumber": true
+                "category": {
+                  "type": "string",
+                  "sanitize": true,
+                  "maxLength": 128
                 },
                 "repo": {
                   "type": "string",
                   "maxLength": 256
-                },
-                "temporary_id": {
-                  "type": "string"
                 },
                 "title": {
                   "required": true,
@@ -952,6 +930,8 @@ jobs:
           GH_AW_WORKFLOW_ID: "daily-qa"
           GH_AW_SECRET_VERIFICATION_RESULT: ${{ needs.agent.outputs.secret_verification_result }}
           GH_AW_CHECKOUT_PR_SUCCESS: ${{ needs.agent.outputs.checkout_pr_success }}
+          GH_AW_CREATE_DISCUSSION_ERRORS: ${{ needs.safe_outputs.outputs.create_discussion_errors }}
+          GH_AW_CREATE_DISCUSSION_ERROR_COUNT: ${{ needs.safe_outputs.outputs.create_discussion_error_count }}
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
@@ -1049,7 +1029,7 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           WORKFLOW_NAME: "Daily QA"
-          WORKFLOW_DESCRIPTION: "This workflow performs adhoc quality assurance by validating project health daily.\nChecks that code builds and runs, tests pass, documentation is clear, and code\nis well-structured. Creates tracking issues for findings and can submit draft PRs\nwith improvements. Provides continuous quality monitoring throughout development."
+          WORKFLOW_DESCRIPTION: "This workflow performs adhoc quality assurance by validating project health daily.\nChecks that code builds and runs, tests pass, documentation is clear, and code\nis well-structured. Creates discussions for findings and can submit draft PRs\nwith improvements. Provides continuous quality monitoring throughout development."
           HAS_PATCH: ${{ needs.agent.outputs.has_patch }}
         with:
           script: |
@@ -1185,7 +1165,7 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           GH_AW_AGENT_OUTPUT: ${{ env.GH_AW_AGENT_OUTPUT }}
-          GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\"add_comment\":{\"max\":5,\"target\":\"*\"},\"create_issue\":{\"labels\":[\"automation\",\"qa\",\"workflow-tracker\"],\"max\":5,\"title_prefix\":\"${{ github.workflow }}\"},\"create_pull_request\":{\"base_branch\":\"${{ github.ref_name }}\",\"draft\":true,\"labels\":[\"automation\",\"qa\"],\"max\":1,\"max_patch_size\":1024},\"missing_data\":{},\"missing_tool\":{}}"
+          GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\"add_comment\":{\"max\":5,\"target\":\"*\"},\"create_discussion\":{\"category\":\"q-a\",\"expires\":168,\"fallback_to_issue\":true,\"max\":1,\"title_prefix\":\"${{ github.workflow }}\"},\"create_pull_request\":{\"base_branch\":\"${{ github.ref_name }}\",\"draft\":true,\"labels\":[\"automation\",\"qa\"],\"max\":1,\"max_patch_size\":1024},\"missing_data\":{},\"missing_tool\":{}}"
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
