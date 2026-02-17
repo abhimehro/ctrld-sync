@@ -35,14 +35,29 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
 
 ### Configure the script
 
-1. **Clone & install**
+1. **Clone the repository**
    ```bash
-   git clone https://github.com/your-username/ctrld-sync.git
+   git clone https://github.com/abhimehro/ctrld-sync.git
    cd ctrld-sync
-   uv sync
    ```
 
-2. **Configure secrets**
+2. **Install dependencies**
+   
+   Choose one of the following methods:
+   
+   **Using pip (recommended for CI/production):**
+   ```bash
+   pip install -r requirements.txt
+   ```
+   
+   **Using uv (faster for local development):**
+   ```bash
+   uv sync
+   ```
+   
+   Both methods are fully supported. Our CI workflows use `pip` for consistency with caching, but `uv` provides faster installation for local development.
+
+3. **Configure secrets**
    Create a `.env` file (or set GitHub secrets) with:
    ```py
    TOKEN=your_control_d_api_token
@@ -50,7 +65,7 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
    ```
    For GitHub Actions, set `TOKEN` and `PROFILE` secrets to the raw values (not the full `TOKEN=...` / `PROFILE=...` lines).
 
-3. **Configure Folders**
+4. **Configure Folders**
    Edit the `DEFAULT_FOLDER_URLS` list in `main.py` to include the URLs of the JSON block-lists you want to sync.
    
    **Example configuration:**
@@ -76,20 +91,20 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
    
    You can add your own JSON block-list URLs or use command-line arguments:
    ```bash
-   uv run python main.py --folder-url https://example.com/my-blocklist.json
+   python main.py --folder-url https://example.com/my-blocklist.json
    ```
 
 > [!NOTE]
 > Currently only Folders with one action are supported.
 > Either "Block" or "Allow" actions are supported.
 
-4. **Run locally**
+5. **Run locally**
    ```bash
-   uv run python main.py --dry-run            # plan only, no API calls
-   uv run python main.py --profiles your_id   # live run (requires TOKEN)
+   python main.py --dry-run            # plan only, no API calls
+   python main.py --profiles your_id   # live run (requires TOKEN)
    ```
 
-5. **Run in CI**
+6. **Run in CI**
    The included GitHub Actions workflow (`.github/workflows/sync.yml`) runs a dry-run daily at 02:00 UTC and on PRs, writes `plan.json`, and uploads it as an artifact for review.
 
 ### Configure GitHub Actions
@@ -103,7 +118,7 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
 
 ## Requirements
 - Python 3.13+
-- `uv` (for dependency management)
+- Dependencies listed in `requirements.txt` (install with `pip` or `uv`)
 
 ## Testing
 
