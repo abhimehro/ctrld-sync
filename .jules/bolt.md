@@ -58,3 +58,7 @@
 ## 2026-02-04 - [Optimize Buffer for Large Downloads]
 **Learning:** When downloading large files (e.g., blocklists), the default chunk size of HTTP libraries might be small, leading to excessive loop iterations and list operations. Increasing the buffer size (e.g., to 16KB) reduces CPU overhead during I/O-bound operations.
 **Action:** When using `iter_bytes()` or similar streaming methods for large resources, explicitly set a larger `chunk_size` (e.g., 16384) to improve throughput and reduce CPU usage.
+
+## 2026-02-17 - [Cache DNS Lookups by Hostname]
+**Learning:** When validating multiple URLs from the same host (e.g., githubusercontent), caching based on the full URL still triggers redundant DNS lookups for each unique path. Extracting hostname validation into a separate `@lru_cache` function avoids repeated blocking `getaddrinfo` calls for the same domain.
+**Action:** Identify expensive validation steps (like DNS) that depend on a subset of the input (hostname vs full URL) and cache them independently.

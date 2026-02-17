@@ -639,11 +639,54 @@ def save_disk_cache() -> None:
 
 
 @lru_cache(maxsize=128)
+def validate_hostname(hostname: str) -> bool:
+    """
+    Validates a hostname (DNS resolution and IP checks).
+    Cached to prevent redundant DNS lookups for the same host across different URLs.
+    """
+    # Check for potentially malicious hostnames
+    if hostname.lower() in ("localhost", "127.0.0.1", "::1"):
+        log.warning(
+            f"Skipping unsafe hostname (localhost detected): {sanitize_for_log(hostname)}"
+        )
+        return False
+
+    try:
+        ip = ipaddress.ip_address(hostname)
+        if not ip.is_global or ip.is_multicast:
+            log.warning(f"Skipping unsafe IP: {sanitize_for_log(hostname)}")
+            return False
+        return True
+    except ValueError:
+        # Not an IP literal, it's a domain. Resolve and check IPs.
+        try:
+            # Resolve hostname to IPs (IPv4 and IPv6)
+            # We filter for AF_INET/AF_INET6 to ensure we get IP addresses
+            addr_info = socket.getaddrinfo(hostname, None, proto=socket.IPPROTO_TCP)
+            for res in addr_info:
+                # res is (family, type, proto, canonname, sockaddr)
+                # sockaddr is (address, port) for AF_INET/AF_INET6
+                ip_str = res[4][0]
+                ip = ipaddress.ip_address(ip_str)
+                if not ip.is_global or ip.is_multicast:
+                    log.warning(
+                        f"Skipping unsafe hostname {sanitize_for_log(hostname)} (resolves to non-global/multicast IP {ip})"
+                    )
+                    return False
+        except (socket.gaierror, ValueError, OSError) as e:
+            log.warning(
+                f"Failed to resolve/validate domain {sanitize_for_log(hostname)}: {sanitize_for_log(e)}"
+            )
+            return False
+
+    return True
+
+
+@lru_cache(maxsize=128)
 def validate_folder_url(url: str) -> bool:
     """
     Validates a folder URL.
-    Cached to avoid repeated DNS lookups (socket.getaddrinfo) for the same URL
-    during warm-up and sync phases.
+    Cached to avoid repeated URL parsing for the same URL.
     """
     if not url.startswith("https://"):
         log.warning(
@@ -657,41 +700,7 @@ def validate_folder_url(url: str) -> bool:
         if not hostname:
             return False
 
-        # Check for potentially malicious hostnames
-        if hostname.lower() in ("localhost", "127.0.0.1", "::1"):
-            log.warning(
-                f"Skipping unsafe URL (localhost detected): {sanitize_for_log(url)}"
-            )
-            return False
-
-        try:
-            ip = ipaddress.ip_address(hostname)
-            if not ip.is_global or ip.is_multicast:
-                log.warning(
-                    f"Skipping unsafe URL (non-global/multicast IP): {sanitize_for_log(url)}"
-                )
-                return False
-        except ValueError:
-            # Not an IP literal, it's a domain. Resolve and check IPs.
-            try:
-                # Resolve hostname to IPs (IPv4 and IPv6)
-                # We filter for AF_INET/AF_INET6 to ensure we get IP addresses
-                addr_info = socket.getaddrinfo(hostname, None, proto=socket.IPPROTO_TCP)
-                for res in addr_info:
-                    # res is (family, type, proto, canonname, sockaddr)
-                    # sockaddr is (address, port) for AF_INET/AF_INET6
-                    ip_str = res[4][0]
-                    ip = ipaddress.ip_address(ip_str)
-                    if not ip.is_global or ip.is_multicast:
-                        log.warning(
-                            f"Skipping unsafe URL (domain {hostname} resolves to non-global/multicast IP {ip}): {sanitize_for_log(url)}"
-                        )
-                        return False
-            except (socket.gaierror, ValueError, OSError) as e:
-                log.warning(
-                    f"Failed to resolve/validate domain {hostname}: {sanitize_for_log(e)}"
-                )
-                return False
+        return validate_hostname(hostname)
 
     except Exception as e:
         log.warning(
