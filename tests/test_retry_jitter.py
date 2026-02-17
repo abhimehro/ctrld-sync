@@ -78,28 +78,33 @@ class TestRetryJitter:
                     f"[{min_expected:.2f}s, {max_expected:.2f}s]"
 
     def test_exponential_backoff_still_increases(self):
-        """Verify that despite jitter, delays still grow exponentially."""
+        """Verify that despite jitter, the exponential base scaling is correct.
+
+        We fix random.random() to a constant so that jitter becomes deterministic,
+        and then assert that each delay matches delay * 2**attempt * jitter_factor.
+        """
         request_func = Mock(side_effect=httpx.TimeoutException("Connection timeout"))
-        
-        with patch('time.sleep') as mock_sleep:
+
+        # Use a fixed random.random() so jitter multiplier is stable across attempts.
+        # Assuming jitter is implemented as: base_delay * (0.5 + random.random()),
+        # a fixed return_value of 0.5 yields a jitter_factor of 1.0.
+        with patch('time.sleep') as mock_sleep, patch('random.random', return_value=0.5):
             try:
                 main._retry_request(request_func, max_retries=5, delay=1)
             except httpx.TimeoutException:
                 pass
-            
-            wait_times = [call.args[0] for call in mock_sleep.call_args_list]
-            
-            # Even with jitter, each subsequent delay should be roughly double the previous
-            # (accounting for jitter: next_min > prev_max means guaranteed growth)
-            for i in range(len(wait_times) - 1):
-                # Minimum possible value for next delay (at 0.5x jitter)
-                base_next = 1 * (2 ** (i + 1))
-                next_min = base_next * 0.5
-                
-                # Current delay could be at 1.5x jitter maximum
-                assert wait_times[i + 1] >= wait_times[i], \
-                    f"Delays should increase: {wait_times[i]:.2f}s -> {wait_times[i+1]:.2f}s"
 
+            wait_times = [call.args[0] for call in mock_sleep.call_args_list]
+
+            jitter_factor = 0.5 + 0.5  # Matches the patched random.random() above
+            for attempt, wait_time in enumerate(wait_times):
+                base_delay = 1 * (2 ** attempt)
+                expected_delay = base_delay * jitter_factor
+                # Use approx to avoid brittle float equality while still being strict.
+                assert wait_time == pytest.approx(expected_delay), (
+                    f"Attempt {attempt}: expected {expected_delay:.2f}s, "
+                    f"got {wait_time:.2f}s"
+                )
     def test_four_hundred_errors_still_fail_fast(self):
         """Verify 4xx errors (except 429) still don't retry despite jitter."""
         response = Mock(status_code=404)
