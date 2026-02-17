@@ -902,7 +902,8 @@ def _gh_get(url: str) -> Dict:
             return _cache[url]
     
     # Track that we're about to make a blocklist fetch
-    _api_stats["blocklist_fetches"] += 1
+    with _cache_lock:
+        _api_stats["blocklist_fetches"] += 1
     
     # Check disk cache for conditional request headers
     headers = {}
