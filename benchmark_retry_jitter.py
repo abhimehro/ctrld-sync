@@ -98,12 +98,33 @@ def main():
     print(f"  Retries distributed over time → reduced peak load on server")
     print()
     
-    # Calculate theoretical load reduction
+    # Calculate approximate load reduction based on bucketed concurrency
     print("THEORETICAL LOAD REDUCTION:")
     window_size = max_time - min_time
     if window_size > 0:
-        reduction = (1 - (1 / window_size)) * 100
+        # Use small time buckets (e.g., 100ms) to approximate peak concurrent retries
+        bucket_size = 0.1  # seconds
+        num_buckets = max(1, int(window_size / bucket_size) + 1)
+        buckets = [0] * num_buckets
+
+        # Count how many retries fall into each time bucket
+        for t in retry_times:
+            # Normalize to start of window and compute bucket index
+            idx = int((t - min_time) / bucket_size)
+            if idx >= num_buckets:
+                # Clamp to last bucket to handle any floating-point edge cases
+                idx = num_buckets - 1
+            buckets[idx] += 1
+
+        peak_with_jitter = max(buckets)
+        peak_without_jitter = num_clients  # all clients retry together without jitter
+        reduction = (1 - (peak_with_jitter / peak_without_jitter)) * 100
+
+        print(f"  Approximate peak concurrent retries with jitter: {peak_with_jitter} (per {bucket_size:.1f}s)")
         print(f"  Peak concurrent retries reduced by approximately {reduction:.0f}%")
+    else:
+        # In the extremely unlikely case that all retries occur at the same instant
+        print("  All retries occurred at the same time; no observable spreading in this run.")
     print()
     
     print("✅ Jitter prevents thundering herd and improves system reliability")
