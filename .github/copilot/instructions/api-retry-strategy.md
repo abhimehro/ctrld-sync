@@ -50,11 +50,11 @@ No performance degradation expected - jitter adds microseconds of `random()` ove
 
 1. **Don't add jitter to initial request** - only to retries. First attempt should be immediate.
 2. **Don't exceed max backoff** - cap total wait time to prevent indefinite delays.
-3. **Don't jitter 429 responses** - these return `Retry-After` headers; respect those instead.
+3. **Be cautious with 429 responses** - current behavior still uses jittered exponential backoff; once `Retry-After` handling is implemented, jitter should be disabled in favor of the header-specified delay.
 4. **Don't break existing behavior** - ensure 4xx non-retryable errors still fail fast.
 
 ## Future Improvements
 
-- **Rate limit header parsing:** Read `Retry-After` from 429 responses instead of exponential backoff
+- **Rate limit header parsing:** Implement proper `Retry-After` handling for 429 responses (and bypass jitter when a valid `Retry-After` value is present)
 - **Circuit breaker:** Stop retrying after consecutive failures to prevent cascading failures
 - **Per-endpoint tracking:** Different backoff strategies for read vs. write operations
