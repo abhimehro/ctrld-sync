@@ -8,7 +8,6 @@ deterministic exponential backoff.
 Usage: python3 benchmark_retry_jitter.py
 """
 
-import time
 import random
 from typing import List
 
