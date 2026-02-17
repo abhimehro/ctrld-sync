@@ -8,7 +8,6 @@ These tests verify that:
 4. Max retries limit is respected
 """
 
-import time
 from unittest.mock import Mock, patch
 import pytest
 import httpx
