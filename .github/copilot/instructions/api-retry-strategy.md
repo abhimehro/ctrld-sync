@@ -23,7 +23,7 @@ When multiple requests fail simultaneously (e.g., API outage), synchronized retr
 **Implementation formula:**
 ```python
 import random
-wait_time = (delay * (2 ** attempt)) * (0.5 + random.random() * 0.5)
+wait_time = (delay * (2 ** attempt)) * (0.5 + random.random())
 ```
 
 This adds ±50% randomness: a 4s backoff becomes 2-6s range.
