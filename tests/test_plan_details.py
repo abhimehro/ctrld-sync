@@ -28,8 +28,9 @@ def test_print_plan_details_no_colors(capsys):
     output = captured.out
 
     assert "Plan Details for test_profile:" in output
-    assert "  - Folder A: 10 rules" in output
-    assert "  - Folder B: 5 rules" in output
+    # Match exact output including alignment spaces
+    assert "  - Folder A : 10 rules" in output
+    assert "  - Folder B :  5 rules" in output
     # Verify alphabetical ordering (A before B)
     assert output.index("Folder A") < output.index("Folder B")
 
