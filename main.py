@@ -821,27 +821,36 @@ def validate_folder_data(data: Dict[str, Any], url: str) -> bool:
     return True
 
 
+# Lock to protect updates to _api_stats in multi-threaded contexts.
+# Without this, concurrent increments can lose updates because `+=` is not atomic.
+_api_stats_lock = threading.Lock()
+
+
 def _api_get(client: httpx.Client, url: str) -> httpx.Response:
     global _api_stats
-    _api_stats["control_d_api_calls"] += 1
+    with _api_stats_lock:
+        _api_stats["control_d_api_calls"] += 1
     return _retry_request(lambda: client.get(url))
 
 
 def _api_delete(client: httpx.Client, url: str) -> httpx.Response:
     global _api_stats
-    _api_stats["control_d_api_calls"] += 1
+    with _api_stats_lock:
+        _api_stats["control_d_api_calls"] += 1
     return _retry_request(lambda: client.delete(url))
 
 
 def _api_post(client: httpx.Client, url: str, data: Dict) -> httpx.Response:
     global _api_stats
-    _api_stats["control_d_api_calls"] += 1
+    with _api_stats_lock:
+        _api_stats["control_d_api_calls"] += 1
     return _retry_request(lambda: client.post(url, data=data))
 
 
 def _api_post_form(client: httpx.Client, url: str, data: Dict) -> httpx.Response:
     global _api_stats
-    _api_stats["control_d_api_calls"] += 1
+    with _api_stats_lock:
+        _api_stats["control_d_api_calls"] += 1
     return _retry_request(
         lambda: client.post(
             url,
