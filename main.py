@@ -1433,7 +1433,7 @@ def create_folder(
                 for grp in body["groups"]:
                     if grp.get("group") == name:
                         pk = str(grp["PK"])
-                        if not validate_folder_id(pk):
+                        if not validate_folder_id(pk, log_errors=False):
                             log.error(f"API returned invalid folder ID: {sanitize_for_log(pk)}")
                             continue
                         log.info(
