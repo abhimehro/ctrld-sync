@@ -938,14 +938,33 @@ def _gh_get(url: str) -> Dict:
                     with _gh.stream("GET", url, headers=headers) as r_retry:
                         r_retry.raise_for_status()
 
+                        # Security helper: centralize Content-Type validation so that
+                        # all call sites use identical rules and error handling.
+                        def _validate_content_type(
+                            headers: httpx.Headers,
+                            url: str,
+                            allowed_types: Sequence[str] = (
+                                "application/json",
+                                "text/json",
+                                "text/plain",
+                            ),
+                        ) -> None:
+                            """
+                            Validate that the response Content-Type is one of the expected types.
+
+                            This helper exists to keep Content-Type checks consistent across
+                            code paths. If we ever need to adjust the allowed types or
+                            error messaging, we only change it here.
+                            """
+                            ct = headers.get("content-type", "").lower()
+                            if not any(t in ct for t in allowed_types):
+                                raise ValueError(
+                                    f"Invalid Content-Type from {sanitize_for_log(url)}: {ct}. "
+                                    f"Expected one of: {', '.join(allowed_types)}"
+                                )
+
                         # Security: Enforce Content-Type validation on retry
-                        ct = r_retry.headers.get("content-type", "").lower()
-                        allowed_types = ("application/json", "text/json", "text/plain")
-                        if not any(t in ct for t in allowed_types):
-                            raise ValueError(
-                                f"Invalid Content-Type from {sanitize_for_log(url)}: {ct}. "
-                                f"Expected one of: {', '.join(allowed_types)}"
-                            )
+                        _validate_content_type(r_retry.headers, url)
 
                         # 1. Check Content-Length header if present
                         cl = r_retry.headers.get("Content-Length")
