@@ -398,13 +398,9 @@ def print_summary_table(results: List[Dict[str, Any]], dry_run: bool) -> None:
         else:
             s_val = s_val_raw
 
-        print(
-            f"{chars['v']} {p_val} "
-            f"{chars['v']} {f_val} "
-            f"{chars['v']} {r_val} "
-            f"{chars['v']} {d_val} "
-            f"{chars['v']} {s_val} {chars['v']}"
-        )
+        # Delegate the actual row printing to the shared helper to avoid
+        # duplicating table border/spacing logic here.
+        _print_row(p_val, f_val, r_val, d_val, s_val)
 
         total_folders += res["folders"]
         total_rules += res["rules"]
