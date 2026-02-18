@@ -37,7 +37,7 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
 
 1. **Clone & install**
    ```bash
-   git clone https://github.com/abhimehro/ctrld-sync.git
+   git clone https://github.com/YOUR_USERNAME/ctrld-sync.git
    cd ctrld-sync
    uv sync
    ```
