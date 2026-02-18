@@ -15,6 +15,3 @@ dev = [
     "pytest-mock>=3.10.0",
     "pytest-xdist>=3.0.0",
 ]
-
-[dependency-groups]
-dev = []
