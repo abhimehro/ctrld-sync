@@ -744,7 +744,7 @@ def validate_folder_id(folder_id: str, log_errors: bool = True) -> bool:
     """Validates folder ID (PK) format to prevent path traversal."""
     if not folder_id:
         return False
-    if not FOLDER_ID_PATTERN.match(folder_id):
+    if folder_id in (".", "..") or not FOLDER_ID_PATTERN.match(folder_id):
         if log_errors:
             log.error(f"Invalid folder ID format: {sanitize_for_log(folder_id)}")
         return False
