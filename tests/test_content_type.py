@@ -87,6 +87,23 @@ class TestContentTypeValidation(unittest.TestCase):
         self.assertIn("Invalid Content-Type", str(cm.exception))
 
     @patch('main._gh.stream')
+    def test_reject_missing_content_type(self, mock_stream):
+        """Test that responses without a Content-Type header are rejected."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        # Simulate a response with no Content-Type header at all
+        mock_response.headers = httpx.Headers({})
+        # Body is valid JSON so failure should be due to missing header, not parsing
+        mock_response.iter_bytes.return_value = [b'{"group": {"group": "test"}}']
+        mock_response.__enter__.return_value = mock_response
+        mock_response.__exit__.return_value = None
+
+        mock_stream.return_value = mock_response
+
+        with self.assertRaises(ValueError) as cm:
+            main._gh_get("https://example.com/no-header")
+        self.assertIn("Invalid Content-Type", str(cm.exception))
+    @patch('main._gh.stream')
     def test_304_retry_with_invalid_content_type(self, mock_stream):
         """Ensure Content-Type validation also applies after a 304 retry path."""
         # First response: 304 Not Modified with no cached body. This should
