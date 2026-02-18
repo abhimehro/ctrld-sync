@@ -679,7 +679,9 @@ def validate_hostname(hostname: str) -> bool:
             )
             return False
 
-    return True
+            if not addr_info:
+                return False
+            for res in addr_info:
 
 
 @lru_cache(maxsize=128)
