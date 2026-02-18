@@ -496,6 +496,18 @@ _cache_lock = threading.RLock()
 _disk_cache: Dict[str, Dict[str, Any]] = {}  # Loaded from disk on startup
 _cache_stats = {"hits": 0, "misses": 0, "validations": 0, "errors": 0}
 
+# --------------------------------------------------------------------------- #
+# 3b. Rate Limit Tracking
+# --------------------------------------------------------------------------- #
+# Track rate limit information from API responses to enable proactive throttling
+# and provide visibility into API quota usage
+_rate_limit_info = {
+    "limit": None,       # Max requests allowed per window (from X-RateLimit-Limit)
+    "remaining": None,   # Requests remaining in current window (from X-RateLimit-Remaining)
+    "reset": None,       # Timestamp when limit resets (from X-RateLimit-Reset)
+}
+_rate_limit_lock = threading.Lock()  # Protect _rate_limit_info updates
+
 
 def get_cache_dir() -> Path:
     """
@@ -636,6 +648,81 @@ def save_disk_cache() -> None:
         # Cache save failures are non-fatal - we just won't have cache next time
         log.warning(f"Failed to save cache (non-fatal): {sanitize_for_log(e)}")
         _cache_stats["errors"] += 1
+
+
+def _parse_rate_limit_headers(response: httpx.Response) -> None:
+    """
+    Parse rate limit headers from API response and update global tracking.
+    
+    Supports standard rate limit headers:
+    - X-RateLimit-Limit: Maximum requests per window
+    - X-RateLimit-Remaining: Requests remaining in current window
+    - X-RateLimit-Reset: Unix timestamp when limit resets
+    - Retry-After: Seconds to wait (priority on 429 responses)
+    
+    This enables:
+    1. Proactive throttling when approaching limits
+    2. Visibility into API quota usage
+    3. Smarter retry strategies based on actual limit state
+    
+    THREAD-SAFE: Uses _rate_limit_lock to protect shared state
+    GRACEFUL: Invalid/missing headers are ignored (no crashes)
+    """
+    global _rate_limit_info
+    
+    headers = response.headers
+    
+    # Parse standard rate limit headers
+    # These may not exist on all responses, so we check individually
+    try:
+        with _rate_limit_lock:
+            # X-RateLimit-Limit: Total requests allowed per window
+            if "X-RateLimit-Limit" in headers:
+                try:
+                    _rate_limit_info["limit"] = int(headers["X-RateLimit-Limit"])
+                except (ValueError, TypeError):
+                    pass  # Invalid value, ignore
+            
+            # X-RateLimit-Remaining: Requests left in current window
+            if "X-RateLimit-Remaining" in headers:
+                try:
+                    _rate_limit_info["remaining"] = int(headers["X-RateLimit-Remaining"])
+                except (ValueError, TypeError):
+                    pass
+            
+            # X-RateLimit-Reset: Unix timestamp when window resets
+            if "X-RateLimit-Reset" in headers:
+                try:
+                    _rate_limit_info["reset"] = int(headers["X-RateLimit-Reset"])
+                except (ValueError, TypeError):
+                    pass
+            
+            # Log warnings when approaching rate limits
+            # Only log if we have both limit and remaining values
+            if (_rate_limit_info["limit"] is not None and 
+                _rate_limit_info["remaining"] is not None):
+                limit = _rate_limit_info["limit"]
+                remaining = _rate_limit_info["remaining"]
+                
+                # Warn at 20% remaining capacity
+                if limit > 0 and remaining / limit < 0.2:
+                    if _rate_limit_info["reset"]:
+                        reset_time = time.strftime(
+                            "%H:%M:%S", 
+                            time.localtime(_rate_limit_info["reset"])
+                        )
+                        log.warning(
+                            f"Approaching rate limit: {remaining}/{limit} requests remaining "
+                            f"(resets at {reset_time})"
+                        )
+                    else:
+                        log.warning(
+                            f"Approaching rate limit: {remaining}/{limit} requests remaining"
+                        )
+    except Exception as e:
+        # Rate limit parsing failures should never crash the sync
+        # Just log and continue
+        log.debug(f"Failed to parse rate limit headers: {e}")
 
 
 @lru_cache(maxsize=128)
@@ -843,9 +930,26 @@ def _api_post_form(client: httpx.Client, url: str, data: Dict) -> httpx.Response
 
 
 def _retry_request(request_func, max_retries=MAX_RETRIES, delay=RETRY_DELAY):
+    """
+    Retry request with exponential backoff.
+    
+    RATE LIMIT HANDLING:
+    - Parses X-RateLimit-* headers from all API responses
+    - On 429 (Too Many Requests): uses Retry-After header if present
+    - Logs warnings when approaching rate limits (< 20% remaining)
+    
+    SECURITY:
+    - Does NOT retry 4xx client errors (except 429)
+    - Sanitizes error messages in logs
+    """
     for attempt in range(max_retries):
         try:
             response = request_func()
+            
+            # Parse rate limit headers from successful responses
+            # This gives us visibility into quota usage even when requests succeed
+            _parse_rate_limit_headers(response)
+            
             response.raise_for_status()
             return response
         except (httpx.HTTPError, httpx.TimeoutException) as e:
@@ -853,6 +957,34 @@ def _retry_request(request_func, max_retries=MAX_RETRIES, delay=RETRY_DELAY):
             # Retrying 4xx errors is inefficient and can trigger security alerts or rate limits.
             if isinstance(e, httpx.HTTPStatusError):
                 code = e.response.status_code
+                
+                # Parse rate limit headers even from error responses
+                # This helps us understand why we hit limits
+                _parse_rate_limit_headers(e.response)
+                
+                # Handle 429 (Too Many Requests) with Retry-After
+                if code == 429:
+                    # Check for Retry-After header (in seconds)
+                    retry_after = e.response.headers.get("Retry-After")
+                    if retry_after:
+                        try:
+                            # Retry-After can be seconds or HTTP date
+                            # Try parsing as int (seconds) first
+                            wait_seconds = int(retry_after)
+                            log.warning(
+                                f"Rate limited (429). Server requests {wait_seconds}s wait "
+                                f"(attempt {attempt + 1}/{max_retries})"
+                            )
+                            if attempt < max_retries - 1:
+                                time.sleep(wait_seconds)
+                                continue  # Retry after waiting
+                            else:
+                                raise  # Max retries exceeded
+                        except ValueError:
+                            # Retry-After might be HTTP date format, ignore for now
+                            pass
+                
+                # Don't retry other 4xx errors (auth failures, bad requests, etc.)
                 if 400 <= code < 500 and code != 429:
                     if hasattr(e, "response") and e.response is not None:
                         log.debug(
@@ -2136,6 +2268,40 @@ def main():
             cache_effectiveness = (_cache_stats["hits"] + _cache_stats["validations"]) / total_requests * 100
             print(f"  • Cache effectiveness:  {cache_effectiveness:>6.1f}%")
         print()
+    
+    # Display rate limit information if available
+    with _rate_limit_lock:
+        if any(v is not None for v in _rate_limit_info.values()):
+            print(f"{Colors.BOLD}API Rate Limit Status:{Colors.ENDC}")
+            
+            if _rate_limit_info["limit"] is not None:
+                print(f"  • Requests limit:       {_rate_limit_info['limit']:>6,}")
+            
+            if _rate_limit_info["remaining"] is not None:
+                remaining = _rate_limit_info["remaining"]
+                limit = _rate_limit_info["limit"]
+                
+                # Color code based on remaining capacity
+                if limit and limit > 0:
+                    pct = (remaining / limit) * 100
+                    if pct < 20:
+                        color = Colors.FAIL  # Red for critical
+                    elif pct < 50:
+                        color = Colors.WARNING  # Yellow for caution
+                    else:
+                        color = Colors.GREEN  # Green for healthy
+                    print(f"  • Requests remaining:   {color}{remaining:>6,} ({pct:>5.1f}%){Colors.ENDC}")
+                else:
+                    print(f"  • Requests remaining:   {remaining:>6,}")
+            
+            if _rate_limit_info["reset"] is not None:
+                reset_time = time.strftime(
+                    "%H:%M:%S", 
+                    time.localtime(_rate_limit_info["reset"])
+                )
+                print(f"  • Limit resets at:      {reset_time}")
+            
+            print()
     
     # Save cache to disk after successful sync (non-fatal if it fails)
     if not args.dry_run:
