@@ -62,24 +62,15 @@ class TestContentTypeValidation(unittest.TestCase):
 
         mock_stream.return_value = mock_response
 
-        # This should fail after we implement the fix.
-        # Currently it might pass because we only check JSON validity.
-        try:
+        with self.assertRaises(ValueError) as cm:
             main._gh_get("https://example.com/malicious.html")
-            # If it doesn't raise, we fail the test (once fixed)
-            # But for TDD, we expect this to fail AFTER the fix.
-            # For now, let's assert that it *should* raise ValueError
-        except ValueError as e:
-            self.assertIn("Invalid Content-Type", str(e))
-            return
-
-        # If we are here, no exception was raised.
-        # This confirms the vulnerability (or lack of validation).
-        # We can mark this as "expected failure" or just print it.
-        # For now, I'll fail the test so I can see it pass later.
-        self.fail("Should have raised ValueError for text/html Content-Type")
+        self.assertIn("Invalid Content-Type", str(cm.exception))
 
     @patch('main._gh.stream')
+    def test_reject_xml(self, mock_stream):
+        """Test that application/xml is rejected."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
     def test_reject_xml(self, mock_stream):
         """Test that application/xml is rejected."""
         mock_response = MagicMock()
