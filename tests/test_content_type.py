@@ -95,5 +95,20 @@ class TestContentTypeValidation(unittest.TestCase):
             main._gh_get("https://example.com/data.xml")
         self.assertIn("Invalid Content-Type", str(cm.exception))
 
+    @patch('main._gh.stream')
+    def test_allow_text_json(self, mock_stream):
+        """Test that text/json is allowed and parsed as JSON."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.headers = httpx.Headers({'Content-Type': 'text/json; charset=utf-8'})
+        mock_response.iter_bytes.return_value = [b'{"group": {"group": "test"}}']
+        mock_response.__enter__.return_value = mock_response
+        mock_response.__exit__.return_value = None
+
+        mock_stream.return_value = mock_response
+
+        # Should not raise exception and should parse JSON correctly
+        result = main._gh_get("https://example.com/data.json")
+        self.assertEqual(result, {"group": {"group": "test"}})
 if __name__ == '__main__':
     unittest.main()
