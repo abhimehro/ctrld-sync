@@ -1418,7 +1418,7 @@ def create_folder(
             # Check if it returned a single group object
             if isinstance(body, dict) and "group" in body and "PK" in body["group"]:
                 pk = str(body["group"]["PK"])
-                if not validate_folder_id(pk):
+                if not validate_folder_id(pk, log_errors=False):
                     log.error(f"API returned invalid folder ID: {sanitize_for_log(pk)}")
                     return None
                 log.info(
