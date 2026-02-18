@@ -719,6 +719,11 @@ def extract_profile_id(text: str) -> str:
 
 
 def is_valid_profile_id_format(profile_id: str) -> bool:
+    """
+    Checks if a profile ID matches the expected format.
+    
+    Validates against PROFILE_ID_PATTERN and enforces maximum length of 64 characters.
+    """
     if not PROFILE_ID_PATTERN.match(profile_id):
         return False
     if len(profile_id) > 64:
@@ -727,6 +732,12 @@ def is_valid_profile_id_format(profile_id: str) -> bool:
 
 
 def validate_profile_id(profile_id: str, log_errors: bool = True) -> bool:
+    """
+    Validates a Control D profile ID with optional error logging.
+    
+    Returns True if profile ID is valid, False otherwise.
+    Logs specific validation errors when log_errors=True.
+    """
     if not is_valid_profile_id_format(profile_id):
         if log_errors:
             if not PROFILE_ID_PATTERN.match(profile_id):
@@ -785,6 +796,12 @@ def is_valid_folder_name(name: str) -> bool:
 
 
 def validate_folder_data(data: Dict[str, Any], url: str) -> bool:
+    """
+    Validates folder JSON data structure and content.
+    
+    Checks for required fields (name, action, rules), validates folder name
+    and action type, and ensures rules are valid. Logs specific validation errors.
+    """
     if not isinstance(data, dict):
         log.error(
             f"Invalid data from {sanitize_for_log(url)}: Root must be a JSON object."
@@ -1102,6 +1119,12 @@ def check_api_access(client: httpx.Client, profile_id: str) -> bool:
 
 
 def list_existing_folders(client: httpx.Client, profile_id: str) -> Dict[str, str]:
+    """
+    Retrieves all existing folders (groups) for a given profile.
+    
+    Returns a dictionary mapping folder names to their IDs.
+    Returns empty dict on error.
+    """
     try:
         data = _api_get(client, f"{API_BASE}/{profile_id}/groups").json()
         folders = data.get("body", {}).get("groups", [])
@@ -1236,6 +1259,13 @@ def get_all_existing_rules(
     profile_id: str,
     known_folders: Optional[Dict[str, str]] = None,
 ) -> Set[str]:
+    """
+    Fetches all existing rules across root and all folders.
+    
+    Retrieves rules from the root level and all folders in parallel.
+    Uses known_folders to avoid redundant API calls when provided.
+    Returns set of rule IDs.
+    """
     all_rules = set()
 
     def _fetch_folder_rules(folder_id: str) -> List[str]:
@@ -1298,6 +1328,12 @@ def get_all_existing_rules(
 
 
 def fetch_folder_data(url: str) -> Dict[str, Any]:
+    """
+    Downloads and validates folder JSON data from a URL.
+    
+    Uses cached GET request and validates the folder structure.
+    Raises KeyError if validation fails.
+    """
     js = _gh_get(url)
     if not validate_folder_data(js, url):
         raise KeyError(f"Invalid folder data from {sanitize_for_log(url)}")
@@ -1305,6 +1341,12 @@ def fetch_folder_data(url: str) -> Dict[str, Any]:
 
 
 def warm_up_cache(urls: Sequence[str]) -> None:
+    """
+    Pre-fetches and caches folder data from multiple URLs in parallel.
+    
+    Validates URLs and fetches data concurrently to minimize cold-start latency.
+    Shows progress bar when USE_COLORS is enabled. Silently skips invalid URLs.
+    """
     urls = list(set(urls))
     with _cache_lock:
         urls_to_process = [u for u in urls if u not in _cache]
@@ -1358,6 +1400,11 @@ def warm_up_cache(urls: Sequence[str]) -> None:
 def delete_folder(
     client: httpx.Client, profile_id: str, name: str, folder_id: str
 ) -> bool:
+    """
+    Deletes a folder (group) from a Control D profile.
+    
+    Returns True on success, False on failure. Logs detailed error information.
+    """
     try:
         _api_delete(client, f"{API_BASE}/{profile_id}/groups/{folder_id}")
         log.info(
@@ -1466,6 +1513,13 @@ def push_rules(
     existing_rules: Set[str],
     client: httpx.Client,
 ) -> bool:
+    """
+    Pushes rules to a folder in batches, filtering duplicates and invalid rules.
+    
+    Deduplicates input, validates rules against RULE_PATTERN, and sends batches
+    in parallel for optimal performance. Updates existing_rules set with newly
+    added rules. Returns True if all batches succeed.
+    """
     if not hostnames:
         log.info("Folder %s - no rules to push", sanitize_for_log(folder_name))
         return True
@@ -1533,6 +1587,7 @@ def push_rules(
     progress_label = f"Folder {sanitized_folder_name}"
 
     def process_batch(batch_idx: int, batch_data: List[str]) -> Optional[List[str]]:
+        """Processes a single batch of rules by sending API request."""
         data = {
             "do": str_do,
             "status": str_status,
@@ -1678,6 +1733,14 @@ def sync_profile(
     no_delete: bool = False,
     plan_accumulator: Optional[List[Dict[str, Any]]] = None,
 ) -> bool:
+    """
+    Synchronizes Control D folders from remote blocklist URLs.
+    
+    Fetches folder data, optionally deletes existing folders with same names,
+    creates new folders, and pushes rules in batches. In dry-run mode, only
+    generates a plan without making API changes. Returns True if all folders
+    sync successfully.
+    """
     # SECURITY: Clear cached DNS validations at the start of each sync run.
     # This prevents TOCTOU issues where a domain's IP could change between runs.
     validate_folder_url.cache_clear()
@@ -1874,6 +1937,12 @@ def sync_profile(
 # 5. Entry-point
 # --------------------------------------------------------------------------- #
 def parse_args() -> argparse.Namespace:
+    """
+    Parses command-line arguments for the Control D sync tool.
+    
+    Supports profile IDs, folder URLs, dry-run mode, no-delete flag,
+    and plan JSON output file path.
+    """
     parser = argparse.ArgumentParser(description="Control D folder sync")
     parser.add_argument(
         "--profiles", help="Comma-separated list of profile IDs", default=None
@@ -1890,6 +1959,14 @@ def parse_args() -> argparse.Namespace:
 
 
 def main():
+    """
+    Main entry point for Control D Sync.
+    
+    Loads environment configuration, validates inputs, warms up cache,
+    and syncs profiles. Supports interactive prompts for missing credentials
+    when running in a TTY. Prints summary statistics and exits with appropriate
+    status code.
+    """
     # SECURITY: Check .env permissions (after Colors is defined for NO_COLOR support)
     # This must happen BEFORE load_dotenv() to prevent reading secrets from world-readable files
     check_env_permissions()
@@ -1920,6 +1997,7 @@ def main():
             )
 
             def validate_profile_input(value: str) -> bool:
+                """Validates one or more profile IDs from comma-separated input."""
                 ids = [extract_profile_id(p) for p in value.split(",") if p.strip()]
                 return bool(ids) and all(
                     validate_profile_id(pid, log_errors=False) for pid in ids
