@@ -2,12 +2,6 @@ import importlib
 import sys
 from unittest.mock import MagicMock, patch
 
-import httpx
-import pytest
-
-import main
-
-
 def reload_main_with_env(monkeypatch):
     monkeypatch.delenv("NO_COLOR", raising=False)
     with patch("sys.stderr") as mock_stderr, patch("sys.stdout") as mock_stdout:
