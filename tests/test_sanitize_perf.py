@@ -29,5 +29,10 @@ def test_sanitize_perf():
     complex_time = end - start
     print(f"50k sanitize_for_log (complex): {complex_time:.4f}s")
 
+    # Assert that the simple case is faster than the complex case.
+    # This provides a basic guard against performance regressions where the
+    # optimization might be accidentally removed or broken.
+    assert simple_time < complex_time
+
 if __name__ == "__main__":
     test_sanitize_perf()
