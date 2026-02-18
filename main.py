@@ -328,19 +328,8 @@ def print_summary_table(results: List[Dict[str, Any]], dry_run: bool) -> None:
         }
 
     def _print_separator(left, mid, right):
-        parts = []
-        parts.append(chars[left])
-        parts.append(chars["h"] * (col_widths["profile"] + 2))
-        parts.append(chars[mid])
-        parts.append(chars["h"] * (col_widths["folders"] + 2))
-        parts.append(chars[mid])
-        parts.append(chars["h"] * (col_widths["rules"] + 2))
-        parts.append(chars[mid])
-        parts.append(chars["h"] * (col_widths["duration"] + 2))
-        parts.append(chars[mid])
-        parts.append(chars["h"] * (col_widths["status"] + 2))
-        parts.append(chars[right])
-        print("".join(parts))
+        segments = [chars["h"] * (width + 2) for width in col_widths.values()]
+        print(f"{chars[left]}{chars[mid].join(segments)}{chars[right]}")
 
     def _print_row(profile, folders, rules, duration, status, is_header=False):
         v = chars["v"]
