@@ -332,7 +332,7 @@ def countdown_timer(seconds: int, message: str = "Waiting") -> None:
     for remaining in range(seconds, 0, -1):
         progress = (seconds - remaining + 1) / seconds
         filled = int(width * progress)
-        bar = "█" * filled + "░" * (width - filled)
+        bar = "█" * filled + "·" * (width - filled)
         sys.stderr.write(
             f"\r{Colors.CYAN}⏳ {message}: [{bar}] {remaining}s...{Colors.ENDC}"
         )
@@ -354,7 +354,7 @@ def render_progress_bar(
 
     progress = min(1.0, current / total)
     filled = int(width * progress)
-    bar = "█" * filled + "░" * (width - filled)
+    bar = "█" * filled + "·" * (width - filled)
     percent = int(progress * 100)
 
     # Use \033[K to clear line residue
@@ -1873,6 +1873,47 @@ def sync_profile(
 # --------------------------------------------------------------------------- #
 # 5. Entry-point
 # --------------------------------------------------------------------------- #
+def print_summary_table(
+    sync_results: List[Dict[str, Any]], success_count: int, total: int, dry_run: bool
+) -> None:
+    # 1. Setup Data
+    max_p = max((len(r["profile"]) for r in sync_results), default=25)
+    w = [max(25, max_p), 10, 12, 10, 15]
+
+    t_f, t_r, t_d = sum(r["folders"] for r in sync_results), sum(r["rules"] for r in sync_results), sum(r["duration"] for r in sync_results)
+    all_ok = success_count == total
+    t_status = ("✅ Ready" if dry_run else "✅ All Good") if all_ok else "❌ Errors"
+    t_col = Colors.GREEN if all_ok else Colors.FAIL
+
+    # 2. Render
+    if not USE_COLORS:
+        # Simple ASCII Fallback
+        header = f"{'Profile ID':<{w[0]}} | {'Folders':>{w[1]}} | {'Rules':>{w[2]}} | {'Duration':>{w[3]}} | {'Status':<{w[4]}}"
+        sep = "-" * len(header)
+        print(f"\n{('DRY RUN' if dry_run else 'SYNC') + ' SUMMARY':^{len(header)}}\n{sep}\n{header}\n{sep}")
+        for r in sync_results:
+            print(f"{r['profile']:<{w[0]}} | {r['folders']:>{w[1]}} | {r['rules']:>{w[2]},} | {r['duration']:>{w[3]-1}.1f}s | {r['status_label']:<{w[4]}}")
+        print(f"{sep}\n{'TOTAL':<{w[0]}} | {t_f:>{w[1]}} | {t_r:>{w[2]},} | {t_d:>{w[3]-1}.1f}s | {t_status:<{w[4]}}\n{sep}\n")
+        return
+
+    # Unicode Table
+    def line(l, m, r): return f"{Colors.BOLD}{l}{m.join('─' * (x+2) for x in w)}{r}{Colors.ENDC}"
+    def row(c): return f"{Colors.BOLD}│{Colors.ENDC} {c[0]:<{w[0]}} {Colors.BOLD}│{Colors.ENDC} {c[1]:>{w[1]}} {Colors.BOLD}│{Colors.ENDC} {c[2]:>{w[2]}} {Colors.BOLD}│{Colors.ENDC} {c[3]:>{w[3]}} {Colors.BOLD}│{Colors.ENDC} {c[4]:<{w[4]}} {Colors.BOLD}│{Colors.ENDC}"
+
+    print(f"\n{line('┌', '─', '┐')}")
+    title = f"{'DRY RUN' if dry_run else 'SYNC'} SUMMARY"
+    print(f"{Colors.BOLD}│{Colors.CYAN if dry_run else Colors.HEADER}{title:^{sum(w) + 14}}{Colors.ENDC}{Colors.BOLD}│{Colors.ENDC}")
+    print(f"{line('├', '┬', '┤')}\n{row([f'{Colors.HEADER}Profile ID{Colors.ENDC}', f'{Colors.HEADER}Folders{Colors.ENDC}', f'{Colors.HEADER}Rules{Colors.ENDC}', f'{Colors.HEADER}Duration{Colors.ENDC}', f'{Colors.HEADER}Status{Colors.ENDC}'])}")
+    print(line("├", "┼", "┤"))
+
+    for r in sync_results:
+        sc = Colors.GREEN if r["success"] else Colors.FAIL
+        print(row([r["profile"], str(r["folders"]), f"{r['rules']:,}", f"{r['duration']:.1f}s", f"{sc}{r['status_label']}{Colors.ENDC}"]))
+
+    print(f"{line('├', '┼', '┤')}\n{row(['TOTAL', str(t_f), f'{t_r:,}', f'{t_d:.1f}s', f'{t_col}{t_status}{Colors.ENDC}'])}")
+    print(f"{line('└', '┴', '┘')}\n")
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Control D folder sync")
     parser.add_argument(
@@ -2047,78 +2088,8 @@ def main():
         log.info("Plan written to %s", args.plan_json)
 
     # Print Summary Table
-    # Determine the width for the Profile ID column (min 25)
-    max_profile_len = max((len(r["profile"]) for r in sync_results), default=25)
-    profile_col_width = max(25, max_profile_len)
-
-    # Calculate total width for the table
-    # Profile ID + " | " + Folders + " | " + Rules + " | " + Duration + " | " + Status
-    # Widths: profile_col_width + 3 + 10 + 3 + 10 + 3 + 10 + 3 + 15 = profile_col_width + 57
-    table_width = profile_col_width + 57
-
-    title_text = "DRY RUN SUMMARY" if args.dry_run else "SYNC SUMMARY"
-    title_color = Colors.CYAN if args.dry_run else Colors.HEADER
-
-    print("\n" + "=" * table_width)
-    print(f"{title_color}{title_text:^{table_width}}{Colors.ENDC}")
-    print("=" * table_width)
-
-    # Header
-    print(
-        f"{Colors.BOLD}"
-        f"{'Profile ID':<{profile_col_width}} | {'Folders':>10} | {'Rules':>10} | {'Duration':>10} | {'Status':<15}"
-        f"{Colors.ENDC}"
-    )
-    print("-" * table_width)
-
-    # Rows
-    total_folders = 0
-    total_rules = 0
-    total_duration = 0.0
-
-    for res in sync_results:
-        # Use boolean success field for color logic
-        status_color = Colors.GREEN if res["success"] else Colors.FAIL
-
-        print(
-            f"{res['profile']:<{profile_col_width}} | "
-            f"{res['folders']:>10} | "
-            f"{res['rules']:>10,} | "
-            f"{res['duration']:>9.1f}s | "
-            f"{status_color}{res['status_label']:<15}{Colors.ENDC}"
-        )
-        total_folders += res["folders"]
-        total_rules += res["rules"]
-        total_duration += res["duration"]
-
-    print("-" * table_width)
-
-    # Total Row
     total = len(profile_ids or ["dry-run-placeholder"])
-    all_success = success_count == total
-
-    if args.dry_run:
-        if all_success:
-            total_status_text = "✅ Ready"
-        else:
-            total_status_text = "❌ Errors"
-    else:
-        if all_success:
-            total_status_text = "✅ All Good"
-        else:
-            total_status_text = "❌ Errors"
-
-    total_status_color = Colors.GREEN if all_success else Colors.FAIL
-
-    print(
-        f"{Colors.BOLD}"
-        f"{'TOTAL':<{profile_col_width}} | "
-        f"{total_folders:>10} | "
-        f"{total_rules:>10,} | "
-        f"{total_duration:>9.1f}s | "
-        f"{total_status_color}{total_status_text:<15}{Colors.ENDC}"
-    )
-    print("=" * table_width + "\n")
+    print_summary_table(sync_results, success_count, total, args.dry_run)
     
     # Display cache statistics if any cache activity occurred
     if _cache_stats["hits"] + _cache_stats["misses"] + _cache_stats["validations"] > 0:

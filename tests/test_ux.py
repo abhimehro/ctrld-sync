@@ -22,7 +22,7 @@ def test_countdown_timer_visuals(monkeypatch):
     combined_output = "".join(writes)
 
     # Check for progress bar chars
-    assert "░" in combined_output
+    assert "·" in combined_output
     assert "█" in combined_output
     assert "Test" in combined_output
     assert "Done!" in combined_output
