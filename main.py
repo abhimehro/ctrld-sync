@@ -21,6 +21,7 @@ import json
 import logging
 import os
 import platform
+import random
 import re
 import shutil
 import socket
@@ -69,6 +70,15 @@ class Colors:
         ENDC = ""
         BOLD = ""
         UNDERLINE = ""
+
+
+class Box:
+    """Box drawing characters for pretty tables."""
+
+    if USE_COLORS:
+        H, V, TL, TR, BL, BR, T, B, L, R, X = "─", "│", "┌", "┐", "└", "┘", "┬", "┴", "├", "┤", "┼"
+    else:
+        H, V, TL, TR, BL, BR, T, B, L, R, X = "-", "|", "+", "+", "+", "+", "+", "+", "+", "+", "+"
 
 
 class ColoredFormatter(logging.Formatter):
@@ -332,7 +342,7 @@ def countdown_timer(seconds: int, message: str = "Waiting") -> None:
     for remaining in range(seconds, 0, -1):
         progress = (seconds - remaining + 1) / seconds
         filled = int(width * progress)
-        bar = "█" * filled + "░" * (width - filled)
+        bar = "█" * filled + "·" * (width - filled)
         sys.stderr.write(
             f"\r{Colors.CYAN}⏳ {message}: [{bar}] {remaining}s...{Colors.ENDC}"
         )
@@ -354,7 +364,7 @@ def render_progress_bar(
 
     progress = min(1.0, current / total)
     filled = int(width * progress)
-    bar = "█" * filled + "░" * (width - filled)
+    bar = "█" * filled + "·" * (width - filled)
     percent = int(progress * 100)
 
     # Use \033[K to clear line residue
@@ -2111,25 +2121,56 @@ def main():
     max_profile_len = max((len(r["profile"]) for r in sync_results), default=25)
     profile_col_width = max(25, max_profile_len)
 
-    # Calculate total width for the table
-    # Profile ID + " | " + Folders + " | " + Rules + " | " + Duration + " | " + Status
-    # Widths: profile_col_width + 3 + 10 + 3 + 10 + 3 + 10 + 3 + 15 = profile_col_width + 57
-    table_width = profile_col_width + 57
+    # Column widths
+    w_profile = profile_col_width
+    w_folders = 10
+    w_rules = 12
+    w_duration = 10
+    w_status = 15
 
-    title_text = "DRY RUN SUMMARY" if args.dry_run else "SYNC SUMMARY"
+    def make_col_separator(left, mid, right, horiz):
+        parts = [
+            horiz * (w_profile + 2),
+            horiz * (w_folders + 2),
+            horiz * (w_rules + 2),
+            horiz * (w_duration + 2),
+            horiz * (w_status + 2),
+        ]
+        return left + mid.join(parts) + right
+
+    # Calculate table width using a dummy separator
+    dummy_sep = make_col_separator(Box.TL, Box.T, Box.TR, Box.H)
+    table_width = len(dummy_sep)
+
+    title_text = " DRY RUN SUMMARY " if args.dry_run else " SYNC SUMMARY "
     title_color = Colors.CYAN if args.dry_run else Colors.HEADER
 
-    print("\n" + "=" * table_width)
-    print(f"{title_color}{title_text:^{table_width}}{Colors.ENDC}")
-    print("=" * table_width)
+    # Top Border (Single Cell for Title)
+    print("\n" + Box.TL + Box.H * (table_width - 2) + Box.TR)
 
-    # Header
+    # Title Row
+    visible_title = title_text.strip()
+    inner_width = table_width - 2
+    pad_left = (inner_width - len(visible_title)) // 2
+    pad_right = inner_width - len(visible_title) - pad_left
     print(
-        f"{Colors.BOLD}"
-        f"{'Profile ID':<{profile_col_width}} | {'Folders':>10} | {'Rules':>10} | {'Duration':>10} | {'Status':<15}"
-        f"{Colors.ENDC}"
+        f"{Box.V}{' ' * pad_left}{title_color}{visible_title}{Colors.ENDC}{' ' * pad_right}{Box.V}"
     )
-    print("-" * table_width)
+
+    # Separator between Title and Headers (introduces columns)
+    print(make_col_separator(Box.L, Box.T, Box.R, Box.H))
+
+    # Header Row
+    print(
+        f"{Box.V} {Colors.BOLD}{'Profile ID':<{w_profile}}{Colors.ENDC} "
+        f"{Box.V} {Colors.BOLD}{'Folders':>{w_folders}}{Colors.ENDC} "
+        f"{Box.V} {Colors.BOLD}{'Rules':>{w_rules}}{Colors.ENDC} "
+        f"{Box.V} {Colors.BOLD}{'Duration':>{w_duration}}{Colors.ENDC} "
+        f"{Box.V} {Colors.BOLD}{'Status':<{w_status}}{Colors.ENDC} {Box.V}"
+    )
+
+    # Separator between Header and Body
+    print(make_col_separator(Box.L, Box.X, Box.R, Box.H))
 
     # Rows
     total_folders = 0
@@ -2140,18 +2181,23 @@ def main():
         # Use boolean success field for color logic
         status_color = Colors.GREEN if res["success"] else Colors.FAIL
 
+        s_folders = f"{res['folders']:,}"
+        s_rules = f"{res['rules']:,}"
+        s_duration = f"{res['duration']:.1f}s"
+
         print(
-            f"{res['profile']:<{profile_col_width}} | "
-            f"{res['folders']:>10} | "
-            f"{res['rules']:>10,} | "
-            f"{res['duration']:>9.1f}s | "
-            f"{status_color}{res['status_label']:<15}{Colors.ENDC}"
+            f"{Box.V} {res['profile']:<{w_profile}} "
+            f"{Box.V} {s_folders:>{w_folders}} "
+            f"{Box.V} {s_rules:>{w_rules}} "
+            f"{Box.V} {s_duration:>{w_duration}} "
+            f"{Box.V} {status_color}{res['status_label']:<{w_status}}{Colors.ENDC} {Box.V}"
         )
         total_folders += res["folders"]
         total_rules += res["rules"]
         total_duration += res["duration"]
 
-    print("-" * table_width)
+    # Separator between Body and Total
+    print(make_col_separator(Box.L, Box.X, Box.R, Box.H))
 
     # Total Row
     total = len(profile_ids or ["dry-run-placeholder"])
@@ -2170,15 +2216,30 @@ def main():
 
     total_status_color = Colors.GREEN if all_success else Colors.FAIL
 
+    s_total_folders = f"{total_folders:,}"
+    s_total_rules = f"{total_rules:,}"
+    s_total_duration = f"{total_duration:.1f}s"
+
     print(
-        f"{Colors.BOLD}"
-        f"{'TOTAL':<{profile_col_width}} | "
-        f"{total_folders:>10} | "
-        f"{total_rules:>10,} | "
-        f"{total_duration:>9.1f}s | "
-        f"{total_status_color}{total_status_text:<15}{Colors.ENDC}"
+        f"{Box.V} {Colors.BOLD}{'TOTAL':<{w_profile}}{Colors.ENDC} "
+        f"{Box.V} {s_total_folders:>{w_folders}} "
+        f"{Box.V} {s_total_rules:>{w_rules}} "
+        f"{Box.V} {s_total_duration:>{w_duration}} "
+        f"{Box.V} {total_status_color}{total_status_text:<{w_status}}{Colors.ENDC} {Box.V}"
     )
-    print("=" * table_width + "\n")
+    # Bottom Border
+    print(make_col_separator(Box.BL, Box.B, Box.BR, Box.H))
+
+    # Success Delight
+    if all_success and USE_COLORS and not args.dry_run:
+        success_msgs = [
+            "✨ All synced!",
+            "🚀 Ready for liftoff!",
+            "🎨 Beautifully done!",
+            "💎 Smooth operation!",
+            "🌈 Perfect harmony!",
+        ]
+        print(f"\n{Colors.GREEN}{random.choice(success_msgs)}{Colors.ENDC}")
     
     # Display API statistics
     total_api_calls = _api_stats["control_d_api_calls"] + _api_stats["blocklist_fetches"]
