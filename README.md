@@ -119,7 +119,7 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
 
 ## Requirements
 - Python 3.13+
-- Dependencies listed in `requirements.txt` (install with `pip` or `uv`)
+- Runtime dependencies (install with `pip install -r requirements.txt` or `uv sync`)
 
 ## Testing
 
