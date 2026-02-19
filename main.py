@@ -247,10 +247,14 @@ def sanitize_for_log(text: Any) -> str:
         s = s.replace(TOKEN, "[REDACTED]")
 
     # Redact Basic Auth in URLs (e.g. https://user:pass@host)
-    s = _BASIC_AUTH_PATTERN.sub("://[REDACTED]@", s)
+    # Optimization: Check for '://' before running expensive regex substitution
+    if "://" in s:
+        s = _BASIC_AUTH_PATTERN.sub("://[REDACTED]@", s)
 
     # Redact sensitive query parameters (handles ?, &, and # separators)
-    s = _SENSITIVE_PARAM_PATTERN.sub(r"\1\2=[REDACTED]", s)
+    # Optimization: Check for delimiters before running expensive regex substitution
+    if "?" in s or "&" in s or "#" in s:
+        s = _SENSITIVE_PARAM_PATTERN.sub(r"\1\2=[REDACTED]", s)
 
     # repr() safely escapes control characters (e.g., \n -> \\n, \x1b -> \\x1b)
     # This prevents log injection and terminal hijacking.
@@ -1142,34 +1146,6 @@ def _gh_get(url: str) -> Dict:
                     with _gh.stream("GET", url, headers=headers) as r_retry:
                         r_retry.raise_for_status()
 
-                        # Security helper: centralize Content-Type validation so that
-                        # all call sites use identical rules and error handling.
-                        def _validate_content_type(
-                            headers: httpx.Headers,
-                            url: str,
-                            allowed_types: Sequence[str] = (
-                                "application/json",
-                                "text/json",
-                                "text/plain",
-                            ),
-                        ) -> None:
-                            """
-                            Validate that the response Content-Type is one of the expected types.
-
-                            This helper exists to keep Content-Type checks consistent across
-                            code paths. If we ever need to adjust the allowed types or
-                            error messaging, we only change it here.
-                            """
-                            ct = headers.get("content-type", "").lower()
-                            if not any(t in ct for t in allowed_types):
-                                raise ValueError(
-                                    f"Invalid Content-Type from {sanitize_for_log(url)}: {ct}. "
-                                    f"Expected one of: {', '.join(allowed_types)}"
-                                )
-
-                        # Security: Enforce Content-Type validation on retry
-                        _validate_content_type(r_retry.headers, url)
-
                         # 1. Check Content-Length header if present
                         cl = r_retry.headers.get("Content-Length")
                         if cl:
@@ -1226,13 +1202,13 @@ def _gh_get(url: str) -> Dict:
             
             r.raise_for_status()
 
-            # Security: Enforce Content-Type to be JSON or text
-            # This prevents processing of unexpected content (e.g., HTML from captive portals)
-            ct = r.headers.get("content-type", "").lower()
-            allowed_types = ("application/json", "text/json", "text/plain")
-            if not any(t in ct for t in allowed_types):
+            # Security: Validate Content-Type
+            # Prevent processing of unexpected content types (e.g., HTML/XML from captive portals or attack sites)
+            content_type = r.headers.get("Content-Type", "").lower()
+            allowed_types = ["application/json", "text/json", "text/plain"]
+            if not any(t in content_type for t in allowed_types):
                 raise ValueError(
-                    f"Invalid Content-Type from {sanitize_for_log(url)}: {ct}. "
+                    f"Invalid Content-Type from {sanitize_for_log(url)}: {content_type}. "
                     f"Expected one of: {', '.join(allowed_types)}"
                 )
 

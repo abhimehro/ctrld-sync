@@ -17,7 +17,6 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 import sys
-import httpx
 
 # Add root to path to import main
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -210,7 +209,7 @@ class TestDiskCache(unittest.TestCase):
             mock_response = MagicMock()
             mock_response.status_code = 200
             mock_response.raise_for_status = MagicMock()
-            mock_response.headers = httpx.Headers({"Content-Length": "100", "ETag": "test123", "Content-Type": "application/json"})
+            mock_response.headers = {"Content-Length": "100", "ETag": "test123", "Content-Type": "application/json"}
             json_bytes = json.dumps(test_data).encode()
             mock_response.iter_bytes = MagicMock(return_value=[json_bytes])
             mock_response.__enter__ = MagicMock(return_value=mock_response)
