@@ -495,6 +495,7 @@ _cache_lock = threading.RLock()
 # to enable fast cold-start syncs via conditional HTTP requests (304 Not Modified)
 _disk_cache: Dict[str, Dict[str, Any]] = {}  # Loaded from disk on startup
 _cache_stats = {"hits": 0, "misses": 0, "validations": 0, "errors": 0}
+_api_stats = {"control_d_api_calls": 0, "blocklist_fetches": 0}
 
 
 def get_cache_dir() -> Path:
@@ -820,19 +821,36 @@ def validate_folder_data(data: Dict[str, Any], url: str) -> bool:
     return True
 
 
+# Lock to protect updates to _api_stats in multi-threaded contexts.
+# Without this, concurrent increments can lose updates because `+=` is not atomic.
+_api_stats_lock = threading.Lock()
+
+
 def _api_get(client: httpx.Client, url: str) -> httpx.Response:
+    global _api_stats
+    with _api_stats_lock:
+        _api_stats["control_d_api_calls"] += 1
     return _retry_request(lambda: client.get(url))
 
 
 def _api_delete(client: httpx.Client, url: str) -> httpx.Response:
+    global _api_stats
+    with _api_stats_lock:
+        _api_stats["control_d_api_calls"] += 1
     return _retry_request(lambda: client.delete(url))
 
 
 def _api_post(client: httpx.Client, url: str, data: Dict) -> httpx.Response:
+    global _api_stats
+    with _api_stats_lock:
+        _api_stats["control_d_api_calls"] += 1
     return _retry_request(lambda: client.post(url, data=data))
 
 
 def _api_post_form(client: httpx.Client, url: str, data: Dict) -> httpx.Response:
+    global _api_stats
+    with _api_stats_lock:
+        _api_stats["control_d_api_calls"] += 1
     return _retry_request(
         lambda: client.post(
             url,
@@ -884,13 +902,17 @@ def _gh_get(url: str) -> Dict:
     
     SECURITY: Validates data structure regardless of cache source
     """
-    global _cache_stats
+    global _cache_stats, _api_stats
     
     # First check: Quick check without holding lock for long
     with _cache_lock:
         if url in _cache:
             _cache_stats["hits"] += 1
             return _cache[url]
+    
+    # Track that we're about to make a blocklist fetch
+    with _cache_lock:
+        _api_stats["blocklist_fetches"] += 1
     
     # Check disk cache for conditional request headers
     headers = {}
@@ -2158,14 +2180,23 @@ def main():
     )
     print("=" * table_width + "\n")
     
+    # Display API statistics
+    total_api_calls = _api_stats["control_d_api_calls"] + _api_stats["blocklist_fetches"]
+    if total_api_calls > 0:
+        print(f"{Colors.BOLD}API Statistics:{Colors.ENDC}")
+        print(f"  • Control D API calls: {_api_stats['control_d_api_calls']:>7,}")
+        print(f"  • Blocklist fetches:   {_api_stats['blocklist_fetches']:>7,}")
+        print(f"  • Total API requests:  {total_api_calls:>7,}")
+        print()
+    
     # Display cache statistics if any cache activity occurred
     if _cache_stats["hits"] + _cache_stats["misses"] + _cache_stats["validations"] > 0:
         print(f"{Colors.BOLD}Cache Statistics:{Colors.ENDC}")
-        print(f"  • Hits (in-memory):     {_cache_stats['hits']:>6,}")
-        print(f"  • Misses (downloaded):  {_cache_stats['misses']:>6,}")
-        print(f"  • Validations (304):    {_cache_stats['validations']:>6,}")
+        print(f"  • Hits (in-memory):    {_cache_stats['hits']:>7,}")
+        print(f"  • Misses (downloaded): {_cache_stats['misses']:>7,}")
+        print(f"  • Validations (304):   {_cache_stats['validations']:>7,}")
         if _cache_stats["errors"] > 0:
-            print(f"  • Errors (non-fatal):   {_cache_stats['errors']:>6,}")
+            print(f"  • Errors (non-fatal):  {_cache_stats['errors']:>7,}")
         
         # Calculate cache effectiveness
         total_requests = _cache_stats["hits"] + _cache_stats["misses"] + _cache_stats["validations"]
