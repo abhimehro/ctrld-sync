@@ -35,15 +35,29 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
 
 ### Configure the script
 
-1. **Fork & clone**
-   > Fork this repo first (click **Fork** on GitHub), then clone your fork:
+1. **Clone & install**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/ctrld-sync.git
+   git clone https://github.com/your-username/ctrld-sync.git
    cd ctrld-sync
-   uv sync
    ```
 
-2. **Configure secrets**
+2. **Install dependencies**
+   
+   Choose one of the following methods:
+   
+   **Using pip (recommended for CI/production):**
+   ```bash
+   pip install -r requirements.txt
+   ```
+   
+   **Using uv (faster for local development):**
+   ```bash
+   uv sync
+   ```
+   
+   Both methods are fully supported. Our main sync CI workflow uses `pip` for consistency with caching, while other workflows use `uv`; `uv` is generally faster for local development.
+
+3. **Configure secrets**
    Create a `.env` file (or set GitHub secrets) with:
    ```py
    TOKEN=your_control_d_api_token
@@ -51,7 +65,7 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
    ```
    For GitHub Actions, set `TOKEN` and `PROFILE` secrets to the raw values (not the full `TOKEN=...` / `PROFILE=...` lines).
 
-3. **Configure Folders**
+4. **Configure Folders**
    Edit the `DEFAULT_FOLDER_URLS` list in `main.py` to include the URLs of the JSON block-lists you want to sync.
    
    **Example configuration:**
@@ -77,20 +91,20 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
    
    You can add your own JSON block-list URLs or use command-line arguments:
    ```bash
-   uv run python main.py --folder-url https://example.com/my-blocklist.json
+   python main.py --folder-url https://example.com/my-blocklist.json
    ```
 
 > [!NOTE]
 > Currently only Folders with one action are supported.
 > Either "Block" or "Allow" actions are supported.
 
-4. **Run locally**
+5. **Run locally**
    ```bash
-   uv run python main.py --dry-run            # plan only, no API calls
-   uv run python main.py --profiles your_id   # live run (requires TOKEN)
+   python main.py --dry-run            # plan only, no API calls
+   python main.py --profiles your_id   # live run (requires TOKEN)
    ```
 
-5. **Run in CI**
+6. **Run in CI**
    The included GitHub Actions workflow (`.github/workflows/sync.yml`) runs a dry-run daily at 02:00 UTC and on PRs, writes `plan.json`, and uploads it as an artifact for review.
 
 ### Configure GitHub Actions
@@ -104,7 +118,7 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
 
 ## Requirements
 - Python 3.13+
-- `uv` (for dependency management)
+- Runtime dependencies (install with `pip install -r requirements.txt` or `uv sync`)
 
 ## Testing
 
@@ -114,20 +128,23 @@ This project includes a comprehensive test suite to ensure code quality and corr
 
 **Basic test execution:**
 ```bash
-# Dev dependencies are included when you run `uv sync` (see Quick start)
-uv run pytest tests/
+# Install dev dependencies first
+pip install pytest pytest-mock pytest-xdist
+
+# Run all tests
+pytest tests/
 ```
 
 **Parallel test execution (recommended):**
 ```bash
 # Run tests in parallel using all available CPU cores
-uv run pytest tests/ -n auto
+pytest tests/ -n auto
 
 # Run with specific number of workers
-uv run pytest tests/ -n 4
+pytest tests/ -n 4
 ```
 
-**Note on parallel execution:** The test suite is currently small (~95 tests, <1s execution time), so parallel execution overhead may result in longer wall-clock time compared to sequential execution. However, pytest-xdist is included for:
+**Note on parallel execution:** The test suite is currently small (~78 tests, <1s execution time), so parallel execution overhead may result in longer wall-clock time compared to sequential execution. However, pytest-xdist is included for:
 - **Test isolation verification** - Ensures tests don't share state
 - **Future scalability** - As the test suite grows, parallel execution will provide significant speedups
 - **CI optimization** - May benefit from parallelization in CI environments with different characteristics
@@ -137,13 +154,13 @@ uv run pytest tests/ -n 4
 For active development with frequent test runs:
 ```bash
 # Run tests sequentially (faster for small test suites)
-uv run pytest tests/ -v
+pytest tests/ -v
 
 # Run specific test file
-uv run pytest tests/test_security.py -v
+pytest tests/test_security.py -v
 
 # Run tests matching pattern
-uv run pytest tests/ -k "test_validation" -v
+pytest tests/ -k "test_validation" -v
 ```
 
 ## Release Process
@@ -153,7 +170,7 @@ This project uses manual releases via GitHub Releases. To create a new release:
 1. **Ensure all changes are tested and merged to `main`**
    ```bash
    # Verify tests pass
-   uv run pytest tests/
+   pytest tests/
    
    # Verify security scans pass
    bandit -r main.py -ll

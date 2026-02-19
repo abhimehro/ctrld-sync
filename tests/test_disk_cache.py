@@ -209,7 +209,7 @@ class TestDiskCache(unittest.TestCase):
             mock_response = MagicMock()
             mock_response.status_code = 200
             mock_response.raise_for_status = MagicMock()
-            mock_response.headers = {"Content-Length": "100", "ETag": "test123"}
+            mock_response.headers = {"Content-Length": "100", "ETag": "test123", "Content-Type": "application/json"}
             json_bytes = json.dumps(test_data).encode()
             mock_response.iter_bytes = MagicMock(return_value=[json_bytes])
             mock_response.__enter__ = MagicMock(return_value=mock_response)

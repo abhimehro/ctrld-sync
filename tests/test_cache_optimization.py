@@ -221,7 +221,7 @@ class TestCacheOptimization(unittest.TestCase):
             mock_response = MagicMock()
             mock_response.status_code = 200
             mock_response.raise_for_status = MagicMock()
-            mock_response.headers = {"Content-Length": "100"}
+            mock_response.headers = {"Content-Length": "100", "Content-Type": "application/json"}
             # Return JSON bytes properly
             json_bytes = b'{"group": {"group": "Test Folder"}, "domains": ["example.com"]}'
             mock_response.iter_bytes = MagicMock(return_value=[json_bytes])

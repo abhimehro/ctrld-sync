@@ -15,12 +15,14 @@ Nothing fancy, just works.
 
 import argparse
 import concurrent.futures
+import contextlib
 import getpass
 import ipaddress
 import json
 import logging
 import os
 import platform
+import random
 import re
 import shutil
 import socket
@@ -69,6 +71,15 @@ class Colors:
         ENDC = ""
         BOLD = ""
         UNDERLINE = ""
+
+
+class Box:
+    """Box drawing characters for pretty tables."""
+
+    if USE_COLORS:
+        H, V, TL, TR, BL, BR, T, B, L, R, X = "─", "│", "┌", "┐", "└", "┘", "┬", "┴", "├", "┤", "┼"
+    else:
+        H, V, TL, TR, BL, BR, T, B, L, R, X = "-", "|", "+", "+", "+", "+", "+", "+", "+", "+", "+"
 
 
 class ColoredFormatter(logging.Formatter):
@@ -183,6 +194,9 @@ USER_AGENT = "Control-D-Sync/0.1.0"
 
 # Pre-compiled regex patterns for hot-path validation (>2x speedup on 10k+ items)
 PROFILE_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
+# Folder IDs (PK) are typically alphanumeric but can contain other safe chars.
+# We whitelist to prevent path traversal and injection.
+FOLDER_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_.-]+$")
 RULE_PATTERN = re.compile(r"^[a-zA-Z0-9.\-_:*/@]+$")
 
 # Parallel processing configuration
@@ -233,10 +247,14 @@ def sanitize_for_log(text: Any) -> str:
         s = s.replace(TOKEN, "[REDACTED]")
 
     # Redact Basic Auth in URLs (e.g. https://user:pass@host)
-    s = _BASIC_AUTH_PATTERN.sub("://[REDACTED]@", s)
+    # Optimization: Check for '://' before running expensive regex substitution
+    if "://" in s:
+        s = _BASIC_AUTH_PATTERN.sub("://[REDACTED]@", s)
 
     # Redact sensitive query parameters (handles ?, &, and # separators)
-    s = _SENSITIVE_PARAM_PATTERN.sub(r"\1\2=[REDACTED]", s)
+    # Optimization: Check for delimiters before running expensive regex substitution
+    if "?" in s or "&" in s or "#" in s:
+        s = _SENSITIVE_PARAM_PATTERN.sub(r"\1\2=[REDACTED]", s)
 
     # repr() safely escapes control characters (e.g., \n -> \\n, \x1b -> \\x1b)
     # This prevents log injection and terminal hijacking.
@@ -645,6 +663,19 @@ _cache_lock = threading.RLock()
 # to enable fast cold-start syncs via conditional HTTP requests (304 Not Modified)
 _disk_cache: Dict[str, Dict[str, Any]] = {}  # Loaded from disk on startup
 _cache_stats = {"hits": 0, "misses": 0, "validations": 0, "errors": 0}
+_api_stats = {"control_d_api_calls": 0, "blocklist_fetches": 0}
+
+# --------------------------------------------------------------------------- #
+# 3b. Rate Limit Tracking
+# --------------------------------------------------------------------------- #
+# Track rate limit information from API responses to enable proactive throttling
+# and provide visibility into API quota usage
+_rate_limit_info = {
+    "limit": None,       # Max requests allowed per window (from X-RateLimit-Limit)
+    "remaining": None,   # Requests remaining in current window (from X-RateLimit-Remaining)
+    "reset": None,       # Timestamp when limit resets (from X-RateLimit-Reset)
+}
+_rate_limit_lock = threading.Lock()  # Protect _rate_limit_info updates
 
 
 def get_cache_dir() -> Path:
@@ -788,6 +819,81 @@ def save_disk_cache() -> None:
         _cache_stats["errors"] += 1
 
 
+def _parse_rate_limit_headers(response: httpx.Response) -> None:
+    """
+    Parse rate limit headers from API response and update global tracking.
+    
+    Supports standard rate limit headers:
+    - X-RateLimit-Limit: Maximum requests per window
+    - X-RateLimit-Remaining: Requests remaining in current window
+    - X-RateLimit-Reset: Unix timestamp when limit resets
+    - Retry-After: Seconds to wait (priority on 429 responses)
+    
+    This enables:
+    1. Proactive throttling when approaching limits
+    2. Visibility into API quota usage
+    3. Smarter retry strategies based on actual limit state
+    
+    THREAD-SAFE: Uses _rate_limit_lock to protect shared state
+    GRACEFUL: Invalid/missing headers are ignored (no crashes)
+    """
+    global _rate_limit_info
+    
+    headers = response.headers
+    
+    # Parse standard rate limit headers
+    # These may not exist on all responses, so we check individually
+    try:
+        with _rate_limit_lock:
+            # X-RateLimit-Limit: Total requests allowed per window
+            if "X-RateLimit-Limit" in headers:
+                try:
+                    _rate_limit_info["limit"] = int(headers["X-RateLimit-Limit"])
+                except (ValueError, TypeError):
+                    pass  # Invalid value, ignore
+            
+            # X-RateLimit-Remaining: Requests left in current window
+            if "X-RateLimit-Remaining" in headers:
+                try:
+                    _rate_limit_info["remaining"] = int(headers["X-RateLimit-Remaining"])
+                except (ValueError, TypeError):
+                    pass
+            
+            # X-RateLimit-Reset: Unix timestamp when window resets
+            if "X-RateLimit-Reset" in headers:
+                try:
+                    _rate_limit_info["reset"] = int(headers["X-RateLimit-Reset"])
+                except (ValueError, TypeError):
+                    pass
+            
+            # Log warnings when approaching rate limits
+            # Only log if we have both limit and remaining values
+            if (_rate_limit_info["limit"] is not None and 
+                _rate_limit_info["remaining"] is not None):
+                limit = _rate_limit_info["limit"]
+                remaining = _rate_limit_info["remaining"]
+                
+                # Warn at 20% remaining capacity
+                if limit > 0 and remaining / limit < 0.2:
+                    if _rate_limit_info["reset"]:
+                        reset_time = time.strftime(
+                            "%H:%M:%S", 
+                            time.localtime(_rate_limit_info["reset"])
+                        )
+                        log.warning(
+                            f"Approaching rate limit: {remaining}/{limit} requests remaining "
+                            f"(resets at {reset_time})"
+                        )
+                    else:
+                        log.warning(
+                            f"Approaching rate limit: {remaining}/{limit} requests remaining"
+                        )
+    except Exception as e:
+        # Rate limit parsing failures should never crash the sync
+        # Just log and continue
+        log.debug(f"Failed to parse rate limit headers: {e}")
+
+
 @lru_cache(maxsize=128)
 def validate_folder_url(url: str) -> bool:
     """
@@ -869,6 +975,11 @@ def extract_profile_id(text: str) -> str:
 
 
 def is_valid_profile_id_format(profile_id: str) -> bool:
+    """
+    Checks if a profile ID matches the expected format.
+    
+    Validates against PROFILE_ID_PATTERN and enforces maximum length of 64 characters.
+    """
     if not PROFILE_ID_PATTERN.match(profile_id):
         return False
     if len(profile_id) > 64:
@@ -877,12 +988,29 @@ def is_valid_profile_id_format(profile_id: str) -> bool:
 
 
 def validate_profile_id(profile_id: str, log_errors: bool = True) -> bool:
+    """
+    Validates a Control D profile ID with optional error logging.
+    
+    Returns True if profile ID is valid, False otherwise.
+    Logs specific validation errors when log_errors=True.
+    """
     if not is_valid_profile_id_format(profile_id):
         if log_errors:
             if not PROFILE_ID_PATTERN.match(profile_id):
                 log.error("Invalid profile ID format (contains unsafe characters)")
             elif len(profile_id) > 64:
                 log.error("Invalid profile ID length (max 64 chars)")
+        return False
+    return True
+
+
+def validate_folder_id(folder_id: str, log_errors: bool = True) -> bool:
+    """Validates folder ID (PK) format to prevent path traversal."""
+    if not folder_id:
+        return False
+    if folder_id in (".", "..") or not FOLDER_ID_PATTERN.match(folder_id):
+        if log_errors:
+            log.error(f"Invalid folder ID format: {sanitize_for_log(folder_id)}")
         return False
     return True
 
@@ -935,6 +1063,12 @@ def is_valid_folder_name(name: str) -> bool:
 
 
 def validate_folder_data(data: Dict[str, Any], url: str) -> bool:
+    """
+    Validates folder JSON data structure and content.
+    
+    Checks for required fields (name, action, rules), validates folder name
+    and action type, and ensures rules are valid. Logs specific validation errors.
+    """
     if not isinstance(data, dict):
         log.error(
             f"Invalid data from {sanitize_for_log(url)}: Root must be a JSON object."
@@ -970,19 +1104,36 @@ def validate_folder_data(data: Dict[str, Any], url: str) -> bool:
     return True
 
 
+# Lock to protect updates to _api_stats in multi-threaded contexts.
+# Without this, concurrent increments can lose updates because `+=` is not atomic.
+_api_stats_lock = threading.Lock()
+
+
 def _api_get(client: httpx.Client, url: str) -> httpx.Response:
+    global _api_stats
+    with _api_stats_lock:
+        _api_stats["control_d_api_calls"] += 1
     return _retry_request(lambda: client.get(url))
 
 
 def _api_delete(client: httpx.Client, url: str) -> httpx.Response:
+    global _api_stats
+    with _api_stats_lock:
+        _api_stats["control_d_api_calls"] += 1
     return _retry_request(lambda: client.delete(url))
 
 
 def _api_post(client: httpx.Client, url: str, data: Dict) -> httpx.Response:
+    global _api_stats
+    with _api_stats_lock:
+        _api_stats["control_d_api_calls"] += 1
     return _retry_request(lambda: client.post(url, data=data))
 
 
 def _api_post_form(client: httpx.Client, url: str, data: Dict) -> httpx.Response:
+    global _api_stats
+    with _api_stats_lock:
+        _api_stats["control_d_api_calls"] += 1
     return _retry_request(
         lambda: client.post(
             url,
@@ -993,9 +1144,26 @@ def _api_post_form(client: httpx.Client, url: str, data: Dict) -> httpx.Response
 
 
 def _retry_request(request_func, max_retries=MAX_RETRIES, delay=RETRY_DELAY):
+    """
+    Retry request with exponential backoff.
+    
+    RATE LIMIT HANDLING:
+    - Parses X-RateLimit-* headers from all API responses
+    - On 429 (Too Many Requests): uses Retry-After header if present
+    - Logs warnings when approaching rate limits (< 20% remaining)
+    
+    SECURITY:
+    - Does NOT retry 4xx client errors (except 429)
+    - Sanitizes error messages in logs
+    """
     for attempt in range(max_retries):
         try:
             response = request_func()
+            
+            # Parse rate limit headers from successful responses
+            # This gives us visibility into quota usage even when requests succeed
+            _parse_rate_limit_headers(response)
+            
             response.raise_for_status()
             return response
         except (httpx.HTTPError, httpx.TimeoutException) as e:
@@ -1003,6 +1171,34 @@ def _retry_request(request_func, max_retries=MAX_RETRIES, delay=RETRY_DELAY):
             # Retrying 4xx errors is inefficient and can trigger security alerts or rate limits.
             if isinstance(e, httpx.HTTPStatusError):
                 code = e.response.status_code
+                
+                # Parse rate limit headers even from error responses
+                # This helps us understand why we hit limits
+                _parse_rate_limit_headers(e.response)
+                
+                # Handle 429 (Too Many Requests) with Retry-After
+                if code == 429:
+                    # Check for Retry-After header (in seconds)
+                    retry_after = e.response.headers.get("Retry-After")
+                    if retry_after:
+                        try:
+                            # Retry-After can be seconds or HTTP date
+                            # Try parsing as int (seconds) first
+                            wait_seconds = int(retry_after)
+                            log.warning(
+                                f"Rate limited (429). Server requests {wait_seconds}s wait "
+                                f"(attempt {attempt + 1}/{max_retries})"
+                            )
+                            if attempt < max_retries - 1:
+                                time.sleep(wait_seconds)
+                                continue  # Retry after waiting
+                            else:
+                                raise  # Max retries exceeded
+                        except ValueError:
+                            # Retry-After might be HTTP date format, ignore for now
+                            pass
+                
+                # Don't retry other 4xx errors (auth failures, bad requests, etc.)
                 if 400 <= code < 500 and code != 429:
                     if hasattr(e, "response") and e.response is not None:
                         log.debug(
@@ -1014,10 +1210,18 @@ def _retry_request(request_func, max_retries=MAX_RETRIES, delay=RETRY_DELAY):
                 if hasattr(e, "response") and e.response is not None:
                     log.debug(f"Response content: {sanitize_for_log(e.response.text)}")
                 raise
-            wait_time = delay * (2**attempt)
+            
+            # Exponential backoff with jitter to prevent thundering herd
+            # Base delay: delay * (2^attempt) gives exponential growth
+            # Jitter: multiply by random factor in range [0.5, 1.5] to spread retries
+            # This prevents multiple failed requests from retrying simultaneously
+            base_wait = delay * (2**attempt)
+            jitter_factor = 0.5 + random.random()  # Random value between 0.5 and 1.5
+            wait_time = base_wait * jitter_factor
+            
             log.warning(
                 f"Request failed (attempt {attempt + 1}/{max_retries}): "
-                f"{sanitize_for_log(e)}. Retrying in {wait_time}s..."
+                f"{sanitize_for_log(e)}. Retrying in {wait_time:.2f}s..."
             )
             time.sleep(wait_time)
 
@@ -1034,13 +1238,17 @@ def _gh_get(url: str) -> Dict:
     
     SECURITY: Validates data structure regardless of cache source
     """
-    global _cache_stats
+    global _cache_stats, _api_stats
     
     # First check: Quick check without holding lock for long
     with _cache_lock:
         if url in _cache:
             _cache_stats["hits"] += 1
             return _cache[url]
+    
+    # Track that we're about to make a blocklist fetch
+    with _cache_lock:
+        _api_stats["blocklist_fetches"] += 1
     
     # Check disk cache for conditional request headers
     headers = {}
@@ -1087,7 +1295,7 @@ def _gh_get(url: str) -> Dict:
                     headers = {}
                     with _gh.stream("GET", url, headers=headers) as r_retry:
                         r_retry.raise_for_status()
-                        
+
                         # 1. Check Content-Length header if present
                         cl = r_retry.headers.get("Content-Length")
                         if cl:
@@ -1143,7 +1351,17 @@ def _gh_get(url: str) -> Dict:
                         return data
             
             r.raise_for_status()
-            
+
+            # Security: Validate Content-Type
+            # Prevent processing of unexpected content types (e.g., HTML/XML from captive portals or attack sites)
+            content_type = r.headers.get("Content-Type", "").lower()
+            allowed_types = ["application/json", "text/json", "text/plain"]
+            if not any(t in content_type for t in allowed_types):
+                raise ValueError(
+                    f"Invalid Content-Type from {sanitize_for_log(url)}: {content_type}. "
+                    f"Expected one of: {', '.join(allowed_types)}"
+                )
+
             # 1. Check Content-Length header if present
             cl = r.headers.get("Content-Length")
             if cl:
@@ -1252,14 +1470,23 @@ def check_api_access(client: httpx.Client, profile_id: str) -> bool:
 
 
 def list_existing_folders(client: httpx.Client, profile_id: str) -> Dict[str, str]:
+    """
+    Retrieves all existing folders (groups) for a given profile.
+    
+    Returns a dictionary mapping folder names to their IDs.
+    Returns empty dict on error.
+    """
     try:
         data = _api_get(client, f"{API_BASE}/{profile_id}/groups").json()
         folders = data.get("body", {}).get("groups", [])
-        return {
-            f["group"].strip(): f["PK"]
-            for f in folders
-            if f.get("group") and f.get("PK")
-        }
+        result = {}
+        for f in folders:
+            if not f.get("group") or not f.get("PK"):
+                continue
+            pk = str(f["PK"])
+            if validate_folder_id(pk):
+                result[f["group"].strip()] = pk
+        return result
     except (httpx.HTTPError, KeyError) as e:
         log.error(f"Failed to list existing folders: {sanitize_for_log(e)}")
         return {}
@@ -1323,7 +1550,12 @@ def verify_access_and_get_folders(
                     # Skip entries with empty or None values for required fields
                     if not name or not pk:
                         continue
-                    result[str(name).strip()] = str(pk)
+
+                    pk_str = str(pk)
+                    if not validate_folder_id(pk_str):
+                        continue
+
+                    result[str(name).strip()] = pk_str
 
                 return result
             except (ValueError, TypeError, AttributeError) as err:
@@ -1386,6 +1618,13 @@ def get_all_existing_rules(
     profile_id: str,
     known_folders: Optional[Dict[str, str]] = None,
 ) -> Set[str]:
+    """
+    Fetches all existing rules across root and all folders.
+    
+    Retrieves rules from the root level and all folders in parallel.
+    Uses known_folders to avoid redundant API calls when provided.
+    Returns set of rule IDs.
+    """
     all_rules = set()
 
     def _fetch_folder_rules(folder_id: str) -> List[str]:
@@ -1448,6 +1687,12 @@ def get_all_existing_rules(
 
 
 def fetch_folder_data(url: str) -> Dict[str, Any]:
+    """
+    Downloads and validates folder JSON data from a URL.
+    
+    Uses cached GET request and validates the folder structure.
+    Raises KeyError if validation fails.
+    """
     js = _gh_get(url)
     if not validate_folder_data(js, url):
         raise KeyError(f"Invalid folder data from {sanitize_for_log(url)}")
@@ -1455,6 +1700,13 @@ def fetch_folder_data(url: str) -> Dict[str, Any]:
 
 
 def warm_up_cache(urls: Sequence[str]) -> None:
+    """
+    Pre-fetches and caches folder data from multiple URLs in parallel.
+    
+    Validates URLs and fetches data concurrently to minimize cold-start latency.
+    Shows progress bar when USE_COLORS is enabled. Skips invalid URLs while
+    emitting warnings/log entries for validation and fetch failures.
+    """
     urls = list(set(urls))
     with _cache_lock:
         urls_to_process = [u for u in urls if u not in _cache]
@@ -1508,6 +1760,11 @@ def warm_up_cache(urls: Sequence[str]) -> None:
 def delete_folder(
     client: httpx.Client, profile_id: str, name: str, folder_id: str
 ) -> bool:
+    """
+    Deletes a folder (group) from a Control D profile.
+    
+    Returns True on success, False on failure. Logs detailed error information.
+    """
     try:
         _api_delete(client, f"{API_BASE}/{profile_id}/groups/{folder_id}")
         log.info(
@@ -1545,24 +1802,31 @@ def create_folder(
 
             # Check if it returned a single group object
             if isinstance(body, dict) and "group" in body and "PK" in body["group"]:
-                pk = body["group"]["PK"]
+                pk = str(body["group"]["PK"])
+                if not validate_folder_id(pk, log_errors=False):
+                    log.error(f"API returned invalid folder ID: {sanitize_for_log(pk)}")
+                    return None
                 log.info(
                     "Created folder %s (ID %s) [Direct]",
                     sanitize_for_log(name),
                     sanitize_for_log(pk),
                 )
-                return str(pk)
+                return pk
 
             # Check if it returned a list containing our group
             if isinstance(body, dict) and "groups" in body:
                 for grp in body["groups"]:
                     if grp.get("group") == name:
+                        pk = str(grp["PK"])
+                        if not validate_folder_id(pk, log_errors=False):
+                            log.error(f"API returned invalid folder ID: {sanitize_for_log(pk)}")
+                            continue
                         log.info(
                             "Created folder %s (ID %s) [Direct]",
                             sanitize_for_log(name),
-                            sanitize_for_log(grp["PK"]),
+                            sanitize_for_log(pk),
                         )
-                        return str(grp["PK"])
+                        return pk
         except Exception as e:
             log.debug(
                 f"Could not extract ID from POST response: " f"{sanitize_for_log(e)}"
@@ -1576,12 +1840,16 @@ def create_folder(
 
                 for grp in groups:
                     if grp["group"].strip() == name.strip():
+                        pk = str(grp["PK"])
+                        if not validate_folder_id(pk, log_errors=False):
+                            log.error(f"API returned invalid folder ID: {sanitize_for_log(pk)}")
+                            return None
                         log.info(
                             "Created folder %s (ID %s) [Polled]",
                             sanitize_for_log(name),
-                            sanitize_for_log(grp["PK"]),
+                            sanitize_for_log(pk),
                         )
-                        return str(grp["PK"])
+                        return pk
             except Exception as e:
                 log.warning(
                     f"Error fetching groups on attempt {attempt}: {sanitize_for_log(e)}"
@@ -1615,7 +1883,15 @@ def push_rules(
     hostnames: List[str],
     existing_rules: Set[str],
     client: httpx.Client,
+    batch_executor: Optional[concurrent.futures.Executor] = None,
 ) -> bool:
+    """
+    Pushes rules to a folder in batches, filtering duplicates and invalid rules.
+    
+    Deduplicates input, validates rules against RULE_PATTERN, and sends batches
+    in parallel for optimal performance. Updates existing_rules set with newly
+    added rules. Returns True if all batches succeed.
+    """
     if not hostnames:
         log.info("Folder %s - no rules to push", sanitize_for_log(folder_name))
         return True
@@ -1683,6 +1959,7 @@ def push_rules(
     progress_label = f"Folder {sanitized_folder_name}"
 
     def process_batch(batch_idx: int, batch_data: List[str]) -> Optional[List[str]]:
+        """Processes a single batch of rules by sending API request."""
         data = {
             "do": str_do,
             "status": str_status,
@@ -1727,7 +2004,13 @@ def push_rules(
             progress_label,
         )
     else:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        # Use provided executor or create a local one (fallback)
+        if batch_executor:
+            executor_ctx = contextlib.nullcontext(batch_executor)
+        else:
+            executor_ctx = concurrent.futures.ThreadPoolExecutor(max_workers=3)
+
+        with executor_ctx as executor:
             futures = {
                 executor.submit(process_batch, i, batch): i
                 for i, batch in enumerate(batches, 1)
@@ -1771,6 +2054,7 @@ def _process_single_folder(
     profile_id: str,
     existing_rules: Set[str],
     client: httpx.Client,
+    batch_executor: Optional[concurrent.futures.Executor] = None,
 ) -> bool:
     grp = folder_data["group"]
     name = grp["group"].strip()
@@ -1799,6 +2083,7 @@ def _process_single_folder(
                 hostnames,
                 existing_rules,
                 client,
+                batch_executor=batch_executor,
             ):
                 folder_success = False
     else:
@@ -1812,6 +2097,7 @@ def _process_single_folder(
             hostnames,
             existing_rules,
             client,
+            batch_executor=batch_executor,
         ):
             folder_success = False
 
@@ -1828,6 +2114,14 @@ def sync_profile(
     no_delete: bool = False,
     plan_accumulator: Optional[List[Dict[str, Any]]] = None,
 ) -> bool:
+    """
+    Synchronizes Control D folders from remote blocklist URLs.
+    
+    Fetches folder data, optionally deletes existing folders with same names,
+    creates new folders, and pushes rules in batches. In dry-run mode, only
+    generates a plan without making API changes. Returns True if all folders
+    sync successfully.
+    """
     # SECURITY: Clear cached DNS validations at the start of each sync run.
     # This prevents TOCTOU issues where a domain's IP could change between runs.
     validate_folder_url.cache_clear()
@@ -1925,9 +2219,11 @@ def sync_profile(
         # This prevents API rate limits and ensures stability for large folders.
         max_workers = 1
 
-        # Initial client for getting existing state AND processing folders
-        # Optimization: Reuse the same client session to keep TCP connections alive
-        with _api_client() as client:
+        # Shared executor for rate-limited operations (DELETE, push_rules batches)
+        # Reusing this executor prevents thread churn and enforces global rate limits.
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=DELETE_WORKERS
+        ) as shared_executor, _api_client() as client:
             # Verify access and list existing folders in one request
             existing_folders = verify_access_and_get_folders(client, profile_id)
             if existing_folders is None:
@@ -1945,30 +2241,27 @@ def sync_profile(
 
                 if folders_to_delete:
                     # Parallel delete to speed up the "clean slate" phase
-                    # Using DELETE_WORKERS (3) for balance between speed and rate limits
-                    with concurrent.futures.ThreadPoolExecutor(
-                        max_workers=DELETE_WORKERS
-                    ) as delete_executor:
-                        future_to_name = {
-                            delete_executor.submit(
-                                delete_folder, client, profile_id, name, folder_id
-                            ): name
-                            for name, folder_id in folders_to_delete
-                        }
+                    # Use shared_executor (3 workers)
+                    future_to_name = {
+                        shared_executor.submit(
+                            delete_folder, client, profile_id, name, folder_id
+                        ): name
+                        for name, folder_id in folders_to_delete
+                    }
 
-                        for future in concurrent.futures.as_completed(future_to_name):
-                            name = future_to_name[future]
-                            try:
-                                if future.result():
-                                    del existing_folders[name]
-                                    deletion_occurred = True
-                            except Exception as exc:
-                                # Sanitize both name and exception to prevent log injection
-                                log.error(
-                                    "Failed to delete folder %s: %s",
-                                    sanitize_for_log(name),
-                                    sanitize_for_log(exc),
-                                )
+                    for future in concurrent.futures.as_completed(future_to_name):
+                        name = future_to_name[future]
+                        try:
+                            if future.result():
+                                del existing_folders[name]
+                                deletion_occurred = True
+                        except Exception as exc:
+                            # Sanitize both name and exception to prevent log injection
+                            log.error(
+                                "Failed to delete folder %s: %s",
+                                sanitize_for_log(name),
+                                sanitize_for_log(exc),
+                            )
 
                 # CRITICAL FIX: Increased wait time for massive folders to clear
                 if deletion_occurred:
@@ -1993,6 +2286,7 @@ def sync_profile(
                         profile_id,
                         existing_rules,
                         client,  # Pass the persistent client
+                        batch_executor=shared_executor,
                     ): folder_data
                     for folder_data in folder_data_list
                 }
@@ -2023,7 +2317,54 @@ def sync_profile(
 # --------------------------------------------------------------------------- #
 # 5. Entry-point
 # --------------------------------------------------------------------------- #
+def print_summary_table(
+    sync_results: List[Dict[str, Any]], success_count: int, total: int, dry_run: bool
+) -> None:
+    # 1. Setup Data
+    max_p = max((len(r["profile"]) for r in sync_results), default=25)
+    w = [max(25, max_p), 10, 12, 10, 15]
+
+    t_f, t_r, t_d = sum(r["folders"] for r in sync_results), sum(r["rules"] for r in sync_results), sum(r["duration"] for r in sync_results)
+    all_ok = success_count == total
+    t_status = ("✅ Ready" if dry_run else "✅ All Good") if all_ok else "❌ Errors"
+    t_col = Colors.GREEN if all_ok else Colors.FAIL
+
+    # 2. Render
+    if not USE_COLORS:
+        # Simple ASCII Fallback
+        header = f"{'Profile ID':<{w[0]}} | {'Folders':>{w[1]}} | {'Rules':>{w[2]}} | {'Duration':>{w[3]}} | {'Status':<{w[4]}}"
+        sep = "-" * len(header)
+        print(f"\n{('DRY RUN' if dry_run else 'SYNC') + ' SUMMARY':^{len(header)}}\n{sep}\n{header}\n{sep}")
+        for r in sync_results:
+            print(f"{r['profile']:<{w[0]}} | {r['folders']:>{w[1]}} | {r['rules']:>{w[2]},} | {r['duration']:>{w[3]-1}.1f}s | {r['status_label']:<{w[4]}}")
+        print(f"{sep}\n{'TOTAL':<{w[0]}} | {t_f:>{w[1]}} | {t_r:>{w[2]},} | {t_d:>{w[3]-1}.1f}s | {t_status:<{w[4]}}\n{sep}\n")
+        return
+
+    # Unicode Table
+    def line(l, m, r): return f"{Colors.BOLD}{l}{m.join('─' * (x+2) for x in w)}{r}{Colors.ENDC}"
+    def row(c): return f"{Colors.BOLD}│{Colors.ENDC} {c[0]:<{w[0]}} {Colors.BOLD}│{Colors.ENDC} {c[1]:>{w[1]}} {Colors.BOLD}│{Colors.ENDC} {c[2]:>{w[2]}} {Colors.BOLD}│{Colors.ENDC} {c[3]:>{w[3]}} {Colors.BOLD}│{Colors.ENDC} {c[4]:<{w[4]}} {Colors.BOLD}│{Colors.ENDC}"
+
+    print(f"\n{line('┌', '─', '┐')}")
+    title = f"{'DRY RUN' if dry_run else 'SYNC'} SUMMARY"
+    print(f"{Colors.BOLD}│{Colors.CYAN if dry_run else Colors.HEADER}{title:^{sum(w) + 14}}{Colors.ENDC}{Colors.BOLD}│{Colors.ENDC}")
+    print(f"{line('├', '┬', '┤')}\n{row([f'{Colors.HEADER}Profile ID{Colors.ENDC}', f'{Colors.HEADER}Folders{Colors.ENDC}', f'{Colors.HEADER}Rules{Colors.ENDC}', f'{Colors.HEADER}Duration{Colors.ENDC}', f'{Colors.HEADER}Status{Colors.ENDC}'])}")
+    print(line("├", "┼", "┤"))
+
+    for r in sync_results:
+        sc = Colors.GREEN if r["success"] else Colors.FAIL
+        print(row([r["profile"], str(r["folders"]), f"{r['rules']:,}", f"{r['duration']:.1f}s", f"{sc}{r['status_label']}{Colors.ENDC}"]))
+
+    print(f"{line('├', '┼', '┤')}\n{row(['TOTAL', str(t_f), f'{t_r:,}', f'{t_d:.1f}s', f'{t_col}{t_status}{Colors.ENDC}'])}")
+    print(f"{line('└', '┴', '┘')}\n")
+
+
 def parse_args() -> argparse.Namespace:
+    """
+    Parses command-line arguments for the Control D sync tool.
+    
+    Supports profile IDs, folder URLs, dry-run mode, no-delete flag,
+    and plan JSON output file path.
+    """
     parser = argparse.ArgumentParser(description="Control D folder sync")
     parser.add_argument(
         "--profiles", help="Comma-separated list of profile IDs", default=None
@@ -2040,6 +2381,14 @@ def parse_args() -> argparse.Namespace:
 
 
 def main():
+    """
+    Main entry point for Control D Sync.
+    
+    Loads environment configuration, validates inputs, warms up cache,
+    and syncs profiles. Supports interactive prompts for missing credentials
+    when running in a TTY. Prints summary statistics and exits with appropriate
+    status code.
+    """
     # SECURITY: Check .env permissions (after Colors is defined for NO_COLOR support)
     # This must happen BEFORE load_dotenv() to prevent reading secrets from world-readable files
     check_env_permissions()
@@ -2070,6 +2419,7 @@ def main():
             )
 
             def validate_profile_input(value: str) -> bool:
+                """Validates one or more profile IDs from comma-separated input."""
                 ids = [extract_profile_id(p) for p in value.split(",") if p.strip()]
                 return bool(ids) and all(
                     validate_profile_id(pid, log_errors=False) for pid in ids
@@ -2196,16 +2546,148 @@ def main():
             json.dump(plan, f, indent=2)
         log.info("Plan written to %s", args.plan_json)
 
-    print_summary_table(sync_results, args.dry_run)
+    # Print Summary Table
+    # Determine the width for the Profile ID column (min 25)
+    max_profile_len = max((len(r["profile"]) for r in sync_results), default=25)
+    profile_col_width = max(25, max_profile_len)
+
+    # Column widths
+    w_profile = profile_col_width
+    w_folders = 10
+    w_rules = 12
+    w_duration = 10
+    w_status = 15
+
+    def make_col_separator(left, mid, right, horiz):
+        parts = [
+            horiz * (w_profile + 2),
+            horiz * (w_folders + 2),
+            horiz * (w_rules + 2),
+            horiz * (w_duration + 2),
+            horiz * (w_status + 2),
+        ]
+        return left + mid.join(parts) + right
+
+    # Calculate table width using a dummy separator
+    dummy_sep = make_col_separator(Box.TL, Box.T, Box.TR, Box.H)
+    table_width = len(dummy_sep)
+
+    title_text = " DRY RUN SUMMARY " if args.dry_run else " SYNC SUMMARY "
+    title_color = Colors.CYAN if args.dry_run else Colors.HEADER
+
+    # Top Border (Single Cell for Title)
+    print("\n" + Box.TL + Box.H * (table_width - 2) + Box.TR)
+
+    # Title Row
+    visible_title = title_text.strip()
+    inner_width = table_width - 2
+    pad_left = (inner_width - len(visible_title)) // 2
+    pad_right = inner_width - len(visible_title) - pad_left
+    print(
+        f"{Box.V}{' ' * pad_left}{title_color}{visible_title}{Colors.ENDC}{' ' * pad_right}{Box.V}"
+    )
+
+    # Separator between Title and Headers (introduces columns)
+    print(make_col_separator(Box.L, Box.T, Box.R, Box.H))
+
+    # Header Row
+    print(
+        f"{Box.V} {Colors.BOLD}{'Profile ID':<{w_profile}}{Colors.ENDC} "
+        f"{Box.V} {Colors.BOLD}{'Folders':>{w_folders}}{Colors.ENDC} "
+        f"{Box.V} {Colors.BOLD}{'Rules':>{w_rules}}{Colors.ENDC} "
+        f"{Box.V} {Colors.BOLD}{'Duration':>{w_duration}}{Colors.ENDC} "
+        f"{Box.V} {Colors.BOLD}{'Status':<{w_status}}{Colors.ENDC} {Box.V}"
+    )
+
+    # Separator between Header and Body
+    print(make_col_separator(Box.L, Box.X, Box.R, Box.H))
+
+    # Rows
+    total_folders = 0
+    total_rules = 0
+    total_duration = 0.0
+
+    for res in sync_results:
+        # Use boolean success field for color logic
+        status_color = Colors.GREEN if res["success"] else Colors.FAIL
+
+        s_folders = f"{res['folders']:,}"
+        s_rules = f"{res['rules']:,}"
+        s_duration = f"{res['duration']:.1f}s"
+
+        print(
+            f"{Box.V} {res['profile']:<{w_profile}} "
+            f"{Box.V} {s_folders:>{w_folders}} "
+            f"{Box.V} {s_rules:>{w_rules}} "
+            f"{Box.V} {s_duration:>{w_duration}} "
+            f"{Box.V} {status_color}{res['status_label']:<{w_status}}{Colors.ENDC} {Box.V}"
+        )
+        total_folders += res["folders"]
+        total_rules += res["rules"]
+        total_duration += res["duration"]
+
+    # Separator between Body and Total
+    print(make_col_separator(Box.L, Box.X, Box.R, Box.H))
+
+    # Total Row
+    total = len(profile_ids or ["dry-run-placeholder"])
+    all_success = success_count == total
+
+    if args.dry_run:
+        if all_success:
+            total_status_text = "✅ Ready"
+        else:
+            total_status_text = "❌ Errors"
+    else:
+        if all_success:
+            total_status_text = "✅ All Good"
+        else:
+            total_status_text = "❌ Errors"
+
+    total_status_color = Colors.GREEN if all_success else Colors.FAIL
+
+    s_total_folders = f"{total_folders:,}"
+    s_total_rules = f"{total_rules:,}"
+    s_total_duration = f"{total_duration:.1f}s"
+
+    print(
+        f"{Box.V} {Colors.BOLD}{'TOTAL':<{w_profile}}{Colors.ENDC} "
+        f"{Box.V} {s_total_folders:>{w_folders}} "
+        f"{Box.V} {s_total_rules:>{w_rules}} "
+        f"{Box.V} {s_total_duration:>{w_duration}} "
+        f"{Box.V} {total_status_color}{total_status_text:<{w_status}}{Colors.ENDC} {Box.V}"
+    )
+    # Bottom Border
+    print(make_col_separator(Box.BL, Box.B, Box.BR, Box.H))
+
+    # Success Delight
+    if all_success and USE_COLORS and not args.dry_run:
+        success_msgs = [
+            "✨ All synced!",
+            "🚀 Ready for liftoff!",
+            "🎨 Beautifully done!",
+            "💎 Smooth operation!",
+            "🌈 Perfect harmony!",
+        ]
+        print(f"\n{Colors.GREEN}{random.choice(success_msgs)}{Colors.ENDC}")
+    
+    # Display API statistics
+    total_api_calls = _api_stats["control_d_api_calls"] + _api_stats["blocklist_fetches"]
+    if total_api_calls > 0:
+        print(f"{Colors.BOLD}API Statistics:{Colors.ENDC}")
+        print(f"  • Control D API calls: {_api_stats['control_d_api_calls']:>7,}")
+        print(f"  • Blocklist fetches:   {_api_stats['blocklist_fetches']:>7,}")
+        print(f"  • Total API requests:  {total_api_calls:>7,}")
+        print()
     
     # Display cache statistics if any cache activity occurred
     if _cache_stats["hits"] + _cache_stats["misses"] + _cache_stats["validations"] > 0:
         print(f"{Colors.BOLD}Cache Statistics:{Colors.ENDC}")
-        print(f"  • Hits (in-memory):     {_cache_stats['hits']:>6,}")
-        print(f"  • Misses (downloaded):  {_cache_stats['misses']:>6,}")
-        print(f"  • Validations (304):    {_cache_stats['validations']:>6,}")
+        print(f"  • Hits (in-memory):    {_cache_stats['hits']:>7,}")
+        print(f"  • Misses (downloaded): {_cache_stats['misses']:>7,}")
+        print(f"  • Validations (304):   {_cache_stats['validations']:>7,}")
         if _cache_stats["errors"] > 0:
-            print(f"  • Errors (non-fatal):   {_cache_stats['errors']:>6,}")
+            print(f"  • Errors (non-fatal):  {_cache_stats['errors']:>7,}")
         
         # Calculate cache effectiveness
         total_requests = _cache_stats["hits"] + _cache_stats["misses"] + _cache_stats["validations"]
@@ -2214,6 +2696,40 @@ def main():
             cache_effectiveness = (_cache_stats["hits"] + _cache_stats["validations"]) / total_requests * 100
             print(f"  • Cache effectiveness:  {cache_effectiveness:>6.1f}%")
         print()
+    
+    # Display rate limit information if available
+    with _rate_limit_lock:
+        if any(v is not None for v in _rate_limit_info.values()):
+            print(f"{Colors.BOLD}API Rate Limit Status:{Colors.ENDC}")
+            
+            if _rate_limit_info["limit"] is not None:
+                print(f"  • Requests limit:       {_rate_limit_info['limit']:>6,}")
+            
+            if _rate_limit_info["remaining"] is not None:
+                remaining = _rate_limit_info["remaining"]
+                limit = _rate_limit_info["limit"]
+                
+                # Color code based on remaining capacity
+                if limit and limit > 0:
+                    pct = (remaining / limit) * 100
+                    if pct < 20:
+                        color = Colors.FAIL  # Red for critical
+                    elif pct < 50:
+                        color = Colors.WARNING  # Yellow for caution
+                    else:
+                        color = Colors.GREEN  # Green for healthy
+                    print(f"  • Requests remaining:   {color}{remaining:>6,} ({pct:>5.1f}%){Colors.ENDC}")
+                else:
+                    print(f"  • Requests remaining:   {remaining:>6,}")
+            
+            if _rate_limit_info["reset"] is not None:
+                reset_time = time.strftime(
+                    "%H:%M:%S", 
+                    time.localtime(_rate_limit_info["reset"])
+                )
+                print(f"  • Limit resets at:      {reset_time}")
+            
+            print()
     
     # Save cache to disk after successful sync (non-fatal if it fails)
     if not args.dry_run:
