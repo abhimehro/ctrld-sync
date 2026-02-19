@@ -2686,29 +2686,29 @@ def main():
     if args.dry_run:
         print()  # Spacer
         if all_success:
+            # Build the suggested command once so it stays consistent between
+            # color and non-color output modes.
+            cmd_parts = ["python", "main.py"]
+            if profile_ids:
+                # Join multiple profiles if needed
+                p_str = ",".join(profile_ids)
+            else:
+                p_str = "<your-profile-id>"
+            cmd_parts.append(f"--profiles {p_str}")
+
+            # Reconstruct other args if they were used (optional but helpful)
+            if args.folder_url:
+                for url in args.folder_url:
+                    cmd_parts.append(f"--folder-url {url}")
+
+            cmd_str = " ".join(cmd_parts)
+
             if USE_COLORS:
                 print(f"{Colors.BOLD}👉 Ready to sync? Run the following command:{Colors.ENDC}")
-
-                # Construct command suggestion
-                cmd_parts = ["python", "main.py"]
-                if profile_ids:
-                    # Join multiple profiles if needed
-                    p_str = ",".join(profile_ids)
-                    cmd_parts.append(f"--profiles {p_str}")
-                else:
-                    cmd_parts.append("--profiles <your-profile-id>")
-
-                # Reconstruct other args if they were used (optional but helpful)
-                if args.folder_url:
-                    for url in args.folder_url:
-                        cmd_parts.append(f"--folder-url {url}")
-
-                cmd_str = " ".join(cmd_parts)
                 print(f"   {Colors.CYAN}{cmd_str}{Colors.ENDC}")
             else:
                 print("👉 Ready to sync? Run the following command:")
-                p_str = ",".join(profile_ids) if profile_ids else "<your-profile-id>"
-                print(f"   python main.py --profiles {p_str}")
+                print(f"   {cmd_str}")
         else:
             if USE_COLORS:
                 print(
