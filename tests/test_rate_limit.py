@@ -260,10 +260,10 @@ class TestRetryWithRateLimit:
         request_func = MagicMock(side_effect=[error, error, success_response])
 
         # With delay=1, backoff should be: 1s, 2s
-        # Total wait should be >= 3 seconds
+        # With jitter (0.5x - 1.5x), total wait is >= 1.5s
         start_time = time.time()
         result = main._retry_request(request_func, max_retries=3, delay=1)
         elapsed = time.time() - start_time
 
-        assert elapsed >= 3.0
+        assert elapsed >= 1.5
         assert result == success_response
