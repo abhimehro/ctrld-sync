@@ -194,6 +194,9 @@ USER_AGENT = "Control-D-Sync/0.1.0"
 
 # Pre-compiled regex patterns for hot-path validation (>2x speedup on 10k+ items)
 PROFILE_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
+# Folder IDs (PK) are typically alphanumeric but can contain other safe chars.
+# We whitelist to prevent path traversal and injection.
+FOLDER_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_.-]+$")
 RULE_PATTERN = re.compile(r"^[a-zA-Z0-9.\-_:*/@]+$")
 
 # Parallel processing configuration
@@ -749,6 +752,17 @@ def validate_profile_id(profile_id: str, log_errors: bool = True) -> bool:
     return True
 
 
+def validate_folder_id(folder_id: str, log_errors: bool = True) -> bool:
+    """Validates folder ID (PK) format to prevent path traversal."""
+    if not folder_id:
+        return False
+    if folder_id in (".", "..") or not FOLDER_ID_PATTERN.match(folder_id):
+        if log_errors:
+            log.error(f"Invalid folder ID format: {sanitize_for_log(folder_id)}")
+        return False
+    return True
+
+
 def is_valid_rule(rule: str) -> bool:
     """
     Validates that a rule is safe to use.
@@ -1184,11 +1198,14 @@ def list_existing_folders(client: httpx.Client, profile_id: str) -> Dict[str, st
     try:
         data = _api_get(client, f"{API_BASE}/{profile_id}/groups").json()
         folders = data.get("body", {}).get("groups", [])
-        return {
-            f["group"].strip(): f["PK"]
-            for f in folders
-            if f.get("group") and f.get("PK")
-        }
+        result = {}
+        for f in folders:
+            if not f.get("group") or not f.get("PK"):
+                continue
+            pk = str(f["PK"])
+            if validate_folder_id(pk):
+                result[f["group"].strip()] = pk
+        return result
     except (httpx.HTTPError, KeyError) as e:
         log.error(f"Failed to list existing folders: {sanitize_for_log(e)}")
         return {}
@@ -1252,7 +1269,12 @@ def verify_access_and_get_folders(
                     # Skip entries with empty or None values for required fields
                     if not name or not pk:
                         continue
-                    result[str(name).strip()] = str(pk)
+
+                    pk_str = str(pk)
+                    if not validate_folder_id(pk_str):
+                        continue
+
+                    result[str(name).strip()] = pk_str
 
                 return result
             except (ValueError, TypeError, AttributeError) as err:
@@ -1474,24 +1496,31 @@ def create_folder(
 
             # Check if it returned a single group object
             if isinstance(body, dict) and "group" in body and "PK" in body["group"]:
-                pk = body["group"]["PK"]
+                pk = str(body["group"]["PK"])
+                if not validate_folder_id(pk, log_errors=False):
+                    log.error(f"API returned invalid folder ID: {sanitize_for_log(pk)}")
+                    return None
                 log.info(
                     "Created folder %s (ID %s) [Direct]",
                     sanitize_for_log(name),
                     sanitize_for_log(pk),
                 )
-                return str(pk)
+                return pk
 
             # Check if it returned a list containing our group
             if isinstance(body, dict) and "groups" in body:
                 for grp in body["groups"]:
                     if grp.get("group") == name:
+                        pk = str(grp["PK"])
+                        if not validate_folder_id(pk, log_errors=False):
+                            log.error(f"API returned invalid folder ID: {sanitize_for_log(pk)}")
+                            continue
                         log.info(
                             "Created folder %s (ID %s) [Direct]",
                             sanitize_for_log(name),
-                            sanitize_for_log(grp["PK"]),
+                            sanitize_for_log(pk),
                         )
-                        return str(grp["PK"])
+                        return pk
         except Exception as e:
             log.debug(
                 f"Could not extract ID from POST response: " f"{sanitize_for_log(e)}"
@@ -1505,12 +1534,16 @@ def create_folder(
 
                 for grp in groups:
                     if grp["group"].strip() == name.strip():
+                        pk = str(grp["PK"])
+                        if not validate_folder_id(pk, log_errors=False):
+                            log.error(f"API returned invalid folder ID: {sanitize_for_log(pk)}")
+                            return None
                         log.info(
                             "Created folder %s (ID %s) [Polled]",
                             sanitize_for_log(name),
-                            sanitize_for_log(grp["PK"]),
+                            sanitize_for_log(pk),
                         )
-                        return str(grp["PK"])
+                        return pk
             except Exception as e:
                 log.warning(
                     f"Error fetching groups on attempt {attempt}: {sanitize_for_log(e)}"
