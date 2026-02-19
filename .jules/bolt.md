@@ -63,3 +63,6 @@
 ## 2024-03-24 - [Avoid Regex on Simple Strings]
 **Learning:** Running complex regex substitutions on every log message (for sanitization) introduces measurable CPU overhead, especially when most strings don't contain sensitive patterns. Simple string checks (`in`) are orders of magnitude faster than regex execution.
 **Action:** Add early return checks (e.g., `if "://" in s:`) before invoking expensive regex operations in hot paths like logging or string sanitization.
+## 2024-03-24 - Thread Pool Churn
+**Learning:** Python's `ThreadPoolExecutor` incurs measurable overhead (thread creation/shutdown) when created/destroyed repeatedly inside loops, even with small worker counts.
+**Action:** Lift `ThreadPoolExecutor` creation to the highest possible scope and pass it down as a dependency (using `contextlib.nullcontext` for flexible ownership).

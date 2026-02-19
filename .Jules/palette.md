@@ -1,3 +1,7 @@
 ## 2025-01-26 - [Silent Waits in CI]
 **Learning:** Long silent waits in CLI tools (especially in CI/non-interactive mode) cause user anxiety about hung processes.
 **Action:** Always provide periodic heartbeat logs (e.g. every 10s) for long operations in non-interactive environments.
+
+## 2025-02-14 - [ASCII Fallback for Tables]
+**Learning:** Using Unicode box drawing characters enhances the CLI experience, but a robust ASCII fallback is crucial for CI environments and piped outputs.
+**Action:** Always implement a fallback mechanism (like checking `sys.stderr.isatty()`) when using rich text or Unicode symbols.
