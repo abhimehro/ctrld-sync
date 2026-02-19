@@ -56,7 +56,7 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
    uv sync
    ```
    
-   Both methods are fully supported. Our CI workflows use `pip` for consistency with caching, but `uv` provides faster installation for local development.
+   Both methods are fully supported. Our main sync CI workflow uses `pip` for consistency with caching, while other workflows use `uv`; `uv` is generally faster for local development.
 
 3. **Configure secrets**
    Create a `.env` file (or set GitHub secrets) with:
