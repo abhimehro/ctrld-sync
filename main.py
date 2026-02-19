@@ -929,15 +929,12 @@ def validate_hostname(hostname: str) -> bool:
                         f"Skipping unsafe hostname {sanitize_for_log(hostname)} (resolves to non-global/multicast IP {ip})"
                     )
                     return False
+            return True
         except (socket.gaierror, ValueError, OSError) as e:
             log.warning(
                 f"Failed to resolve/validate domain {sanitize_for_log(hostname)}: {sanitize_for_log(e)}"
             )
             return False
-
-            if not addr_info:
-                return False
-            for res in addr_info:
 
 
 @lru_cache(maxsize=128)
@@ -2376,7 +2373,10 @@ def parse_args() -> argparse.Namespace:
     Supports profile IDs, folder URLs, dry-run mode, no-delete flag,
     and plan JSON output file path.
     """
-    parser = argparse.ArgumentParser(description="Control D folder sync")
+    parser = argparse.ArgumentParser(
+        description="✨ Control D Sync: Keep your folders in sync with remote blocklists.",
+        epilog="Run with --dry-run first to preview changes safely. Made with ❤️  for Control D users.",
+    )
     parser.add_argument(
         "--profiles", help="Comma-separated list of profile IDs", default=None
     )
@@ -2681,6 +2681,41 @@ def main():
             "🌈 Perfect harmony!",
         ]
         print(f"\n{Colors.GREEN}{random.choice(success_msgs)}{Colors.ENDC}")
+
+    # Dry Run Next Steps
+    if args.dry_run:
+        print()  # Spacer
+        if all_success:
+            if USE_COLORS:
+                print(f"{Colors.BOLD}👉 Ready to sync? Run the following command:{Colors.ENDC}")
+
+                # Construct command suggestion
+                cmd_parts = ["python", "main.py"]
+                if profile_ids:
+                    # Join multiple profiles if needed
+                    p_str = ",".join(profile_ids)
+                    cmd_parts.append(f"--profiles {p_str}")
+                else:
+                    cmd_parts.append("--profiles <your-profile-id>")
+
+                # Reconstruct other args if they were used (optional but helpful)
+                if args.folder_url:
+                    for url in args.folder_url:
+                        cmd_parts.append(f"--folder-url {url}")
+
+                cmd_str = " ".join(cmd_parts)
+                print(f"   {Colors.CYAN}{cmd_str}{Colors.ENDC}")
+            else:
+                print("👉 Ready to sync? Run the following command:")
+                p_str = ",".join(profile_ids) if profile_ids else "<your-profile-id>"
+                print(f"   python main.py --profiles {p_str}")
+        else:
+            if USE_COLORS:
+                print(
+                    f"{Colors.FAIL}⚠️  Dry run encountered errors. Please check the logs above.{Colors.ENDC}"
+                )
+            else:
+                print("⚠️  Dry run encountered errors. Please check the logs above.")
     
     # Display API statistics
     total_api_calls = _api_stats["control_d_api_calls"] + _api_stats["blocklist_fetches"]
