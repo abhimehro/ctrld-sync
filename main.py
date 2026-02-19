@@ -1345,7 +1345,8 @@ def warm_up_cache(urls: Sequence[str]) -> None:
     Pre-fetches and caches folder data from multiple URLs in parallel.
     
     Validates URLs and fetches data concurrently to minimize cold-start latency.
-    Shows progress bar when USE_COLORS is enabled. Silently skips invalid URLs.
+    Shows progress bar when USE_COLORS is enabled. Skips invalid URLs while
+    emitting warnings/log entries for validation and fetch failures.
     """
     urls = list(set(urls))
     with _cache_lock:
