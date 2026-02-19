@@ -35,9 +35,10 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
 
 ### Configure the script
 
-1. **Clone & install**
+1. **Fork & clone**
+   > Fork this repo first (click **Fork** on GitHub), then clone your fork:
    ```bash
-   git clone https://github.com/abhimehro/ctrld-sync.git
+   git clone https://github.com/YOUR_USERNAME/ctrld-sync.git
    cd ctrld-sync
    uv sync
    ```
