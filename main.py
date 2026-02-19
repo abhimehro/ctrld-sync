@@ -892,10 +892,18 @@ def _retry_request(request_func, max_retries=MAX_RETRIES, delay=RETRY_DELAY):
                 if hasattr(e, "response") and e.response is not None:
                     log.debug(f"Response content: {sanitize_for_log(e.response.text)}")
                 raise
-            wait_time = delay * (2**attempt)
+            
+            # Exponential backoff with jitter to prevent thundering herd
+            # Base delay: delay * (2^attempt) gives exponential growth
+            # Jitter: multiply by random factor in range [0.5, 1.5] to spread retries
+            # This prevents multiple failed requests from retrying simultaneously
+            base_wait = delay * (2**attempt)
+            jitter_factor = 0.5 + random.random()  # Random value between 0.5 and 1.5
+            wait_time = base_wait * jitter_factor
+            
             log.warning(
                 f"Request failed (attempt {attempt + 1}/{max_retries}): "
-                f"{sanitize_for_log(e)}. Retrying in {wait_time}s..."
+                f"{sanitize_for_log(e)}. Retrying in {wait_time:.2f}s..."
             )
             time.sleep(wait_time)
 
