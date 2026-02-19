@@ -53,3 +53,11 @@
 **Learning:** Even trusted APIs should be treated as untrusted sources for critical identifiers used in system operations or path construction.
 
 **Prevention:** Whitelist valid characters for all identifiers (e.g. `^[a-zA-Z0-9_.-]+$`) and validate them immediately upon receipt, before any use.
+
+## 2026-10-24 - Fail-Closed Logic Error in DNS Validation (Broken Availability)
+
+**Vulnerability:** The `validate_hostname` function implicitly returned `None` (falsy) for valid domains because it lacked a `return True` statement after the successful DNS check loop. This caused the tool to reject *all* domain-based URLs (DoS), only accepting IP literals. It also contained unreachable code due to a structural error.
+
+**Learning:** Logic errors in security controls often lead to "fail-closed" states that break functionality entirely, or "fail-open" states that bypass security. Implicit returns in Python (`None`) can be dangerous when boolean validation is expected.
+
+**Prevention:** Always use explicit return statements for both success and failure paths in validation functions. Use static analysis (linting) to catch unreachable code and implicit returns. Ensure unit tests cover positive cases (valid inputs) as rigorously as negative cases (attack vectors).

@@ -929,15 +929,12 @@ def validate_hostname(hostname: str) -> bool:
                         f"Skipping unsafe hostname {sanitize_for_log(hostname)} (resolves to non-global/multicast IP {ip})"
                     )
                     return False
+            return True
         except (socket.gaierror, ValueError, OSError) as e:
             log.warning(
                 f"Failed to resolve/validate domain {sanitize_for_log(hostname)}: {sanitize_for_log(e)}"
             )
             return False
-
-            if not addr_info:
-                return False
-            for res in addr_info:
 
 
 @lru_cache(maxsize=128)

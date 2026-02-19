@@ -124,6 +124,7 @@ class TestRetryJitter:
     def test_429_rate_limit_retries_with_jitter(self):
         """Verify 429 rate limit errors retry with jittered backoff."""
         response = Mock(status_code=429)
+        response.headers = {}
         error = httpx.HTTPStatusError(
             "Too many requests",
             request=Mock(),
