@@ -9,6 +9,7 @@ def create_mock_error(status_code, text, request_url="https://example.com"):
     response = MagicMock(spec=httpx.Response)
     response.status_code = status_code
     response.text = text
+    response.headers = {}  # Add headers attribute for rate limit parsing
     response.request = MagicMock(spec=httpx.Request)
     response.request.url = request_url
 

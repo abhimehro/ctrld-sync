@@ -45,3 +45,11 @@
 **Vulnerability:** `sanitize_for_log` in `main.py` was stripping quotes from `repr()` output for aesthetic reasons, inadvertently exposing strings starting with `=`, `+`, `-`, `@` to formula injection if logs are viewed in Excel.
 **Learning:** Security controls (like `repr()`) can be weakened by subsequent "cleanup" steps. Always consider downstream consumption of logs (e.g., CSV export).
 **Prevention:** Check for dangerous prefixes before stripping quotes. If detected, retain the quotes to force string literal interpretation.
+
+## 2026-05-23 - Path Traversal via API Response (ID Validation)
+
+**Vulnerability:** The application trusted "PK" (ID) fields from the external API and used them directly in URL construction for deletion. An attacker compromising the API or MITM could return a malicious ID like `../../etc/passwd` to trigger path traversal or other injection attacks.
+
+**Learning:** Even trusted APIs should be treated as untrusted sources for critical identifiers used in system operations or path construction.
+
+**Prevention:** Whitelist valid characters for all identifiers (e.g. `^[a-zA-Z0-9_.-]+$`) and validate them immediately upon receipt, before any use.
