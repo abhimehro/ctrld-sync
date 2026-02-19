@@ -661,6 +661,7 @@ _cache_lock = threading.RLock()
 # --------------------------------------------------------------------------- #
 # Disk cache stores validated blocklist data with HTTP cache headers (ETag, Last-Modified)
 # to enable fast cold-start syncs via conditional HTTP requests (304 Not Modified)
+CACHE_TTL_SECONDS = 24 * 60 * 60  # 24 hours: within TTL, serve from disk without HTTP request
 _disk_cache: Dict[str, Dict[str, Any]] = {}  # Loaded from disk on startup
 _cache_stats = {"hits": 0, "misses": 0, "validations": 0, "errors": 0}
 _api_stats = {"control_d_api_calls": 0, "blocklist_fetches": 0}
@@ -1258,11 +1259,20 @@ def _gh_get(url: str) -> Dict:
     with _cache_lock:
         _api_stats["blocklist_fetches"] += 1
     
-    # Check disk cache for conditional request headers
+    # Check disk cache for TTL-based hit or conditional request headers
     headers = {}
     cached_entry = _disk_cache.get(url)
     if cached_entry:
-        # Send conditional request using cached ETag/Last-Modified
+        last_validated = cached_entry.get("last_validated", 0)
+        if time.time() - last_validated < CACHE_TTL_SECONDS:
+            # Within TTL: return cached data directly without any HTTP request
+            data = cached_entry["data"]
+            with _cache_lock:
+                _cache[url] = data
+            _cache_stats["hits"] += 1
+            log.debug(f"Disk cache hit (within TTL) for {sanitize_for_log(url)}")
+            return data
+        # Beyond TTL: send conditional request using cached ETag/Last-Modified
         # Server returns 304 if content hasn't changed
         # NOTE: Cached values may be None if the server didn't send these headers.
         # httpx requires header values to be str/bytes, so we only add headers
@@ -2385,6 +2395,9 @@ def parse_args() -> argparse.Namespace:
         "--no-delete", action="store_true", help="Do not delete existing folders"
     )
     parser.add_argument("--plan-json", help="Write plan to JSON file", default=None)
+    parser.add_argument(
+        "--clear-cache", action="store_true", help="Clear the persistent blocklist cache and exit"
+    )
     return parser.parse_args()
 
 
@@ -2412,6 +2425,22 @@ def main():
     # NOTE: Called only after successful argument parsing so that `--help` or
     #       argument errors do not perform unnecessary filesystem I/O or logging.
     load_disk_cache()
+
+    # Handle --clear-cache: delete cache file and exit immediately
+    if args.clear_cache:
+        global _disk_cache
+        cache_file = get_cache_dir() / "blocklists.json"
+        if cache_file.exists():
+            try:
+                cache_file.unlink()
+                print(f"{Colors.GREEN}✓ Cleared blocklist cache: {cache_file}{Colors.ENDC}")
+            except OSError as e:
+                print(f"{Colors.FAIL}✗ Failed to clear cache: {e}{Colors.ENDC}")
+                exit(1)
+        else:
+            print(f"{Colors.CYAN}ℹ No cache file found, nothing to clear{Colors.ENDC}")
+        _disk_cache.clear()
+        exit(0)
     profiles_arg = (
         _clean_env_kv(args.profiles or os.getenv("PROFILE", ""), "PROFILE") or ""
     )

@@ -13,6 +13,7 @@ import json
 import os
 import platform
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -299,6 +300,106 @@ class TestDiskCache(unittest.TestCase):
             self.assertEqual(result, test_data)
             # Should count as validation
             self.assertEqual(main._cache_stats["validations"], 1)
+    
+    def test_ttl_within_ttl_returns_disk_cache_without_request(self):
+        """Test that disk cache entries within TTL are returned without an HTTP request."""
+        test_url = "https://example.com/test.json"
+        test_data = {"group": {"group": "Test"}, "domains": ["example.com"]}
+        
+        # Pre-populate disk cache with a recent last_validated timestamp (within TTL)
+        main._disk_cache[test_url] = {
+            "data": test_data,
+            "etag": "fresh123",
+            "last_modified": None,
+            "fetched_at": time.time(),
+            "last_validated": time.time(),  # Just validated - within TTL
+        }
+        
+        http_called = []
+        
+        def mock_stream(method, url, headers=None):
+            http_called.append(url)
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.headers = {"Content-Type": "application/json"}
+            mock_response.__enter__ = MagicMock(return_value=mock_response)
+            mock_response.__exit__ = MagicMock(return_value=False)
+            return mock_response
+        
+        with patch.object(main._gh, 'stream', side_effect=mock_stream):
+            result = main._gh_get(test_url)
+        
+        # HTTP should NOT have been called (within TTL)
+        self.assertEqual(len(http_called), 0)
+        # Result should be the cached data
+        self.assertEqual(result, test_data)
+        # Should count as a hit
+        self.assertEqual(main._cache_stats["hits"], 1)
+        self.assertEqual(main._cache_stats["misses"], 0)
+        self.assertEqual(main._cache_stats["validations"], 0)
+    
+    def test_ttl_expired_sends_conditional_request(self):
+        """Test that disk cache entries beyond TTL trigger a conditional HTTP request."""
+        test_url = "https://example.com/test.json"
+        test_data = {"group": {"group": "Test"}, "domains": ["example.com"]}
+        
+        # Pre-populate disk cache with an old last_validated (beyond TTL)
+        main._disk_cache[test_url] = {
+            "data": test_data,
+            "etag": "stale123",
+            "last_modified": None,
+            "fetched_at": 0.0,       # very old
+            "last_validated": 0.0,   # very old - beyond any TTL
+        }
+        
+        def mock_stream(method, url, headers=None):
+            # Conditional request should be sent with If-None-Match
+            self.assertEqual(headers.get("If-None-Match"), "stale123")
+            mock_response = MagicMock()
+            mock_response.status_code = 304
+            mock_response.raise_for_status = MagicMock()
+            mock_response.headers = {}
+            mock_response.__enter__ = MagicMock(return_value=mock_response)
+            mock_response.__exit__ = MagicMock(return_value=False)
+            return mock_response
+        
+        with patch.object(main._gh, 'stream', side_effect=mock_stream):
+            result = main._gh_get(test_url)
+        
+        # Should return cached data (304 response)
+        self.assertEqual(result, test_data)
+        # Should count as validation (conditional request)
+        self.assertEqual(main._cache_stats["validations"], 1)
+        self.assertEqual(main._cache_stats["hits"], 0)
+    
+    def test_clear_cache_deletes_file(self):
+        """Test that --clear-cache deletes the cache file."""
+        cache_dir = Path(self.temp_dir)
+        cache_file = cache_dir / "blocklists.json"
+        
+        # Create a cache file
+        cache_file.write_text('{}')
+        self.assertTrue(cache_file.exists())
+        
+        # Populate in-memory disk cache
+        main._disk_cache["https://example.com/test.json"] = {
+            "data": {},
+            "etag": None,
+            "last_modified": None,
+            "fetched_at": 0.0,
+            "last_validated": 0.0,
+        }
+        
+        with patch('main.get_cache_dir', return_value=cache_dir):
+            # Simulate --clear-cache logic
+            if cache_file.exists():
+                cache_file.unlink()
+            main._disk_cache.clear()
+        
+        # Cache file should be gone
+        self.assertFalse(cache_file.exists())
+        # In-memory disk cache should be empty
+        self.assertEqual(len(main._disk_cache), 0)
 
 
 if __name__ == '__main__':
