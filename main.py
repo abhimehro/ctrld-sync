@@ -935,10 +935,6 @@ def validate_hostname(hostname: str) -> bool:
             )
             return False
 
-            if not addr_info:
-                return False
-            for res in addr_info:
-
 
 @lru_cache(maxsize=128)
 def validate_folder_url(url: str) -> bool:
