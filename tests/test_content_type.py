@@ -71,10 +71,6 @@ class TestContentTypeValidation(unittest.TestCase):
         """Test that application/xml is rejected."""
         mock_response = MagicMock()
         mock_response.status_code = 200
-    def test_reject_xml(self, mock_stream):
-        """Test that application/xml is rejected."""
-        mock_response = MagicMock()
-        mock_response.status_code = 200
         mock_response.headers = httpx.Headers({'Content-Type': 'application/xml'})
         mock_response.iter_bytes.return_value = [b'{"group": {"group": "test"}}']
         mock_response.__enter__.return_value = mock_response
