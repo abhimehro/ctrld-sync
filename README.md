@@ -126,34 +126,25 @@ This project includes a comprehensive test suite to ensure code quality and corr
 
 ### Running Tests
 
-**Basic test execution:**
+**Basic test execution (runs in parallel by default):**
 ```bash
 # Install dev dependencies first
 pip install pytest pytest-mock pytest-xdist
 
-# Run all tests
+# Run all tests (parallel execution is on by default via pyproject.toml)
 pytest tests/
-```
-
-**Parallel test execution (recommended):**
-```bash
-# Run tests in parallel using all available CPU cores
-pytest tests/ -n auto
 
 # Run with specific number of workers
 pytest tests/ -n 4
 ```
 
-**Note on parallel execution:** The test suite is currently small (~78 tests, <1s execution time), so parallel execution overhead may result in longer wall-clock time compared to sequential execution. However, pytest-xdist is included for:
-- **Test isolation verification** - Ensures tests don't share state
-- **Future scalability** - As the test suite grows, parallel execution will provide significant speedups
-- **CI optimization** - May benefit from parallelization in CI environments with different characteristics
+Parallel execution is enabled by default via `addopts = "-n auto"` in `pyproject.toml`, so every `pytest` invocation automatically uses all available CPU cores.
 
 ### Development Workflow
 
 For active development with frequent test runs:
 ```bash
-# Run tests sequentially (faster for small test suites)
+# Run tests (parallel by default)
 pytest tests/ -v
 
 # Run specific test file
@@ -161,6 +152,9 @@ pytest tests/test_security.py -v
 
 # Run tests matching pattern
 pytest tests/ -k "test_validation" -v
+
+# Override parallel execution for a single sequential run
+pytest tests/ -n0 -v
 ```
 
 ## Release Process
