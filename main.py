@@ -622,6 +622,7 @@ BATCH_SIZE = 500
 BATCH_KEYS = [f"hostnames[{i}]" for i in range(BATCH_SIZE)]
 MAX_RETRIES = 10
 RETRY_DELAY = 1
+MAX_RETRY_DELAY = 60.0  # Maximum retry delay in seconds (caps exponential growth)
 FOLDER_CREATION_DELAY = 5  # <--- CHANGED: Increased from 2 to 5 for patience
 MAX_RESPONSE_SIZE = 10 * 1024 * 1024  # 10MB limit
 
@@ -1151,9 +1152,31 @@ def _api_post_form(client: httpx.Client, url: str, data: Dict) -> httpx.Response
     )
 
 
+def retry_with_jitter(attempt: int, base_delay: float = 1.0, max_delay: float = MAX_RETRY_DELAY) -> float:
+    """Calculate retry delay with exponential backoff and full jitter.
+
+    Full jitter draws uniformly from [0, min(base_delay * 2^attempt, max_delay)]
+    to spread retries evenly across the full window and prevent thundering herd.
+
+    Args:
+        attempt: Retry attempt number (0-indexed)
+        base_delay: Base delay in seconds (default: 1.0)
+        max_delay: Maximum delay cap in seconds (default: MAX_RETRY_DELAY)
+
+    Returns:
+        Delay in seconds with full jitter applied
+    """
+    exponential_delay = min(base_delay * (2 ** attempt), max_delay)
+    return exponential_delay * random.random()
+
+
 def _retry_request(request_func, max_retries=MAX_RETRIES, delay=RETRY_DELAY):
     """
-    Retry request with exponential backoff.
+    Retry request with exponential backoff and full jitter.
+    
+    RETRY STRATEGY:
+    - Uses retry_with_jitter() for full jitter: delay drawn from [0, min(delay*2^attempt, MAX_RETRY_DELAY)]
+    - Full jitter prevents thundering herd when multiple clients fail simultaneously
     
     RATE LIMIT HANDLING:
     - Parses X-RateLimit-* headers from all API responses
@@ -1219,13 +1242,9 @@ def _retry_request(request_func, max_retries=MAX_RETRIES, delay=RETRY_DELAY):
                     log.debug(f"Response content: {sanitize_for_log(e.response.text)}")
                 raise
             
-            # Exponential backoff with jitter to prevent thundering herd
-            # Base delay: delay * (2^attempt) gives exponential growth
-            # Jitter: multiply by random factor in range [0.5, 1.5] to spread retries
-            # This prevents multiple failed requests from retrying simultaneously
-            base_wait = delay * (2**attempt)
-            jitter_factor = 0.5 + random.random()  # Random value between 0.5 and 1.5
-            wait_time = base_wait * jitter_factor
+            # Full jitter exponential backoff: delay drawn from [0, min(delay * 2^attempt, MAX_RETRY_DELAY)]
+            # Spreads retries evenly across the full window to prevent thundering herd
+            wait_time = retry_with_jitter(attempt, base_delay=delay)
             
             log.warning(
                 f"Request failed (attempt {attempt + 1}/{max_retries}): "
