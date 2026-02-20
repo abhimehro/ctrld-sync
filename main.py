@@ -937,6 +937,7 @@ def validate_hostname(hostname: str) -> bool:
                 f"Failed to resolve/validate domain {sanitize_for_log(hostname)}: {sanitize_for_log(e)}"
             )
             return False
+        return True
 
 
 @lru_cache(maxsize=128)
