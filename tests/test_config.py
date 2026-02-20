@@ -92,7 +92,7 @@ def test_validate_config_invalid_action():
 
 def test_validate_config_blank_name():
     cfg = {"folders": [{"url": "https://example.com/f.json", "name": "   "}]}
-    with pytest.raises(ValueError, match="'name' must not be blank"):
+    with pytest.raises(ValueError, match="'name' must be a non-empty string"):
         main._validate_config(cfg)
 
 
@@ -188,7 +188,8 @@ def test_load_config_explicit_path_takes_precedence_over_cwd(tmp_path, monkeypat
 
 def test_load_config_invalid_yaml_exits(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
-    (tmp_path / "config.yaml").write_text("folders: [bad: yaml: \x00", encoding="utf-8")
+    # Deliberately malformed YAML: unclosed bracket makes yaml.safe_load raise YAMLError
+    (tmp_path / "config.yaml").write_text("folders: [unclosed: bracket\n  - bad", encoding="utf-8")
     with pytest.raises(SystemExit):
         main.load_config()
 

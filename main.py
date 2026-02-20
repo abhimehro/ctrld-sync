@@ -675,10 +675,8 @@ def _validate_config(config: Dict) -> None:
                 f"folders[{i}]: 'url' must be an https:// string (got {url!r})."
             )
         name = entry.get("name", "")
-        if name and not isinstance(name, str):
-            raise ValueError(f"folders[{i}]: 'name' must be a string.")
-        if name and not name.strip():
-            raise ValueError(f"folders[{i}]: 'name' must not be blank.")
+        if name and (not isinstance(name, str) or not name.strip()):
+            raise ValueError(f"folders[{i}]: 'name' must be a non-empty string.")
         action = entry.get("action")
         if action is not None and action not in ("block", "allow"):
             raise ValueError(
