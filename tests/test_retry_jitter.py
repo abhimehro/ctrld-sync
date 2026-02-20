@@ -55,7 +55,7 @@ class TestRetryJitter:
             "Jitter should produce different wait times across runs"
 
     def test_jitter_stays_within_bounds(self):
-        """Verify jitter keeps delays within expected range (0.5x to 1.5x base)."""
+        """Verify jitter keeps delays within expected range (0 to 1x base, full jitter)."""
         request_func = Mock(side_effect=httpx.TimeoutException("Connection timeout"))
         
         with patch('time.sleep') as mock_sleep:
@@ -66,11 +66,11 @@ class TestRetryJitter:
             
             wait_times = [call.args[0] for call in mock_sleep.call_args_list]
             
-            # Verify each wait time is within jitter bounds
+            # Verify each wait time is within full-jitter bounds [0, min(base, MAX_RETRY_DELAY)]
             for attempt, wait_time in enumerate(wait_times):
                 base_delay = 1 * (2 ** attempt)  # Exponential backoff formula
-                min_expected = base_delay * 0.5
-                max_expected = base_delay * 1.5
+                min_expected = 0.0  # Full jitter can produce 0
+                max_expected = min(base_delay, main.MAX_RETRY_DELAY)
                 
                 assert min_expected <= wait_time <= max_expected, \
                     f"Attempt {attempt}: wait time {wait_time:.2f}s outside jitter bounds " \
@@ -80,13 +80,12 @@ class TestRetryJitter:
         """Verify that despite jitter, the exponential base scaling is correct.
 
         We fix random.random() to a constant so that jitter becomes deterministic,
-        and then assert that each delay matches delay * 2**attempt * jitter_factor.
+        and then assert that each delay matches delay * 2**attempt * random_factor.
         """
         request_func = Mock(side_effect=httpx.TimeoutException("Connection timeout"))
 
-        # Use a fixed random.random() so jitter multiplier is stable across attempts.
-        # Assuming jitter is implemented as: base_delay * (0.5 + random.random()),
-        # a fixed return_value of 0.5 yields a jitter_factor of 1.0.
+        # Full jitter is implemented as: min(base_delay * 2**attempt, MAX_RETRY_DELAY) * random.random()
+        # With random.random() fixed at 0.5, each delay = exponential_delay * 0.5.
         with patch('time.sleep') as mock_sleep, patch('random.random', return_value=0.5):
             try:
                 main._retry_request(request_func, max_retries=5, delay=1)
@@ -95,10 +94,10 @@ class TestRetryJitter:
 
             wait_times = [call.args[0] for call in mock_sleep.call_args_list]
 
-            jitter_factor = 0.5 + 0.5  # Matches the patched random.random() above
             for attempt, wait_time in enumerate(wait_times):
                 base_delay = 1 * (2 ** attempt)
-                expected_delay = base_delay * jitter_factor
+                exponential_delay = min(base_delay, main.MAX_RETRY_DELAY)
+                expected_delay = exponential_delay * 0.5  # random.random() fixed at 0.5
                 # Use approx to avoid brittle float equality while still being strict.
                 assert wait_time == pytest.approx(expected_delay), (
                     f"Attempt {attempt}: expected {expected_delay:.2f}s, "
@@ -143,8 +142,8 @@ class TestRetryJitter:
             wait_times = [call.args[0] for call in mock_sleep.call_args_list]
             assert len(wait_times) == 2
             
-            # First retry: base=1, range=[0.5, 1.5]
-            assert 0.5 <= wait_times[0] <= 1.5
+            # First retry: full jitter, base=1, range=[0, 1.0) since random.random() < 1.0
+            assert 0.0 <= wait_times[0] < 1.0
 
     def test_successful_retry_after_transient_failure(self):
         """Verify successful request after transient failures works correctly."""
