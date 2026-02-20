@@ -229,6 +229,7 @@ def test_interactive_prompts_show_hints(monkeypatch, capsys):
     mock_args.dry_run = False
     mock_args.no_delete = False
     mock_args.plan_json = None
+    mock_args.clear_cache = False
     monkeypatch.setattr(m, "parse_args", lambda: mock_args)
 
     # Mock internal functions to abort execution safely after prompts
@@ -434,6 +435,7 @@ def test_interactive_input_extracts_id(monkeypatch, capsys):
     mock_args.dry_run = False
     mock_args.no_delete = False
     mock_args.plan_json = None
+    mock_args.clear_cache = False
     monkeypatch.setattr(m, "parse_args", lambda: mock_args)
 
     # Mock sync_profile to catch the call
@@ -723,3 +725,51 @@ def test_check_env_permissions_secure(monkeypatch):
     assert mock_open.called
     assert not mock_fchmod.called
     mock_close.assert_called_with(123)
+
+
+def test_validate_folder_data_structure(monkeypatch):
+    """Test validation of 'rules' and 'rule_groups' structures."""
+    m = reload_main_with_env(monkeypatch)
+    mock_log = MagicMock()
+    monkeypatch.setattr(m, "log", mock_log)
+
+    valid_base = {
+        "group": {"group": "ValidFolder"}
+    }
+
+    # 1. Invalid 'rules' type (string instead of list)
+    invalid_rules = valid_base.copy()
+    invalid_rules["rules"] = "not_a_list"
+    assert m.validate_folder_data(invalid_rules, "url") is False
+    assert "rules" in str(mock_log.error.call_args)
+    mock_log.reset_mock()
+
+    # 2. Invalid 'rule_groups' type (string instead of list)
+    invalid_rg_type = valid_base.copy()
+    invalid_rg_type["rule_groups"] = "not_a_list"
+    assert m.validate_folder_data(invalid_rg_type, "url") is False
+    assert "rule_groups" in str(mock_log.error.call_args)
+    mock_log.reset_mock()
+
+    # 3. Invalid 'rule_groups' content (list of strings instead of dicts)
+    invalid_rg_content = valid_base.copy()
+    invalid_rg_content["rule_groups"] = ["not_a_dict"]
+    assert m.validate_folder_data(invalid_rg_content, "url") is False
+    assert "must be an object" in str(mock_log.error.call_args)
+    mock_log.reset_mock()
+
+    # 4. Invalid 'rules' inside 'rule_groups'
+    invalid_rg_rules = valid_base.copy()
+    invalid_rg_rules["rule_groups"] = [{"rules": "not_a_list"}]
+    assert m.validate_folder_data(invalid_rg_rules, "url") is False
+    assert "must be a list" in str(mock_log.error.call_args)
+    mock_log.reset_mock()
+
+    # 5. Valid cases
+    valid_rules = valid_base.copy()
+    valid_rules["rules"] = [{"PK": "rule1"}]
+    assert m.validate_folder_data(valid_rules, "url") is True
+
+    valid_rg = valid_base.copy()
+    valid_rg["rule_groups"] = [{"rules": [{"PK": "rule1"}]}]
+    assert m.validate_folder_data(valid_rg, "url") is True
