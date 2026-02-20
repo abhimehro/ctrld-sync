@@ -25,7 +25,6 @@ class TestPushRulesPerf(unittest.TestCase):
         self.do = 1
         self.status = 1
         self.existing_rules = set()
-        self.main = main
 
     @patch("main.concurrent.futures.ThreadPoolExecutor")
     def test_push_rules_single_batch_optimization(self, mock_executor):

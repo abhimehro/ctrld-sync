@@ -622,6 +622,7 @@ BATCH_SIZE = 500
 BATCH_KEYS = [f"hostnames[{i}]" for i in range(BATCH_SIZE)]
 MAX_RETRIES = 10
 RETRY_DELAY = 1
+MAX_RETRY_DELAY = 60.0  # Maximum retry delay in seconds (caps exponential growth)
 FOLDER_CREATION_DELAY = 5  # <--- CHANGED: Increased from 2 to 5 for patience
 MAX_RESPONSE_SIZE = 10 * 1024 * 1024  # 10MB limit
 
@@ -661,6 +662,7 @@ _cache_lock = threading.RLock()
 # --------------------------------------------------------------------------- #
 # Disk cache stores validated blocklist data with HTTP cache headers (ETag, Last-Modified)
 # to enable fast cold-start syncs via conditional HTTP requests (304 Not Modified)
+CACHE_TTL_SECONDS = 24 * 60 * 60  # 24 hours: within TTL, serve from disk without HTTP request
 _disk_cache: Dict[str, Dict[str, Any]] = {}  # Loaded from disk on startup
 _cache_stats = {"hits": 0, "misses": 0, "validations": 0, "errors": 0}
 _api_stats = {"control_d_api_calls": 0, "blocklist_fetches": 0}
@@ -929,6 +931,7 @@ def validate_hostname(hostname: str) -> bool:
                         f"Skipping unsafe hostname {sanitize_for_log(hostname)} (resolves to non-global/multicast IP {ip})"
                     )
                     return False
+            return True
         except (socket.gaierror, ValueError, OSError) as e:
             log.warning(
                 f"Failed to resolve/validate domain {sanitize_for_log(hostname)}: {sanitize_for_log(e)}"
@@ -1151,9 +1154,31 @@ def _api_post_form(client: httpx.Client, url: str, data: Dict) -> httpx.Response
     )
 
 
+def retry_with_jitter(attempt: int, base_delay: float = 1.0, max_delay: float = MAX_RETRY_DELAY) -> float:
+    """Calculate retry delay with exponential backoff and full jitter.
+
+    Full jitter draws uniformly from [0, min(base_delay * 2^attempt, max_delay))
+    to spread retries evenly across the full window and prevent thundering herd.
+
+    Args:
+        attempt: Retry attempt number (0-indexed)
+        base_delay: Base delay in seconds (default: 1.0)
+        max_delay: Maximum delay cap in seconds (default: MAX_RETRY_DELAY)
+
+    Returns:
+        Delay in seconds with full jitter applied
+    """
+    exponential_delay = min(base_delay * (2 ** attempt), max_delay)
+    return exponential_delay * random.random()
+
+
 def _retry_request(request_func, max_retries=MAX_RETRIES, delay=RETRY_DELAY):
     """
-    Retry request with exponential backoff.
+    Retry request with exponential backoff and full jitter.
+    
+    RETRY STRATEGY:
+    - Uses retry_with_jitter() for full jitter: delay drawn from [0, min(delay*2^attempt, MAX_RETRY_DELAY)]
+    - Full jitter prevents thundering herd when multiple clients fail simultaneously
     
     RATE LIMIT HANDLING:
     - Parses X-RateLimit-* headers from all API responses
@@ -1219,13 +1244,9 @@ def _retry_request(request_func, max_retries=MAX_RETRIES, delay=RETRY_DELAY):
                     log.debug(f"Response content: {sanitize_for_log(e.response.text)}")
                 raise
             
-            # Exponential backoff with jitter to prevent thundering herd
-            # Base delay: delay * (2^attempt) gives exponential growth
-            # Jitter: multiply by random factor in range [0.5, 1.5] to spread retries
-            # This prevents multiple failed requests from retrying simultaneously
-            base_wait = delay * (2**attempt)
-            jitter_factor = 0.5 + random.random()  # Random value between 0.5 and 1.5
-            wait_time = base_wait * jitter_factor
+            # Full jitter exponential backoff: delay drawn from [0, min(delay * 2^attempt, MAX_RETRY_DELAY)]
+            # Spreads retries evenly across the full window to prevent thundering herd
+            wait_time = retry_with_jitter(attempt, base_delay=delay)
             
             log.warning(
                 f"Request failed (attempt {attempt + 1}/{max_retries}): "
@@ -1258,11 +1279,20 @@ def _gh_get(url: str) -> Dict:
     with _cache_lock:
         _api_stats["blocklist_fetches"] += 1
     
-    # Check disk cache for conditional request headers
+    # Check disk cache for TTL-based hit or conditional request headers
     headers = {}
     cached_entry = _disk_cache.get(url)
     if cached_entry:
-        # Send conditional request using cached ETag/Last-Modified
+        last_validated = cached_entry.get("last_validated", 0)
+        if time.time() - last_validated < CACHE_TTL_SECONDS:
+            # Within TTL: return cached data directly without any HTTP request
+            data = cached_entry["data"]
+            with _cache_lock:
+                _cache[url] = data
+            _cache_stats["hits"] += 1
+            log.debug(f"Disk cache hit (within TTL) for {sanitize_for_log(url)}")
+            return data
+        # Beyond TTL: send conditional request using cached ETag/Last-Modified
         # Server returns 304 if content hasn't changed
         # NOTE: Cached values may be None if the server didn't send these headers.
         # httpx requires header values to be str/bytes, so we only add headers
@@ -2385,6 +2415,9 @@ def parse_args() -> argparse.Namespace:
         "--no-delete", action="store_true", help="Do not delete existing folders"
     )
     parser.add_argument("--plan-json", help="Write plan to JSON file", default=None)
+    parser.add_argument(
+        "--clear-cache", action="store_true", help="Clear the persistent blocklist cache and exit"
+    )
     return parser.parse_args()
 
 
@@ -2412,6 +2445,22 @@ def main():
     # NOTE: Called only after successful argument parsing so that `--help` or
     #       argument errors do not perform unnecessary filesystem I/O or logging.
     load_disk_cache()
+
+    # Handle --clear-cache: delete cache file and exit immediately
+    if args.clear_cache:
+        global _disk_cache
+        cache_file = get_cache_dir() / "blocklists.json"
+        if cache_file.exists():
+            try:
+                cache_file.unlink()
+                print(f"{Colors.GREEN}✓ Cleared blocklist cache: {cache_file}{Colors.ENDC}")
+            except OSError as e:
+                print(f"{Colors.FAIL}✗ Failed to clear cache: {e}{Colors.ENDC}")
+                exit(1)
+        else:
+            print(f"{Colors.CYAN}ℹ No cache file found, nothing to clear{Colors.ENDC}")
+        _disk_cache.clear()
+        exit(0)
     profiles_arg = (
         _clean_env_kv(args.profiles or os.getenv("PROFILE", ""), "PROFILE") or ""
     )
