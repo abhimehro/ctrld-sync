@@ -2758,6 +2758,40 @@ def main():
             else:
                 print("👉 Ready to sync? Run the following command:")
                 print(f"   {cmd_str}")
+
+            if sys.stdin.isatty():
+                try:
+                    if USE_COLORS:
+                        prompt = f"\n{Colors.BOLD}🚀 Ready to launch? {Colors.ENDC}Press [Enter] to run now (or Ctrl+C to cancel)..."
+                    else:
+                        prompt = "\n🚀 Ready to launch? Press [Enter] to run now (or Ctrl+C to cancel)..."
+
+                    # Flush stderr to ensure prompt is visible
+                    sys.stderr.flush()
+                    input(prompt)
+
+                    # Prepare environment for the new process
+                    # Pass the current token to avoid re-prompting if it was entered interactively
+                    if TOKEN:
+                        os.environ["TOKEN"] = TOKEN
+
+                    # Construct command arguments
+                    # Use sys.argv filtering to preserve all user-provided flags (even future ones)
+                    # while removing --dry-run to switch to live mode.
+                    clean_argv = [arg for arg in sys.argv[1:] if arg != "--dry-run"]
+                    new_argv = [sys.executable, sys.argv[0]] + clean_argv
+
+                    # If --profiles wasn't in original args (meaning it came from env/input),
+                    # inject it explicitly so the user doesn't have to re-enter it.
+                    if "--profiles" not in sys.argv and profile_ids:
+                        new_argv.extend(["--profiles", ",".join(profile_ids)])
+
+                    print(f"\n{Colors.GREEN}🔄 Restarting in live mode...{Colors.ENDC}")
+                    os.execv(sys.executable, new_argv)
+
+                except (KeyboardInterrupt, EOFError):
+                    print(f"\n{Colors.WARNING}⚠️  Cancelled.{Colors.ENDC}")
+
         else:
             if USE_COLORS:
                 print(
