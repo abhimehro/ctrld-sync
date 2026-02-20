@@ -9,7 +9,7 @@ This project is currently in early development. We provide security updates for 
 | 0.1.x   | :white_check_mark: |
 | < 0.1   | :x:                |
 
-**Note:** As this is an early-stage project (v0.1.x), the API and security posture may change between releases. We recommend always using the latest version.
+**Note:** As this is a pre-1.0 project (v0.1.x), **backward compatibility is not guaranteed** between minor versions (e.g., 0.1.x → 0.2.x). The API and security posture may change between releases. We recommend always using the latest version.
 
 ## Reporting a Vulnerability
 
