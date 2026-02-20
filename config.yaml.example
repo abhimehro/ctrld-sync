@@ -1,0 +1,82 @@
+# config.yaml.example
+# ─────────────────────────────────────────────────────────────────────────────
+# Control D Sync – example configuration file
+#
+# Copy this file to config.yaml (or config.yml) in the same directory as
+# main.py, or to ~/.ctrld-sync/config.yaml, and customise it to suit your
+# setup.  You can also point to any location with the --config flag:
+#
+#   python main.py --config /path/to/my-config.yaml
+#
+# Configuration precedence (highest → lowest):
+#   1. --folder-url CLI flags  (override everything)
+#   2. --config FILE argument
+#   3. ./config.yaml or ./config.yml (current working directory)
+#   4. ~/.ctrld-sync/config.yaml or ~/.ctrld-sync/config.yml
+#   5. Built-in defaults (the DEFAULT_FOLDER_URLS list in main.py)
+# ─────────────────────────────────────────────────────────────────────────────
+
+# folders: list of remote JSON block-list definitions to sync.
+#
+# Required fields per entry:
+#   url    – HTTPS URL to the Control D JSON folder file
+#
+# Optional fields per entry:
+#   name   – human-readable label (informational only; the actual folder name
+#            comes from the JSON file itself)
+#   action – "block" or "allow" (informational only; the action is defined
+#            inside the JSON file)
+folders:
+  # ── Native-tracker block lists ──────────────────────────────────────────
+  - name: "Native Tracker – Amazon"
+    url: "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/controld/native-tracker-amazon-folder.json"
+    action: "block"
+
+  - name: "Native Tracker – Apple"
+    url: "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/controld/native-tracker-apple-folder.json"
+    action: "block"
+
+  - name: "Native Tracker – Samsung"
+    url: "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/controld/native-tracker-samsung-folder.json"
+    action: "block"
+
+  - name: "Native Tracker – TikTok (Aggressive)"
+    url: "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/controld/native-tracker-tiktok-aggressive-folder.json"
+    action: "block"
+
+  # ── Allow lists (permit traffic that broad block lists would catch) ──────
+  - name: "Apple Private Relay – Allow"
+    url: "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/controld/apple-private-relay-allow-folder.json"
+    action: "allow"
+
+  - name: "Microsoft – Allow"
+    url: "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/controld/microsoft-allow-folder.json"
+    action: "allow"
+
+  # ── Badware / spam / malware ─────────────────────────────────────────────
+  - name: "Badware Hoster"
+    url: "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/controld/badware-hoster-folder.json"
+    action: "block"
+
+  - name: "Spam – TLDs (Combined)"
+    url: "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/controld/spam-tlds-combined-folder.json"
+    action: "block"
+
+  # ── Custom / community lists ─────────────────────────────────────────────
+  - name: "Potentially Malicious IPs"
+    url: "https://raw.githubusercontent.com/yokoffing/Control-D-Config/main/folders/potentially-malicious-ips.json"
+    action: "block"
+
+# settings: tune runtime behaviour.
+#
+# All values are optional; the built-in defaults shown below are used when
+# omitted.  All values must be positive integers.
+settings:
+  # Number of rules pushed to the Control D API in a single batch request.
+  batch_size: 500
+
+  # Number of parallel workers used when deleting existing folders.
+  delete_workers: 3
+
+  # Maximum number of HTTP retry attempts before giving up on a request.
+  max_retries: 10
