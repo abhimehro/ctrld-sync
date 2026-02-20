@@ -120,6 +120,31 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
 - Python 3.13+
 - Runtime dependencies (install with `pip install -r requirements.txt` or `uv sync`)
 
+## Blocklist Cache
+
+ctrld-sync maintains a persistent on-disk cache of downloaded blocklist data to speed up subsequent syncs.
+
+### Cache location
+
+| Platform | Default path |
+|----------|-------------|
+| Linux / Unix | `~/.cache/ctrld-sync/blocklists.json` (or `$XDG_CACHE_HOME/ctrld-sync/`) |
+| macOS | `~/Library/Caches/ctrld-sync/blocklists.json` |
+| Windows | `%LOCALAPPDATA%\ctrld-sync\cache\blocklists.json` |
+
+### How it works
+
+1. **Within TTL (24 hours):** cached data is returned immediately—no HTTP request is made.
+2. **TTL expired:** a conditional request is sent using `If-None-Match` (ETag) or `If-Modified-Since`. A `304 Not Modified` response reuses the cached data with no download.
+3. **Changed or missing:** the full blocklist is downloaded and the cache is updated.
+
+### Cache CLI flags
+
+```bash
+python main.py --clear-cache   # delete the cache file and exit
+python main.py --no-cache      # disable the cache for this run (data is fetched fresh, cache is not updated)
+```
+
 ## Testing
 
 This project includes a comprehensive test suite to ensure code quality and correctness.

@@ -34,6 +34,8 @@ class TestDiskCache(unittest.TestCase):
         main.validate_folder_url.cache_clear()
         # Reset stats
         main._cache_stats = {"hits": 0, "misses": 0, "validations": 0, "errors": 0}
+        # Ensure no-cache flag is off for each test
+        main._no_cache = False
         
         # Create temporary cache directory for testing
         self.temp_dir = tempfile.mkdtemp()
@@ -45,6 +47,8 @@ class TestDiskCache(unittest.TestCase):
         main._disk_cache.clear()
         main.validate_folder_url.cache_clear()
         main._cache_stats = {"hits": 0, "misses": 0, "validations": 0, "errors": 0}
+        # Restore no-cache flag
+        main._no_cache = False
         
         # Clean up temp directory
         import shutil
@@ -400,6 +404,63 @@ class TestDiskCache(unittest.TestCase):
         self.assertFalse(cache_file.exists())
         # In-memory disk cache should be empty
         self.assertEqual(len(main._disk_cache), 0)
+
+    def test_no_cache_skips_disk_cache_write(self):
+        """Test that --no-cache prevents writing to disk cache."""
+        test_url = "https://example.com/no-cache-test.json"
+        test_data = {"group": {"group": "Test"}, "domains": ["example.com"]}
+
+        original_no_cache = main._no_cache
+        try:
+            main._no_cache = True
+
+            def mock_stream(method, url, headers=None):
+                mock_response = MagicMock()
+                mock_response.status_code = 200
+                mock_response.raise_for_status = MagicMock()
+                mock_response.headers = {
+                    "Content-Type": "application/json",
+                    "ETag": "etag999",
+                }
+                json_bytes = json.dumps(test_data).encode()
+                mock_response.iter_bytes = MagicMock(return_value=[json_bytes])
+                mock_response.__enter__ = MagicMock(return_value=mock_response)
+                mock_response.__exit__ = MagicMock(return_value=False)
+                return mock_response
+
+            with patch.object(main._gh, 'stream', side_effect=mock_stream):
+                result = main._gh_get(test_url)
+
+            # Data should be returned correctly
+            self.assertEqual(result, test_data)
+            # Disk cache should NOT have been updated
+            self.assertNotIn(test_url, main._disk_cache)
+        finally:
+            main._no_cache = original_no_cache
+
+    def test_no_cache_skips_save(self):
+        """Test that save_disk_cache() is a no-op when --no-cache is active."""
+        cache_dir = Path(self.temp_dir)
+        main.get_cache_dir = lambda: cache_dir
+
+        main._disk_cache["https://example.com/test.json"] = {
+            "data": {"group": {"group": "Test"}, "domains": ["test.com"]},
+            "etag": "xyz",
+            "last_modified": None,
+            "fetched_at": 1234567890.0,
+            "last_validated": 1234567890.0,
+        }
+
+        original_no_cache = main._no_cache
+        try:
+            main._no_cache = True
+            main.save_disk_cache()
+        finally:
+            main._no_cache = original_no_cache
+
+        # Cache file should NOT have been created
+        cache_file = cache_dir / "blocklists.json"
+        self.assertFalse(cache_file.exists())
 
 
 if __name__ == '__main__':

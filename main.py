@@ -665,6 +665,7 @@ _cache_lock = threading.RLock()
 CACHE_TTL_SECONDS = 24 * 60 * 60  # 24 hours: within TTL, serve from disk without HTTP request
 _disk_cache: Dict[str, Dict[str, Any]] = {}  # Loaded from disk on startup
 _cache_stats = {"hits": 0, "misses": 0, "validations": 0, "errors": 0}
+_no_cache: bool = False  # Set to True when --no-cache flag is passed
 _api_stats = {"control_d_api_calls": 0, "blocklist_fetches": 0}
 
 # --------------------------------------------------------------------------- #
@@ -788,7 +789,11 @@ def save_disk_cache() -> None:
     
     SECURITY: Creates cache directory with user-only permissions (0o700)
     to prevent other users from reading cached blocklist data.
+    
+    No-op when --no-cache is active.
     """
+    if _no_cache:
+        return
     try:
         cache_dir = get_cache_dir()
         cache_dir.mkdir(parents=True, exist_ok=True)
@@ -1377,13 +1382,14 @@ def _gh_get(url: str) -> Dict:
                         last_modified = r_retry.headers.get("Last-Modified")
                         
                         # Update disk cache with new data and headers
-                        _disk_cache[url] = {
-                            "data": data,
-                            "etag": etag,
-                            "last_modified": last_modified,
-                            "fetched_at": time.time(),
-                            "last_validated": time.time(),
-                        }
+                        if not _no_cache:
+                            _disk_cache[url] = {
+                                "data": data,
+                                "etag": etag,
+                                "last_modified": last_modified,
+                                "fetched_at": time.time(),
+                                "last_validated": time.time(),
+                            }
                         
                         _cache_stats["misses"] += 1
                         return data
@@ -1444,13 +1450,14 @@ def _gh_get(url: str) -> Dict:
             last_modified = r.headers.get("Last-Modified")
             
             # Update disk cache with new data and headers
-            _disk_cache[url] = {
-                "data": data,
-                "etag": etag,
-                "last_modified": last_modified,
-                "fetched_at": time.time(),
-                "last_validated": time.time(),
-            }
+            if not _no_cache:
+                _disk_cache[url] = {
+                    "data": data,
+                    "etag": etag,
+                    "last_modified": last_modified,
+                    "fetched_at": time.time(),
+                    "last_validated": time.time(),
+                }
             
             _cache_stats["misses"] += 1
     
@@ -2421,6 +2428,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--clear-cache", action="store_true", help="Clear the persistent blocklist cache and exit"
     )
+    parser.add_argument(
+        "--no-cache", action="store_true", help="Disable the persistent blocklist cache for this run"
+    )
     return parser.parse_args()
 
 
@@ -2438,7 +2448,7 @@ def main():
     check_env_permissions()
     load_dotenv()
 
-    global TOKEN
+    global TOKEN, _no_cache
     # Re-initialize TOKEN to pick up values from .env (since load_dotenv was delayed)
     TOKEN = _clean_env_kv(os.getenv("TOKEN"), "TOKEN")
 
@@ -2449,9 +2459,14 @@ def main():
     #       argument errors do not perform unnecessary filesystem I/O or logging.
     load_disk_cache()
 
+    # Handle --no-cache: disable disk cache for this run
+    if args.no_cache:
+        _no_cache = True
+        _disk_cache.clear()
+        log.info("Persistent disk cache disabled for this run (--no-cache)")
+
     # Handle --clear-cache: delete cache file and exit immediately
     if args.clear_cache:
-        global _disk_cache
         cache_file = get_cache_dir() / "blocklists.json"
         if cache_file.exists():
             try:
