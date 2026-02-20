@@ -1155,7 +1155,7 @@ def _api_post_form(client: httpx.Client, url: str, data: Dict) -> httpx.Response
 def retry_with_jitter(attempt: int, base_delay: float = 1.0, max_delay: float = MAX_RETRY_DELAY) -> float:
     """Calculate retry delay with exponential backoff and full jitter.
 
-    Full jitter draws uniformly from [0, min(base_delay * 2^attempt, max_delay)]
+    Full jitter draws uniformly from [0, min(base_delay * 2^attempt, max_delay))
     to spread retries evenly across the full window and prevent thundering herd.
 
     Args:
