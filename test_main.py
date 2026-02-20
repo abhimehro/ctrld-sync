@@ -229,6 +229,7 @@ def test_interactive_prompts_show_hints(monkeypatch, capsys):
     mock_args.dry_run = False
     mock_args.no_delete = False
     mock_args.plan_json = None
+    mock_args.clear_cache = False
     monkeypatch.setattr(m, "parse_args", lambda: mock_args)
 
     # Mock internal functions to abort execution safely after prompts
@@ -434,6 +435,7 @@ def test_interactive_input_extracts_id(monkeypatch, capsys):
     mock_args.dry_run = False
     mock_args.no_delete = False
     mock_args.plan_json = None
+    mock_args.clear_cache = False
     monkeypatch.setattr(m, "parse_args", lambda: mock_args)
 
     # Mock sync_profile to catch the call
