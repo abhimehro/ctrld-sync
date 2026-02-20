@@ -1454,7 +1454,7 @@ def _gh_get(url: str) -> Dict:
             
             _cache_stats["misses"] += 1
     
-    except httpx.HTTPStatusError as e:
+    except httpx.HTTPStatusError:
         # Re-raise with original exception (don't catch and re-raise)
         raise
     
@@ -2355,47 +2355,6 @@ def sync_profile(
 # --------------------------------------------------------------------------- #
 # 5. Entry-point
 # --------------------------------------------------------------------------- #
-def print_summary_table(
-    sync_results: List[Dict[str, Any]], success_count: int, total: int, dry_run: bool
-) -> None:
-    # 1. Setup Data
-    max_p = max((len(r["profile"]) for r in sync_results), default=25)
-    w = [max(25, max_p), 10, 12, 10, 15]
-
-    t_f, t_r, t_d = sum(r["folders"] for r in sync_results), sum(r["rules"] for r in sync_results), sum(r["duration"] for r in sync_results)
-    all_ok = success_count == total
-    t_status = ("✅ Ready" if dry_run else "✅ All Good") if all_ok else "❌ Errors"
-    t_col = Colors.GREEN if all_ok else Colors.FAIL
-
-    # 2. Render
-    if not USE_COLORS:
-        # Simple ASCII Fallback
-        header = f"{'Profile ID':<{w[0]}} | {'Folders':>{w[1]}} | {'Rules':>{w[2]}} | {'Duration':>{w[3]}} | {'Status':<{w[4]}}"
-        sep = "-" * len(header)
-        print(f"\n{('DRY RUN' if dry_run else 'SYNC') + ' SUMMARY':^{len(header)}}\n{sep}\n{header}\n{sep}")
-        for r in sync_results:
-            print(f"{r['profile']:<{w[0]}} | {r['folders']:>{w[1]}} | {r['rules']:>{w[2]},} | {r['duration']:>{w[3]-1}.1f}s | {r['status_label']:<{w[4]}}")
-        print(f"{sep}\n{'TOTAL':<{w[0]}} | {t_f:>{w[1]}} | {t_r:>{w[2]},} | {t_d:>{w[3]-1}.1f}s | {t_status:<{w[4]}}\n{sep}\n")
-        return
-
-    # Unicode Table
-    def line(l, m, r): return f"{Colors.BOLD}{l}{m.join('─' * (x+2) for x in w)}{r}{Colors.ENDC}"
-    def row(c): return f"{Colors.BOLD}│{Colors.ENDC} {c[0]:<{w[0]}} {Colors.BOLD}│{Colors.ENDC} {c[1]:>{w[1]}} {Colors.BOLD}│{Colors.ENDC} {c[2]:>{w[2]}} {Colors.BOLD}│{Colors.ENDC} {c[3]:>{w[3]}} {Colors.BOLD}│{Colors.ENDC} {c[4]:<{w[4]}} {Colors.BOLD}│{Colors.ENDC}"
-
-    print(f"\n{line('┌', '─', '┐')}")
-    title = f"{'DRY RUN' if dry_run else 'SYNC'} SUMMARY"
-    print(f"{Colors.BOLD}│{Colors.CYAN if dry_run else Colors.HEADER}{title:^{sum(w) + 14}}{Colors.ENDC}{Colors.BOLD}│{Colors.ENDC}")
-    print(f"{line('├', '┬', '┤')}\n{row([f'{Colors.HEADER}Profile ID{Colors.ENDC}', f'{Colors.HEADER}Folders{Colors.ENDC}', f'{Colors.HEADER}Rules{Colors.ENDC}', f'{Colors.HEADER}Duration{Colors.ENDC}', f'{Colors.HEADER}Status{Colors.ENDC}'])}")
-    print(line("├", "┼", "┤"))
-
-    for r in sync_results:
-        sc = Colors.GREEN if r["success"] else Colors.FAIL
-        print(row([r["profile"], str(r["folders"]), f"{r['rules']:,}", f"{r['duration']:.1f}s", f"{sc}{r['status_label']}{Colors.ENDC}"]))
-
-    print(f"{line('├', '┼', '┤')}\n{row(['TOTAL', str(t_f), f'{t_r:,}', f'{t_d:.1f}s', f'{t_col}{t_status}{Colors.ENDC}'])}")
-    print(f"{line('└', '┴', '┘')}\n")
-
-
 def parse_args() -> argparse.Namespace:
     """
     Parses command-line arguments for the Control D sync tool.
