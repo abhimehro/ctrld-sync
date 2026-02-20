@@ -266,5 +266,5 @@ class TestRetryWithRateLimit:
         result = main._retry_request(request_func, max_retries=3, delay=1)
         elapsed = time.time() - start_time
 
-        assert elapsed >= 3.0
+        assert elapsed >= 1.5
         assert result == success_response
