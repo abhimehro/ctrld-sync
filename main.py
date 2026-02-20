@@ -313,154 +313,6 @@ def print_plan_details(plan_entry: Dict[str, Any]) -> None:
     print("")
 
 
-def print_summary_table(results: List[Dict[str, Any]], dry_run: bool) -> None:
-    """Prints a nicely formatted summary table."""
-    # Determine the width for the Profile ID column (min 25)
-    max_profile_len = max((len(r["profile"]) for r in results), default=25)
-    profile_col_width = max(25, max_profile_len)
-
-    # Calculate widths
-    col_widths = {
-        "profile": profile_col_width,
-        "folders": 10,
-        "rules": 10,
-        "duration": 10,
-        "status": 15,
-    }
-
-    if USE_COLORS:
-        # Unicode Box Drawing
-        chars = {
-            "tl": "┌", "tm": "┬", "tr": "┐",
-            "bl": "└", "bm": "┴", "br": "┘",
-            "ml": "├", "mm": "┼", "mr": "┤",
-            "v": "│", "h": "─",
-        }
-    else:
-        # ASCII Fallback
-        chars = {
-            "tl": "+", "tm": "+", "tr": "+",
-            "bl": "+", "bm": "+", "br": "+",
-            "ml": "+", "mm": "+", "mr": "+",
-            "v": "|", "h": "-",
-        }
-
-    def _print_separator(left, mid, right):
-        segments = [chars["h"] * (width + 2) for width in col_widths.values()]
-        print(f"{chars[left]}{chars[mid].join(segments)}{chars[right]}")
-
-    def _print_row(profile, folders, rules, duration, status, is_header=False):
-        v = chars["v"]
-
-        # 1. Pad raw strings first (so padding is calculated on visible chars)
-        p_val = f"{profile:<{col_widths['profile']}}"
-        f_val = f"{folders:>{col_widths['folders']}}"
-        r_val = f"{rules:>{col_widths['rules']}}"
-        d_val = f"{duration:>{col_widths['duration']}}"
-        s_val = f"{status:<{col_widths['status']}}"
-
-        # 2. Wrap in color codes if needed
-        if is_header and USE_COLORS:
-            p_val = f"{Colors.BOLD}{p_val}{Colors.ENDC}"
-            f_val = f"{Colors.BOLD}{f_val}{Colors.ENDC}"
-            r_val = f"{Colors.BOLD}{r_val}{Colors.ENDC}"
-            d_val = f"{Colors.BOLD}{d_val}{Colors.ENDC}"
-            s_val = f"{Colors.BOLD}{s_val}{Colors.ENDC}"
-
-        print(
-            f"{v} {p_val} {v} {f_val} {v} {r_val} {v} {d_val} {v} {s_val} {v}"
-        )
-
-    title_text = "DRY RUN SUMMARY" if dry_run else "SYNC SUMMARY"
-    title_color = Colors.CYAN if dry_run else Colors.HEADER
-
-    total_width = (
-        1 + (col_widths["profile"] + 2) + 1 +
-        (col_widths["folders"] + 2) + 1 +
-        (col_widths["rules"] + 2) + 1 +
-        (col_widths["duration"] + 2) + 1 +
-        (col_widths["status"] + 2) + 1
-    )
-
-    print("\n" + (f"{title_color}{title_text:^{total_width}}{Colors.ENDC}" if USE_COLORS else f"{title_text:^{total_width}}"))
-
-    _print_separator("tl", "tm", "tr")
-    # Header row - pad manually then print
-    _print_row("Profile ID", "Folders", "Rules", "Duration", "Status", is_header=True)
-    _print_separator("ml", "mm", "mr")
-
-    total_folders = 0
-    total_rules = 0
-    total_duration = 0.0
-    success_count = 0
-
-    for res in results:
-        # Profile
-        p_val = f"{res['profile']:<{col_widths['profile']}}"
-
-        # Folders
-        f_val = f"{res['folders']:>{col_widths['folders']}}"
-
-        # Rules
-        r_val = f"{res['rules']:>{col_widths['rules']},}"
-
-        # Duration
-        d_val = f"{res['duration']:>{col_widths['duration']-1}.1f}s"
-
-        # Status
-        status_label = res["status_label"]
-        s_val_raw = f"{status_label:<{col_widths['status']}}"
-        if USE_COLORS:
-            status_color = Colors.GREEN if res["success"] else Colors.FAIL
-            s_val = f"{status_color}{s_val_raw}{Colors.ENDC}"
-        else:
-            s_val = s_val_raw
-
-        # Delegate the actual row printing to the shared helper to avoid
-        # duplicating table border/spacing logic here.
-        _print_row(p_val, f_val, r_val, d_val, s_val)
-
-        total_folders += res["folders"]
-        total_rules += res["rules"]
-        total_duration += res["duration"]
-        if res["success"]:
-            success_count += 1
-
-    _print_separator("ml", "mm", "mr")
-
-    # Total Row
-    total = len(results)
-    all_success = success_count == total
-
-    if dry_run:
-        total_status_text = "✅ Ready" if all_success else "❌ Errors"
-    else:
-        total_status_text = "✅ All Good" if all_success else "❌ Errors"
-
-    p_val = f"{'TOTAL':<{col_widths['profile']}}"
-    if USE_COLORS:
-        p_val = f"{Colors.BOLD}{p_val}{Colors.ENDC}"
-
-    f_val = f"{total_folders:>{col_widths['folders']}}"
-    r_val = f"{total_rules:>{col_widths['rules']},}"
-    d_val = f"{total_duration:>{col_widths['duration']-1}.1f}s"
-
-    s_val_raw = f"{total_status_text:<{col_widths['status']}}"
-    if USE_COLORS:
-        status_color = Colors.GREEN if all_success else Colors.FAIL
-        s_val = f"{status_color}{s_val_raw}{Colors.ENDC}"
-    else:
-        s_val = s_val_raw
-
-    print(
-        f"{chars['v']} {p_val} "
-        f"{chars['v']} {f_val} "
-        f"{chars['v']} {r_val} "
-        f"{chars['v']} {d_val} "
-        f"{chars['v']} {s_val} {chars['v']}"
-    )
-
-    _print_separator("bl", "bm", "br")
 
 
 def _get_progress_bar_width() -> int:
@@ -713,7 +565,7 @@ def load_disk_cache() -> None:
     is logged but ignored - we simply start with empty cache.
     This protects against crashes from corrupted cache files.
     """
-    global _disk_cache, _cache_stats
+    global _disk_cache
     
     try:
         cache_file = get_cache_dir() / "blocklists.json"
@@ -839,8 +691,6 @@ def _parse_rate_limit_headers(response: httpx.Response) -> None:
     THREAD-SAFE: Uses _rate_limit_lock to protect shared state
     GRACEFUL: Invalid/missing headers are ignored (no crashes)
     """
-    global _rate_limit_info
-    
     headers = response.headers
     
     # Parse standard rate limit headers
@@ -937,7 +787,6 @@ def validate_hostname(hostname: str) -> bool:
                 f"Failed to resolve/validate domain {sanitize_for_log(hostname)}: {sanitize_for_log(e)}"
             )
             return False
-        return True
 
 
 @lru_cache(maxsize=128)
@@ -965,8 +814,6 @@ def validate_folder_url(url: str) -> bool:
             f"Failed to validate URL {sanitize_for_log(url)}: {sanitize_for_log(e)}"
         )
         return False
-
-    return True
 
 
 def extract_profile_id(text: str) -> str:
@@ -1121,28 +968,24 @@ _api_stats_lock = threading.Lock()
 
 
 def _api_get(client: httpx.Client, url: str) -> httpx.Response:
-    global _api_stats
     with _api_stats_lock:
         _api_stats["control_d_api_calls"] += 1
     return _retry_request(lambda: client.get(url))
 
 
 def _api_delete(client: httpx.Client, url: str) -> httpx.Response:
-    global _api_stats
     with _api_stats_lock:
         _api_stats["control_d_api_calls"] += 1
     return _retry_request(lambda: client.delete(url))
 
 
 def _api_post(client: httpx.Client, url: str, data: Dict) -> httpx.Response:
-    global _api_stats
     with _api_stats_lock:
         _api_stats["control_d_api_calls"] += 1
     return _retry_request(lambda: client.post(url, data=data))
 
 
 def _api_post_form(client: httpx.Client, url: str, data: Dict) -> httpx.Response:
-    global _api_stats
     with _api_stats_lock:
         _api_stats["control_d_api_calls"] += 1
     return _retry_request(
@@ -1267,8 +1110,6 @@ def _gh_get(url: str) -> Dict:
     
     SECURITY: Validates data structure regardless of cache source
     """
-    global _cache_stats, _api_stats
-    
     # First check: Quick check without holding lock for long
     with _cache_lock:
         if url in _cache:
@@ -1454,7 +1295,7 @@ def _gh_get(url: str) -> Dict:
             
             _cache_stats["misses"] += 1
     
-    except httpx.HTTPStatusError as e:
+    except httpx.HTTPStatusError:
         # Re-raise with original exception (don't catch and re-raise)
         raise
     
@@ -2451,7 +2292,6 @@ def main():
 
     # Handle --clear-cache: delete cache file and exit immediately
     if args.clear_cache:
-        global _disk_cache
         cache_file = get_cache_dir() / "blocklists.json"
         if cache_file.exists():
             try:
