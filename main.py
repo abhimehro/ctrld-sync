@@ -313,154 +313,19 @@ def print_plan_details(plan_entry: Dict[str, Any]) -> None:
     print("")
 
 
-def print_summary_table(results: List[Dict[str, Any]], dry_run: bool) -> None:
-    """Prints a nicely formatted summary table."""
-    # Determine the width for the Profile ID column (min 25)
-    max_profile_len = max((len(r["profile"]) for r in results), default=25)
-    profile_col_width = max(25, max_profile_len)
 
-    # Calculate widths
-    col_widths = {
-        "profile": profile_col_width,
-        "folders": 10,
-        "rules": 10,
-        "duration": 10,
-        "status": 15,
-    }
 
-    if USE_COLORS:
-        # Unicode Box Drawing
-        chars = {
-            "tl": "┌", "tm": "┬", "tr": "┐",
-            "bl": "└", "bm": "┴", "br": "┘",
-            "ml": "├", "mm": "┼", "mr": "┤",
-            "v": "│", "h": "─",
-        }
-    else:
-        # ASCII Fallback
-        chars = {
-            "tl": "+", "tm": "+", "tr": "+",
-            "bl": "+", "bm": "+", "br": "+",
-            "ml": "+", "mm": "+", "mr": "+",
-            "v": "|", "h": "-",
-        }
+def format_duration(seconds: float) -> str:
+    """Formats a duration in seconds into a human-readable string."""
+    if seconds < 60:
+        return f"{seconds:.1f}s"
 
-    def _print_separator(left, mid, right):
-        segments = [chars["h"] * (width + 2) for width in col_widths.values()]
-        print(f"{chars[left]}{chars[mid].join(segments)}{chars[right]}")
+    minutes, seconds = divmod(seconds, 60)
+    if minutes < 60:
+        return f"{int(minutes)}m {seconds:.1f}s"
 
-    def _print_row(profile, folders, rules, duration, status, is_header=False):
-        v = chars["v"]
-
-        # 1. Pad raw strings first (so padding is calculated on visible chars)
-        p_val = f"{profile:<{col_widths['profile']}}"
-        f_val = f"{folders:>{col_widths['folders']}}"
-        r_val = f"{rules:>{col_widths['rules']}}"
-        d_val = f"{duration:>{col_widths['duration']}}"
-        s_val = f"{status:<{col_widths['status']}}"
-
-        # 2. Wrap in color codes if needed
-        if is_header and USE_COLORS:
-            p_val = f"{Colors.BOLD}{p_val}{Colors.ENDC}"
-            f_val = f"{Colors.BOLD}{f_val}{Colors.ENDC}"
-            r_val = f"{Colors.BOLD}{r_val}{Colors.ENDC}"
-            d_val = f"{Colors.BOLD}{d_val}{Colors.ENDC}"
-            s_val = f"{Colors.BOLD}{s_val}{Colors.ENDC}"
-
-        print(
-            f"{v} {p_val} {v} {f_val} {v} {r_val} {v} {d_val} {v} {s_val} {v}"
-        )
-
-    title_text = "DRY RUN SUMMARY" if dry_run else "SYNC SUMMARY"
-    title_color = Colors.CYAN if dry_run else Colors.HEADER
-
-    total_width = (
-        1 + (col_widths["profile"] + 2) + 1 +
-        (col_widths["folders"] + 2) + 1 +
-        (col_widths["rules"] + 2) + 1 +
-        (col_widths["duration"] + 2) + 1 +
-        (col_widths["status"] + 2) + 1
-    )
-
-    print("\n" + (f"{title_color}{title_text:^{total_width}}{Colors.ENDC}" if USE_COLORS else f"{title_text:^{total_width}}"))
-
-    _print_separator("tl", "tm", "tr")
-    # Header row - pad manually then print
-    _print_row("Profile ID", "Folders", "Rules", "Duration", "Status", is_header=True)
-    _print_separator("ml", "mm", "mr")
-
-    total_folders = 0
-    total_rules = 0
-    total_duration = 0.0
-    success_count = 0
-
-    for res in results:
-        # Profile
-        p_val = f"{res['profile']:<{col_widths['profile']}}"
-
-        # Folders
-        f_val = f"{res['folders']:>{col_widths['folders']}}"
-
-        # Rules
-        r_val = f"{res['rules']:>{col_widths['rules']},}"
-
-        # Duration
-        d_val = f"{res['duration']:>{col_widths['duration']-1}.1f}s"
-
-        # Status
-        status_label = res["status_label"]
-        s_val_raw = f"{status_label:<{col_widths['status']}}"
-        if USE_COLORS:
-            status_color = Colors.GREEN if res["success"] else Colors.FAIL
-            s_val = f"{status_color}{s_val_raw}{Colors.ENDC}"
-        else:
-            s_val = s_val_raw
-
-        # Delegate the actual row printing to the shared helper to avoid
-        # duplicating table border/spacing logic here.
-        _print_row(p_val, f_val, r_val, d_val, s_val)
-
-        total_folders += res["folders"]
-        total_rules += res["rules"]
-        total_duration += res["duration"]
-        if res["success"]:
-            success_count += 1
-
-    _print_separator("ml", "mm", "mr")
-
-    # Total Row
-    total = len(results)
-    all_success = success_count == total
-
-    if dry_run:
-        total_status_text = "✅ Ready" if all_success else "❌ Errors"
-    else:
-        total_status_text = "✅ All Good" if all_success else "❌ Errors"
-
-    p_val = f"{'TOTAL':<{col_widths['profile']}}"
-    if USE_COLORS:
-        p_val = f"{Colors.BOLD}{p_val}{Colors.ENDC}"
-
-    f_val = f"{total_folders:>{col_widths['folders']}}"
-    r_val = f"{total_rules:>{col_widths['rules']},}"
-    d_val = f"{total_duration:>{col_widths['duration']-1}.1f}s"
-
-    s_val_raw = f"{total_status_text:<{col_widths['status']}}"
-    if USE_COLORS:
-        status_color = Colors.GREEN if all_success else Colors.FAIL
-        s_val = f"{status_color}{s_val_raw}{Colors.ENDC}"
-    else:
-        s_val = s_val_raw
-
-    print(
-        f"{chars['v']} {p_val} "
-        f"{chars['v']} {f_val} "
-        f"{chars['v']} {r_val} "
-        f"{chars['v']} {d_val} "
-        f"{chars['v']} {s_val} {chars['v']}"
-    )
-
-    _print_separator("bl", "bm", "br")
+    hours, minutes = divmod(minutes, 60)
+    return f"{int(hours)}h {int(minutes)}m {seconds:.1f}s"
 
 
 def _get_progress_bar_width() -> int:
@@ -1136,14 +1001,16 @@ def validate_folder_data(data: Dict[str, Any], url: str) -> bool:
                     f"Invalid data from {sanitize_for_log(url)} : rule_groups[fil].rules must be a list."
                     )
                     return False
-# Ensure each rule within the group is an object (dict),
-# because later code treats each rule as a mapping (e.g., rule.get(...)).
-for j, rule in enumerate (rgi"rules"1):
-if not isinstance (rule, dict):
-    log. error (
-        f"Invalid data from {sanitize_for_log(u rl)}: rule_groups[fiłl.rules[kił] must be an object."
-    )
-    return False
+            # Ensure each rule within the group is an object (dict),
+            # because later code treats each rule as a mapping (e.g., rule.get(...)).
+            for j, rule in enumerate(rg.get("rules", [])):
+                if not isinstance(rule, dict):
+                    log.error(
+                        f"Invalid data from {sanitize_for_log(url)}: rule_groups[{i}].rules[{j}] must be an object."
+                    )
+                    return False
+
+    return True
 
 # Lock to protect updates to _api_stats in multi-threaded contexts.
 # Without this, concurrent increments can lose updates because `+=` is not atomic.
@@ -2451,26 +2318,78 @@ def print_summary_table(
         sep = "-" * len(header)
         print(f"\n{('DRY RUN' if dry_run else 'SYNC') + ' SUMMARY':^{len(header)}}\n{sep}\n{header}\n{sep}")
         for r in sync_results:
-            print(f"{r['profile']:<{w[0]}} | {r['folders']:>{w[1]}} | {r['rules']:>{w[2]},} | {r['duration']:>{w[3]-1}.1f}s | {r['status_label']:<{w[4]}}")
-        print(f"{sep}\n{'TOTAL':<{w[0]}} | {t_f:>{w[1]}} | {t_r:>{w[2]},} | {t_d:>{w[3]-1}.1f}s | {t_status:<{w[4]}}\n{sep}\n")
+            d_str = format_duration(r['duration'])
+            print(f"{r['profile']:<{w[0]}} | {r['folders']:>{w[1]}} | {r['rules']:>{w[2]},} | {d_str:>{w[3]}} | {r['status_label']:<{w[4]}}")
+
+        t_d_str = format_duration(t_d)
+        print(f"{sep}\n{'TOTAL':<{w[0]}} | {t_f:>{w[1]}} | {t_r:>{w[2]},} | {t_d_str:>{w[3]}} | {t_status:<{w[4]}}\n{sep}\n")
         return
 
-    # Unicode Table
-    def line(l, m, r): return f"{Colors.BOLD}{l}{m.join('─' * (x+2) for x in w)}{r}{Colors.ENDC}"
-    def row(c): return f"{Colors.BOLD}│{Colors.ENDC} {c[0]:<{w[0]}} {Colors.BOLD}│{Colors.ENDC} {c[1]:>{w[1]}} {Colors.BOLD}│{Colors.ENDC} {c[2]:>{w[2]}} {Colors.BOLD}│{Colors.ENDC} {c[3]:>{w[3]}} {Colors.BOLD}│{Colors.ENDC} {c[4]:<{w[4]}} {Colors.BOLD}│{Colors.ENDC}"
+    # Unicode Table using Box class
+    def make_sep(left, mid, right, horiz=Box.H):
+        parts = [horiz * (width + 2) for width in w]
+        return f"{left}{mid.join(parts)}{right}"
 
-    print(f"\n{line('┌', '─', '┐')}")
-    title = f"{'DRY RUN' if dry_run else 'SYNC'} SUMMARY"
-    print(f"{Colors.BOLD}│{Colors.CYAN if dry_run else Colors.HEADER}{title:^{sum(w) + 14}}{Colors.ENDC}{Colors.BOLD}│{Colors.ENDC}")
-    print(f"{line('├', '┬', '┤')}\n{row([f'{Colors.HEADER}Profile ID{Colors.ENDC}', f'{Colors.HEADER}Folders{Colors.ENDC}', f'{Colors.HEADER}Rules{Colors.ENDC}', f'{Colors.HEADER}Duration{Colors.ENDC}', f'{Colors.HEADER}Status{Colors.ENDC}'])}")
-    print(line("├", "┼", "┤"))
+    title_text = " DRY RUN SUMMARY " if dry_run else " SYNC SUMMARY "
+    title_color = Colors.CYAN if dry_run else Colors.HEADER
+
+    # Calculate table width
+    dummy_sep = make_sep(Box.TL, Box.T, Box.TR)
+    table_width = len(dummy_sep)
+
+    # Top Border (Single Cell for Title)
+    print("\n" + Box.TL + Box.H * (table_width - 2) + Box.TR)
+
+    # Title Row
+    visible_title = title_text.strip()
+    inner_width = table_width - 2
+    pad_left = (inner_width - len(visible_title)) // 2
+    pad_right = inner_width - len(visible_title) - pad_left
+    print(
+        f"{Box.V}{' ' * pad_left}{title_color}{visible_title}{Colors.ENDC}{' ' * pad_right}{Box.V}"
+    )
+
+    # Separator between Title and Headers (introduces columns)
+    print(make_sep(Box.L, Box.T, Box.R))
+
+    # Header Row
+    print(
+        f"{Box.V} {Colors.BOLD}{'Profile ID':<{w[0]}}{Colors.ENDC} "
+        f"{Box.V} {Colors.BOLD}{'Folders':>{w[1]}}{Colors.ENDC} "
+        f"{Box.V} {Colors.BOLD}{'Rules':>{w[2]}}{Colors.ENDC} "
+        f"{Box.V} {Colors.BOLD}{'Duration':>{w[3]}}{Colors.ENDC} "
+        f"{Box.V} {Colors.BOLD}{'Status':<{w[4]}}{Colors.ENDC} {Box.V}"
+    )
+
+    # Separator between Header and Body
+    print(make_sep(Box.L, Box.X, Box.R))
 
     for r in sync_results:
         sc = Colors.GREEN if r["success"] else Colors.FAIL
-        print(row([r["profile"], str(r["folders"]), f"{r['rules']:,}", f"{r['duration']:.1f}s", f"{sc}{r['status_label']}{Colors.ENDC}"]))
+        d_str = format_duration(r['duration'])
+        print(
+            f"{Box.V} {r['profile']:<{w[0]}} "
+            f"{Box.V} {r['folders']:>{w[1]}} "
+            f"{Box.V} {r['rules']:>{w[2]},} "
+            f"{Box.V} {d_str:>{w[3]}} "
+            f"{Box.V} {sc}{r['status_label']:<{w[4]}}{Colors.ENDC} {Box.V}"
+        )
 
-    print(f"{line('├', '┼', '┤')}\n{row(['TOTAL', str(t_f), f'{t_r:,}', f'{t_d:.1f}s', f'{t_col}{t_status}{Colors.ENDC}'])}")
-    print(f"{line('└', '┴', '┘')}\n")
+    # Separator between Body and Total
+    print(make_sep(Box.L, Box.X, Box.R))
+
+    # Total Row
+    t_d_str = format_duration(t_d)
+    print(
+        f"{Box.V} {Colors.BOLD}{'TOTAL':<{w[0]}}{Colors.ENDC} "
+        f"{Box.V} {t_f:>{w[1]}} "
+        f"{Box.V} {t_r:>{w[2]},} "
+        f"{Box.V} {t_d_str:>{w[3]}} "
+        f"{Box.V} {t_col}{t_status:<{w[4]}}{Colors.ENDC} {Box.V}"
+    )
+
+    # Bottom Border
+    print(make_sep(Box.BL, Box.B, Box.BR))
 
 
 def print_success_message(profile_ids: List[str]) -> None:
@@ -2706,121 +2625,10 @@ def main():
             json.dump(plan, f, indent=2)
         log.info("Plan written to %s", args.plan_json)
 
-    # Print Summary Table
-    # Determine the width for the Profile ID column (min 25)
-    max_profile_len = max((len(r["profile"]) for r in sync_results), default=25)
-    profile_col_width = max(25, max_profile_len)
-
-    # Column widths
-    w_profile = profile_col_width
-    w_folders = 10
-    w_rules = 12
-    w_duration = 10
-    w_status = 15
-
-    def make_col_separator(left, mid, right, horiz):
-        parts = [
-            horiz * (w_profile + 2),
-            horiz * (w_folders + 2),
-            horiz * (w_rules + 2),
-            horiz * (w_duration + 2),
-            horiz * (w_status + 2),
-        ]
-        return left + mid.join(parts) + right
-
-    # Calculate table width using a dummy separator
-    dummy_sep = make_col_separator(Box.TL, Box.T, Box.TR, Box.H)
-    table_width = len(dummy_sep)
-
-    title_text = " DRY RUN SUMMARY " if args.dry_run else " SYNC SUMMARY "
-    title_color = Colors.CYAN if args.dry_run else Colors.HEADER
-
-    # Top Border (Single Cell for Title)
-    print("\n" + Box.TL + Box.H * (table_width - 2) + Box.TR)
-
-    # Title Row
-    visible_title = title_text.strip()
-    inner_width = table_width - 2
-    pad_left = (inner_width - len(visible_title)) // 2
-    pad_right = inner_width - len(visible_title) - pad_left
-    print(
-        f"{Box.V}{' ' * pad_left}{title_color}{visible_title}{Colors.ENDC}{' ' * pad_right}{Box.V}"
-    )
-
-    # Separator between Title and Headers (introduces columns)
-    print(make_col_separator(Box.L, Box.T, Box.R, Box.H))
-
-    # Header Row
-    print(
-        f"{Box.V} {Colors.BOLD}{'Profile ID':<{w_profile}}{Colors.ENDC} "
-        f"{Box.V} {Colors.BOLD}{'Folders':>{w_folders}}{Colors.ENDC} "
-        f"{Box.V} {Colors.BOLD}{'Rules':>{w_rules}}{Colors.ENDC} "
-        f"{Box.V} {Colors.BOLD}{'Duration':>{w_duration}}{Colors.ENDC} "
-        f"{Box.V} {Colors.BOLD}{'Status':<{w_status}}{Colors.ENDC} {Box.V}"
-    )
-
-    # Separator between Header and Body
-    print(make_col_separator(Box.L, Box.X, Box.R, Box.H))
-
-    # Rows
-    total_folders = 0
-    total_rules = 0
-    total_duration = 0.0
-
-    for res in sync_results:
-        # Use boolean success field for color logic
-        status_color = Colors.GREEN if res["success"] else Colors.FAIL
-
-        s_folders = f"{res['folders']:,}"
-        s_rules = f"{res['rules']:,}"
-        s_duration = f"{res['duration']:.1f}s"
-
-        print(
-            f"{Box.V} {res['profile']:<{w_profile}} "
-            f"{Box.V} {s_folders:>{w_folders}} "
-            f"{Box.V} {s_rules:>{w_rules}} "
-            f"{Box.V} {s_duration:>{w_duration}} "
-            f"{Box.V} {status_color}{res['status_label']:<{w_status}}{Colors.ENDC} {Box.V}"
-        )
-        total_folders += res["folders"]
-        total_rules += res["rules"]
-        total_duration += res["duration"]
-
-    # Separator between Body and Total
-    print(make_col_separator(Box.L, Box.X, Box.R, Box.H))
-
-    # Total Row
-    total = len(profile_ids or ["dry-run-placeholder"])
-    all_success = success_count == total
-
-    if args.dry_run:
-        if all_success:
-            total_status_text = "✅ Ready"
-        else:
-            total_status_text = "❌ Errors"
-    else:
-        if all_success:
-            total_status_text = "✅ All Good"
-        else:
-            total_status_text = "❌ Errors"
-
-    total_status_color = Colors.GREEN if all_success else Colors.FAIL
-
-    s_total_folders = f"{total_folders:,}"
-    s_total_rules = f"{total_rules:,}"
-    s_total_duration = f"{total_duration:.1f}s"
-
-    print(
-        f"{Box.V} {Colors.BOLD}{'TOTAL':<{w_profile}}{Colors.ENDC} "
-        f"{Box.V} {s_total_folders:>{w_folders}} "
-        f"{Box.V} {s_total_rules:>{w_rules}} "
-        f"{Box.V} {s_total_duration:>{w_duration}} "
-        f"{Box.V} {total_status_color}{total_status_text:<{w_status}}{Colors.ENDC} {Box.V}"
-    )
-    # Bottom Border
-    print(make_col_separator(Box.BL, Box.B, Box.BR, Box.H))
+    print_summary_table(sync_results, success_count, len(profile_ids or ["dry-run-placeholder"]), args.dry_run)
 
     # Success Delight
+    all_success = success_count == len(profile_ids or ["dry-run-placeholder"])
     if all_success and not args.dry_run:
         print_success_message(profile_ids)
 
