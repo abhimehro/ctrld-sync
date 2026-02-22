@@ -628,7 +628,7 @@ MAX_RESPONSE_SIZE = 10 * 1024 * 1024  # 10MB limit
 
 
 # --------------------------------------------------------------------------- #
-# 2. Clients
+# 2. Clients (configured with secure defaults)
 # --------------------------------------------------------------------------- #
 def _api_client() -> httpx.Client:
     return httpx.Client(
@@ -2410,15 +2410,12 @@ def print_success_message(profile_ids: List[str]) -> None:
     ]
     print(f"\n{Colors.GREEN}{random.choice(success_msgs)}{Colors.ENDC}")
 
-    # Construct dashboard URL once, then print it in a single place
-    dashboard_url: Optional[str] = None
+    # Construct dashboard URL
     if profile_ids and len(profile_ids) == 1 and profile_ids[0] != "dry-run-placeholder":
         dashboard_url = f"https://controld.com/dashboard/profiles/{profile_ids[0]}/filters"
-    elif profile_ids and len(profile_ids) > 1:
+        print(f"{Colors.CYAN}👀 View your changes: {Colors.UNDERLINE}{dashboard_url}{Colors.ENDC}")
+    elif len(profile_ids) > 1:
         dashboard_url = "https://controld.com/dashboard/profiles"
-
-    if dashboard_url:
-    if dashboard_url:
         print(f"{Colors.CYAN}👀 View your changes: {Colors.UNDERLINE}{dashboard_url}{Colors.ENDC}")
 
 

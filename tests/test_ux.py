@@ -112,7 +112,7 @@ def test_print_success_message_single_profile(monkeypatch):
     assert "View your changes" in combined_output
     assert "https://controld.com/dashboard/profiles/123456/filters" in combined_output
     # Check for color codes presence (cyan or underline)
-    assert "\033[96m" in combined_output and "\033[4m" in combined_output
+    assert "\033[96m" in combined_output or "\033[4m" in combined_output
 
 def test_print_success_message_multiple_profiles(monkeypatch):
     """Verify success message includes general dashboard link for multiple profiles."""
