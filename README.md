@@ -66,33 +66,55 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
    For GitHub Actions, set `TOKEN` and `PROFILE` secrets to the raw values (not the full `TOKEN=...` / `PROFILE=...` lines).
 
 4. **Configure Folders**
-   Edit the `DEFAULT_FOLDER_URLS` list in `main.py` to include the URLs of the JSON block-lists you want to sync.
    
-   **Example configuration:**
-   ```python
-   DEFAULT_FOLDER_URLS = [
-       # Allow lists
-       "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/controld/apple-private-relay-allow-folder.json",
-       "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/controld/microsoft-allow-folder.json",
-       
-       # Block lists
-       "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/controld/badware-hoster-folder.json",
-       "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/controld/native-tracker-amazon-folder.json",
-       
-       # Custom block lists
-       "https://raw.githubusercontent.com/yokoffing/Control-D-Config/main/folders/potentially-malicious-ips.json",
-   ]
+   You can configure which folders to sync using a YAML configuration file instead of editing `main.py`:
+   
+   ```bash
+   cp config.yaml.example config.yaml
+   # Edit config.yaml to add, remove, or change folder URLs
+   ```
+   
+   **Configuration file locations** (checked in order):
+   1. `--config FILE` CLI flag
+   2. `config.yaml` or `config.yml` in the current directory
+   3. `~/.ctrld-sync/config.yaml` or `~/.ctrld-sync/config.yml`
+   4. Built-in defaults (the `DEFAULT_FOLDER_URLS` list in `main.py`)
+   
+   **Example `config.yaml`:**
+   ```yaml
+   folders:
+     - name: "Native Tracker – Amazon"
+       url: "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/controld/native-tracker-amazon-folder.json"
+       action: "block"
+   
+     - name: "Apple Private Relay – Allow"
+       url: "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/controld/apple-private-relay-allow-folder.json"
+       action: "allow"
+   
+   settings:
+     batch_size: 500
+     delete_workers: 3
+     max_retries: 10
+   ```
+   
+   - `name` and `action` are optional labels; the actual folder name and rule action come from the remote JSON file.
+   - All `url` values must use `https://`.
+   - `action` must be `"block"` or `"allow"` when provided.
+   
+   Alternatively, you can still pass folder URLs directly on the command line (these override any config file):
+   ```bash
+   python main.py --folder-url https://example.com/my-blocklist.json
+   ```
+   
+   Or point to a specific config file:
+   ```bash
+   python main.py --config /path/to/my-config.yaml
    ```
    
    The script includes 23 default folder URLs from [hagezi's dns-blocklists](https://github.com/hagezi/dns-blocklists) covering:
    - Native tracker blocking (Amazon, Apple, Samsung, etc.)
    - Badware and spam protection
    - Allow lists for common services
-   
-   You can add your own JSON block-list URLs or use command-line arguments:
-   ```bash
-   python main.py --folder-url https://example.com/my-blocklist.json
-   ```
 
 > [!NOTE]
 > Currently only Folders with one action are supported.
@@ -118,7 +140,10 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
 
 ## Requirements
 - Python 3.13+
-- Runtime dependencies (install with `pip install -r requirements.txt` or `uv sync`)
+- Runtime dependencies (install with `pip install -r requirements.txt` or `uv sync`):
+  - `httpx` – HTTP client
+  - `python-dotenv` – `.env` file support
+  - `pyyaml` – YAML configuration file support
 
 ## Testing
 

@@ -3,3 +3,4 @@
 # Source of truth: pyproject.toml [project.dependencies]
 httpx>=0.28.1
 python-dotenv>=1.1.1
+pyyaml>=6.0
