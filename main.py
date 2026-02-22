@@ -1112,6 +1112,30 @@ def validate_folder_data(data: Dict[str, Any], url: str) -> bool:
         )
         return False
 
+    # Validate 'rules' if present (must be a list)
+    if "rules" in data and not isinstance(data["rules"], list):
+        log.error(f"Invalid data from {sanitize_for_log(url)}: 'rules' must be a list.")
+        return False
+
+    # Validate 'rule_groups' if present (must be a list of dicts)
+    if "rule_groups" in data:
+        if not isinstance(data["rule_groups"], list):
+            log.error(
+                f"Invalid data from {sanitize_for_log(url)}: 'rule_groups' must be a list."
+            )
+            return False
+        for i, rg in enumerate(data["rule_groups"]):
+            if not isinstance(rg, dict):
+                log.error(
+                    f"Invalid data from {sanitize_for_log(url)}: rule_groups[{i}] must be an object."
+                )
+                return False
+            if "rules" in rg and not isinstance(rg["rules"], list):
+                log.error(
+                    f"Invalid data from {sanitize_for_log(url)}: rule_groups[{i}].rules must be a list."
+                )
+                return False
+
     return True
 
 
