@@ -2297,16 +2297,25 @@ def sync_profile(
             if existing_folders is None:
                 return False
 
-            if not no_delete:
-                deletion_occurred = False
+            # Identify folders to delete and folders to keep (scan)
+            folders_to_delete = []
+            folders_to_scan = existing_folders.copy()
 
-                # Identify folders to delete
-                folders_to_delete = []
+            if not no_delete:
                 for folder_data in folder_data_list:
                     name = folder_data["group"]["group"].strip()
                     if name in existing_folders:
                         folders_to_delete.append((name, existing_folders[name]))
+                        if name in folders_to_scan:
+                            del folders_to_scan[name]
 
+            # Start fetching rules from kept folders in background (parallel to deletions)
+            existing_rules_future = shared_executor.submit(
+                get_all_existing_rules, client, profile_id, folders_to_scan
+            )
+
+            if not no_delete:
+                deletion_occurred = False
                 if folders_to_delete:
                     # Parallel delete to speed up the "clean slate" phase
                     # Use shared_executor (3 workers)
@@ -2339,10 +2348,13 @@ def sync_profile(
                         )
                     countdown_timer(60, "Waiting for deletions to propagate")
 
-            # Optimization: Pass the updated existing_folders to avoid redundant API call
-            existing_rules = get_all_existing_rules(
-                client, profile_id, known_folders=existing_folders
-            )
+            # Retrieve result from background task
+            # If deletion occurred, we effectively used the wait time to fetch rules!
+            try:
+                existing_rules = existing_rules_future.result()
+            except Exception as e:
+                log.error(f"Failed to fetch existing rules in background: {sanitize_for_log(e)}")
+                existing_rules = set()
 
             with concurrent.futures.ThreadPoolExecutor(
                 max_workers=max_workers
