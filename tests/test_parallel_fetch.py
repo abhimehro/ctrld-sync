@@ -28,22 +28,10 @@ class TestParallelFetch(unittest.TestCase):
     @patch("main.verify_access_and_get_folders")
     @patch("main.fetch_folder_data")
     @patch("main.validate_folder_url")
-    # We mock countdown_timer so the test does not actually wait 60 seconds.
-    # This test focuses on the parallelization mechanism (delete_folder vs
-    # get_all_existing_rules), not the real-world timing benefit of hiding
-    # get_all_existing_rules latency behind the countdown.
     @patch("main.countdown_timer")
     def test_parallel_execution(self, mock_timer, mock_validate, mock_fetch, mock_verify, mock_delete, mock_get_rules):
         """
         Verify that get_all_existing_rules runs in parallel with delete_folder.
-
-        Note:
-            countdown_timer is intentionally mocked to be instant so that this
-            test remains fast and deterministic. The timing assertions below
-            validate that delete_folder and get_all_existing_rules execute in
-            parallel (vs. serial execution), rather than measuring the actual
-            real-world benefit of overlapping get_all_existing_rules with the
-            60-second countdown.
         """
         # Setup mocks
         mock_validate.return_value = True
@@ -84,10 +72,21 @@ class TestParallelFetch(unittest.TestCase):
 
             # Verify get_all_existing_rules was called with ONLY keep_folder
             call_args = mock_get_rules.call_args
-            known_folders = call_args.kwargs.get('known_folders', {})
+            # args: client, profile_id, known_folders
+            known_folders = call_args[0][2] if len(call_args[0]) > 2 else call_args[1]['known_folders']
 
             self.assertIn("keep_folder", known_folders)
             self.assertNotIn("test_folder", known_folders, "Should not fetch rules from deleted folder")
 
-            # Optional: log elapsed time for informational purposes only.
-            print(f"Elapsed time (non-assertive): {elapsed:.2f}s")
+            # Timing check
+            # If serial: 1s (delete) + 1s (fetch) + overhead = ~2s
+            # If parallel: max(1s, 1s) + overhead = ~1s
+            # Note: sync_profile also has overhead (fetch_folder_data etc), but that's mocked to be fast.
+            # We allow some buffer, but it should be significantly less than 2s
+            print(f"Elapsed time: {elapsed:.2f}s")
+
+            # In the CURRENT implementation (serial), this test should FAIL (take > 2s)
+            # Once implemented, it should PASS (take < 1.5s)
+
+            # Verify optimization effectiveness (should be close to max(1.0, 1.0) = 1.0s, allow 1.5s buffer)
+            self.assertLess(elapsed, 1.5, "Parallel execution took too long")

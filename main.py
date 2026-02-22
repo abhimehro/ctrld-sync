@@ -2323,19 +2323,7 @@ def sync_profile(
             try:
                 existing_rules = existing_rules_future.result()
             except Exception as e:
-                # NOTE: If we cannot retrieve the existing rules, we intentionally fall
-                # back to an empty set so the sync can continue in a degraded mode.
-                # This *disables* cross-folder duplicate rule detection for this run
-                # and may lead to redundant API calls for rules that already exist
-                # elsewhere, but it is safer than aborting the entire sync.
-                log.error(
-                    "Failed to fetch existing rules in background: %s",
-                    sanitize_for_log(e),
-                )
-                log.warning(
-                    "Proceeding without existing rule metadata; duplicate rule "
-                    "detection across folders is DISABLED for this run."
-                )
+                log.error(f"Failed to fetch existing rules in background: {sanitize_for_log(e)}")
                 existing_rules = set()
 
             with concurrent.futures.ThreadPoolExecutor(
