@@ -208,6 +208,11 @@ _DANGEROUS_FOLDER_CHARS = set("<>\"'`")
 # Path separators (prevent confusion and directory traversal attempts)
 _DANGEROUS_FOLDER_CHARS.update(["/", "\\"])
 
+# Security: Input length limits
+MAX_FOLDER_NAME_LENGTH = 64
+MAX_RULE_LENGTH = 255
+MAX_PROFILE_ID_LENGTH = 64
+
 # Security: Unicode Bidi control characters (prevent RTLO/homograph attacks)
 # These characters can be used to mislead users about file extensions or content
 # See: https://en.wikipedia.org/wiki/Right-to-left_override
@@ -993,7 +998,7 @@ def is_valid_profile_id_format(profile_id: str) -> bool:
     """
     if not PROFILE_ID_PATTERN.match(profile_id):
         return False
-    if len(profile_id) > 64:
+    if len(profile_id) > MAX_PROFILE_ID_LENGTH:
         return False
     return True
 
@@ -1009,8 +1014,8 @@ def validate_profile_id(profile_id: str, log_errors: bool = True) -> bool:
         if log_errors:
             if not PROFILE_ID_PATTERN.match(profile_id):
                 log.error("Invalid profile ID format (contains unsafe characters)")
-            elif len(profile_id) > 64:
-                log.error("Invalid profile ID length (max 64 chars)")
+            elif len(profile_id) > MAX_PROFILE_ID_LENGTH:
+                log.error(f"Invalid profile ID length (max {MAX_PROFILE_ID_LENGTH} chars)")
         return False
     return True
 
@@ -1035,6 +1040,9 @@ def is_valid_rule(rule: str) -> bool:
     if not rule:
         return False
 
+    if len(rule) > MAX_RULE_LENGTH:
+        return False
+
     # Strict whitelist to prevent injection
     if not RULE_PATTERN.match(rule):
         return False
@@ -1054,6 +1062,9 @@ def is_valid_folder_name(name: str) -> bool:
     - Non-printable characters
     """
     if not name or not name.strip() or not name.isprintable():
+        return False
+
+    if len(name) > MAX_FOLDER_NAME_LENGTH:
         return False
 
     # Check for dangerous characters (pre-compiled at module level for performance)
