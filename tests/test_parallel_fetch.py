@@ -84,8 +84,7 @@ class TestParallelFetch(unittest.TestCase):
 
             # Verify get_all_existing_rules was called with ONLY keep_folder
             call_args = mock_get_rules.call_args
-            # args: client, profile_id, known_folders
-            known_folders = call_args[0][2] if len(call_args[0]) > 2 else call_args[1]['known_folders']
+            known_folders = call_args.kwargs.get('known_folders', {})
 
             self.assertIn("keep_folder", known_folders)
             self.assertNotIn("test_folder", known_folders, "Should not fetch rules from deleted folder")
