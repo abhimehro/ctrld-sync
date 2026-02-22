@@ -628,7 +628,7 @@ MAX_RESPONSE_SIZE = 10 * 1024 * 1024  # 10MB limit
 
 
 # --------------------------------------------------------------------------- #
-# 2. Clients
+# 2. Clients (configured with secure defaults)
 # --------------------------------------------------------------------------- #
 def _api_client() -> httpx.Client:
     return httpx.Client(
@@ -2473,6 +2473,29 @@ def print_summary_table(
     print(f"{line('└', '┴', '┘')}\n")
 
 
+def print_success_message(profile_ids: List[str]) -> None:
+    """Prints a random success message and a link to the Control D dashboard."""
+    if not USE_COLORS:
+        return
+
+    success_msgs = [
+        "✨ All synced!",
+        "🚀 Ready for liftoff!",
+        "🎨 Beautifully done!",
+        "💎 Smooth operation!",
+        "🌈 Perfect harmony!",
+    ]
+    print(f"\n{Colors.GREEN}{random.choice(success_msgs)}{Colors.ENDC}")
+
+    # Construct dashboard URL
+    if profile_ids and len(profile_ids) == 1 and profile_ids[0] != "dry-run-placeholder":
+        dashboard_url = f"https://controld.com/dashboard/profiles/{profile_ids[0]}/filters"
+        print(f"{Colors.CYAN}👀 View your changes: {Colors.UNDERLINE}{dashboard_url}{Colors.ENDC}")
+    elif len(profile_ids) > 1:
+        dashboard_url = "https://controld.com/dashboard/profiles"
+        print(f"{Colors.CYAN}👀 View your changes: {Colors.UNDERLINE}{dashboard_url}{Colors.ENDC}")
+
+
 def parse_args() -> argparse.Namespace:
     """
     Parses command-line arguments for the Control D sync tool.
@@ -2798,15 +2821,8 @@ def main():
     print(make_col_separator(Box.BL, Box.B, Box.BR, Box.H))
 
     # Success Delight
-    if all_success and USE_COLORS and not args.dry_run:
-        success_msgs = [
-            "✨ All synced!",
-            "🚀 Ready for liftoff!",
-            "🎨 Beautifully done!",
-            "💎 Smooth operation!",
-            "🌈 Perfect harmony!",
-        ]
-        print(f"\n{Colors.GREEN}{random.choice(success_msgs)}{Colors.ENDC}")
+    if all_success and not args.dry_run:
+        print_success_message(profile_ids)
 
     # Dry Run Next Steps
     if args.dry_run:
