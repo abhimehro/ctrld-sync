@@ -804,7 +804,8 @@ def save_disk_cache() -> None:
         # This prevents corrupted cache if process is killed mid-write
         temp_file = cache_file.with_suffix(".tmp")
         with open(temp_file, "w", encoding="utf-8") as f:
-            json.dump(_disk_cache, f, indent=2)
+            # OPTIMIZATION: Removed indent=2 to reduce cache file size and speed up I/O
+            json.dump(_disk_cache, f)
         
         # Set file permissions to user-only (rw-------)
         if platform.system() != "Windows":
@@ -1978,6 +1979,9 @@ def push_rules(
     # Using a local reference to the match method avoids function call overhead
     # in the hot loop. This provides a measurable speedup for large lists.
     match_rule = RULE_PATTERN.match
+    # Optimization 3: Hoist append method and sanitize call to avoid repeated lookups
+    append = filtered_hostnames.append
+    sanitized_folder_name = sanitize_for_log(folder_name)
 
     for h in unique_hostnames:
         if h in existing_rules:
@@ -1985,28 +1989,28 @@ def push_rules(
 
         if not match_rule(h):
             log.warning(
-                f"Skipping unsafe rule in {sanitize_for_log(folder_name)}: {sanitize_for_log(h)}"
+                f"Skipping unsafe rule in {sanitized_folder_name}: {sanitize_for_log(h)}"
             )
             skipped_unsafe += 1
             continue
 
-        filtered_hostnames.append(h)
+        append(h)
 
     if skipped_unsafe > 0:
         log.warning(
-            f"Folder {sanitize_for_log(folder_name)}: skipped {skipped_unsafe} unsafe rules"
+            f"Folder {sanitized_folder_name}: skipped {skipped_unsafe} unsafe rules"
         )
 
     duplicates_count = original_count - len(filtered_hostnames) - skipped_unsafe
 
     if duplicates_count > 0:
         log.info(
-            f"Folder {sanitize_for_log(folder_name)}: skipping {duplicates_count} duplicate rules"
+            f"Folder {sanitized_folder_name}: skipping {duplicates_count} duplicate rules"
         )
 
     if not filtered_hostnames:
         log.info(
-            f"Folder {sanitize_for_log(folder_name)} - no new rules to push after filtering duplicates"
+            f"Folder {sanitized_folder_name} - no new rules to push after filtering duplicates"
         )
         return True
 
@@ -2023,7 +2027,7 @@ def push_rules(
     str_do = str(do)
     str_status = str(status)
     str_group = str(folder_id)
-    sanitized_folder_name = sanitize_for_log(folder_name)
+    # sanitized_folder_name is already computed above
     progress_label = f"Folder {sanitized_folder_name}"
 
     def process_batch(batch_idx: int, batch_data: List[str]) -> Optional[List[str]]:
