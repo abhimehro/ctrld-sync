@@ -69,3 +69,7 @@
 ## 2024-03-24 - Thread Pool Churn
 **Learning:** Python's `ThreadPoolExecutor` incurs measurable overhead (thread creation/shutdown) when created/destroyed repeatedly inside loops, even with small worker counts.
 **Action:** Lift `ThreadPoolExecutor` creation to the highest possible scope and pass it down as a dependency (using `contextlib.nullcontext` for flexible ownership).
+
+## 2026-02-22 - [Stale Module References in Tests]
+**Learning:** When tests manually reload modules (e.g. `del sys.modules['main']`), other test files that imported the module at the top level will hold references to the *stale* module object. `patch('module.func')` patches the *new* module in `sys.modules`, so the old functions (called by stale tests) remain unpatched.
+**Action:** In test suites where module reloading occurs, avoid top-level imports of the reloaded module. Import it inside `setUp` or test methods using `sys.modules.get('main')` or `import main` locally.
