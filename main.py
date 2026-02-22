@@ -2793,7 +2793,20 @@ def main():
                         for url in args.folder_url:
                             new_argv.extend(["--folder-url", url])
                 # Join multiple profiles if needed
-                p_str = ",".join(profile_ids)
+                    # In normal operation we replace the current process with the "live" run.
+                    # For test environments, CONTROLD_SYNC_ENABLE_EXEC=0 can be used to
+                    # skip the os.execv call while still exercising argument reconstruction
+                    # and control flow. This makes the interactive restart path testable
+                    # without affecting production behavior.
+                    if os.environ.get("CONTROLD_SYNC_ENABLE_EXEC", "1") == "1":
+                        print(f"\n{Colors.GREEN}🔄 Restarting in live mode...{Colors.ENDC}")
+                        os.execv(sys.executable, new_argv)
+                    else:
+                        # Log at debug level so tests can assert on the constructed argv
+                        # without performing a real exec.
+                        logging.debug(
+                            "CONTROLD_SYNC_ENABLE_EXEC=0; would exec: %r", new_argv
+                        )
             else:
                 p_str = "<your-profile-id>"
                     # Match the established pattern of guarding color usage with USE_COLORS
