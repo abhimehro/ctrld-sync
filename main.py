@@ -680,6 +680,27 @@ _rate_limit_info = {
 _rate_limit_lock = threading.Lock()  # Protect _rate_limit_info updates
 
 
+def _is_cache_fresh(url: str) -> bool:
+    """
+    Checks if the URL is in the persistent cache and within TTL.
+
+    This optimization allows skipping expensive DNS validation for
+    content that is already known to be safe (validated at fetch time).
+    """
+    # Check in-memory cache first
+    with _cache_lock:
+        if url in _cache:
+            return True
+
+    # Check disk cache
+    entry = _disk_cache.get(url)
+    if entry:
+        last_validated = entry.get("last_validated", 0)
+        if time.time() - last_validated < CACHE_TTL_SECONDS:
+            return True
+    return False
+
+
 def get_cache_dir() -> Path:
     """
     Returns platform-specific cache directory for ctrld-sync.
@@ -1131,19 +1152,22 @@ def validate_folder_data(data: Dict[str, Any], url: str) -> bool:
                 )
                 return False
             if "rules" in rg:
-                if not isinstance (rg["rules"], list):
-                    log. error (
-                    f"Invalid data from {sanitize_for_log(url)} : rule_groups[fil].rules must be a list."
+                if not isinstance(rg["rules"], list):
+                    log.error(
+                        f"Invalid data from {sanitize_for_log(url)}: rule_groups[{i}].rules must be a list."
                     )
                     return False
-# Ensure each rule within the group is an object (dict),
-# because later code treats each rule as a mapping (e.g., rule.get(...)).
-for j, rule in enumerate (rgi"rules"1):
-if not isinstance (rule, dict):
-    log. error (
-        f"Invalid data from {sanitize_for_log(u rl)}: rule_groups[fiłl.rules[kił] must be an object."
-    )
-    return False
+                # Ensure each rule within the group is an object (dict),
+                # because later code treats each rule as a mapping (e.g., rule.get(...)).
+                for j, rule in enumerate(rg["rules"]):
+                    if not isinstance(rule, dict):
+                        log.error(
+                            f"Invalid data from {sanitize_for_log(url)}: rule_groups[{i}].rules[{j}] must be an object."
+                        )
+                        return False
+
+    return True
+
 
 # Lock to protect updates to _api_stats in multi-threaded contexts.
 # Without this, concurrent increments can lose updates because `+=` is not atomic.
@@ -1788,6 +1812,11 @@ def warm_up_cache(urls: Sequence[str]) -> None:
     # OPTIMIZATION: Combine validation (DNS) and fetching (HTTP) in one task
     # to allow validation latency to be parallelized.
     def _validate_and_fetch(url: str):
+        # Optimization: Skip DNS validation if cache is fresh
+        # This saves blocking I/O for known-good content
+        if _is_cache_fresh(url):
+            return _gh_get(url)
+
         if validate_folder_url(url):
             return _gh_get(url)
         return None
