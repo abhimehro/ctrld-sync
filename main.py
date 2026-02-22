@@ -2778,70 +2778,19 @@ def main():
         ]
         print(f"\n{Colors.GREEN}{random.choice(success_msgs)}{Colors.ENDC}")
 
-                    # We also strip any --plan-json option to avoid overwriting a dry-run plan
-                    # file when restarting in live mode. This covers both:
-                    #   --plan-json path.json
-                    #   --plan-json=path.json
-                    clean_argv: List[str] = []
-                    skip_next = False
-                    for arg in sys.argv[1:]:
-                        if skip_next:
-                            # Skip the value immediately following a token-only flag
-                            skip_next = False
-                            continue
-                        if arg == "--dry-run":
-                            continue
-                        if arg == "--plan-json":
-                            # Do not carry over the plan file path into live mode
-                            skip_next = True
-                            continue
-                        if arg.startswith("--plan-json="):
-                            # Handle --plan-json=path.json style
-                            continue
-                        clean_argv.append(arg)
+    # Dry Run Next Steps
     if args.dry_run:
         print()  # Spacer
         if all_success:
             # Build the suggested command once so it stays consistent between
             # color and non-color output modes.
             cmd_parts = ["python", "main.py"]
-
-                    # If --folder-url wasn't in original args but we have effective folder URLs
-                    # (e.g., from environment variables or interactive input), inject them so
-                    # the restarted process targets the same folders without re-prompting.
-                    if "--folder-url" not in sys.argv and getattr(args, "folder_url", None):
-                        for url in args.folder_url:
-                            new_argv.extend(["--folder-url", url])
+            if profile_ids:
                 # Join multiple profiles if needed
-                    # In normal operation we replace the current process with the "live" run.
-                    # For test environments, CONTROLD_SYNC_ENABLE_EXEC=0 can be used to
-                    # skip the os.execv call while still exercising argument reconstruction
-                    # and control flow. This makes the interactive restart path testable
-                    # without affecting production behavior.
-                    if os.environ.get("CONTROLD_SYNC_ENABLE_EXEC", "1") == "1":
-                        print(f"\n{Colors.GREEN}🔄 Restarting in live mode...{Colors.ENDC}")
-                        os.execv(sys.executable, new_argv)
-                    else:
-                        # Log at debug level so tests can assert on the constructed argv
-                        # without performing a real exec.
-                        logging.debug(
-                            "CONTROLD_SYNC_ENABLE_EXEC=0; would exec: %r", new_argv
-                        )
+                p_str = ",".join(profile_ids)
             else:
                 p_str = "<your-profile-id>"
-                    # Match the established pattern of guarding color usage with USE_COLORS
-                    if USE_COLORS:
-                        print(f"\n{Colors.GREEN}🔄 Restarting in live mode...{Colors.ENDC}")
-                    else:
-                        print("\n🔄 Restarting in live mode...")
-                    os.execv(sys.executable, new_argv)
-
-                except (KeyboardInterrupt, EOFError):
-                    # Keep cancellation messaging consistent with USE_COLORS convention
-                    if USE_COLORS:
-                        print(f"\n{Colors.WARNING}⚠️  Cancelled.{Colors.ENDC}")
-                    else:
-                        print("\n⚠️  Cancelled.")
+            cmd_parts.append(f"--profiles {p_str}")
 
             # Reconstruct other args if they were used (optional but helpful)
             if args.folder_url:
