@@ -2778,7 +2778,27 @@ def main():
         ]
         print(f"\n{Colors.GREEN}{random.choice(success_msgs)}{Colors.ENDC}")
 
-    # Dry Run Next Steps
+                    # We also strip any --plan-json option to avoid overwriting a dry-run plan
+                    # file when restarting in live mode. This covers both:
+                    #   --plan-json path.json
+                    #   --plan-json=path.json
+                    clean_argv: List[str] = []
+                    skip_next = False
+                    for arg in sys.argv[1:]:
+                        if skip_next:
+                            # Skip the value immediately following a token-only flag
+                            skip_next = False
+                            continue
+                        if arg == "--dry-run":
+                            continue
+                        if arg == "--plan-json":
+                            # Do not carry over the plan file path into live mode
+                            skip_next = True
+                            continue
+                        if arg.startswith("--plan-json="):
+                            # Handle --plan-json=path.json style
+                            continue
+                        clean_argv.append(arg)
     if args.dry_run:
         print()  # Spacer
         if all_success:
