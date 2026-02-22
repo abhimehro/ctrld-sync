@@ -2796,7 +2796,19 @@ def main():
                 p_str = ",".join(profile_ids)
             else:
                 p_str = "<your-profile-id>"
-            cmd_parts.append(f"--profiles {p_str}")
+                    # Match the established pattern of guarding color usage with USE_COLORS
+                    if USE_COLORS:
+                        print(f"\n{Colors.GREEN}🔄 Restarting in live mode...{Colors.ENDC}")
+                    else:
+                        print("\n🔄 Restarting in live mode...")
+                    os.execv(sys.executable, new_argv)
+
+                except (KeyboardInterrupt, EOFError):
+                    # Keep cancellation messaging consistent with USE_COLORS convention
+                    if USE_COLORS:
+                        print(f"\n{Colors.WARNING}⚠️  Cancelled.{Colors.ENDC}")
+                    else:
+                        print("\n⚠️  Cancelled.")
 
             # Reconstruct other args if they were used (optional but helpful)
             if args.folder_url:
