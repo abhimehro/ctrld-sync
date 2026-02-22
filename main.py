@@ -2410,12 +2410,14 @@ def print_success_message(profile_ids: List[str]) -> None:
     ]
     print(f"\n{Colors.GREEN}{random.choice(success_msgs)}{Colors.ENDC}")
 
-    # Construct dashboard URL
-    dashboard_url = None
+    # Construct dashboard URL once, then print it in a single place
+    dashboard_url: Optional[str] = None
     if profile_ids and len(profile_ids) == 1 and profile_ids[0] != "dry-run-placeholder":
         dashboard_url = f"https://controld.com/dashboard/profiles/{profile_ids[0]}/filters"
-    elif len(profile_ids) > 1:
+    elif profile_ids and len(profile_ids) > 1:
         dashboard_url = "https://controld.com/dashboard/profiles"
+
+    if dashboard_url:
     if dashboard_url:
         print(f"{Colors.CYAN}👀 View your changes: {Colors.UNDERLINE}{dashboard_url}{Colors.ENDC}")
 
