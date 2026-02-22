@@ -28,10 +28,22 @@ class TestParallelFetch(unittest.TestCase):
     @patch("main.verify_access_and_get_folders")
     @patch("main.fetch_folder_data")
     @patch("main.validate_folder_url")
+    # We mock countdown_timer so the test does not actually wait 60 seconds.
+    # This test focuses on the parallelization mechanism (delete_folder vs
+    # get_all_existing_rules), not the real-world timing benefit of hiding
+    # get_all_existing_rules latency behind the countdown.
     @patch("main.countdown_timer")
     def test_parallel_execution(self, mock_timer, mock_validate, mock_fetch, mock_verify, mock_delete, mock_get_rules):
         """
         Verify that get_all_existing_rules runs in parallel with delete_folder.
+
+        Note:
+            countdown_timer is intentionally mocked to be instant so that this
+            test remains fast and deterministic. The timing assertions below
+            validate that delete_folder and get_all_existing_rules execute in
+            parallel (vs. serial execution), rather than measuring the actual
+            real-world benefit of overlapping get_all_existing_rules with the
+            60-second countdown.
         """
         # Setup mocks
         mock_validate.return_value = True
