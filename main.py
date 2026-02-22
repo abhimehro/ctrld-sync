@@ -2785,7 +2785,13 @@ def main():
             # Build the suggested command once so it stays consistent between
             # color and non-color output modes.
             cmd_parts = ["python", "main.py"]
-            if profile_ids:
+
+                    # If --folder-url wasn't in original args but we have effective folder URLs
+                    # (e.g., from environment variables or interactive input), inject them so
+                    # the restarted process targets the same folders without re-prompting.
+                    if "--folder-url" not in sys.argv and getattr(args, "folder_url", None):
+                        for url in args.folder_url:
+                            new_argv.extend(["--folder-url", url])
                 # Join multiple profiles if needed
                 p_str = ",".join(profile_ids)
             else:
