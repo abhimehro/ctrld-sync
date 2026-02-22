@@ -85,8 +85,8 @@ class TestParallelFetch(unittest.TestCase):
             # We allow some buffer, but it should be significantly less than 2s
             print(f"Elapsed time: {elapsed:.2f}s")
 
-            # In the CURRENT implementation (serial), this test should FAIL (take > 2s)
-            # Once implemented, it should PASS (take < 1.5s)
+            # A purely serial implementation would be expected to FAIL this test (take > 2s).
+            # This test asserts the optimized parallel implementation, which should PASS (take < 1.5s).
 
             # Verify optimization effectiveness (should be close to max(1.0, 1.0) = 1.0s, allow 1.5s buffer)
             self.assertLess(elapsed, 1.5, "Parallel execution took too long")
