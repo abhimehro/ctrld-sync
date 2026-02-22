@@ -2385,6 +2385,53 @@ def sync_profile(
 # --------------------------------------------------------------------------- #
 # 5. Entry-point
 # --------------------------------------------------------------------------- #
+def prompt_for_interactive_restart(profile_ids: List[str]) -> None:
+    """
+    Prompts the user to restart the script in live mode (after a successful dry run).
+
+    If the user confirms, the script restarts itself using os.execv, preserving
+    all original arguments (except --dry-run) and environment variables.
+
+    This function only runs if sys.stdin is a TTY (interactive session).
+    """
+    if not sys.stdin.isatty():
+        return
+
+    try:
+        if USE_COLORS:
+            prompt = f"\n{Colors.BOLD}🚀 Ready to launch? {Colors.ENDC}Press [Enter] to run now (or Ctrl+C to cancel)..."
+        else:
+            prompt = "\n🚀 Ready to launch? Press [Enter] to run now (or Ctrl+C to cancel)..."
+
+        # Flush stderr to ensure prompt is visible
+        sys.stderr.flush()
+        input(prompt)
+
+        # Prepare environment for the new process
+        # Pass the current token to avoid re-prompting if it was entered interactively
+        if TOKEN:
+            os.environ["TOKEN"] = TOKEN
+
+        # Construct command arguments
+        # Use sys.argv filtering to preserve all user-provided flags (even future ones)
+        # while removing --dry-run to switch to live mode.
+        clean_argv = [arg for arg in sys.argv[1:] if arg != "--dry-run"]
+        new_argv = [sys.executable, sys.argv[0]] + clean_argv
+
+        # If --profiles wasn't in original args (meaning it came from env/input),
+        # inject it explicitly so the user doesn't have to re-enter it.
+        if "--profiles" not in sys.argv and profile_ids:
+            new_argv.extend(["--profiles", ",".join(profile_ids)])
+
+        print(f"\n{Colors.GREEN}🔄 Restarting in live mode...{Colors.ENDC}")
+        # Security: The input to execv is derived from trusted sys.argv and validated profile_ids.
+        # It restarts the same script with the same python interpreter.
+        os.execv(sys.executable, new_argv)  # nosec B606
+
+    except (KeyboardInterrupt, EOFError):
+        print(f"\n{Colors.WARNING}⚠️  Cancelled.{Colors.ENDC}")
+
+
 def print_summary_table(
     sync_results: List[Dict[str, Any]], success_count: int, total: int, dry_run: bool
 ) -> None:
@@ -2788,6 +2835,10 @@ def main():
             else:
                 print("👉 Ready to sync? Run the following command:")
                 print(f"   {cmd_str}")
+
+            # Offer interactive restart if appropriate
+            prompt_for_interactive_restart(profile_ids)
+
         else:
             if USE_COLORS:
                 print(
