@@ -1131,19 +1131,22 @@ def validate_folder_data(data: Dict[str, Any], url: str) -> bool:
                 )
                 return False
             if "rules" in rg:
-                if not isinstance (rg["rules"], list):
-                    log. error (
-                    f"Invalid data from {sanitize_for_log(url)} : rule_groups[fil].rules must be a list."
+                if not isinstance(rg["rules"], list):
+                    log.error(
+                        f"Invalid data from {sanitize_for_log(url)}: rule_groups[{i}].rules must be a list."
                     )
                     return False
-# Ensure each rule within the group is an object (dict),
-# because later code treats each rule as a mapping (e.g., rule.get(...)).
-for j, rule in enumerate (rgi"rules"1):
-if not isinstance (rule, dict):
-    log. error (
-        f"Invalid data from {sanitize_for_log(u rl)}: rule_groups[fiłl.rules[kił] must be an object."
-    )
-    return False
+                # Ensure each rule within the group is an object (dict),
+                # because later code treats each rule as a mapping (e.g., rule.get(...)).
+                for j, rule in enumerate(rg["rules"]):
+                    if not isinstance(rule, dict):
+                        log.error(
+                            f"Invalid data from {sanitize_for_log(url)}: rule_groups[{i}].rules[{j}] must be an object."
+                        )
+                        return False
+
+    return True
+
 
 # Lock to protect updates to _api_stats in multi-threaded contexts.
 # Without this, concurrent increments can lose updates because `+=` is not atomic.
