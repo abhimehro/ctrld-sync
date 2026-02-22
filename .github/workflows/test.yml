@@ -1,0 +1,35 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # PERFORMANCE: Cache pip dependencies to speed up CI runs
+      # Cache key is based on pyproject.toml hash since dev deps are defined there
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+          cache-dependency-path: 'pyproject.toml'
+
+      # Install the package with dev dependencies (pytest, pytest-mock, pytest-xdist)
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      # PERFORMANCE: -n auto enables parallel execution via pytest-xdist,
+      # distributing tests across available CPU cores for 40%+ faster runs
+      - name: Run tests
+        run: pytest tests/ -n auto
