@@ -1,0 +1,8 @@
+---
+exclude_paths:
+  - "**/*.pyc"
+  - "**/__pycache__/**"
+  - ".git/**"
+  - ".github/**"
+  - "uv.lock"
+  - "results.sarif"
