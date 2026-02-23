@@ -628,7 +628,7 @@ MAX_RESPONSE_SIZE = 10 * 1024 * 1024  # 10MB limit
 
 
 # --------------------------------------------------------------------------- #
-# 2. Clients
+# 2. Clients (configured with secure defaults)
 # --------------------------------------------------------------------------- #
 def _api_client() -> httpx.Client:
     return httpx.Client(
@@ -1112,8 +1112,38 @@ def validate_folder_data(data: Dict[str, Any], url: str) -> bool:
         )
         return False
 
-    return True
+    # Validate 'rules' if present (must be a list)
+    if "rules" in data and not isinstance(data["rules"], list):
+        log.error(f"Invalid data from {sanitize_for_log(url)}: 'rules' must be a list.")
+        return False
 
+    # Validate 'rule_groups' if present (must be a list of dicts)
+    if "rule_groups" in data:
+        if not isinstance(data["rule_groups"], list):
+            log.error(
+                f"Invalid data from {sanitize_for_log(url)}: 'rule_groups' must be a list."
+            )
+            return False
+        for i, rg in enumerate(data["rule_groups"]):
+            if not isinstance(rg, dict):
+                log.error(
+                    f"Invalid data from {sanitize_for_log(url)}: rule_groups[{i}] must be an object."
+                )
+                return False
+            if "rules" in rg:
+                if not isinstance (rg["rules"], list):
+                    log. error (
+                    f"Invalid data from {sanitize_for_log(url)} : rule_groups[fil].rules must be a list."
+                    )
+                    return False
+# Ensure each rule within the group is an object (dict),
+# because later code treats each rule as a mapping (e.g., rule.get(...)).
+for j, rule in enumerate (rgi"rules"1):
+if not isinstance (rule, dict):
+    log. error (
+        f"Invalid data from {sanitize_for_log(u rl)}: rule_groups[fiłl.rules[kił] must be an object."
+    )
+    return False
 
 # Lock to protect updates to _api_stats in multi-threaded contexts.
 # Without this, concurrent increments can lose updates because `+=` is not atomic.
@@ -2355,6 +2385,53 @@ def sync_profile(
 # --------------------------------------------------------------------------- #
 # 5. Entry-point
 # --------------------------------------------------------------------------- #
+def prompt_for_interactive_restart(profile_ids: List[str]) -> None:
+    """
+    Prompts the user to restart the script in live mode (after a successful dry run).
+
+    If the user confirms, the script restarts itself using os.execv, preserving
+    all original arguments (except --dry-run) and environment variables.
+
+    This function only runs if sys.stdin is a TTY (interactive session).
+    """
+    if not sys.stdin.isatty():
+        return
+
+    try:
+        if USE_COLORS:
+            prompt = f"\n{Colors.BOLD}🚀 Ready to launch? {Colors.ENDC}Press [Enter] to run now (or Ctrl+C to cancel)..."
+        else:
+            prompt = "\n🚀 Ready to launch? Press [Enter] to run now (or Ctrl+C to cancel)..."
+
+        # Flush stderr to ensure prompt is visible
+        sys.stderr.flush()
+        input(prompt)
+
+        # Prepare environment for the new process
+        # Pass the current token to avoid re-prompting if it was entered interactively
+        if TOKEN:
+            os.environ["TOKEN"] = TOKEN
+
+        # Construct command arguments
+        # Use sys.argv filtering to preserve all user-provided flags (even future ones)
+        # while removing --dry-run to switch to live mode.
+        clean_argv = [arg for arg in sys.argv[1:] if arg != "--dry-run"]
+        new_argv = [sys.executable, sys.argv[0]] + clean_argv
+
+        # If --profiles wasn't in original args (meaning it came from env/input),
+        # inject it explicitly so the user doesn't have to re-enter it.
+        if "--profiles" not in sys.argv and profile_ids:
+            new_argv.extend(["--profiles", ",".join(profile_ids)])
+
+        print(f"\n{Colors.GREEN}🔄 Restarting in live mode...{Colors.ENDC}")
+        # Security: The input to execv is derived from trusted sys.argv and validated profile_ids.
+        # It restarts the same script with the same python interpreter.
+        os.execv(sys.executable, new_argv)  # nosec B606
+
+    except (KeyboardInterrupt, EOFError):
+        print(f"\n{Colors.WARNING}⚠️  Cancelled.{Colors.ENDC}")
+
+
 def print_summary_table(
     sync_results: List[Dict[str, Any]], success_count: int, total: int, dry_run: bool
 ) -> None:
@@ -2394,6 +2471,29 @@ def print_summary_table(
 
     print(f"{line('├', '┼', '┤')}\n{row(['TOTAL', str(t_f), f'{t_r:,}', f'{t_d:.1f}s', f'{t_col}{t_status}{Colors.ENDC}'])}")
     print(f"{line('└', '┴', '┘')}\n")
+
+
+def print_success_message(profile_ids: List[str]) -> None:
+    """Prints a random success message and a link to the Control D dashboard."""
+    if not USE_COLORS:
+        return
+
+    success_msgs = [
+        "✨ All synced!",
+        "🚀 Ready for liftoff!",
+        "🎨 Beautifully done!",
+        "💎 Smooth operation!",
+        "🌈 Perfect harmony!",
+    ]
+    print(f"\n{Colors.GREEN}{random.choice(success_msgs)}{Colors.ENDC}")
+
+    # Construct dashboard URL
+    if profile_ids and len(profile_ids) == 1 and profile_ids[0] != "dry-run-placeholder":
+        dashboard_url = f"https://controld.com/dashboard/profiles/{profile_ids[0]}/filters"
+        print(f"{Colors.CYAN}👀 View your changes: {Colors.UNDERLINE}{dashboard_url}{Colors.ENDC}")
+    elif len(profile_ids) > 1:
+        dashboard_url = "https://controld.com/dashboard/profiles"
+        print(f"{Colors.CYAN}👀 View your changes: {Colors.UNDERLINE}{dashboard_url}{Colors.ENDC}")
 
 
 def parse_args() -> argparse.Namespace:
@@ -2721,15 +2821,8 @@ def main():
     print(make_col_separator(Box.BL, Box.B, Box.BR, Box.H))
 
     # Success Delight
-    if all_success and USE_COLORS and not args.dry_run:
-        success_msgs = [
-            "✨ All synced!",
-            "🚀 Ready for liftoff!",
-            "🎨 Beautifully done!",
-            "💎 Smooth operation!",
-            "🌈 Perfect harmony!",
-        ]
-        print(f"\n{Colors.GREEN}{random.choice(success_msgs)}{Colors.ENDC}")
+    if all_success and not args.dry_run:
+        print_success_message(profile_ids)
 
     # Dry Run Next Steps
     if args.dry_run:
@@ -2758,6 +2851,10 @@ def main():
             else:
                 print("👉 Ready to sync? Run the following command:")
                 print(f"   {cmd_str}")
+
+            # Offer interactive restart if appropriate
+            prompt_for_interactive_restart(profile_ids)
+
         else:
             if USE_COLORS:
                 print(
