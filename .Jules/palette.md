@@ -1,11 +1,3 @@
-## 2025-01-26 - [Silent Waits in CI]
-**Learning:** Long silent waits in CLI tools (especially in CI/non-interactive mode) cause user anxiety about hung processes.
-**Action:** Always provide periodic heartbeat logs (e.g. every 10s) for long operations in non-interactive environments.
-
-## 2025-02-14 - [ASCII Fallback for Tables]
-**Learning:** Using Unicode box drawing characters enhances the CLI experience, but a robust ASCII fallback is crucial for CI environments and piped outputs.
-**Action:** Always implement a fallback mechanism (like checking `sys.stderr.isatty()`) when using rich text or Unicode symbols.
-
-## 2025-02-28 - [Interactive Restart]
-**Learning:** Reconstructing command arguments manually for process restarts is brittle and breaks forward compatibility.
-**Action:** When restarting a CLI tool with modified flags (e.g., removing `--dry-run`), filter `sys.argv` instead of rebuilding the argument list from parsed args.
+## 2024-05-22 - [CLI Table Micro-UX]
+**Learning:** Even in CLI tools, consistent formatting and human-readable units (like duration) significantly reduce cognitive load. Encapsulating UI logic (tables) into dedicated functions prevents code duplication and makes 'visual polish' easier to maintain.
+**Action:** When refactoring CLI scripts, look for inline print blocks that can be extracted into reusable components, especially for complex outputs like tables.
