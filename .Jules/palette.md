@@ -9,3 +9,7 @@
 ## 2025-02-28 - [Interactive Restart]
 **Learning:** Reconstructing command arguments manually for process restarts is brittle and breaks forward compatibility.
 **Action:** When restarting a CLI tool with modified flags (e.g., removing `--dry-run`), filter `sys.argv` instead of rebuilding the argument list from parsed args.
+
+## 2025-05-20 - [Human Readable Durations]
+**Learning:** Raw seconds (e.g., 125.5s) are hard to parse mentally. Formatting them as "2m 5.5s" significantly improves readability for long-running CLI tasks.
+**Action:** Use a helper function to format durations > 60s into minutes/hours in summary tables.
