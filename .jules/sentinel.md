@@ -61,3 +61,11 @@
 **Learning:** Logic errors in security controls often lead to "fail-closed" states that break functionality entirely, or "fail-open" states that bypass security. Implicit returns in Python (`None`) can be dangerous when boolean validation is expected.
 
 **Prevention:** Always use explicit return statements for both success and failure paths in validation functions. Use static analysis (linting) to catch unreachable code and implicit returns. Ensure unit tests cover positive cases (valid inputs) as rigorously as negative cases (attack vectors).
+
+## 2026-10-24 - Malformed Code Disabling Input Validation
+
+**Vulnerability:** A critical syntax error and malformed code structure in `validate_folder_data` disabled input validation for nested rules. The code block intended to validate that rules are dictionaries was corrupt (syntax error) and placed outside the logic loop, preventing the application from running (DoS) and potentially allowing invalid data structures if the syntax error were bypassed or ignored.
+
+**Learning:** Broken code or copy-paste errors can silently disable security controls or cause application crashes. Visual inspection is not enough; static analysis (linting) and comprehensive testing are essential.
+
+**Prevention:** Ensure all code paths are covered by tests. Use linters to catch syntax errors and unreachable code. Verify that input validation logic is correctly scoped within loops and conditional blocks.
