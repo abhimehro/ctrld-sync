@@ -1131,19 +1131,23 @@ def validate_folder_data(data: Dict[str, Any], url: str) -> bool:
                 )
                 return False
             if "rules" in rg:
-                if not isinstance (rg["rules"], list):
-                    log. error (
-                    f"Invalid data from {sanitize_for_log(url)} : rule_groups[fil].rules must be a list."
+                if not isinstance(rg["rules"], list):
+                    log.error(
+                        f"Invalid data from {sanitize_for_log(url)}: rule_groups[{i}].rules must be a list."
                     )
                     return False
-# Ensure each rule within the group is an object (dict),
-# because later code treats each rule as a mapping (e.g., rule.get(...)).
-for j, rule in enumerate (rgi"rules"1):
-if not isinstance (rule, dict):
-    log. error (
-        f"Invalid data from {sanitize_for_log(u rl)}: rule_groups[fiłl.rules[kił] must be an object."
-    )
-    return False
+
+                # Ensure each rule within the group is an object (dict),
+                # because later code treats each rule as a mapping (e.g., rule.get(...)).
+                for j, rule in enumerate(rg["rules"]):
+                    if not isinstance(rule, dict):
+                        log.error(
+                            f"Invalid data from {sanitize_for_log(url)}: rule_groups[{i}].rules[{j}] must be an object."
+                        )
+                        return False
+
+    return True
+
 
 # Lock to protect updates to _api_stats in multi-threaded contexts.
 # Without this, concurrent increments can lose updates because `+=` is not atomic.
@@ -1767,6 +1771,22 @@ def fetch_folder_data(url: str) -> Dict[str, Any]:
     return js
 
 
+def _is_cache_fresh(url: str) -> bool:
+    """Checks if the URL is in the persistent cache and within TTL."""
+    # Check in-memory cache first (though warm_up_cache filters these out,
+    # having it here makes the helper more robust)
+    with _cache_lock:
+        if url in _cache:
+            return True
+
+    entry = _disk_cache.get(url)
+    if entry:
+        last_validated = entry.get("last_validated", 0)
+        if time.time() - last_validated < CACHE_TTL_SECONDS:
+            return True
+    return False
+
+
 def warm_up_cache(urls: Sequence[str]) -> None:
     """
     Pre-fetches and caches folder data from multiple URLs in parallel.
@@ -1788,6 +1808,10 @@ def warm_up_cache(urls: Sequence[str]) -> None:
     # OPTIMIZATION: Combine validation (DNS) and fetching (HTTP) in one task
     # to allow validation latency to be parallelized.
     def _validate_and_fetch(url: str):
+        # Optimization: Skip DNS validation if cache is fresh
+        if _is_cache_fresh(url):
+            return _gh_get(url)
+
         if validate_folder_url(url):
             return _gh_get(url)
         return None
