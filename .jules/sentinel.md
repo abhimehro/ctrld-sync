@@ -61,3 +61,11 @@
 **Learning:** Logic errors in security controls often lead to "fail-closed" states that break functionality entirely, or "fail-open" states that bypass security. Implicit returns in Python (`None`) can be dangerous when boolean validation is expected.
 
 **Prevention:** Always use explicit return statements for both success and failure paths in validation functions. Use static analysis (linting) to catch unreachable code and implicit returns. Ensure unit tests cover positive cases (valid inputs) as rigorously as negative cases (attack vectors).
+
+## 2026-10-25 - Security Control Bypass via Optimization
+
+**Vulnerability:** The `push_rules` function bypassed the standard `is_valid_rule` validation logic by using an optimized inline regex check (`match_rule = RULE_PATTERN.match`) for performance. This created a discrepancy where future enhancements to `is_valid_rule` (like length limits) would not apply to the hot path, effectively bypassing the new security control.
+
+**Learning:** Performance optimizations that inline or duplicate security logic create maintenance hazards ("drift") where security updates are applied to one path but missed in another.
+
+**Prevention:** Avoid duplicating validation logic for performance unless strictly necessary. If inlining is required, ensure the inlined logic stays synchronized with the canonical validation function, or add comments explicitly linking them. Ideally, improve the performance of the canonical function instead.

@@ -1019,6 +1019,10 @@ def validate_folder_id(folder_id: str, log_errors: bool = True) -> bool:
     """Validates folder ID (PK) format to prevent path traversal."""
     if not folder_id:
         return False
+    if len(folder_id) > 64:
+        if log_errors:
+            log.error(f"Invalid folder ID length (max 64): {len(folder_id)}")
+        return False
     if folder_id in (".", "..") or not FOLDER_ID_PATTERN.match(folder_id):
         if log_errors:
             log.error(f"Invalid folder ID format: {sanitize_for_log(folder_id)}")
@@ -1033,6 +1037,10 @@ def is_valid_rule(rule: str) -> bool:
     Allowed: Alphanumeric, hyphen, dot, underscore, asterisk, colon (IPv6), slash (CIDR)
     """
     if not rule:
+        return False
+
+    # Enforce max length to prevent DoS
+    if len(rule) > 255:
         return False
 
     # Strict whitelist to prevent injection
@@ -1054,6 +1062,10 @@ def is_valid_folder_name(name: str) -> bool:
     - Non-printable characters
     """
     if not name or not name.strip() or not name.isprintable():
+        return False
+
+    # Enforce max length to prevent DoS (matching profile ID limit)
+    if len(name) > 64:
         return False
 
     # Check for dangerous characters (pre-compiled at module level for performance)
@@ -1131,19 +1143,22 @@ def validate_folder_data(data: Dict[str, Any], url: str) -> bool:
                 )
                 return False
             if "rules" in rg:
-                if not isinstance (rg["rules"], list):
-                    log. error (
-                    f"Invalid data from {sanitize_for_log(url)} : rule_groups[fil].rules must be a list."
+                if not isinstance(rg["rules"], list):
+                    log.error(
+                        f"Invalid data from {sanitize_for_log(url)}: rule_groups[{i}].rules must be a list."
                     )
                     return False
-# Ensure each rule within the group is an object (dict),
-# because later code treats each rule as a mapping (e.g., rule.get(...)).
-for j, rule in enumerate (rgi"rules"1):
-if not isinstance (rule, dict):
-    log. error (
-        f"Invalid data from {sanitize_for_log(u rl)}: rule_groups[fiłl.rules[kił] must be an object."
-    )
-    return False
+                # Ensure each rule within the group is an object (dict),
+                # because later code treats each rule as a mapping (e.g., rule.get(...)).
+                for j, rule in enumerate(rg["rules"]):
+                    if not isinstance(rule, dict):
+                        log.error(
+                            f"Invalid data from {sanitize_for_log(url)}: rule_groups[{i}].rules[{j}] must be an object."
+                        )
+                        return False
+
+    return True
+
 
 # Lock to protect updates to _api_stats in multi-threaded contexts.
 # Without this, concurrent increments can lose updates because `+=` is not atomic.
@@ -1983,7 +1998,8 @@ def push_rules(
         if h in existing_rules:
             continue
 
-        if not match_rule(h):
+        # Enforce max length (255) and regex pattern
+        if len(h) > 255 or not match_rule(h):
             log.warning(
                 f"Skipping unsafe rule in {sanitize_for_log(folder_name)}: {sanitize_for_log(h)}"
             )
