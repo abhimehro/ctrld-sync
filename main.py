@@ -512,9 +512,13 @@ def countdown_timer(seconds: int, message: str = "Waiting") -> None:
 
 
 def render_progress_bar(
-    current: int, total: int, label: str, prefix: str = "🚀"
+    current: int,
+    total: int,
+    label: str,
+    prefix: str = "🚀",
+    start_time: Optional[float] = None,
 ) -> None:
-    """Renders a progress bar to stderr if USE_COLORS is True."""
+    """Renders a progress bar with optional ETA to stderr if USE_COLORS is True."""
     if not USE_COLORS or total == 0:
         return
 
@@ -525,9 +529,25 @@ def render_progress_bar(
     bar = "█" * filled + "·" * (width - filled)
     percent = int(progress * 100)
 
+    eta_str = ""
+    if start_time is not None and current > 0:
+        elapsed = time.time() - start_time
+        # Only show ETA if we have some history (elapsed > 0)
+        if elapsed > 0:
+            rate = current / elapsed
+            remaining = total - current
+            if rate > 0:
+                eta_seconds = int(remaining / rate)
+                minutes, seconds = divmod(eta_seconds, 60)
+                if minutes >= 60:
+                    hours, minutes = divmod(minutes, 60)
+                    eta_str = f" — ETA: {hours}h {minutes:02d}m"
+                else:
+                    eta_str = f" — ETA: {minutes:02d}m {seconds:02d}s"
+
     # Use \033[K to clear line residue
     sys.stderr.write(
-        f"\r\033[K{Colors.CYAN}{prefix} {label}: [{bar}] {percent}% ({current}/{total}){Colors.ENDC}"
+        f"\r\033[K{Colors.CYAN}{prefix} {label}: [{bar}] {percent}% ({current}/{total}){eta_str}{Colors.ENDC}"
     )
     sys.stderr.flush()
 
@@ -1131,19 +1151,22 @@ def validate_folder_data(data: Dict[str, Any], url: str) -> bool:
                 )
                 return False
             if "rules" in rg:
-                if not isinstance (rg["rules"], list):
-                    log. error (
-                    f"Invalid data from {sanitize_for_log(url)} : rule_groups[fil].rules must be a list."
+                if not isinstance(rg["rules"], list):
+                    log.error(
+                        f"Invalid data from {sanitize_for_log(url)}: rule_groups[{i}].rules must be a list."
                     )
                     return False
-# Ensure each rule within the group is an object (dict),
-# because later code treats each rule as a mapping (e.g., rule.get(...)).
-for j, rule in enumerate (rgi"rules"1):
-if not isinstance (rule, dict):
-    log. error (
-        f"Invalid data from {sanitize_for_log(u rl)}: rule_groups[fiłl.rules[kił] must be an object."
-    )
-    return False
+                # Ensure each rule within the group is an object (dict),
+                # because later code treats each rule as a mapping (e.g., rule.get(...)).
+                for j, rule in enumerate(rg["rules"]):
+                    if not isinstance(rule, dict):
+                        log.error(
+                            f"Invalid data from {sanitize_for_log(url)}: rule_groups[{i}].rules[{j}] must be an object."
+                        )
+                        return False
+
+    return True
+
 
 # Lock to protect updates to _api_stats in multi-threaded contexts.
 # Without this, concurrent increments can lose updates because `+=` is not atomic.
@@ -1793,16 +1816,21 @@ def warm_up_cache(urls: Sequence[str]) -> None:
         return None
 
     completed = 0
+    start_time = time.time()
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = {
             executor.submit(_validate_and_fetch, url): url for url in urls_to_process
         }
 
-        render_progress_bar(0, total, "Warming up cache", prefix="⏳")
+        render_progress_bar(
+            0, total, "Warming up cache", prefix="⏳", start_time=start_time
+        )
 
         for future in concurrent.futures.as_completed(futures):
             completed += 1
-            render_progress_bar(completed, total, "Warming up cache", prefix="⏳")
+            render_progress_bar(
+                completed, total, "Warming up cache", prefix="⏳", start_time=start_time
+            )
             try:
                 future.result()
             except Exception as e:
@@ -1816,7 +1844,13 @@ def warm_up_cache(urls: Sequence[str]) -> None:
                     f"{sanitize_for_log(e)}"
                 )
                 # Restore progress bar after warning
-                render_progress_bar(completed, total, "Warming up cache", prefix="⏳")
+                render_progress_bar(
+                    completed,
+                    total,
+                    "Warming up cache",
+                    prefix="⏳",
+                    start_time=start_time,
+                )
 
     if USE_COLORS:
         sys.stderr.write(
@@ -2060,6 +2094,7 @@ def push_rules(
     # Optimization 3: Parallelize batch processing
     # Using 3 workers to speed up writes without hitting aggressive rate limits.
     # If only 1 batch, run it synchronously to avoid ThreadPoolExecutor overhead.
+    start_time = time.time()
     if total_batches == 1:
         result = process_batch(1, batches[0])
         if result:
@@ -2070,6 +2105,7 @@ def push_rules(
             successful_batches,
             total_batches,
             progress_label,
+            start_time=start_time,
         )
     else:
         # Use provided executor or create a local one (fallback)
@@ -2094,6 +2130,7 @@ def push_rules(
                     successful_batches,
                     total_batches,
                     progress_label,
+                    start_time=start_time,
                 )
 
     if successful_batches == total_batches:
