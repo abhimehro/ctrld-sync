@@ -95,7 +95,7 @@ def main():
     
     print(f"  First retry window: {min_time:.2f}s to {max_time:.2f}s (spread: {max_time - min_time:.2f}s)")
     print(f"  Average first retry: {avg_time:.2f}s")
-    print(f"  Retries distributed over time → reduced peak load on server")
+    print("  Retries distributed over time → reduced peak load on server")
     print()
     
     # Calculate approximate load reduction based on bucketed concurrency

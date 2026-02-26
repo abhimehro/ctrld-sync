@@ -2,7 +2,7 @@
 
 import os
 import stat
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
 
 
 # Set TOKEN before importing main to avoid issues with load_dotenv()

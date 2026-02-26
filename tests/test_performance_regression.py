@@ -8,7 +8,6 @@ Run with: uv run pytest tests/test_performance_regression.py --benchmark-only
 import sys
 import os
 
-import pytest
 import httpx
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

@@ -1,12 +1,11 @@
 
 import unittest
-from unittest.mock import MagicMock, patch, ANY
+from unittest.mock import MagicMock, patch
 import sys
 import os
 
 # Add root to path to import main
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import main
 
 class TestPushRulesPerf(unittest.TestCase):
     def setUp(self):

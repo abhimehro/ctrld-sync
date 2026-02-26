@@ -1,8 +1,7 @@
 
 import socket
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import pytest
 import main
 
 def test_validate_hostname_caching():
