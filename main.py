@@ -803,12 +803,13 @@ def save_disk_cache() -> None:
         # Write atomically: write to temp file, then rename
         # This prevents corrupted cache if process is killed mid-write
         temp_file = cache_file.with_suffix(".tmp")
-        with open(temp_file, "w", encoding="utf-8") as f:
-            json.dump(_disk_cache, f, indent=2)
         
-        # Set file permissions to user-only (rw-------)
-        if platform.system() != "Windows":
-            temp_file.chmod(0o600)
+        # Security: Create file with 0600 permissions atomically to prevent race condition (TOCTOU)
+        # os.open() allows setting mode at creation time, unlike open() which uses umask first.
+        # mode=0o600 ensures only the owner can read/write.
+        fd = os.open(temp_file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(_disk_cache, f, indent=2)
         
         # Atomic rename (POSIX guarantees atomicity)
         temp_file.replace(cache_file)
@@ -1131,19 +1132,22 @@ def validate_folder_data(data: Dict[str, Any], url: str) -> bool:
                 )
                 return False
             if "rules" in rg:
-                if not isinstance (rg["rules"], list):
-                    log. error (
-                    f"Invalid data from {sanitize_for_log(url)} : rule_groups[fil].rules must be a list."
+                if not isinstance(rg["rules"], list):
+                    log.error(
+                        f"Invalid data from {sanitize_for_log(url)}: rule_groups[{i}].rules must be a list."
                     )
                     return False
-# Ensure each rule within the group is an object (dict),
-# because later code treats each rule as a mapping (e.g., rule.get(...)).
-for j, rule in enumerate (rgi"rules"1):
-if not isinstance (rule, dict):
-    log. error (
-        f"Invalid data from {sanitize_for_log(u rl)}: rule_groups[fiłl.rules[kił] must be an object."
-    )
-    return False
+                # Ensure each rule within the group is an object (dict),
+                # because later code treats each rule as a mapping (e.g., rule.get(...)).
+                for j, rule in enumerate(rg["rules"]):
+                    if not isinstance(rule, dict):
+                        log.error(
+                            f"Invalid data from {sanitize_for_log(url)}: rule_groups[{i}].rules[{j}] must be an object."
+                        )
+                        return False
+
+    return True
+
 
 # Lock to protect updates to _api_stats in multi-threaded contexts.
 # Without this, concurrent increments can lose updates because `+=` is not atomic.
