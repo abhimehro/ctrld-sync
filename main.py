@@ -1131,19 +1131,21 @@ def validate_folder_data(data: Dict[str, Any], url: str) -> bool:
                 )
                 return False
             if "rules" in rg:
-                if not isinstance (rg["rules"], list):
-                    log. error (
-                    f"Invalid data from {sanitize_for_log(url)} : rule_groups[fil].rules must be a list."
+                if not isinstance(rg["rules"], list):
+                    log.error(
+                        f"Invalid data from {sanitize_for_log(url)}: rule_groups[{i}].rules must be a list."
                     )
                     return False
-# Ensure each rule within the group is an object (dict),
-# because later code treats each rule as a mapping (e.g., rule.get(...)).
-for j, rule in enumerate (rgi"rules"1):
-if not isinstance (rule, dict):
-    log. error (
-        f"Invalid data from {sanitize_for_log(u rl)}: rule_groups[fiłl.rules[kił] must be an object."
-    )
-    return False
+                # Ensure each rule within the group is an object (dict),
+                # because later code treats each rule as a mapping (e.g., rule.get(...)).
+                for j, rule in enumerate(rg["rules"]):
+                    if not isinstance(rule, dict):
+                        log.error(
+                            f"Invalid data from {sanitize_for_log(url)}: rule_groups[{i}].rules[{j}] must be an object."
+                        )
+                        return False
+    return True
+
 
 # Lock to protect updates to _api_stats in multi-threaded contexts.
 # Without this, concurrent increments can lose updates because `+=` is not atomic.
@@ -1264,14 +1266,19 @@ def _retry_request(request_func, max_retries=MAX_RETRIES, delay=RETRY_DELAY):
                 # Don't retry other 4xx errors (auth failures, bad requests, etc.)
                 if 400 <= code < 500 and code != 429:
                     if hasattr(e, "response") and e.response is not None:
-                        log.debug(
-                            f"Response content: {sanitize_for_log(e.response.text)}"
-                        )
+                        # Optimization: Avoid expensive string sanitization (especially for large responses)
+                        # when debug logging is disabled.
+                        if log.isEnabledFor(logging.DEBUG):
+                            log.debug(
+                                f"Response content: {sanitize_for_log(e.response.text)}"
+                            )
                     raise
 
             if attempt == max_retries - 1:
                 if hasattr(e, "response") and e.response is not None:
-                    log.debug(f"Response content: {sanitize_for_log(e.response.text)}")
+                    # Optimization: Avoid overhead of sanitizing large response bodies unless debugging.
+                    if log.isEnabledFor(logging.DEBUG):
+                        log.debug(f"Response content: {sanitize_for_log(e.response.text)}")
                 raise
             
             # Full jitter exponential backoff: delay drawn from [0, min(delay * 2^attempt, MAX_RETRY_DELAY)]
@@ -2054,7 +2061,9 @@ def push_rules(
                 f"Failed to push batch {batch_idx} for folder {sanitized_folder_name}: {sanitize_for_log(e)}"
             )
             if hasattr(e, "response") and e.response is not None:
-                log.debug(f"Response content: {sanitize_for_log(e.response.text)}")
+                # Optimization: Skip expensive sanitization of response body if not debugging.
+                if log.isEnabledFor(logging.DEBUG):
+                    log.debug(f"Response content: {sanitize_for_log(e.response.text)}")
             return None
 
     # Optimization 3: Parallelize batch processing
