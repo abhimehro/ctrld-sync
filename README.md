@@ -91,16 +91,6 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
        url: "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/controld/apple-private-relay-allow-folder.json"
        action: "allow"
    
-   settings:
-     batch_size: 500
-     delete_workers: 3
-     max_retries: 10
-   ```
-   
-   - `name` and `action` are optional labels; the actual folder name and rule action come from the remote JSON file.
-   - All `url` values must use `https://`.
-   - `action` must be `"block"` or `"allow"` when provided.
-   
    Alternatively, you can still pass folder URLs directly on the command line (these override any config file):
    ```bash
    python main.py --folder-url https://example.com/my-blocklist.json
