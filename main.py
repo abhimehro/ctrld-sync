@@ -2622,6 +2622,34 @@ def main():
         folder_urls = args.folder_url
     else:
         cfg = load_config(args.config)
+
+        # Apply optional runtime tuning from config["settings"], if present.
+        # We deliberately:
+        #   * Keep CLI flags and environment variables as the highest-precedence sources.
+        #   * Only touch well-known globals when they actually exist.
+        #   * Validate that values are sane integers before applying them.
+        settings = cfg.get("settings") or {}
+        if isinstance(settings, dict):
+            # Configure batch size for pushing rules if the global knobs exist.
+            batch_size = settings.get("batch_size")
+            if isinstance(batch_size, int) and batch_size > 0:
+                if "BATCH_SIZE" in globals():
+                    globals()["BATCH_SIZE"] = batch_size
+                # Some code paths may also use BATCH_KEYS for the same logical batch size.
+                if "BATCH_KEYS" in globals():
+                    globals()["BATCH_KEYS"] = batch_size
+
+            # Configure number of concurrent workers used for folder deletions.
+            delete_workers = settings.get("delete_workers")
+            if isinstance(delete_workers, int) and delete_workers > 0:
+                if "DELETE_WORKERS" in globals():
+                    globals()["DELETE_WORKERS"] = delete_workers
+
+            # Configure maximum retry attempts for HTTP operations.
+            max_retries = settings.get("max_retries")
+            if isinstance(max_retries, int) and max_retries >= 0:
+                if "MAX_RETRIES" in globals():
+                    globals()["MAX_RETRIES"] = max_retries
         folder_urls = [entry["url"] for entry in cfg.get("folders", [])]
 
     # Interactive prompts for missing config
