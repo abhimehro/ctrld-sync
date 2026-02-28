@@ -808,7 +808,8 @@ def save_disk_cache() -> None:
         # Atomic rename (POSIX guarantees atomicity)
         temp_file.replace(cache_file)
         
-        log.debug(f"Saved {len(_disk_cache):,} entries to disk cache")
+        if log.isEnabledFor(logging.DEBUG):
+            log.debug(f"Saved {len(_disk_cache):,} entries to disk cache")
         
     except Exception as e:
         # Cache save failures are non-fatal - we just won't have cache next time
@@ -886,7 +887,8 @@ def _parse_rate_limit_headers(response: httpx.Response) -> None:
     except Exception as e:
         # Rate limit parsing failures should never crash the sync
         # Just log and continue
-        log.debug(f"Failed to parse rate limit headers: {e}")
+        if log.isEnabledFor(logging.DEBUG):
+            log.debug(f"Failed to parse rate limit headers: {e}")
 
 
 @lru_cache(maxsize=128)
@@ -1268,14 +1270,14 @@ def _retry_request(request_func, max_retries=MAX_RETRIES, delay=RETRY_DELAY):
                 
                 # Don't retry other 4xx errors (auth failures, bad requests, etc.)
                 if 400 <= code < 500 and code != 429:
-                    if hasattr(e, "response") and e.response is not None:
+                    if hasattr(e, "response") and e.response is not None and log.isEnabledFor(logging.DEBUG):
                         log.debug(
                             f"Response content: {sanitize_for_log(e.response.text)}"
                         )
                     raise
 
             if attempt == max_retries - 1:
-                if hasattr(e, "response") and e.response is not None:
+                if hasattr(e, "response") and e.response is not None and log.isEnabledFor(logging.DEBUG):
                     log.debug(f"Response content: {sanitize_for_log(e.response.text)}")
                 raise
             
@@ -1323,7 +1325,8 @@ def _gh_get(url: str) -> Dict:
             with _cache_lock:
                 _cache[url] = data
             _cache_stats["hits"] += 1
-            log.debug(f"Disk cache hit (within TTL) for {sanitize_for_log(url)}")
+            if log.isEnabledFor(logging.DEBUG):
+                log.debug(f"Disk cache hit (within TTL) for {sanitize_for_log(url)}")
             return data
         # Beyond TTL: send conditional request using cached ETag/Last-Modified
         # Server returns 304 if content hasn't changed
@@ -1344,7 +1347,8 @@ def _gh_get(url: str) -> Dict:
             # Handle 304 Not Modified - cached data is still valid
             if r.status_code == 304:
                 if cached_entry and "data" in cached_entry:
-                    log.debug(f"Cache validated (304) for {sanitize_for_log(url)}")
+                    if log.isEnabledFor(logging.DEBUG):
+                        log.debug(f"Cache validated (304) for {sanitize_for_log(url)}")
                     _cache_stats["validations"] += 1
                     
                     # Update in-memory cache with validated data
@@ -1899,9 +1903,10 @@ def create_folder(
                         )
                         return pk
         except Exception as e:
-            log.debug(
-                f"Could not extract ID from POST response: " f"{sanitize_for_log(e)}"
-            )
+            if log.isEnabledFor(logging.DEBUG):
+                log.debug(
+                    f"Could not extract ID from POST response: " f"{sanitize_for_log(e)}"
+                )
 
         # 2. Fallback: Poll for the new folder (The Robust Retry Logic)
         for attempt in range(MAX_RETRIES + 1):
@@ -2056,7 +2061,7 @@ def push_rules(
             log.error(
                 f"Failed to push batch {batch_idx} for folder {sanitized_folder_name}: {sanitize_for_log(e)}"
             )
-            if hasattr(e, "response") and e.response is not None:
+            if hasattr(e, "response") and e.response is not None and log.isEnabledFor(logging.DEBUG):
                 log.debug(f"Response content: {sanitize_for_log(e.response.text)}")
             return None
 
