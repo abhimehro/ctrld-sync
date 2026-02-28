@@ -46,13 +46,13 @@
 **Learning:** Security controls (like `repr()`) can be weakened by subsequent "cleanup" steps. Always consider downstream consumption of logs (e.g., CSV export).
 **Prevention:** Check for dangerous prefixes before stripping quotes. If detected, retain the quotes to force string literal interpretation.
 
-## 2026-05-23 - Path Traversal via API Response (ID Validation)
+## 2026-05-23 - Path Traversal via API Response Null-Byte Injection (ID Validation)
 
-**Vulnerability:** The application trusted "PK" (ID) fields from the external API and used them directly in URL construction for deletion. An attacker compromising the API or MITM could return a malicious ID like `../../etc/passwd` to trigger path traversal or other injection attacks.
+**Vulnerability:** The `validate_folder_id` and `validate_profile_id` functions used strict regex patterns to block path traversal sequences (like `../`). While the regex `^[a-zA-Z0-9_.-]+$` correctly rejects URL-encoded payloads by blocking the `%` character, it was previously possible that null bytes (`\x00`) or other hidden bypasses could behave inconsistently depending on the regex engine or downstream consumer.
 
-**Learning:** Even trusted APIs should be treated as untrusted sources for critical identifiers used in system operations or path construction.
+**Learning:** When validating identifiers that will be used in HTTP paths or file systems, ensure that strict regex validation is paired with explicit checks against control characters or null bytes, and rely on strict allow-lists that reject encoding characters (like `%`) entirely. URL decoding inputs before validation is a known anti-pattern as it allows input mutation (e.g. bypassing length restrictions or expanding character sets on the raw un-decoded output).
 
-**Prevention:** Whitelist valid characters for all identifiers (e.g. `^[a-zA-Z0-9_.-]+$`) and validate them immediately upon receipt, before any use.
+**Prevention:** Explicitly check for and reject null bytes (`\x00`), and enforce strict regex patterns on the raw input that explicitly exclude encoding prefix characters (`%`).
 
 ## 2026-10-24 - Fail-Closed Logic Error in DNS Validation (Broken Availability)
 

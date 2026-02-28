@@ -981,10 +981,14 @@ def is_valid_profile_id_format(profile_id: str) -> bool:
     
     Validates against PROFILE_ID_PATTERN and enforces maximum length of 64 characters.
     """
+    if '\x00' in profile_id:
+        return False
+
     if not PROFILE_ID_PATTERN.match(profile_id):
         return False
     if len(profile_id) > MAX_PROFILE_ID_LENGTH:
         return False
+
     return True
 
 
@@ -1009,10 +1013,17 @@ def validate_folder_id(folder_id: str, log_errors: bool = True) -> bool:
     """Validates folder ID (PK) format to prevent path traversal."""
     if not folder_id:
         return False
+
+    if '\x00' in folder_id:
+        if log_errors:
+            log.error(f"Invalid folder ID format (null byte): {sanitize_for_log(folder_id)}")
+        return False
+
     if folder_id in (".", "..") or not FOLDER_ID_PATTERN.match(folder_id):
         if log_errors:
             log.error(f"Invalid folder ID format: {sanitize_for_log(folder_id)}")
         return False
+
     return True
 
 
