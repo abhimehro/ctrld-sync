@@ -2,7 +2,6 @@
 import unittest
 from unittest.mock import MagicMock, patch
 import time
-import concurrent.futures
 import sys
 import os
 
@@ -27,9 +26,10 @@ class TestParallelFetch(unittest.TestCase):
     @patch("main.delete_folder")
     @patch("main.verify_access_and_get_folders")
     @patch("main.fetch_folder_data")
+    @patch("main.warm_up_cache")
     @patch("main.validate_folder_url")
     @patch("main.countdown_timer")
-    def test_parallel_execution(self, mock_timer, mock_validate, mock_fetch, mock_verify, mock_delete, mock_get_rules):
+    def test_parallel_execution(self, mock_timer, mock_validate, mock_warm, mock_fetch, mock_verify, mock_delete, mock_get_rules):
         """
         Verify that get_all_existing_rules runs in parallel with delete_folder.
         """
