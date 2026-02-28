@@ -28,7 +28,7 @@ jobs:
       - name: Setup Python Environment
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.13'
 
       - name: Development Partner Session
         uses: actions/github-script@v7
