@@ -68,16 +68,21 @@ folders:
     url: "https://raw.githubusercontent.com/yokoffing/Control-D-Config/main/folders/potentially-malicious-ips.json"
     action: "block"
 
-# settings: tune runtime behaviour.
+# settings: reserved for future runtime behaviour tuning.
 #
-# All values are optional; the built-in defaults shown below are used when
-# omitted.  All values must be positive integers.
+# NOTE: As of this version, ctrld-sync ignores all keys under `settings`.
+#       They are documented here for future use only and have no effect
+#       at runtime. If/when they become active, all values will need to be
+#       positive integers, and the examples below will act as built-in defaults.
 settings:
-  # Number of rules pushed to the Control D API in a single batch request.
+  # Number of rules that would be pushed to the Control D API in a single
+  # batch request if settings support is enabled in a future version.
   batch_size: 500
 
-  # Number of parallel workers used when deleting existing folders.
+  # Number of parallel workers that would be used when deleting existing
+  # folders if settings support is enabled in a future version.
   delete_workers: 3
 
-  # Maximum number of HTTP retry attempts before giving up on a request.
+  # Maximum number of HTTP retry attempts that would be made before giving
+  # up on a request if settings support is enabled in a future version.
   max_retries: 10
