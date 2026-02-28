@@ -57,3 +57,28 @@ def test_verify_access_and_get_folders_filters_malicious_ids(monkeypatch):
     # Check that malicious IDs are removed
     assert "Malicious Folder" not in result
     assert "Malicious Folder 2" not in result
+
+def test_validate_folder_id_blocks_null_bytes_and_url_encoded_traversal():
+    import main
+    # Valid ID
+    assert main.validate_folder_id("safe-id-123") is True
+
+    # Null byte bypass attempt
+    assert main.validate_folder_id("legit_id\x00/../secret") is False
+
+    # URL encoded traversal (regex blocks '%')
+    assert main.validate_folder_id("%2E%2E%2Fetc%2Fpasswd") is False
+
+    # Path traversal directly
+    assert main.validate_folder_id("../../etc/passwd") is False
+
+def test_validate_profile_id_blocks_null_bytes_and_url_encoded_traversal():
+    import main
+    # Valid profile ID
+    assert main.validate_profile_id("safeprofile123") is True
+
+    # Null byte
+    assert main.validate_profile_id("profile\x00id") is False
+
+    # URL encoded string
+    assert main.validate_profile_id("%2E%2E%2Fetc%2Fpasswd") is False
