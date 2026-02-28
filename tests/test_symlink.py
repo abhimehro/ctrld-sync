@@ -1,7 +1,6 @@
 import os
-import stat
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 import main
 
 def test_check_env_permissions_skips_symlink(tmp_path):

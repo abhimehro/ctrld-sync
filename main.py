@@ -307,13 +307,49 @@ def print_plan_details(plan_entry: Dict[str, Any]) -> None:
         rules_count = folder.get("rules", 0)
         formatted_rules = f"{rules_count:,}"
 
+        # Determine action (Block/Allow)
+        action_text = ""
+        action_color = ""
+        action_label = ""
+
+        # Check for multiple rule groups first
+        if "rule_groups" in folder and folder["rule_groups"]:
+            actions = {rg.get("action") for rg in folder["rule_groups"]}
+            if len(actions) > 1:
+                action_label = "Mixed"
+                action_color = Colors.WARNING
+                action_text = f"({action_color}⚠️  {action_label}{Colors.ENDC})" if USE_COLORS else f"[{action_label}]"
+            else:
+                # All groups have same action
+                action_val = list(actions)[0]
+                if action_val == 0:
+                    action_label = "Block"
+                    action_color = Colors.FAIL
+                    action_text = f"({action_color}⛔ {action_label}{Colors.ENDC})" if USE_COLORS else f"[{action_label}]"
+                elif action_val == 1:
+                    action_label = "Allow"
+                    action_color = Colors.GREEN
+                    action_text = f"({action_color}✅ {action_label}{Colors.ENDC})" if USE_COLORS else f"[{action_label}]"
+
+        # Fallback to single action if not set
+        if not action_text and "action" in folder:
+            action_val = folder["action"]
+            if action_val == 0:
+                action_label = "Block"
+                action_color = Colors.FAIL
+                action_text = f"({action_color}⛔ {action_label}{Colors.ENDC})" if USE_COLORS else f"[{action_label}]"
+            elif action_val == 1:
+                action_label = "Allow"
+                action_color = Colors.GREEN
+                action_text = f"({action_color}✅ {action_label}{Colors.ENDC})" if USE_COLORS else f"[{action_label}]"
+
         if USE_COLORS:
             print(
-                f"  • {Colors.BOLD}{name:<{max_name_len}}{Colors.ENDC} : {formatted_rules:>{max_rules_len}} rules"
+                f"  • {Colors.BOLD}{name:<{max_name_len}}{Colors.ENDC} : {formatted_rules:>{max_rules_len}} rules {action_text}"
             )
         else:
             print(
-                f"  - {name:<{max_name_len}} : {formatted_rules:>{max_rules_len}} rules"
+                f"  - {name:<{max_name_len}} : {formatted_rules:>{max_rules_len}} rules {action_text}"
             )
 
     print("")
@@ -2476,21 +2512,24 @@ def print_summary_table(
         return
 
     # Unicode Table
-    def line(l, m, r): return f"{Colors.BOLD}{l}{m.join('─' * (x+2) for x in w)}{r}{Colors.ENDC}"
-    def row(c): return f"{Colors.BOLD}│{Colors.ENDC} {c[0]:<{w[0]}} {Colors.BOLD}│{Colors.ENDC} {c[1]:>{w[1]}} {Colors.BOLD}│{Colors.ENDC} {c[2]:>{w[2]}} {Colors.BOLD}│{Colors.ENDC} {c[3]:>{w[3]}} {Colors.BOLD}│{Colors.ENDC} {c[4]:<{w[4]}} {Colors.BOLD}│{Colors.ENDC}"
+    def print_line(left_char, mid_char, right_char):
+        return f"{Colors.BOLD}{left_char}{mid_char.join('─' * (x+2) for x in w)}{right_char}{Colors.ENDC}"
 
-    print(f"\n{line('┌', '─', '┐')}")
+    def print_row(cols):
+        return f"{Colors.BOLD}│{Colors.ENDC} {cols[0]:<{w[0]}} {Colors.BOLD}│{Colors.ENDC} {cols[1]:>{w[1]}} {Colors.BOLD}│{Colors.ENDC} {cols[2]:>{w[2]}} {Colors.BOLD}│{Colors.ENDC} {cols[3]:>{w[3]}} {Colors.BOLD}│{Colors.ENDC} {cols[4]:<{w[4]}} {Colors.BOLD}│{Colors.ENDC}"
+
+    print(f"\n{print_line('┌', '─', '┐')}")
     title = f"{'DRY RUN' if dry_run else 'SYNC'} SUMMARY"
     print(f"{Colors.BOLD}│{Colors.CYAN if dry_run else Colors.HEADER}{title:^{sum(w) + 14}}{Colors.ENDC}{Colors.BOLD}│{Colors.ENDC}")
-    print(f"{line('├', '┬', '┤')}\n{row([f'{Colors.HEADER}Profile ID{Colors.ENDC}', f'{Colors.HEADER}Folders{Colors.ENDC}', f'{Colors.HEADER}Rules{Colors.ENDC}', f'{Colors.HEADER}Duration{Colors.ENDC}', f'{Colors.HEADER}Status{Colors.ENDC}'])}")
-    print(line("├", "┼", "┤"))
+    print(f"{print_line('├', '┬', '┤')}\n{print_row([f'{Colors.HEADER}Profile ID{Colors.ENDC}', f'{Colors.HEADER}Folders{Colors.ENDC}', f'{Colors.HEADER}Rules{Colors.ENDC}', f'{Colors.HEADER}Duration{Colors.ENDC}', f'{Colors.HEADER}Status{Colors.ENDC}'])}")
+    print(print_line("├", "┼", "┤"))
 
     for r in sync_results:
         sc = Colors.GREEN if r["success"] else Colors.FAIL
-        print(row([r["profile"], str(r["folders"]), f"{r['rules']:,}", f"{r['duration']:.1f}s", f"{sc}{r['status_label']}{Colors.ENDC}"]))
+        print(print_row([r["profile"], str(r["folders"]), f"{r['rules']:,}", f"{r['duration']:.1f}s", f"{sc}{r['status_label']}{Colors.ENDC}"]))
 
-    print(f"{line('├', '┼', '┤')}\n{row(['TOTAL', str(t_f), f'{t_r:,}', f'{t_d:.1f}s', f'{t_col}{t_status}{Colors.ENDC}'])}")
-    print(f"{line('└', '┴', '┘')}\n")
+    print(f"{print_line('├', '┼', '┤')}\n{print_row(['TOTAL', str(t_f), f'{t_r:,}', f'{t_d:.1f}s', f'{t_col}{t_status}{Colors.ENDC}'])}")
+    print(f"{print_line('└', '┴', '┘')}\n")
 
 
 def print_success_message(profile_ids: List[str]) -> None:

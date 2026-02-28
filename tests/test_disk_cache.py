@@ -11,7 +11,6 @@ This module verifies:
 """
 import json
 import os
-import platform
 import tempfile
 import time
 import unittest

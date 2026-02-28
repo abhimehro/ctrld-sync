@@ -1,7 +1,6 @@
 import os
-import stat
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 import fix_env
 
 def test_fix_env_skips_symlink(tmp_path):

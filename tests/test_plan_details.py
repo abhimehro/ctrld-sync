@@ -2,7 +2,6 @@
 
 import importlib
 import os
-import sys
 from unittest.mock import patch
 
 
@@ -18,8 +17,9 @@ def test_print_plan_details_no_colors(capsys):
         plan_entry = {
             "profile": "test_profile",
             "folders": [
-                {"name": "Folder B", "rules": 5},
-                {"name": "Folder A", "rules": 10},
+                {"name": "Folder B", "rules": 5, "action": 0},
+                {"name": "Folder A", "rules": 10, "action": 1},
+                {"name": "Folder C", "rules": 3, "rule_groups": [{"action": 0}, {"action": 1}]},
             ],
         }
         m.print_plan_details(plan_entry)
@@ -29,10 +29,12 @@ def test_print_plan_details_no_colors(capsys):
 
     assert "Plan Details for test_profile:" in output
     # Match exact output including alignment spaces
-    assert "  - Folder A : 10 rules" in output
-    assert "  - Folder B :  5 rules" in output
-    # Verify alphabetical ordering (A before B)
+    assert "  - Folder A : 10 rules [Allow]" in output
+    assert "  - Folder B :  5 rules [Block]" in output
+    assert "  - Folder C :  3 rules [Mixed]" in output
+    # Verify alphabetical ordering (A before B before C)
     assert output.index("Folder A") < output.index("Folder B")
+    assert output.index("Folder B") < output.index("Folder C")
 
 
 def test_print_plan_details_empty_folders(capsys):
@@ -65,7 +67,7 @@ def test_print_plan_details_with_colors(capsys):
 
             plan_entry = {
                 "profile": "test_profile",
-                "folders": [{"name": "Folder A", "rules": 10}],
+                "folders": [{"name": "Folder A", "rules": 10, "action": 1}],
             }
             m.print_plan_details(plan_entry)
 
@@ -75,3 +77,4 @@ def test_print_plan_details_with_colors(capsys):
             assert "📝 Plan Details for test_profile:" in output
             assert "Folder A" in output
             assert "10 rules" in output
+            assert "✅ Allow" in output
