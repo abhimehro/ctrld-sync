@@ -8,7 +8,6 @@ import pytest
 
 import main
 
-
 # Helper to reload main with specific env/tty settings
 def reload_main_with_env(monkeypatch, no_color=None, isatty=True):
     if no_color is not None:
@@ -21,7 +20,6 @@ def reload_main_with_env(monkeypatch, no_color=None, isatty=True):
         mock_stdout.isatty.return_value = isatty
         importlib.reload(main)
         return main
-
 
 # Case 1: USE_COLORS respects NO_COLOR environment variable and terminal isatty status
 def test_use_colors_respects_no_color(monkeypatch):
@@ -38,6 +36,123 @@ def test_use_colors_respects_isatty_false(monkeypatch):
     m = reload_main_with_env(monkeypatch, no_color=None, isatty=False)
     assert m.USE_COLORS is False
 
+
+# Case 19: New Sanitization Tests (SafeString)
+def test_safe_string_wrapper():
+    # Test None
+    s = main.SafeString(None)
+    assert str(s) == ""
+
+    # Test normal string
+    s = main.SafeString("Normal String")
+    assert str(s) == "Normal String"
+
+    # Test non-printable chars
+    dirty = "Hello\x00World\n"
+    s = main.SafeString(dirty)
+    assert str(s) == "HelloWorld"
+
+    # Test mixed types
+    s = main.SafeString(123)
+    assert str(s) == "123"
+
+    # Test format
+    s = main.SafeString("test")
+    assert f"{s:>10}" == "      test"
+
+    # Test repr
+    assert repr(main.SafeString("test")) == "SafeString('test')"
+
+
+def test_format_sync_plan():
+    summary_data = {
+        "profile": "p1",
+        "folders": [
+            {"name": "Folder B", "rules": 2000},
+            {"name": "Folder A", "rules": 5}
+        ]
+    }
+
+    rows = main.format_sync_plan(summary_data)
+
+    # Should be sorted by name
+    assert len(rows) == 2
+    # Rows are tuples of SafeString
+    assert isinstance(rows[0][0], main.SafeString)
+    assert str(rows[0][0]) == "Folder A"
+    assert str(rows[0][1]) == "5"
+
+    assert str(rows[1][0]) == "Folder B"
+    assert str(rows[1][1]) == "2,000"
+
+
+def test_format_sync_plan_empty():
+    summary_data = {"folders": []}
+    rows = main.format_sync_plan(summary_data)
+    assert rows == []
+
+
+def test_print_plan_rows(monkeypatch):
+    # Mock sys.stdout
+    mock_stdout = MagicMock()
+    monkeypatch.setattr(sys, "stdout", mock_stdout)
+
+    # Force colors OFF for simpler assertion
+    monkeypatch.setattr(main, "USE_COLORS", False)
+
+    rows = [
+        (main.SafeString("Folder A"), main.SafeString("5")),
+        (main.SafeString("Folder B"), main.SafeString("2,000"))
+    ]
+
+    main.print_plan_rows(rows)
+
+    # Check output
+    writes = [args[0] for args, _ in mock_stdout.write.call_args_list]
+    combined = "".join(writes)
+
+    assert "Plan Details:" in combined
+    assert "Folder A" in combined
+    assert "5 items" in combined
+    assert "Folder B" in combined
+    assert "2,000 items" in combined
+
+
+def test_print_plan_rows_colors(monkeypatch):
+    # Mock sys.stdout
+    mock_stdout = MagicMock()
+    monkeypatch.setattr(sys, "stdout", mock_stdout)
+
+    # Force colors ON
+    monkeypatch.setattr(main, "USE_COLORS", True)
+
+    rows = [(main.SafeString("Folder A"), main.SafeString("5"))]
+
+    main.print_plan_rows(rows)
+
+    writes = [args[0] for args, _ in mock_stdout.write.call_args_list]
+    combined = "".join(writes)
+
+    # Check for color codes
+    assert main.Colors.HEADER in combined
+    assert main.Colors.BOLD in combined
+    assert main.Colors.ENDC in combined
+    assert "•" in combined # Bullet point for color mode
+
+
+def test_print_plan_details_integration(monkeypatch):
+    # Mock prepare and print_rows to verify they are called
+    mock_prepare = MagicMock(return_value=[(main.SafeString("A"), main.SafeString("1"))])
+    mock_print = MagicMock()
+
+    monkeypatch.setattr(main, "format_sync_plan", mock_prepare)
+    monkeypatch.setattr(main, "print_plan_rows", mock_print)
+
+    data = {"some": "data"}
+    main.print_plan_details(data)
+
+    mock_prepare.assert_called_once_with(data)
+    mock_print.assert_called_once_with([(main.SafeString("A"), main.SafeString("1"))])
 
 # Case 2: get_all_existing_rules updates all_rules set correctly without locking
 def test_get_all_existing_rules_updates_correctly(monkeypatch):
@@ -695,96 +810,3 @@ def test_check_env_permissions_secure(monkeypatch):
     assert mock_open.called
     assert not mock_fchmod.called
     mock_close.assert_called_with(123)
-
-# Case 19: New Sanitization Tests
-def test_strip_taint():
-    # Test None
-    assert main._strip_taint(None) == ""
-
-    # Test normal string
-    assert main._strip_taint("Normal String") == "Normal String"
-
-    # Test non-printable chars
-    dirty = "Hello\x00World\n"
-    assert main._strip_taint(dirty) == "HelloWorld"
-
-    # Test mixed types
-    assert main._strip_taint(123) == "123"
-
-def test_prepare_plan_rows():
-    summary_data = {
-        "profile": "p1",
-        "folders": [
-            {"name": "Folder B", "rules": 2000},
-            {"name": "Folder A", "rules": 5}
-        ]
-    }
-
-    rows = main.prepare_plan_rows(summary_data)
-
-    # Should be sorted by name
-    assert len(rows) == 2
-    assert rows[0] == ("Folder A", "5")
-    assert rows[1] == ("Folder B", "2,000")
-
-def test_prepare_plan_rows_empty():
-    summary_data = {"folders": []}
-    rows = main.prepare_plan_rows(summary_data)
-    assert rows == []
-
-def test_print_plan_rows(monkeypatch):
-    # Mock sys.stdout
-    mock_stdout = MagicMock()
-    monkeypatch.setattr(sys, "stdout", mock_stdout)
-
-    # Force colors OFF for simpler assertion
-    monkeypatch.setattr(main, "USE_COLORS", False)
-
-    rows = [("Folder A", "5"), ("Folder B", "2,000")]
-
-    main.print_plan_rows(rows)
-
-    # Check output
-    writes = [args[0] for args, _ in mock_stdout.write.call_args_list]
-    combined = "".join(writes)
-
-    assert "Plan Details:" in combined
-    assert "Folder A" in combined
-    assert "5 items" in combined
-    assert "Folder B" in combined
-    assert "2,000 items" in combined
-
-def test_print_plan_rows_colors(monkeypatch):
-    # Mock sys.stdout
-    mock_stdout = MagicMock()
-    monkeypatch.setattr(sys, "stdout", mock_stdout)
-
-    # Force colors ON
-    monkeypatch.setattr(main, "USE_COLORS", True)
-
-    rows = [("Folder A", "5")]
-
-    main.print_plan_rows(rows)
-
-    writes = [args[0] for args, _ in mock_stdout.write.call_args_list]
-    combined = "".join(writes)
-
-    # Check for color codes
-    assert main.Colors.HEADER in combined
-    assert main.Colors.BOLD in combined
-    assert main.Colors.ENDC in combined
-    assert "•" in combined # Bullet point for color mode
-
-def test_print_plan_details_integration(monkeypatch):
-    # Mock prepare and print_rows to verify they are called
-    mock_prepare = MagicMock(return_value=[("A", "1")])
-    mock_print = MagicMock()
-
-    monkeypatch.setattr(main, "prepare_plan_rows", mock_prepare)
-    monkeypatch.setattr(main, "print_plan_rows", mock_print)
-
-    data = {"some": "data"}
-    main.print_plan_details(data)
-
-    mock_prepare.assert_called_once_with(data)
-    mock_print.assert_called_once_with([("A", "1")])
