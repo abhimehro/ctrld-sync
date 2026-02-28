@@ -2,9 +2,10 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # Control D Sync – example configuration file
 #
-# Copy this file to config.yaml (or config.yml) in the same directory as
-# main.py, or to ~/.ctrld-sync/config.yaml, and customise it to suit your
-# setup.  You can also point to any location with the --config flag:
+# Copy this file to config.yaml (or config.yml) in your current working
+# directory (where you run python main.py), or to ~/.ctrld-sync/config.yaml,
+# and customise it to suit your setup.  You can also point to any location
+# with the --config flag:
 #
 #   python main.py --config /path/to/my-config.yaml
 #
