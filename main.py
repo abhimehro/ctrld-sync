@@ -2556,7 +2556,7 @@ def parse_args() -> argparse.Namespace:
         help=(
             "Path to a YAML configuration file. "
             "Defaults to config.yaml / config.yml in the current directory "
-            "or ~/.ctrld-sync/config.yaml."
+            "or ~/.ctrld-sync/config.yaml / config.yml."
         ),
         default=None,
     )
