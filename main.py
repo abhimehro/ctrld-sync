@@ -798,12 +798,12 @@ def save_disk_cache() -> None:
         # Write atomically: write to temp file, then rename
         # This prevents corrupted cache if process is killed mid-write
         temp_file = cache_file.with_suffix(".tmp")
-        with open(temp_file, "w", encoding="utf-8") as f:
-            json.dump(_disk_cache, f, indent=2)
         
-        # Set file permissions to user-only (rw-------)
-        if platform.system() != "Windows":
-            temp_file.chmod(0o600)
+        # Security: Use os.open to ensure file is created with 0o600 permissions
+        # This prevents TOCTOU race condition where file could be world-readable before chmod
+        fd = os.open(temp_file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(_disk_cache, f, indent=2)
         
         # Atomic rename (POSIX guarantees atomicity)
         temp_file.replace(cache_file)
