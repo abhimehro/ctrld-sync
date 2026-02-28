@@ -134,6 +134,10 @@ def _write_config(tmp_path: Path, data: dict, filename: str = "config.yaml") -> 
 
 def test_load_config_returns_defaults_when_no_file(tmp_path, monkeypatch):
     """No config file anywhere → built-in defaults are returned."""
+    # Ensure load_config() cannot see any real user-level config (e.g. ~/.ctrld-sync/config.yaml)
+    # by pointing HOME to our empty temporary directory. This makes the test deterministic
+    # regardless of the developer's environment.
+    monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.chdir(tmp_path)
     cfg = main.load_config()
     assert cfg == main.get_default_config()
