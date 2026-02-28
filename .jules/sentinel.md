@@ -61,3 +61,11 @@
 **Learning:** Logic errors in security controls often lead to "fail-closed" states that break functionality entirely, or "fail-open" states that bypass security. Implicit returns in Python (`None`) can be dangerous when boolean validation is expected.
 
 **Prevention:** Always use explicit return statements for both success and failure paths in validation functions. Use static analysis (linting) to catch unreachable code and implicit returns. Ensure unit tests cover positive cases (valid inputs) as rigorously as negative cases (attack vectors).
+
+## 2026-10-24 - Missing Input Length Limits (DoS Risk)
+
+**Vulnerability:** The application accepted unlimited length strings for folder names and rules. While validation checked for dangerous characters, extremely long strings could cause Denial of Service (DoS) or buffer issues in downstream systems/APIs.
+
+**Learning:** Regex validation and character whitelisting are not enough; explicit length limits are required for complete input validation "Defense in Depth".
+
+**Prevention:** Define explicit maximum constants (e.g., `MAX_FOLDER_NAME_LENGTH = 64`, `MAX_RULE_LENGTH = 255`) and enforce them in validation functions (`is_valid_folder_name`, `is_valid_rule`).
