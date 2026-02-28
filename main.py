@@ -716,8 +716,17 @@ def load_config(config_path: Optional[str] = None) -> Dict:
         if not p.exists():
             continue
         try:
+            # Opening the file can fail with OSError (e.g. permission denied, is a directory),
+            # so we handle it here to avoid an unhelpful traceback.
             with open(p, encoding="utf-8") as fh:
+                # Parsing YAML can raise yaml.YAMLError for malformed configuration.
                 loaded = yaml.safe_load(fh)
+        except OSError as exc:
+            print(
+                f"{Colors.FAIL}✗ Failed to read configuration file {p}: {exc}{Colors.ENDC}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
         except yaml.YAMLError as exc:
             print(
                 f"{Colors.FAIL}✗ Invalid YAML in {p}: {exc}{Colors.ENDC}",
