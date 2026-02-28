@@ -9,6 +9,7 @@ runs:
       with:
         python-version: '3.13'
         cache: 'pip'
+        cache-dependency-path: 'requirements.txt'
 
     - name: Install dependencies
       shell: bash
