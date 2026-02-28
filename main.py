@@ -2010,22 +2010,26 @@ def push_rules(
 
     original_count = len(hostnames)
 
-    # Optimization 1: Deduplicate input list while preserving order using dict.fromkeys()
-    # This is significantly faster than using a 'seen' set in the loop for large lists.
-    # It also naturally deduplicates invalid rules, preventing log spam.
-    unique_hostnames = dict.fromkeys(hostnames)
+    # Optimization 1: Combine deduplication and existence checks using a single set.
+    # Copying existing_rules to a 'seen' set allows us to track duplicates and
+    # filter out already-existing rules in a single O(1) lookup per hostname,
+    # completely avoiding the overhead of dictionary creation via dict.fromkeys().
+    seen = existing_rules.copy()
+    seen_add = seen.add
 
     filtered_hostnames = []
     skipped_unsafe = 0
 
-    # Optimization 2: Inline regex match and check existence
-    # Using a local reference to the match method avoids function call overhead
-    # in the hot loop. This provides a measurable speedup for large lists.
+    # Optimization 2: Inline method references for hot loop performance
     match_rule = RULE_PATTERN.match
+    append = filtered_hostnames.append
 
-    for h in unique_hostnames:
-        if h in existing_rules:
+    for h in hostnames:
+        if h in seen:
             continue
+
+        # Add to seen to deduplicate subsequent occurrences of this hostname
+        seen_add(h)
 
         if not match_rule(h):
             log.warning(
@@ -2034,7 +2038,7 @@ def push_rules(
             skipped_unsafe += 1
             continue
 
-        filtered_hostnames.append(h)
+        append(h)
 
     if skipped_unsafe > 0:
         log.warning(
