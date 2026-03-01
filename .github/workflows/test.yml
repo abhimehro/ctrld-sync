@@ -27,5 +27,11 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-extras
 
-      - name: Run tests
-        run: uv run pytest tests/ -v --tb=short
+      - name: Run tests with coverage
+        run: uv run pytest tests/ -v --tb=short --cov=main --cov=fix_env --cov-report=term-missing --cov-report=xml
+
+      - name: Upload coverage report
+        uses: codecov/codecov-action@e0b4c674b79a1a924c0a4ca3f74be6a3443d8c6e # v4.0.1
+        with:
+          files: ./coverage.xml
+        continue-on-error: true
