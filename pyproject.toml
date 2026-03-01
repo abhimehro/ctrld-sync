@@ -16,4 +16,12 @@ dev = [
     "pytest-mock>=3.10.0",
     "pytest-xdist>=3.0.0",
     "pytest-benchmark>=4.0.0",
+    "pytest-cov>=4.0.0",
 ]
+
+[tool.coverage.run]
+source = ["."]
+omit = ["tests/*", "test_main.py"]
+
+[tool.coverage.report]
+show_missing = true
