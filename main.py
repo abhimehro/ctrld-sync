@@ -2093,7 +2093,8 @@ def push_rules(
             return batch_data
         except httpx.HTTPError as e:
             if USE_COLORS:
-                sys.stderr.write("\n")
+                sys.stderr.write("\r\033[K")
+                sys.stderr.flush()
             log.error(
                 f"Failed to push batch {batch_idx} for folder {sanitized_folder_name}: {sanitize_for_log(e)}"
             )
@@ -2152,6 +2153,9 @@ def push_rules(
             )
         return True
     else:
+        if USE_COLORS:
+            sys.stderr.write("\r\033[K")
+            sys.stderr.flush()
         log.error(
             "Folder %s – only %d/%d batches succeeded",
             sanitize_for_log(folder_name),
@@ -2783,6 +2787,9 @@ def main():
             )
     except KeyboardInterrupt:
         duration = time.time() - start_time
+        if USE_COLORS:
+            sys.stderr.write("\r\033[K")
+            sys.stderr.flush()
         print(
             f"\n{Colors.WARNING}⚠️  Sync cancelled by user. Finishing current task...{Colors.ENDC}"
         )
