@@ -24,7 +24,7 @@ Single-file Python CLI tool (`main.py`) that syncs Control D DNS folders with re
 
 ### Current status
 
-`main.py` compiles cleanly (`python3 -m py_compile main.py` passes). All 30 test files are importable. Run the full test suite with `uv run pytest tests/ -v`.
+`main.py` compiles cleanly when checked with the project interpreter (`uv run python -m py_compile main.py`). All 30 `test_*.py` modules under `tests/` are importable. Run the full test suite with `uv run pytest tests/ -v`.
 
 ### Secrets for live runs
 
