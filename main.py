@@ -2004,8 +2004,9 @@ def push_rules(
     in parallel for optimal performance. Updates existing_rules set with newly
     added rules. Returns True if all batches succeed.
     """
+    sanitized_folder_name = sanitize_for_log(folder_name)
     if not hostnames:
-        log.info("Folder %s - no rules to push", sanitize_for_log(folder_name))
+        log.info("Folder %s - no rules to push", sanitized_folder_name)
         return True
 
     original_count = len(hostnames)
@@ -2023,34 +2024,35 @@ def push_rules(
     # in the hot loop. This provides a measurable speedup for large lists.
     match_rule = RULE_PATTERN.match
 
+    append = filtered_hostnames.append
     for h in unique_hostnames:
         if h in existing_rules:
             continue
 
         if not match_rule(h):
             log.warning(
-                f"Skipping unsafe rule in {sanitize_for_log(folder_name)}: {sanitize_for_log(h)}"
+                f"Skipping unsafe rule in {sanitized_folder_name}: {sanitize_for_log(h)}"
             )
             skipped_unsafe += 1
             continue
 
-        filtered_hostnames.append(h)
+        append(h)
 
     if skipped_unsafe > 0:
         log.warning(
-            f"Folder {sanitize_for_log(folder_name)}: skipped {skipped_unsafe} unsafe rules"
+            f"Folder {sanitized_folder_name}: skipped {skipped_unsafe} unsafe rules"
         )
 
     duplicates_count = original_count - len(filtered_hostnames) - skipped_unsafe
 
     if duplicates_count > 0:
         log.info(
-            f"Folder {sanitize_for_log(folder_name)}: skipping {duplicates_count} duplicate rules"
+            f"Folder {sanitized_folder_name}: skipping {duplicates_count} duplicate rules"
         )
 
     if not filtered_hostnames:
         log.info(
-            f"Folder {sanitize_for_log(folder_name)} - no new rules to push after filtering duplicates"
+            f"Folder {sanitized_folder_name} - no new rules to push after filtering duplicates"
         )
         return True
 
@@ -2067,7 +2069,6 @@ def push_rules(
     str_do = str(do)
     str_status = str(status)
     str_group = str(folder_id)
-    sanitized_folder_name = sanitize_for_log(folder_name)
     progress_label = f"Folder {sanitized_folder_name}"
 
     def process_batch(batch_idx: int, batch_data: List[str]) -> Optional[List[str]]:
@@ -2143,18 +2144,18 @@ def push_rules(
     if successful_batches == total_batches:
         if USE_COLORS:
             sys.stderr.write(
-                f"\r\033[K{Colors.GREEN}✅ Folder {sanitize_for_log(folder_name)}: Finished ({len(filtered_hostnames):,} rules){Colors.ENDC}\n"
+                f"\r\033[K{Colors.GREEN}✅ Folder {sanitized_folder_name}: Finished ({len(filtered_hostnames):,} rules){Colors.ENDC}\n"
             )
             sys.stderr.flush()
         else:
             log.info(
-                f"Folder {sanitize_for_log(folder_name)} – finished ({len(filtered_hostnames):,} new rules added)"
+                f"Folder {sanitized_folder_name} – finished ({len(filtered_hostnames):,} new rules added)"
             )
         return True
     else:
         log.error(
             "Folder %s – only %d/%d batches succeeded",
-            sanitize_for_log(folder_name),
+            sanitized_folder_name,
             successful_batches,
             total_batches,
         )
