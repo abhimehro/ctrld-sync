@@ -1,4 +1,3 @@
-
 import unittest
 from unittest.mock import MagicMock, patch
 import time
@@ -26,10 +25,12 @@ class TestParallelFetch(unittest.TestCase):
     @patch("main.get_all_existing_rules")
     @patch("main.delete_folder")
     @patch("main.verify_access_and_get_folders")
+    @patch("main._api_client")
     @patch("main.fetch_folder_data")
+    @patch("main._gh.stream")
     @patch("main.validate_folder_url")
     @patch("main.countdown_timer")
-    def test_parallel_execution(self, mock_timer, mock_validate, mock_fetch, mock_verify, mock_delete, mock_get_rules):
+    def test_parallel_execution(self, mock_timer, mock_validate, mock_stream, mock_fetch, mock_client, mock_verify, mock_delete, mock_get_rules):
         """
         Verify that get_all_existing_rules runs in parallel with delete_folder.
         """
@@ -37,7 +38,16 @@ class TestParallelFetch(unittest.TestCase):
         mock_validate.return_value = True
         mock_fetch.return_value = self.folder_data
 
+        # In main.py _fetch_if_valid calls fetch_folder_data if not in cache.
+        # It runs in a ThreadPoolExecutor. Sometimes the mock isn't picked up correctly
+        # or there is a real HTTP request attempted via _gh.stream inside `fetch_folder_data`
+        # (which calls `_gh_get`) due to how thread scopes interact with module patches.
+        # Mocking stream prevents [SSL: CERTIFICATE_VERIFY_FAILED] by catching any real requests.
+        self.main._cache[self.folder_urls[0]] = self.folder_data
+
         # existing folders: test_folder (to be deleted), keep_folder (to be kept)
+        mock_client.return_value.__enter__.return_value.get.return_value.json.return_value = {'body': {'groups': [{'group': 'test_folder', 'PK': 'id_1'}, {'group': 'keep_folder', 'PK': 'id_2'}]}}
+        mock_client.return_value.__enter__.return_value.get.return_value.json.return_value = {'body': {'groups': [{'group': 'test_folder', 'PK': 'id_1'}, {'group': 'keep_folder', 'PK': 'id_2'}]}}
         mock_verify.return_value = {
             "test_folder": "id_1",
             "keep_folder": "id_2"
