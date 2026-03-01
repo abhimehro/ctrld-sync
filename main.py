@@ -343,6 +343,12 @@ def print_plan_details(plan_entry: Dict[str, Any]) -> None:
                 action_color = Colors.GREEN
                 action_text = f"({action_color}✅ {action_label}{Colors.ENDC})" if USE_COLORS else f"[{action_label}]"
 
+        # If action is still completely missing/unknown, default to Block (Default) for clearer UX
+        if not action_text:
+            action_label = "Block (Default)"
+            action_color = Colors.FAIL
+            action_text = f"({action_color}⛔ {action_label}{Colors.ENDC})" if USE_COLORS else f"[{action_label}]"
+
         if USE_COLORS:
             print(
                 f"  • {Colors.BOLD}{name:<{max_name_len}}{Colors.ENDC} : {formatted_rules:>{max_rules_len}} rules {action_text}"
