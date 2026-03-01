@@ -75,8 +75,6 @@ class TestParallelFetch(unittest.TestCase):
             start = time.perf_counter()
             self.main.sync_profile(self.profile_id, self.folder_urls, no_delete=False)
             elapsed = time.perf_counter() - start
-
-            # Assertions
             self.assertTrue(mock_delete.called, "delete_folder should be called")
             self.assertTrue(mock_get_rules.called, "get_all_existing_rules should be called")
 
