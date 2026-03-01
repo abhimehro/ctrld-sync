@@ -22,13 +22,9 @@ Single-file Python CLI tool (`main.py`) that syncs Control D DNS folders with re
 | Run app (dry-run) | `uv run python main.py --dry-run` |
 | Run app (live) | `TOKEN=xxx PROFILE=yyy uv run python main.py` |
 
-### Known issue (as of main branch)
+### Current status
 
-`main.py` has a **pre-existing syntax error at line 1141** (corrupted text: `rgi"rules"1` instead of `rg["rules"]`, plus broken indentation and Unicode characters in nearby f-strings). This blocks:
-- Importing the `main` module (and therefore 20 of 22 tests)
-- Running `python main.py` at all
-
-Only `tests/test_fix_env.py` (2 tests) currently passes because it imports `fix_env` instead of `main`. This is a codebase bug, not an environment issue.
+`main.py` compiles cleanly (`python3 -m py_compile main.py` passes). All 30 test files are importable. Run the full test suite with `uv run pytest tests/ -v`.
 
 ### Secrets for live runs
 
