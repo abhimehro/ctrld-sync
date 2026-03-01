@@ -73,7 +73,7 @@ class TestParallelFetch(unittest.TestCase):
             # Verify get_all_existing_rules was called with ONLY keep_folder
             call_args = mock_get_rules.call_args
             # args: client, profile_id, known_folders
-            if call_args is None: return
+            self.assertIsNotNone(call_args, "get_all_existing_rules was not called")
             known_folders = call_args[0][2] if len(call_args[0]) > 2 else call_args[1]['known_folders']
 
             # self.assertIn("keep_folder", known_folders)
