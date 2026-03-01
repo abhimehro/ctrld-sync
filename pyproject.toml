@@ -21,7 +21,7 @@ dev = [
 
 [tool.coverage.run]
 source = ["."]
-omit = ["tests/*", "test_main.py"]
+omit = ["tests/*", "test_main.py", ".venv/*", ".venv/**"]
 
 [tool.coverage.report]
 show_missing = true
