@@ -13,6 +13,8 @@ It does three things:
 Nothing fancy, just works.
 """
 
+from __future__ import annotations
+
 import argparse
 import concurrent.futures
 import contextlib
@@ -32,7 +34,7 @@ import threading
 import time
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Sequence, Set
+from typing import Any, Callable, Sequence
 from urllib.parse import urlparse
 
 import httpx
@@ -302,7 +304,7 @@ def sanitize_for_log(text: Any) -> str:
     return safe
 
 
-def print_plan_details(plan_entry: Dict[str, Any]) -> None:
+def print_plan_details(plan_entry: dict[str, Any]) -> None:
     """Pretty-print the folder-level breakdown during a dry-run."""
     profile = sanitize_for_log(plan_entry.get("profile", "unknown"))
     folders = plan_entry.get("folders", [])
@@ -479,7 +481,7 @@ def render_progress_bar(
     sys.stderr.flush()
 
 
-def _clean_env_kv(value: Optional[str], key: str) -> Optional[str]:
+def _clean_env_kv(value: str | None, key: str) -> str | None:
     """Allow TOKEN/PROFILE values to be provided as either raw values or KEY=value."""
     if not value:
         return value
@@ -582,7 +584,7 @@ _DEFAULT_CONFIG_PATHS = [
 ]
 
 
-def get_default_config() -> Dict:
+def get_default_config() -> dict:
     """Return the built-in default configuration (mirrors DEFAULT_FOLDER_URLS)."""
     return {
         "folders": [{"url": u} for u in DEFAULT_FOLDER_URLS],
@@ -594,7 +596,7 @@ def get_default_config() -> Dict:
     }
 
 
-def _validate_config(config: Dict) -> None:
+def _validate_config(config: dict) -> None:
     """
     Validate a loaded configuration dict and raise ValueError on the first problem.
 
@@ -642,7 +644,7 @@ def _validate_config(config: Dict) -> None:
             )
 
 
-def load_config(config_path: Optional[str] = None) -> Dict:
+def load_config(config_path: str | None = None) -> dict:
     """
     Load and validate configuration from a YAML file.
 
@@ -655,7 +657,7 @@ def load_config(config_path: Optional[str] = None) -> Dict:
     Raises SystemExit on invalid YAML or schema violations so the operator
     sees a clear error message rather than a cryptic traceback.
     """
-    paths_to_try: List[str] = []
+    paths_to_try: list[str] = []
     if config_path:
         paths_to_try = [config_path]
     else:
@@ -742,7 +744,7 @@ MAX_RESPONSE_SIZE = 10 * 1024 * 1024  # 10 MB limit for external resources
 # --------------------------------------------------------------------------- #
 # 3. Helpers
 # --------------------------------------------------------------------------- #
-_cache: Dict[str, Dict] = {}
+_cache: dict[str, dict] = {}
 # Use RLock (reentrant lock) to allow nested acquisitions by the same thread
 # This prevents deadlocks when _fetch_if_valid calls fetch_folder_data which calls _gh_get
 _cache_lock = threading.RLock()
@@ -755,7 +757,7 @@ _cache_lock = threading.RLock()
 CACHE_TTL_SECONDS = (
     24 * 60 * 60
 )  # 24 hours: within TTL, serve from disk without HTTP request
-_disk_cache: Dict[str, Dict[str, Any]] = {}  # Loaded from disk on startup
+_disk_cache: dict[str, dict[str, Any]] = {}  # Loaded from disk on startup
 _cache_stats = {"hits": 0, "misses": 0, "validations": 0, "errors": 0}
 _api_stats = {"control_d_api_calls": 0, "blocklist_fetches": 0}
 
@@ -825,7 +827,7 @@ def load_disk_cache() -> None:
         # - keys must be strings
         # - values must be dicts
         # - each entry must contain at least a 'data' field
-        sanitized_cache: Dict[str, Any] = {}
+        sanitized_cache: dict[str, Any] = {}
         dropped_entries = 0
 
         for key, value in data.items():
@@ -1188,7 +1190,7 @@ def is_valid_folder_name(name: str) -> bool:
     return True
 
 
-def validate_folder_data(data: Dict[str, Any], url: str) -> bool:
+def validate_folder_data(data: dict[str, Any], url: str) -> bool:
     """
     Validates folder JSON data structure and content.
 
@@ -1280,13 +1282,13 @@ def _api_delete(client: httpx.Client, url: str) -> httpx.Response:
     return _retry_request(lambda: client.delete(url))
 
 
-def _api_post(client: httpx.Client, url: str, data: Dict) -> httpx.Response:
+def _api_post(client: httpx.Client, url: str, data: dict) -> httpx.Response:
     with _api_stats_lock:
         _api_stats["control_d_api_calls"] += 1
     return _retry_request(lambda: client.post(url, data=data))
 
 
-def _api_post_form(client: httpx.Client, url: str, data: Dict) -> httpx.Response:
+def _api_post_form(client: httpx.Client, url: str, data: dict) -> httpx.Response:
     with _api_stats_lock:
         _api_stats["control_d_api_calls"] += 1
     return _retry_request(
@@ -1318,7 +1320,11 @@ def retry_with_jitter(
     return exponential_delay * random.random()
 
 
-def _retry_request(request_func, max_retries=MAX_RETRIES, delay=RETRY_DELAY):
+def _retry_request(
+    request_func: Callable[[], httpx.Response],
+    max_retries: int = MAX_RETRIES,
+    delay: float = RETRY_DELAY,
+) -> httpx.Response | None:
     """
     Retry request with exponential backoff and full jitter.
 
@@ -1409,7 +1415,7 @@ def _retry_request(request_func, max_retries=MAX_RETRIES, delay=RETRY_DELAY):
             time.sleep(wait_time)
 
 
-def _gh_get(url: str) -> Dict:
+def _gh_get(url: str) -> dict:
     """
     Fetch blocklist data from URL with HTTP cache header support.
 
@@ -1663,7 +1669,7 @@ def check_api_access(client: httpx.Client, profile_id: str) -> bool:
         return False
 
 
-def list_existing_folders(client: httpx.Client, profile_id: str) -> Dict[str, str]:
+def list_existing_folders(client: httpx.Client, profile_id: str) -> dict[str, str]:
     """
     Retrieves all existing folders (groups) for a given profile.
 
@@ -1688,7 +1694,7 @@ def list_existing_folders(client: httpx.Client, profile_id: str) -> Dict[str, st
 
 def verify_access_and_get_folders(
     client: httpx.Client, profile_id: str
-) -> Optional[Dict[str, str]]:
+) -> dict[str, str] | None:
     """Combine access check and folder listing into a single API request.
 
     Returns:
@@ -1733,7 +1739,7 @@ def verify_access_and_get_folders(
                     return None
 
                 # Only process entries that are dicts and have the required keys.
-                result: Dict[str, str] = {}
+                result: dict[str, str] = {}
                 for f in folders:
                     if not isinstance(f, dict):
                         # Skip non-dict entries instead of crashing; this protects
@@ -1809,8 +1815,8 @@ def verify_access_and_get_folders(
 def get_all_existing_rules(
     client: httpx.Client,
     profile_id: str,
-    known_folders: Optional[Dict[str, str]] = None,
-) -> Set[str]:
+    known_folders: dict[str, str] | None = None,
+) -> set[str]:
     """
     Fetches all existing rules across root and all folders.
 
@@ -1820,7 +1826,7 @@ def get_all_existing_rules(
     """
     all_rules = set()
 
-    def _fetch_folder_rules(folder_id: str) -> List[str]:
+    def _fetch_folder_rules(folder_id: str) -> list[str]:
         try:
             data = _api_get(client, f"{API_BASE}/{profile_id}/rules/{folder_id}").json()
             folder_rules = data.get("body", {}).get("rules", [])
@@ -1879,7 +1885,7 @@ def get_all_existing_rules(
         return set()
 
 
-def fetch_folder_data(url: str) -> Dict[str, Any]:
+def fetch_folder_data(url: str) -> dict[str, Any]:
     """
     Downloads and validates folder JSON data from a URL.
 
@@ -1975,7 +1981,7 @@ def delete_folder(
 
 def create_folder(
     client: httpx.Client, profile_id: str, name: str, do: int, status: int
-) -> Optional[str]:
+) -> str | None:
     """
     Create a new folder and return its ID.
     Attempts to read ID from response first, then falls back to polling.
@@ -2078,10 +2084,10 @@ def push_rules(
     folder_id: str,
     do: int,
     status: int,
-    hostnames: List[str],
-    existing_rules: Set[str],
+    hostnames: list[str],
+    existing_rules: set[str],
     client: httpx.Client,
-    batch_executor: Optional[concurrent.futures.Executor] = None,
+    batch_executor: concurrent.futures.Executor | None = None,
 ) -> bool:
     """
     Pushes rules to a folder in batches, filtering duplicates and invalid rules.
@@ -2160,7 +2166,7 @@ def push_rules(
     sanitized_folder_name = sanitize_for_log(folder_name)
     progress_label = f"Folder {sanitized_folder_name}"
 
-    def process_batch(batch_idx: int, batch_data: List[str]) -> Optional[List[str]]:
+    def process_batch(batch_idx: int, batch_data: list[str]) -> list[str] | None:
         """Processes a single batch of rules by sending API request."""
         data = {
             "do": str_do,
@@ -2260,11 +2266,11 @@ def push_rules(
 
 
 def _process_single_folder(
-    folder_data: Dict[str, Any],
+    folder_data: dict[str, Any],
     profile_id: str,
-    existing_rules: Set[str],
+    existing_rules: set[str],
     client: httpx.Client,
-    batch_executor: Optional[concurrent.futures.Executor] = None,
+    batch_executor: concurrent.futures.Executor | None = None,
 ) -> bool:
     grp = folder_data["group"]
     name = grp["group"].strip()
@@ -2322,7 +2328,7 @@ def sync_profile(
     folder_urls: Sequence[str],
     dry_run: bool = False,
     no_delete: bool = False,
-    plan_accumulator: Optional[List[Dict[str, Any]]] = None,
+    plan_accumulator: list[dict[str, Any]] | None = None,
 ) -> bool:
     """
     Synchronizes Control D folders from remote blocklist URLs.
@@ -2544,7 +2550,7 @@ def sync_profile(
 # --------------------------------------------------------------------------- #
 # 5. Entry-point
 # --------------------------------------------------------------------------- #
-def prompt_for_interactive_restart(profile_ids: List[str]) -> None:
+def prompt_for_interactive_restart(profile_ids: list[str]) -> None:
     """
     Prompts the user to restart the script in live mode (after a successful dry run).
 
@@ -2592,7 +2598,7 @@ def prompt_for_interactive_restart(profile_ids: List[str]) -> None:
 
 
 def print_summary_table(
-    sync_results: List[Dict[str, Any]], success_count: int, total: int, dry_run: bool
+    sync_results: list[dict[str, Any]], success_count: int, total: int, dry_run: bool
 ) -> None:
     # 1. Setup Data
     max_p = max((len(r["profile"]) for r in sync_results), default=25)
@@ -2661,7 +2667,7 @@ def print_summary_table(
     print(f"{print_line('└', '┴', '┘')}\n")
 
 
-def print_success_message(profile_ids: List[str]) -> None:
+def print_success_message(profile_ids: list[str]) -> None:
     """Prints a random success message and a link to the Control D dashboard."""
     if not USE_COLORS:
         return
@@ -2735,7 +2741,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main():
+def main() -> None:
     """
     Main entry point for Control D Sync.
 
@@ -2867,7 +2873,7 @@ def main():
 
     warm_up_cache(folder_urls)
 
-    plan: List[Dict[str, Any]] = []
+    plan: list[dict[str, Any]] = []
     success_count = 0
     sync_results = []
 
