@@ -31,11 +31,11 @@ def test_cache_roundtrip_benchmark(benchmark):
 
 # Benchmark hostname validation for non-global IPs (no DNS lookup, pure CPU path)
 def test_benchmark_validate_hostname(benchmark):
-    """Hostname validation for private IPs (no DNS lookup) should stay under 1ms per call.
-
-    Cache is cleared before timing to measure worst-case (cold-cache) performance.
+    """Hostname validation for private IPs (no DNS lookup) should stay under 1ms per call
+    with a warm LRU cache.
     """
-    # Clear lru_cache to measure worst-case latency, not cached lookup speed
+    # Clear lru_cache once so this benchmark starts from a known state; subsequent
+    # iterations within pytest-benchmark will run with a warm cache.
     main.validate_hostname.cache_clear()
     result = benchmark(main.validate_hostname, "192.168.1.1")
     assert result is False  # Private IP is rejected
