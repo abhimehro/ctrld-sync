@@ -45,12 +45,6 @@ jobs:
           path: .benchmarks/
           include-hidden-files: true
 
-      - name: Download previous benchmark data
-        uses: actions/cache@v4
-        with:
-          path: ./cache
-          key: ${{ runner.os }}-benchmark
-
       - name: Run structured benchmark suite
         run: |
           uv run pytest tests/test_benchmarks.py \
@@ -64,8 +58,9 @@ jobs:
           output-file-path: benchmark-results.json
           fail-on-alert: true
           alert-threshold: '150%'
-          external-data-json-path: ./cache/benchmark-data.json
-          github-token: ""
+          auto-push: false
+          skip-fetch-gh-pages: true
+          save-data-file: false
 
       - name: Upload benchmark JSON artifact
         uses: actions/upload-artifact@v4
