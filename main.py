@@ -213,7 +213,8 @@ _DANGEROUS_FOLDER_CHARS.update(["/", "\\"])
 MAX_FOLDER_NAME_LENGTH = 64
 MAX_RULE_LENGTH = 255
 MAX_PROFILE_ID_LENGTH = 64
-
+# In constants section
+DEFAULT_HTTP_TIMEOUT = httpx.Timeout(10.0, connect=5.0)
 # Security: Unicode Bidi control characters (prevent RTLO/homograph attacks)
 # These characters can be used to mislead users about file extensions or content
 # See: https://en.wikipedia.org/wiki/Right-to-left_override
