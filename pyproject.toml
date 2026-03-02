@@ -28,3 +28,7 @@ show_missing = true
 
 [tool.ruff.lint]
 select = ["E", "F", "ANN"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["ANN"]
+"test_*.py" = ["ANN"]
