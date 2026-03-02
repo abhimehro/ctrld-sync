@@ -5,6 +5,7 @@ on:
     paths:
       - 'main.py'
       - 'tests/test_performance_*.py'
+      - 'tests/test_benchmarks.py'
   push:
     branches: [main]
 
@@ -37,8 +38,22 @@ jobs:
             --benchmark-autosave \
             -v
 
-      - name: Store benchmark results
+      - name: Store performance regression results
         uses: actions/upload-artifact@v4
         with:
-          name: benchmark-results
+          name: performance-regression-results
           path: .benchmarks/
+
+      - name: Run structured benchmark suite
+        run: |
+          uv run pytest tests/test_benchmarks.py \
+            --benchmark-only \
+            --benchmark-json=benchmark-results.json
+
+      - name: Store benchmark results
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          tool: pytest
+          output-file-path: benchmark-results.json
+          fail-on-alert: true
+          alert-threshold: '150%'
