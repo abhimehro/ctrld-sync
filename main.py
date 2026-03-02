@@ -1254,7 +1254,7 @@ def retry_with_jitter(attempt: int, base_delay: float = 1.0, max_delay: float = 
     return exponential_delay * random.random()
 
 
-def _retry_request(request_func: Callable, max_retries: int = MAX_RETRIES, delay: float = RETRY_DELAY) -> httpx.Response:
+def _retry_request(request_func: Callable[[], httpx.Response], max_retries: int = MAX_RETRIES, delay: float = RETRY_DELAY) -> httpx.Response:
     """
     Retry request with exponential backoff and full jitter.
 
