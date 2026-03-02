@@ -43,6 +43,7 @@ jobs:
         with:
           name: performance-regression-results
           path: .benchmarks/
+          include-hidden-files: true
 
       - name: Run structured benchmark suite
         run: |
@@ -57,3 +58,12 @@ jobs:
           output-file-path: benchmark-results.json
           fail-on-alert: true
           alert-threshold: '150%'
+          auto-push: false
+          skip-fetch-gh-pages: true
+          save-data-file: false
+
+      - name: Upload benchmark JSON artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: benchmark-results.json
