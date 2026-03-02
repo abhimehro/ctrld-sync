@@ -218,12 +218,12 @@ class TestDiskCache(unittest.TestCase):
         
         with patch.object(main._gh, 'stream', side_effect=mock_stream):
             # First fetch - should be a miss
-            result1 = main._gh_get(test_url)
+            main._gh_get(test_url)
             self.assertEqual(main._cache_stats["misses"], 1)
             self.assertEqual(main._cache_stats["hits"], 0)
             
             # Second fetch - should be a hit (in-memory cache)
-            result2 = main._gh_get(test_url)
+            main._gh_get(test_url)
             self.assertEqual(main._cache_stats["hits"], 1)
             self.assertEqual(main._cache_stats["misses"], 1)
     

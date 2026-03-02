@@ -1,4 +1,3 @@
-import pytest
 import main
 
 def test_is_valid_folder_name_length_limit():
