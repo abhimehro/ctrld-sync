@@ -25,3 +25,9 @@ omit = ["tests/*", "test_main.py", ".venv/*", ".venv/**"]
 
 [tool.coverage.report]
 show_missing = true
+
+[dependency-groups]
+dev = [
+    "pytest-benchmark>=5.2.3",
+    "pytest-xdist>=3.8.0",
+]
