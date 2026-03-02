@@ -2215,8 +2215,9 @@ def push_rules(
                 sys.stderr.flush()
             hint = ""
             if isinstance(e, httpx.HTTPStatusError):
-                status = e.response.status_code
-                hint = f" ({_STATUS_HINTS.get(status, f'HTTP {status}')})"
+                # Use a more specific name to avoid confusion with the rule "status" payload
+                status_code = e.response.status_code
+                hint = f" ({_STATUS_HINTS.get(status_code, f'HTTP {status_code}')})"
             log.error(
                 f"Failed to push batch {batch_idx} for folder {sanitized_folder_name}{hint}: {sanitize_for_log(e)}"
             )
