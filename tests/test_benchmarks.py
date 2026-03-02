@@ -19,5 +19,6 @@ def test_deduplication_benchmark(benchmark):
 # Benchmark cache serialization for large rule sets
 def test_cache_roundtrip_benchmark(benchmark):
     data = {"rules": [f"domain-{i}.com" for i in range(5000)]}
-    result = benchmark(json.dumps, data)
+    # Use indent=2 to match save_disk_cache()'s JSON configuration
+    result = benchmark(json.dumps, data, indent=2)
     assert len(result) > 0
