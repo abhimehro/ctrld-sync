@@ -575,6 +575,15 @@ MAX_RETRY_DELAY = 60.0  # Maximum retry delay in seconds (caps exponential growt
 FOLDER_CREATION_DELAY = 5  # <--- CHANGED: Increased from 2 to 5 for patience
 MAX_RESPONSE_SIZE = 10 * 1024 * 1024  # 10MB limit
 
+# Maps common HTTP status codes to actionable operator guidance surfaced in error messages.
+_STATUS_HINTS: dict[int, str] = {
+    401: "Check that your TOKEN environment variable is correct.",
+    403: "Access denied — verify your token has the required permissions.",
+    404: "Folder or resource not found — check folder IDs in config.",
+    429: "Rate limited — the sync will retry automatically with backoff.",
+    500: "Control D API error — try again later or check status.controld.com.",
+}
+
 # Default config search paths (highest to lowest precedence after CLI flag)
 _DEFAULT_CONFIG_PATHS = [
     "config.yaml",
@@ -1890,9 +1899,22 @@ def fetch_folder_data(url: str) -> dict[str, Any]:
     Downloads and validates folder JSON data from a URL.
 
     Uses cached GET request and validates the folder structure.
-    Raises KeyError if validation fails.
+    Raises httpx.HTTPStatusError (with actionable hint) on HTTP failure,
+    or KeyError if validation of the returned data fails.
     """
-    js = _gh_get(url)
+    try:
+        js = _gh_get(url)
+    except httpx.HTTPStatusError as e:
+        status = e.response.status_code
+        hint = _STATUS_HINTS.get(status, f"HTTP {status}")
+        # Include the original error message so we keep the numeric status code
+        # and reason phrase (e.g., "401 Unauthorized") in addition to our hint.
+        original_msg = str(e)
+        raise httpx.HTTPStatusError(
+            f"{original_msg} | hint: {hint} | url: {sanitize_for_log(url)}",
+            request=e.request,
+            response=e.response,
+        ) from e
     if not validate_folder_data(js, url):
         raise KeyError(f"Invalid folder data from {sanitize_for_log(url)}")
     return js
@@ -2191,8 +2213,13 @@ def push_rules(
             if USE_COLORS:
                 sys.stderr.write("\r\033[K")
                 sys.stderr.flush()
+            hint = ""
+            if isinstance(e, httpx.HTTPStatusError):
+                # Use a more specific name to avoid confusion with the rule "status" payload
+                status_code = e.response.status_code
+                hint = f" ({_STATUS_HINTS.get(status_code, f'HTTP {status_code}')})"
             log.error(
-                f"Failed to push batch {batch_idx} for folder {sanitized_folder_name}: {sanitize_for_log(e)}"
+                f"Failed to push batch {batch_idx} for folder {sanitized_folder_name}{hint}: {sanitize_for_log(e)}"
             )
             if (
                 hasattr(e, "response")
