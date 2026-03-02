@@ -1324,7 +1324,7 @@ def _retry_request(
     request_func: Callable[[], httpx.Response],
     max_retries: int = MAX_RETRIES,
     delay: float = RETRY_DELAY,
-) -> httpx.Response:
+) -> httpx.Response | None:
     """
     Retry request with exponential backoff and full jitter.
 
