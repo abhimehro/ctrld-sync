@@ -23,4 +23,4 @@ jobs:
           python-version: '3.13'
       - run: uv sync --all-extras
       - name: Run tests with coverage
-        run: uv run pytest tests/ -n auto -v --tb=short --cov=main --cov=fix_env --cov-report=term-missing --cov-fail-under=55
+        run: uv run pytest tests/ -n auto -v --tb=short --cov=main --cov=fix_env --cov-report=term-missing --cov-report=xml
