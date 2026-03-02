@@ -44,19 +44,11 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
 
 2. **Install dependencies**
 
-   Choose one of the following methods:
-
-   **Using pip (recommended for CI/production):**
    ```bash
-   pip install -r requirements.txt
+   uv sync --all-extras
    ```
 
-   **Using uv (faster for local development):**
-   ```bash
-   uv sync
-   ```
-
-   Both methods are fully supported. Our main sync CI workflow uses `pip` for consistency with caching, while other workflows use `uv`; `uv` is generally faster for local development.
+   All CI workflows (including the main sync job) use `uv sync --all-extras`. This is the recommended method for both local development and CI/production.
 
 3. **Configure secrets**
    Create a `.env` file (or set GitHub secrets) with:
@@ -131,7 +123,7 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
 
 ## Requirements
 - Python 3.13+
-- Runtime dependencies (install with `pip install -r requirements.txt` or `uv sync`):
+- Runtime dependencies (install with `uv sync --all-extras`):
   - `httpx` – HTTP client
   - `python-dotenv` – `.env` file support
   - `pyyaml` – YAML configuration file support
@@ -237,9 +229,9 @@ This project uses manual releases via GitHub Releases. To create a new release:
 
 The GitHub Actions workflows use automatic dependency caching to speed up CI runs:
 
-- **Cache Key**: Includes the SHA-256 hash of `requirements.txt` along with the runner OS, Python version, and other factors (managed by `actions/setup-python@v5`)
-- **Cache Location**: `~/.cache/pip` (managed by `actions/setup-python@v5`)
-- **Invalidation**: Automatic when `requirements.txt` changes, or when environment details like Python version or runner OS change (per `actions/setup-python` caching behavior)
+- **Cache Key**: Based on `uv.lock` (managed by `astral-sh/setup-uv@v4`)
+- **Cache Location**: uv's shared cache directory (managed by `astral-sh/setup-uv@v4`)
+- **Invalidation**: Automatic when `uv.lock` changes
 
 ### Expected Performance
 
@@ -249,7 +241,7 @@ The GitHub Actions workflows use automatic dependency caching to speed up CI run
 
 ### Maintaining Dependencies
 
-**Important**: `requirements.txt` must stay synchronized with `pyproject.toml`
+**Important**: `pyproject.toml` is the single source of truth for dependencies. After updating dependencies, regenerate the lockfile with `uv lock`.
 
 When updating dependencies:
 
@@ -262,52 +254,16 @@ When updating dependencies:
    ]
    ```
 
-2. **Update `requirements.txt`** (manual sync required)
+2. **Regenerate the lockfile**
    ```bash
-   # Extract runtime dependencies from pyproject.toml
-   python3 -c "
-   import sys
-   try:
-       import tomllib  # Python 3.11+
-   except ModuleNotFoundError:
-       try:
-           import tomli as tomllib  # Fallback for older Python versions (requires 'tomli' package)
-       except ModuleNotFoundError:
-           sys.stderr.write('Error: No TOML parser available. Install the \"tomli\" package for Python <3.11.\n')
-           sys.exit(1)
-
-   with open('pyproject.toml', 'rb') as f:
-       data = tomllib.load(f)
-
-   deps = data.get('project', {}).get('dependencies') or []
-   for dep in deps:
-       print(dep)
-   " > requirements.txt.tmp
-
-   # Add header and move into place
-   cat > requirements.txt << 'EOF'
-# Runtime dependencies - manually synchronized with pyproject.toml
-# This file is maintained for CI caching purposes only
-# Source of truth: pyproject.toml [project.dependencies]
-EOF
-   cat requirements.txt.tmp >> requirements.txt
-   rm requirements.txt.tmp
+   uv lock
    ```
 
 3. **Verify locally**
    ```bash
-   pip install -r requirements.txt
-   python main.py --help  # Smoke test
+   uv sync --all-extras
+   uv run python main.py --help  # Smoke test
    ```
-
-### Why requirements.txt?
-
-The project uses a flat layout (scripts in root directory), which doesn't support `pip install -e .` without additional configuration. Using `requirements.txt` for CI is a minimal-change approach that:
-
-- ✅ Enables effective pip caching via `actions/setup-python@v5`
-- ✅ Provides explicit cache key for reproducible builds
-- ✅ Maintains simplicity (no src/ layout migration required)
-- ✅ Keeps `pyproject.toml` as single source of truth for version declarations
 
 ### Cache Debugging
 
@@ -315,41 +271,17 @@ If you suspect cache issues:
 
 1. **Check cache hit/miss** in workflow logs:
    ```
-   Run actions/setup-python@v5
+   Run astral-sh/setup-uv@v4
    Cache restored successfully: true
    ```
 
 2. **Manually clear cache** (if needed):
    - Go to Actions → Caches
-   - Delete relevant pip cache entries
+   - Delete relevant uv cache entries
    - Re-run workflow to rebuild cache
 
-3. **Verify dependencies match**:
+3. **Verify dependencies are up to date**:
    ```bash
-   # Compare runtime dependencies (excluding dev dependencies)
-   # This checks that requirements.txt matches pyproject.toml
-   python3 -c "
-   import tomllib
-
-   # Parse pyproject.toml dependencies using a real TOML parser
-   with open('pyproject.toml', 'rb') as f:
-       data = tomllib.load(f)
-   project = data.get('project', {})
-   deps = project.get('dependencies', []) or []
-   deps = [d.strip() for d in deps if isinstance(d, str) and d.strip()]
-
-   # Parse requirements.txt (skip comments)
-   with open('requirements.txt') as f:
-       reqs = [line.strip() for line in f if line.strip() and not line.startswith('#')]
-
-   # Compare
-   deps_set = set(deps)
-   reqs_set = set(reqs)
-   if deps_set == reqs_set:
-       print('✓ Dependencies match')
-   else:
-       print('✗ Dependencies mismatch!')
-       print(f'  In pyproject.toml only: {deps_set - reqs_set}')
-       print(f'  In requirements.txt only: {reqs_set - deps_set}')
-   "
+   uv sync --all-extras
+   uv run python main.py --help  # Smoke test
    ```
