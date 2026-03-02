@@ -113,7 +113,7 @@ class TestAPITracking(unittest.TestCase):
         
         # Call _gh_get
         try:
-            result = main._gh_get("http://test.blocklist.url")
+            main._gh_get("http://test.blocklist.url")
         except Exception:
             pass  # May fail on validation, we just care about the counter
         

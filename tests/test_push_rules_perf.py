@@ -84,7 +84,7 @@ class TestPushRulesPerf(unittest.TestCase):
 
         mock_as_completed.return_value = [mock_future, mock_future] # 2 batches
 
-        with patch("main._api_post_form") as mock_post:
+        with patch("main._api_post_form"):
             self.main.push_rules(
                 self.profile_id,
                 self.folder_name,

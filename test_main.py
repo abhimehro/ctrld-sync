@@ -486,7 +486,8 @@ def test_get_validated_input_retry(monkeypatch, capsys):
     input_mock = MagicMock(side_effect=["", "invalid", "valid"])
     monkeypatch.setattr("builtins.input", input_mock)
 
-    validator = lambda x: x == "valid"
+    def validator(x):
+        return x == "valid"
 
     result = m.get_validated_input("Prompt: ", validator, "Error message")
 
@@ -506,7 +507,8 @@ def test_get_password(monkeypatch):
     getpass_mock = MagicMock(return_value="secret")
     monkeypatch.setattr("getpass.getpass", getpass_mock)
 
-    validator = lambda x: True
+    def validator(x):
+        return True
 
     result = m.get_password("Password: ", validator, "Error")
 

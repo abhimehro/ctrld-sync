@@ -54,7 +54,7 @@ def test_check_env_permissions_fixes_file(tmp_path):
     env_file.chmod(0o644)
 
     # Run check_env_permissions
-    with patch("sys.stderr") as mock_stderr:
+    with patch("sys.stderr"):
         main.check_env_permissions(str(env_file))
 
         # Verify success message (or at least no warning about symlink)

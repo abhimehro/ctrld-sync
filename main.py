@@ -674,14 +674,16 @@ def _api_client() -> httpx.Client:
             "Authorization": f"Bearer {TOKEN}",
             "User-Agent": USER_AGENT,
         },
-        timeout=30,
+        # SECURITY: Explicit timeouts prevent resource exhaustion/DoS via Slowloris
+        timeout=httpx.Timeout(10.0, connect=5.0),
         follow_redirects=False,
     )
 
 
 _gh = httpx.Client(
     headers={"User-Agent": USER_AGENT},
-    timeout=30,
+    # SECURITY: Explicit timeouts prevent resource exhaustion/DoS via Slowloris
+    timeout=httpx.Timeout(10.0, connect=5.0),
     follow_redirects=False,
 )
 MAX_RESPONSE_SIZE = 10 * 1024 * 1024  # 10 MB limit for external resources
