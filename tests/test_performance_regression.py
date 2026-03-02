@@ -9,6 +9,7 @@ import sys
 import os
 
 import httpx
+import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import main
@@ -16,6 +17,10 @@ import main
 # Maximum acceptable mean execution time (seconds) for hot-path operations.
 _MAX_MEAN_S = 0.001  # 1 ms
 
+def _check_benchmark_stats(benchmark):
+    """Check benchmark stats and skip if running under xdist."""
+    if not benchmark.stats:
+        pytest.skip("Benchmark stats are not available, likely running under xdist.")
 
 class TestPerformanceRegression:
     """Performance regression tests with baseline thresholds."""
@@ -27,7 +32,8 @@ class TestPerformanceRegression:
         result = benchmark(main.validate_hostname, "192.168.1.1")
         assert result is False  # Private IP is rejected
 
-        self._check_benchmark(benchmark)
+        _check_benchmark_stats(benchmark)
+        assert benchmark.stats["mean"] < _MAX_MEAN_S
 
     def test_validate_hostname_cached_performance(self, benchmark):
         """Cached hostname validation should be significantly faster than <1ms."""
@@ -38,9 +44,7 @@ class TestPerformanceRegression:
         result = benchmark(main.validate_hostname, "10.0.0.1")
         assert result is False
 
-        # Handle xdist execution where stats are not populated
-        if not benchmark.stats:
-            return
+        _check_benchmark_stats(benchmark)
         assert benchmark.stats["mean"] < _MAX_MEAN_S
 
     def test_rate_limit_parsing_performance(self, benchmark):
@@ -55,9 +59,7 @@ class TestPerformanceRegression:
         result = benchmark(main._parse_rate_limit_headers, mock_response)
         assert result is None  # Function returns None
 
-        # Handle xdist execution where stats are not populated
-        if not benchmark.stats:
-            return
+        _check_benchmark_stats(benchmark)
         assert benchmark.stats["mean"] < _MAX_MEAN_S
 
     def test_rate_limit_parsing_empty_headers_performance(self, benchmark):
@@ -66,7 +68,5 @@ class TestPerformanceRegression:
         result = benchmark(main._parse_rate_limit_headers, mock_response)
         assert result is None
 
-        # Handle xdist execution where stats are not populated
-        if not benchmark.stats:
-            return
+        _check_benchmark_stats(benchmark)
         assert benchmark.stats["mean"] < _MAX_MEAN_S
