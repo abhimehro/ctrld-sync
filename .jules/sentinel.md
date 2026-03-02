@@ -72,4 +72,4 @@
 ## 2026-11-20 - Insecure Default Timeout Settings in API Clients
 **Vulnerability:** The `_api_client` and `_gh` HTTP clients in `main.py` relied on a broad scalar timeout (`timeout=30`), opening the possibility for attackers to use Slowloris-style DoS attacks or slow network scenarios to exhaust connection pools or processing limits.
 **Learning:** Default or generic long timeouts are not enough; specifying an explicit connection timeout enforces that sockets resolve or fail promptly, separating wait time for establishing a connection from reading data.
-**Prevention:** Use explicit timeouts via `httpx.Timeout(read_timeout, connect=connect_timeout)` (e.g., `httpx.Timeout(10.0, connect=5.0)`) instead of simple scalar delays, forcing connections to be completed quickly and mitigating resource exhaustion vulnerabilities.
+**Prevention:** Use explicit timeouts via `httpx.Timeout(default=read_timeout, connect=connect_timeout)` (e.g., `httpx.Timeout(default=10.0, connect=5.0)`) instead of simple scalar delays, forcing connections to be completed quickly and mitigating resource exhaustion vulnerabilities.
