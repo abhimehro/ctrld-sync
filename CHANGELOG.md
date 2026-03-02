@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Python 3.13+ type annotations on all public functions in `main.py`
+- Python 3.13+ type annotations added across most top-level functions in `main.py`
 - `pytest-benchmark` integration for performance regression detection (`tests/test_benchmarks.py`)
 - YAML configuration file support via `config.yaml` / `config.yml` (loaded with `PyYAML`)
 - `CHANGELOG.md` to track version history
