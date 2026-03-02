@@ -70,29 +70,35 @@ def fix_env():
         f'TOKEN="{escape_val(real_token)}"\nPROFILE="{escape_val(real_profiles)}"\n'
     )
 
-    # Security: Check for symlinks to prevent overwriting arbitrary files
-    if os.path.islink(".env"):
-        print(
-            "Security Warning: .env is a symlink. Aborting to avoid overwriting target."
-        )
-        return
-
-    # Security: Write using os.open to ensure 600 permissions at creation time
-    # This prevents a race condition where the file is world-readable before chmod
+    # Security: Write using os.open to a temp file, then os.replace to prevent TOCTOU
+    # symlink attacks and ensure 0o600 permissions at creation time.
     try:
-        # O_TRUNC to overwrite if exists, O_CREAT to create if not
         flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
         mode = stat.S_IRUSR | stat.S_IWUSR  # 0o600
 
-        fd = os.open(".env", flags, mode)
+        # O_NOFOLLOW is not available on all platforms (like Windows)
+        if hasattr(os, "O_NOFOLLOW"):
+            flags |= os.O_NOFOLLOW
+
+        temp_file = ".env.tmp"
+        fd = os.open(temp_file, flags, mode)
         with os.fdopen(fd, "w") as f:
             f.write(new_content)
             # Enforce permissions on the file descriptor directly (safe against race conditions)
             if os.name != "nt":
                 os.chmod(fd, mode)
 
+        # Atomic replace
+        os.replace(temp_file, ".env")
+
     except OSError as e:
         print(f"Error writing .env: {e}")
+        # Clean up temp file on error
+        if os.path.exists(".env.tmp"):
+            try:
+                os.unlink(".env.tmp")
+            except OSError:
+                pass
         return
 
     print("Fixed .env file: standardized quotes and corrected variable assignments.")
