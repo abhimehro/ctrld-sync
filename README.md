@@ -43,19 +43,19 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
    ```
 
 2. **Install dependencies**
-   
+
    Choose one of the following methods:
-   
+
    **Using pip (recommended for CI/production):**
    ```bash
    pip install -r requirements.txt
    ```
-   
+
    **Using uv (faster for local development):**
    ```bash
    uv sync
    ```
-   
+
    Both methods are fully supported. Our main sync CI workflow uses `pip` for consistency with caching, while other workflows use `uv`; `uv` is generally faster for local development.
 
 3. **Configure secrets**
@@ -67,41 +67,41 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
    For GitHub Actions, set `TOKEN` and `PROFILE` secrets to the raw values (not the full `TOKEN=...` / `PROFILE=...` lines).
 
 4. **Configure Folders**
-   
+
    You can configure which folders to sync using a YAML configuration file instead of editing `main.py`:
-   
+
    ```bash
    cp config.yaml.example config.yaml
    # Edit config.yaml to add, remove, or change folder URLs
    ```
-   
+
    **Configuration file locations** (checked in order):
    1. `--config FILE` CLI flag
    2. `config.yaml` or `config.yml` in the current directory
    3. `~/.ctrld-sync/config.yaml` or `~/.ctrld-sync/config.yml`
    4. Built-in defaults (the `DEFAULT_FOLDER_URLS` list in `main.py`)
-   
+
    **Example `config.yaml`:**
    ```yaml
    folders:
      - name: "Native Tracker – Amazon"
        url: "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/controld/native-tracker-amazon-folder.json"
        action: "block"
-   
+
      - name: "Apple Private Relay – Allow"
        url: "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/controld/apple-private-relay-allow-folder.json"
        action: "allow"
-   
+
    Alternatively, you can still pass folder URLs directly on the command line (these override any config file):
    ```bash
    python main.py --folder-url https://example.com/my-blocklist.json
    ```
-   
+
    Or point to a specific config file:
    ```bash
    python main.py --config /path/to/my-config.yaml
    ```
-   
+
    The script includes 23 default folder URLs from [hagezi's dns-blocklists](https://github.com/hagezi/dns-blocklists) covering:
    - Native tracker blocking (Amazon, Apple, Samsung, etc.)
    - Badware and spam protection
@@ -187,7 +187,7 @@ This project uses manual releases via GitHub Releases. To create a new release:
    ```bash
    # Verify tests pass
    uv run pytest tests/
-   
+
    # Verify security scans pass
    bandit -r main.py -ll
    ```
@@ -275,15 +275,15 @@ When updating dependencies:
        except ModuleNotFoundError:
            sys.stderr.write('Error: No TOML parser available. Install the \"tomli\" package for Python <3.11.\n')
            sys.exit(1)
-   
+
    with open('pyproject.toml', 'rb') as f:
        data = tomllib.load(f)
-   
+
    deps = data.get('project', {}).get('dependencies') or []
    for dep in deps:
        print(dep)
    " > requirements.txt.tmp
-   
+
    # Add header and move into place
    cat > requirements.txt << 'EOF'
 # Runtime dependencies - manually synchronized with pyproject.toml
@@ -330,18 +330,18 @@ If you suspect cache issues:
    # This checks that requirements.txt matches pyproject.toml
    python3 -c "
    import tomllib
-   
+
    # Parse pyproject.toml dependencies using a real TOML parser
    with open('pyproject.toml', 'rb') as f:
        data = tomllib.load(f)
    project = data.get('project', {})
    deps = project.get('dependencies', []) or []
    deps = [d.strip() for d in deps if isinstance(d, str) and d.strip()]
-   
+
    # Parse requirements.txt (skip comments)
    with open('requirements.txt') as f:
        reqs = [line.strip() for line in f if line.strip() and not line.startswith('#')]
-   
+
    # Compare
    deps_set = set(deps)
    reqs_set = set(reqs)

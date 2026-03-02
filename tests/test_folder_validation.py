@@ -42,7 +42,9 @@ def test_folder_name_security():
         for separator in ("/", "\\"):
             separator_data = {"group": {"group": f"Folder{separator}Name"}}
             assert (
-                main.validate_folder_data(separator_data, f"http://sep-{ord(separator)}.com")
+                main.validate_folder_data(
+                    separator_data, f"http://sep-{ord(separator)}.com"
+                )
                 is False
             ), f"Path separator '{separator}' should be blocked"
 
@@ -69,7 +71,9 @@ def test_folder_name_security():
                 assert (
                     main.validate_folder_data(bidi_data, f"http://bidi-{ord(char)}.com")
                     is False
-                ), f"Bidi character {description} (U+{ord(char):04X}) should be blocked in '{test_name}'"
+                ), (
+                    f"Bidi character {description} (U+{ord(char):04X}) should be blocked in '{test_name}'"
+                )
 
         # Case 8: Path Traversal (Security Hardening)
         # Block '.' and '..' which could be used for path traversal
@@ -86,7 +90,8 @@ def test_folder_name_security():
         for opt_name in option_injection_cases:
             opt_data = {"group": {"group": opt_name}}
             assert (
-                main.validate_folder_data(opt_data, f"http://opt-{opt_name}.com") is False
+                main.validate_folder_data(opt_data, f"http://opt-{opt_name}.com")
+                is False
             ), f"Option injection name '{opt_name}' should be blocked"
 
     finally:

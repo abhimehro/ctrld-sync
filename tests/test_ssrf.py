@@ -9,6 +9,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import main
 
+
 class TestSSRF(unittest.TestCase):
     def test_domain_resolving_to_private_ip(self):
         """
@@ -20,10 +21,10 @@ class TestSSRF(unittest.TestCase):
         # that 'internal.example.com' (which is not an IP literal) passes validation currently
         # and will fail validation (be blocked) after the fix.
 
-        with patch('socket.getaddrinfo') as mock_getaddrinfo:
+        with patch("socket.getaddrinfo") as mock_getaddrinfo:
             # Simulate resolving to 192.168.1.1
             mock_getaddrinfo.return_value = [
-                (socket.AF_INET, socket.SOCK_STREAM, 6, '', ('192.168.1.1', 443))
+                (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("192.168.1.1", 443))
             ]
 
             url = "https://internal.example.com/config.json"
@@ -38,10 +39,10 @@ class TestSSRF(unittest.TestCase):
         """
         Test that a domain resolving to a public IP is allowed.
         """
-        with patch('socket.getaddrinfo') as mock_getaddrinfo:
+        with patch("socket.getaddrinfo") as mock_getaddrinfo:
             # Simulate resolving to 8.8.8.8
             mock_getaddrinfo.return_value = [
-                (socket.AF_INET, socket.SOCK_STREAM, 6, '', ('8.8.8.8', 443))
+                (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("8.8.8.8", 443))
             ]
 
             url = "https://public.example.com/config.json"
@@ -50,5 +51,6 @@ class TestSSRF(unittest.TestCase):
 
             self.assertTrue(result, "Should allow domain resolving to public IP")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

@@ -16,6 +16,7 @@ def test_main_reloads_token_from_env(monkeypatch):
     monkeypatch.setenv("TOKEN", "initial_token")
     # Force reload main to pick up initial token
     import importlib
+
     importlib.reload(main)
     assert main.TOKEN == "initial_token"
 
@@ -43,13 +44,16 @@ def test_main_reloads_token_from_env(monkeypatch):
 
     # Apply mocks
     # Patch main.load_dotenv because main.py imports it as 'from dotenv import load_dotenv'
-    with patch("main.load_dotenv", side_effect=mock_load_dotenv) as mock_load_dotenv_call, \
-         patch("main.parse_args", return_value=mock_args), \
-         patch("main.check_env_permissions", mock_check_perms), \
-         patch("main.warm_up_cache", mock_warm_up), \
-         patch("main.sync_profile", mock_sync), \
-         patch("sys.stdin.isatty", return_value=False):  # Non-interactive
-
+    with (
+        patch(
+            "main.load_dotenv", side_effect=mock_load_dotenv
+        ) as mock_load_dotenv_call,
+        patch("main.parse_args", return_value=mock_args),
+        patch("main.check_env_permissions", mock_check_perms),
+        patch("main.warm_up_cache", mock_warm_up),
+        patch("main.sync_profile", mock_sync),
+        patch("sys.stdin.isatty", return_value=False),
+    ):  # Non-interactive
         # 3. Run main()
         # This should call load_dotenv (our mock), which updates env var,
         # then main should update global TOKEN from env var.

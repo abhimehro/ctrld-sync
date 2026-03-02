@@ -1,7 +1,7 @@
-
 import sys
 from unittest.mock import MagicMock
 import main
+
 
 def test_countdown_timer_visuals(monkeypatch):
     """Verify that countdown_timer writes a progress bar to stderr."""
@@ -30,6 +30,7 @@ def test_countdown_timer_visuals(monkeypatch):
 
     # Check for ANSI clear line code
     assert "\033[K" in combined_output
+
 
 def test_countdown_timer_no_colors_short(monkeypatch):
     """Verify that short countdowns sleep silently without writing to stderr if NO_COLOR."""
@@ -114,6 +115,7 @@ def test_print_success_message_single_profile(monkeypatch):
     # Check for color codes presence (cyan or underline)
     assert "\033[96m" in combined_output or "\033[4m" in combined_output
 
+
 def test_print_success_message_multiple_profiles(monkeypatch):
     """Verify success message includes general dashboard link for multiple profiles."""
     monkeypatch.setattr(main, "USE_COLORS", True)
@@ -134,7 +136,8 @@ def test_print_success_message_multiple_profiles(monkeypatch):
 
     assert "View your changes" in combined_output
     assert "https://controld.com/dashboard/profiles" in combined_output
-    assert "/123/filters" not in combined_output # Should not link to specific profile
+    assert "/123/filters" not in combined_output  # Should not link to specific profile
+
 
 def test_print_success_message_no_colors(monkeypatch):
     """Verify nothing is printed if colors are disabled."""

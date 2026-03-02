@@ -1,16 +1,20 @@
 import os
 import pytest
-from unittest.mock import patch
 import fix_env
+
 
 def test_fix_env_skips_symlink(tmp_path):
     """
-    Verify that fix_env skips symlinks and logs a warning.
-    This prevents overwriting the target file.
+    Verify that fix_env replaces a symlink with a regular file
+    using atomic temp file replacement to prevent TOCTOU.
     """
     # Create a target file
     target_file = tmp_path / "target_file"
-    target_file.write_text("TOKEN=foo\nPROFILE=bar")
+
+    # Use realistic values so fix_env heuristic doesn't swap them
+    token = "api.1234567890abcdef"
+    profile = "12345abc"
+    target_file.write_text(f"TOKEN={token}\nPROFILE={profile}")
 
     cwd = os.getcwd()
     os.chdir(tmp_path)
@@ -21,31 +25,29 @@ def test_fix_env_skips_symlink(tmp_path):
         except OSError:
             pytest.skip("Symlinks not supported")
 
-        # Mock print to verify warning
-        with patch("builtins.print") as mock_print:
-            fix_env.fix_env()
+        fix_env.fix_env()
 
-            # Verify warning was printed
-            assert mock_print.called
-            found = False
-            for call_args in mock_print.call_args_list:
-                msg = call_args[0][0]
-                if "Security Warning" in msg and "symlink" in msg:
-                    found = True
-                    break
-            assert found, "Warning about symlink not found"
+        # The symlink should be gone, replaced by a real file
+        assert not os.path.islink(".env")
+        assert os.path.isfile(".env")
 
-        # Verify target file content is UNCHANGED
-        assert target_file.read_text() == "TOKEN=foo\nPROFILE=bar"
+        # The target file should remain untouched
+        assert target_file.read_text() == f"TOKEN={token}\nPROFILE={profile}"
+
+        # The new .env file should contain the formatted output
+        content = symlink.read_text()
+        assert f'TOKEN="{token}"' in content
+        assert f'PROFILE="{profile}"' in content
 
     finally:
         os.chdir(cwd)
+
 
 def test_fix_env_creates_secure_file(tmp_path):
     """
     Verify that fix_env creates .env with 600 permissions.
     """
-    if os.name == 'nt':
+    if os.name == "nt":
         pytest.skip("Permission check not supported on Windows")
 
     cwd = os.getcwd()

@@ -13,6 +13,7 @@ import main
 # get_default_config
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def test_get_default_config_returns_dict():
     cfg = main.get_default_config()
     assert isinstance(cfg, dict)
@@ -36,6 +37,7 @@ def test_get_default_config_settings_are_positive_ints():
 # ─────────────────────────────────────────────────────────────────────────────
 # _validate_config
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def test_validate_config_valid_minimal():
     cfg = {"folders": [{"url": "https://example.com/folder.json"}]}
@@ -126,6 +128,7 @@ def test_validate_config_settings_not_a_dict():
 # load_config – happy paths
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def _write_config(tmp_path: Path, data: dict, filename: str = "config.yaml") -> Path:
     p = tmp_path / filename
     p.write_text(yaml.dump(data), encoding="utf-8")
@@ -189,10 +192,13 @@ def test_load_config_explicit_path_takes_precedence_over_cwd(tmp_path, monkeypat
 # load_config – error paths
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def test_load_config_invalid_yaml_exits(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     # Deliberately malformed YAML: unclosed bracket makes yaml.safe_load raise YAMLError
-    (tmp_path / "config.yaml").write_text("folders: [unclosed: bracket\n  - bad", encoding="utf-8")
+    (tmp_path / "config.yaml").write_text(
+        "folders: [unclosed: bracket\n  - bad", encoding="utf-8"
+    )
     with pytest.raises(SystemExit):
         main.load_config()
 
@@ -221,6 +227,7 @@ def test_load_config_empty_file_exits(tmp_path, monkeypatch):
 # parse_args – --config flag
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def test_parse_args_config_default_is_none(monkeypatch):
     monkeypatch.setattr(sys, "argv", ["main.py", "--dry-run"])
     args = main.parse_args()
@@ -228,7 +235,9 @@ def test_parse_args_config_default_is_none(monkeypatch):
 
 
 def test_parse_args_config_long_flag(monkeypatch):
-    monkeypatch.setattr(sys, "argv", ["main.py", "--config", "/tmp/cfg.yaml", "--dry-run"])
+    monkeypatch.setattr(
+        sys, "argv", ["main.py", "--config", "/tmp/cfg.yaml", "--dry-run"]
+    )
     args = main.parse_args()
     assert args.config == "/tmp/cfg.yaml"
 
@@ -242,6 +251,7 @@ def test_parse_args_config_short_flag(monkeypatch):
 # ─────────────────────────────────────────────────────────────────────────────
 # config.yaml.example can be parsed and validated
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def test_config_yaml_example_is_valid():
     """The shipped example file must parse cleanly and pass validation."""

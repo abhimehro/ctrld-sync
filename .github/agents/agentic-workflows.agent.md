@@ -13,7 +13,7 @@ This is a **dispatcher agent** that routes your request to the appropriate speci
 
 - **Creating new workflows**: Routes to `create` prompt
 - **Updating existing workflows**: Routes to `update` prompt
-- **Debugging workflows**: Routes to `debug` prompt  
+- **Debugging workflows**: Routes to `debug` prompt
 - **Upgrading workflows**: Routes to `upgrade-agentic-workflows` prompt
 - **Creating shared components**: Routes to `create-shared-agentic-workflow` prompt
 
@@ -56,7 +56,7 @@ When you interact with this agent, it will:
 - "I need a workflow to label pull requests"
 - "Design a weekly research automation"
 
-### Update Existing Workflow  
+### Update Existing Workflow
 **Load when**: User wants to modify, improve, or refactor an existing workflow
 
 **Prompt file**: https://github.com/github/gh-aw/blob/v0.45.0/.github/aw/update-agentic-workflow.md
@@ -66,7 +66,7 @@ When you interact with this agent, it will:
 - "Update the PR reviewer to use discussions instead of issues"
 - "Improve the prompt for the weekly-research workflow"
 
-### Debug Workflow  
+### Debug Workflow
 **Load when**: User needs to investigate, audit, debug, or understand a workflow, troubleshoot issues, analyze logs, or fix errors
 
 **Prompt file**: https://github.com/github/gh-aw/blob/v0.45.0/.github/aw/debug-agentic-workflow.md

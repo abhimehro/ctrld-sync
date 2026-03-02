@@ -2,6 +2,7 @@ import importlib
 import sys
 from unittest.mock import MagicMock, patch
 
+
 def reload_main_with_env(monkeypatch):
     monkeypatch.delenv("NO_COLOR", raising=False)
     with patch("sys.stderr") as mock_stderr, patch("sys.stdout") as mock_stdout:
@@ -36,7 +37,7 @@ def test_verify_access_and_get_folders_filters_malicious_ids(monkeypatch):
                 {"group": "Safe Folder", "PK": "safe_id_123"},
                 {"group": "Safe Folder 2", "PK": "safe-id-456_789"},
                 {"group": "Malicious Folder", "PK": malicious_id},
-                {"group": "Malicious Folder 2", "PK": malicious_id_2}
+                {"group": "Malicious Folder 2", "PK": malicious_id_2},
             ]
         }
     }
@@ -58,8 +59,10 @@ def test_verify_access_and_get_folders_filters_malicious_ids(monkeypatch):
     assert "Malicious Folder" not in result
     assert "Malicious Folder 2" not in result
 
+
 def test_validate_folder_id_blocks_null_bytes_and_url_encoded_traversal():
     import main
+
     # Valid ID
     assert main.validate_folder_id("safe-id-123") is True
 
@@ -72,8 +75,10 @@ def test_validate_folder_id_blocks_null_bytes_and_url_encoded_traversal():
     # Path traversal directly
     assert main.validate_folder_id("../../etc/passwd") is False
 
+
 def test_validate_profile_id_blocks_null_bytes_and_url_encoded_traversal():
     import main
+
     # Valid profile ID
     assert main.validate_profile_id("safeprofile123") is True
 

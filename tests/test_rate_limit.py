@@ -108,7 +108,9 @@ class TestRateLimitParsing:
             main._parse_rate_limit_headers(mock_response)
 
         # Should log a warning about approaching rate limit
-        assert any("Approaching rate limit" in record.message for record in caplog.records)
+        assert any(
+            "Approaching rate limit" in record.message for record in caplog.records
+        )
 
     def test_parse_rate_limit_healthy_no_warning(self, caplog):
         """Test no warning when rate limit is healthy (> 20% remaining)."""
@@ -122,7 +124,9 @@ class TestRateLimitParsing:
             main._parse_rate_limit_headers(mock_response)
 
         # Should NOT log a warning
-        assert not any("Approaching rate limit" in record.message for record in caplog.records)
+        assert not any(
+            "Approaching rate limit" in record.message for record in caplog.records
+        )
 
     def test_rate_limit_thread_safety(self):
         """Test thread-safe access to rate limit info."""
@@ -135,7 +139,9 @@ class TestRateLimitParsing:
         # Parse from multiple threads concurrently
         threads = []
         for _ in range(10):
-            t = threading.Thread(target=main._parse_rate_limit_headers, args=(mock_response,))
+            t = threading.Thread(
+                target=main._parse_rate_limit_headers, args=(mock_response,)
+            )
             threads.append(t)
             t.start()
 
@@ -238,7 +244,7 @@ class TestRetryWithRateLimit:
         with main._rate_limit_lock:
             assert main._rate_limit_info["remaining"] == 50
 
-    @patch('random.random', return_value=1.0)
+    @patch("random.random", return_value=1.0)
     def test_429_without_retry_after_uses_exponential_backoff(self, mock_random):
         """Test that 429 without Retry-After falls back to exponential backoff."""
         mock_request = MagicMock()

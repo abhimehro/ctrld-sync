@@ -3,6 +3,7 @@ import pytest
 from unittest.mock import patch
 import main
 
+
 def test_check_env_permissions_skips_symlink(tmp_path):
     """
     Verify that check_env_permissions skips symlinks and logs a warning.
@@ -39,11 +40,12 @@ def test_check_env_permissions_skips_symlink(tmp_path):
     assert final_mode == initial_mode
     assert (final_mode & 0o777) == 0o644  # Still 644, not 600
 
+
 def test_check_env_permissions_fixes_file(tmp_path):
     """
     Verify that check_env_permissions fixes permissions for a regular file.
     """
-    if os.name == 'nt':
+    if os.name == "nt":
         pytest.skip("Permission fix not supported on Windows")
 
     # Create a regular file

@@ -6,7 +6,10 @@ from unittest.mock import MagicMock, patch
 import httpx
 import pytest
 
-import main
+import dotenv
+
+dotenv.load_dotenv = lambda **kwargs: None
+import main  # noqa: E402
 
 
 # Helper to reload main with specific env/tty settings
@@ -102,8 +105,8 @@ def test_push_rules_updates_data_with_batch_keys(monkeypatch):
     # Check if hostnames[0], hostnames[1]... are in data
     assert "hostnames[0]" in data_sent
     assert data_sent["hostnames[0]"] == "host0"
-    assert f"hostnames[{batch_size-1}]" in data_sent
-    assert data_sent[f"hostnames[{batch_size-1}]"] == f"host{batch_size-1}"
+    assert f"hostnames[{batch_size - 1}]" in data_sent
+    assert data_sent[f"hostnames[{batch_size - 1}]"] == f"host{batch_size - 1}"
     assert data_sent["do"] == "1"
     assert data_sent["group"] == "fid1"
 
@@ -208,7 +211,6 @@ def test_interactive_prompts_show_hints(monkeypatch, capsys):
     monkeypatch.delenv("TOKEN", raising=False)
 
     # Prevent dotenv from loading .env file which would restore the variables
-    import dotenv
 
     monkeypatch.setattr(dotenv, "load_dotenv", lambda: None)
 
@@ -259,7 +261,7 @@ def test_verify_access_and_get_folders_success(monkeypatch):
         "body": {
             "groups": [
                 {"group": "Folder A", "PK": "id_a"},
-                {"group": "Folder B", "PK": "id_b"}
+                {"group": "Folder B", "PK": "id_b"},
             ]
         }
     }
@@ -406,12 +408,6 @@ def test_extract_profile_id():
     # Empty input
     assert main.extract_profile_id("") == ""
     assert main.extract_profile_id(None) == ""
-
-
-# Mock load_dotenv globally to prevent local .env from polluting tests
-import dotenv
-
-dotenv.load_dotenv = lambda **kwargs: None
 
 
 # Case 9: Interactive input handles URL pasting
@@ -690,7 +686,7 @@ def test_check_env_permissions_secure(monkeypatch):
     # Mock stat result: world readable (needs fix)
     # 0o666 = rw-rw-rw-
     mock_stat_result = MagicMock()
-    mock_stat_result.st_mode = 0o100666 # Regular file, rw-rw-rw-
+    mock_stat_result.st_mode = 0o100666  # Regular file, rw-rw-rw-
     mock_fstat.return_value = mock_stat_result
 
     # Capture stderr
@@ -722,7 +718,7 @@ def test_check_env_permissions_secure(monkeypatch):
     mock_open.reset_mock()
     mock_fchmod.reset_mock()
     mock_close.reset_mock()
-    mock_stat_result.st_mode = 0o100600 # rw-------
+    mock_stat_result.st_mode = 0o100600  # rw-------
 
     m.check_env_permissions(".env")
 
@@ -737,9 +733,7 @@ def test_validate_folder_data_structure(monkeypatch):
     mock_log = MagicMock()
     monkeypatch.setattr(m, "log", mock_log)
 
-    valid_base = {
-        "group": {"group": "ValidFolder"}
-    }
+    valid_base = {"group": {"group": "ValidFolder"}}
 
     # 1. Invalid 'rules' type (string instead of list)
     invalid_rules = valid_base.copy()
