@@ -27,10 +27,7 @@ class TestPerformanceRegression:
         result = benchmark(main.validate_hostname, "192.168.1.1")
         assert result is False  # Private IP is rejected
 
-        # Handle xdist execution where stats are not populated
-        if not benchmark.stats:
-            return
-        assert benchmark.stats["mean"] < _MAX_MEAN_S
+        self._check_benchmark(benchmark)
 
     def test_validate_hostname_cached_performance(self, benchmark):
         """Cached hostname validation should be significantly faster than <1ms."""
