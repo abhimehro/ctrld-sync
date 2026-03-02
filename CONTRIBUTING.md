@@ -61,7 +61,7 @@ ruff check .
 
 Or run through uv without a global install:
 ```bash
-uv run ruff check .
+uv tool run ruff check .
 ```
 
 ## Running Pre-commit Hooks
