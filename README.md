@@ -3,6 +3,7 @@
 [![Tests](https://github.com/abhimehro/ctrld-sync/actions/workflows/test.yml/badge.svg)](https://github.com/abhimehro/ctrld-sync/actions/workflows/test.yml)
 [![Sync](https://github.com/abhimehro/ctrld-sync/actions/workflows/sync.yml/badge.svg)](https://github.com/abhimehro/ctrld-sync/actions/workflows/sync.yml)
 [![Bandit](https://github.com/abhimehro/ctrld-sync/actions/workflows/bandit.yml/badge.svg)](https://github.com/abhimehro/ctrld-sync/actions/workflows/bandit.yml)
+[![Changelog Status](https://github.com/abhimehro/ctrld-sync/actions/workflows/changelog.yml/badge.svg)](https://github.com/abhimehro/ctrld-sync/actions/workflows/changelog.yml)
 [![Codacy Security Scan](https://github.com/abhimehro/ctrld-sync/actions/workflows/codacy.yml/badge.svg)](https://github.com/abhimehro/ctrld-sync/actions/workflows/codacy.yml)
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
