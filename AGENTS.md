@@ -21,6 +21,8 @@ Single-file Python CLI tool (`main.py`) that syncs Control D DNS folders with re
 | Run specific test file | `uv run pytest tests/test_fix_env.py -v` |
 | Run app (dry-run) | `uv run python main.py --dry-run` |
 | Run app (live) | `TOKEN=xxx PROFILE=yyy uv run python main.py` |
+| Install pre-commit hooks | `uv run pre-commit install` |
+| Run pre-commit (all files) | `uv run pre-commit run --all-files` |
 
 ### Current status
 

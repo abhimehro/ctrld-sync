@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 import httpx
 import main
 
+
 # Mock httpx.HTTPError to include a response with sensitive data
 def create_mock_error(status_code, text, request_url="https://example.com"):
     response = MagicMock(spec=httpx.Response)
@@ -14,8 +15,11 @@ def create_mock_error(status_code, text, request_url="https://example.com"):
     response.request.url = request_url
 
     # Use HTTPStatusError which accepts request and response
-    error = httpx.HTTPStatusError(f"HTTP Error {status_code}", request=response.request, response=response)
+    error = httpx.HTTPStatusError(
+        f"HTTP Error {status_code}", request=response.request, response=response
+    )
     return error
+
 
 def test_retry_request_sanitizes_token_in_debug_logs(caplog):
     # Setup sensitive data
@@ -39,6 +43,7 @@ def test_retry_request_sanitizes_token_in_debug_logs(caplog):
     assert "Response content:" in caplog.text
     assert sensitive_token not in caplog.text
     assert "[REDACTED]" in caplog.text
+
 
 def test_push_rules_sanitizes_token_in_debug_logs(caplog):
     # Setup sensitive data
@@ -65,7 +70,7 @@ def test_push_rules_sanitizes_token_in_debug_logs(caplog):
             status=1,
             hostnames=["rule1"],
             existing_rules=set(),
-            client=mock_client
+            client=mock_client,
         )
 
         # push_rules catches the error and returns False (or continues if batch failed)
@@ -75,6 +80,7 @@ def test_push_rules_sanitizes_token_in_debug_logs(caplog):
     assert "Response content:" in caplog.text
     assert sensitive_token not in caplog.text
     assert "[REDACTED]" in caplog.text
+
 
 def test_api_client_configuration():
     # Setup token
@@ -87,6 +93,7 @@ def test_api_client_configuration():
         assert client.headers["Authorization"] == "Bearer test_token"
         # Check follow_redirects (in httpx < 0.20 it was allow_redirects, now follow_redirects)
         assert client.follow_redirects is False
+
 
 def test_gh_client_configuration():
     client = main._gh

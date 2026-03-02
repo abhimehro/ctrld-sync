@@ -9,6 +9,7 @@ from unittest.mock import patch
 # Some tests delete `sys.modules["main"]` to force a clean import under different env/TTY
 # settings; holding a stale module reference can cause patches to target the wrong module.
 
+
 def test_print_plan_details_no_colors(capsys):
     """Test print_plan_details output when colors are disabled."""
     import main as m
@@ -19,7 +20,11 @@ def test_print_plan_details_no_colors(capsys):
             "folders": [
                 {"name": "Folder B", "rules": 5, "action": 0},
                 {"name": "Folder A", "rules": 10, "action": 1},
-                {"name": "Folder C", "rules": 3, "rule_groups": [{"action": 0}, {"action": 1}]},
+                {
+                    "name": "Folder C",
+                    "rules": 3,
+                    "rule_groups": [{"action": 0}, {"action": 1}],
+                },
             ],
         }
         m.print_plan_details(plan_entry)
@@ -58,8 +63,9 @@ def test_print_plan_details_with_colors(capsys):
     # created with non-empty ANSI codes.
 
     with patch.dict(os.environ, {"NO_COLOR": ""}, clear=False):
-        with patch("sys.stderr.isatty", return_value=True), patch(
-            "sys.stdout.isatty", return_value=True
+        with (
+            patch("sys.stderr.isatty", return_value=True),
+            patch("sys.stdout.isatty", return_value=True),
         ):
             import main as m
 

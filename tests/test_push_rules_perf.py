@@ -1,4 +1,3 @@
-
 import unittest
 from unittest.mock import MagicMock, patch
 import sys
@@ -7,14 +6,16 @@ import os
 # Add root to path to import main
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+
 class TestPushRulesPerf(unittest.TestCase):
     def setUp(self):
         # Import main freshly or get current from sys.modules
         # Because other tests (like test_parallel_deletion.py) might reload main
-        if 'main' in sys.modules:
-            self.main = sys.modules['main']
+        if "main" in sys.modules:
+            self.main = sys.modules["main"]
         else:
             import main
+
             self.main = main
 
         self.client = MagicMock()
@@ -40,7 +41,7 @@ class TestPushRulesPerf(unittest.TestCase):
 
         # Mock future
         mock_future = MagicMock()
-        mock_future.result.return_value = hostnames # Success
+        mock_future.result.return_value = hostnames  # Success
         mock_executor_instance.submit.return_value = mock_future
 
         # We also need to mock _api_post_form since it will be called directly
@@ -56,14 +57,17 @@ class TestPushRulesPerf(unittest.TestCase):
                 self.status,
                 hostnames,
                 self.existing_rules,
-                self.client
+                self.client,
             )
 
             self.assertTrue(mock_post.called, "Expected _api_post_form to be called")
 
         # Verify if Executor was called.
         # AFTER OPTIMIZATION: This should be False.
-        self.assertFalse(mock_executor.called, "ThreadPoolExecutor should NOT be called for single batch")
+        self.assertFalse(
+            mock_executor.called,
+            "ThreadPoolExecutor should NOT be called for single batch",
+        )
 
     @patch("main.concurrent.futures.as_completed")
     @patch("main.concurrent.futures.ThreadPoolExecutor")
@@ -82,7 +86,7 @@ class TestPushRulesPerf(unittest.TestCase):
         mock_future.result.return_value = ["some_rule"]
         mock_executor_instance.submit.return_value = mock_future
 
-        mock_as_completed.return_value = [mock_future, mock_future] # 2 batches
+        mock_as_completed.return_value = [mock_future, mock_future]  # 2 batches
 
         with patch("main._api_post_form"):
             self.main.push_rules(
@@ -93,11 +97,13 @@ class TestPushRulesPerf(unittest.TestCase):
                 self.status,
                 hostnames,
                 self.existing_rules,
-                self.client
+                self.client,
             )
 
         # This should ALWAYS be True
-        self.assertTrue(mock_executor.called, "ThreadPoolExecutor should be called for multi-batch")
+        self.assertTrue(
+            mock_executor.called, "ThreadPoolExecutor should be called for multi-batch"
+        )
 
     def test_push_rules_skips_validation_for_existing(self):
         """
@@ -122,7 +128,7 @@ class TestPushRulesPerf(unittest.TestCase):
                     self.status,
                     hostnames,
                     existing_rules,
-                    self.client
+                    self.client,
                 )
 
             # h1 is in existing_rules, so we should skip validation for it.
@@ -156,11 +162,12 @@ class TestPushRulesPerf(unittest.TestCase):
             hostnames,
             self.existing_rules,
             self.client,
-            batch_executor=mock_executor
+            batch_executor=mock_executor,
         )
 
         # Verify executor.submit was called twice (once for each batch)
         self.assertEqual(mock_executor.submit.call_count, 2)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

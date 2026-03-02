@@ -1,4 +1,3 @@
-
 import time
 import sys
 import os
@@ -7,6 +6,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import main
+
 
 def test_sanitize_perf():
     print("Running performance benchmark for sanitize_for_log...")
@@ -28,6 +28,7 @@ def test_sanitize_perf():
     end = time.perf_counter()
     complex_time = end - start
     print(f"50k sanitize_for_log (complex): {complex_time:.4f}s")
+
 
 if __name__ == "__main__":
     test_sanitize_perf()

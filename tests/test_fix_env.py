@@ -3,6 +3,7 @@ import pytest
 from unittest.mock import patch
 import fix_env
 
+
 def test_fix_env_skips_symlink(tmp_path):
     """
     Verify that fix_env skips symlinks and logs a warning.
@@ -41,11 +42,12 @@ def test_fix_env_skips_symlink(tmp_path):
     finally:
         os.chdir(cwd)
 
+
 def test_fix_env_creates_secure_file(tmp_path):
     """
     Verify that fix_env creates .env with 600 permissions.
     """
-    if os.name == 'nt':
+    if os.name == "nt":
         pytest.skip("Permission check not supported on Windows")
 
     cwd = os.getcwd()

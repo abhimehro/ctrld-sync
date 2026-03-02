@@ -1,4 +1,3 @@
-
 import unittest
 import sys
 import os
@@ -7,6 +6,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import main
+
 
 class TestCSVInjection(unittest.TestCase):
     def test_csv_injection_prevention(self):
@@ -28,8 +28,10 @@ class TestCSVInjection(unittest.TestCase):
             # Should keep quotes (repr adds them)
             # repr("=...") -> "'=...'"
             # So sanitized should start with ' or "
-            self.assertTrue(sanitized.startswith("'") or sanitized.startswith('"'),
-                            f"Input '{inp}' should be quoted to prevent CSV injection. Got: {sanitized}")
+            self.assertTrue(
+                sanitized.startswith("'") or sanitized.startswith('"'),
+                f"Input '{inp}' should be quoted to prevent CSV injection. Got: {sanitized}",
+            )
 
             # Should contain the input
             self.assertIn(inp, sanitized)
@@ -43,7 +45,7 @@ class TestCSVInjection(unittest.TestCase):
             "NormalString",
             "Folder Name",
             "12345",
-            "<script>alert(1)</script>", # XSS attempt (handled by repr escaping but checked here for quote stripping)
+            "<script>alert(1)</script>",  # XSS attempt (handled by repr escaping but checked here for quote stripping)
         ]
 
         for inp in safe_inputs:
@@ -51,8 +53,10 @@ class TestCSVInjection(unittest.TestCase):
             # Should NOT start with quote (unless repr escaped something inside and used different quotes, but for simple strings it shouldn't)
             # Actually, repr("NormalString") is 'NormalString'. Stripped -> NormalString.
             # repr("Folder Name") is 'Folder Name'. Stripped -> Folder Name.
-            self.assertFalse(sanitized.startswith(("'", '"')),
-                             f"Input '{inp}' should have outer quotes stripped. Got: {sanitized}")
+            self.assertFalse(
+                sanitized.startswith(("'", '"')),
+                f"Input '{inp}' should have outer quotes stripped. Got: {sanitized}",
+            )
 
             # For strict check:
             self.assertEqual(sanitized, repr(inp)[1:-1])
@@ -62,5 +66,6 @@ class TestCSVInjection(unittest.TestCase):
         self.assertEqual(main.sanitize_for_log(""), "")
         self.assertEqual(main.sanitize_for_log(None), "None")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

@@ -74,24 +74,24 @@ def example_sync_workflow():
     Adapt this to your actual workflow functions.
     """
     t0 = time.perf_counter()
-    
+
     # Stage 1: Fetch folders
     t1 = time.perf_counter()
     # Your actual folder fetching logic here
     folder_data_list = []  # Results from concurrent futures
     t2 = time.perf_counter()
     log.info(f"⏱️  Fetched {len(folder_data_list)} folders in {t2-t1:.2f}s")
-    
+
     # Stage 2: Delete folders
     # Your actual folder deletion logic here
     t3 = time.perf_counter()
     log.info(f"⏱️  Deleted folders in {t3-t2:.2f}s")
-    
+
     # Stage 3: Push rules
     # Your actual rule pushing logic here
     t4 = time.perf_counter()
     log.info(f"⏱️  Pushed rules in {t4-t3:.2f}s")
-    
+
     log.info(f"⏱️  TOTAL sync time: {t4-t0:.2f}s")
 ```
 
@@ -114,11 +114,11 @@ class APICallTracker:
     def __init__(self):
         self.calls = {"GET": 0, "POST": 0, "DELETE": 0}
         self.lock = threading.Lock()
-    
+
     def record(self, method: str):
         with self.lock:
             self.calls[method] = self.calls.get(method, 0) + 1
-    
+
     def summary(self):
         total = sum(self.calls.values())
         return f"API calls: {total} total ({', '.join(f'{k}:{v}' for k, v in self.calls.items())})"

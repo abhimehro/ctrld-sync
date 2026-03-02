@@ -64,7 +64,7 @@ time python main.py --dry-run  # Second run should be faster
 
 ### 1. Cold Start Downloads
 **Symptom**: Slow first run
-**Causes**: 
+**Causes**:
 - Downloading all blocklists from scratch
 - No persistent cache or stale cache
 **Solutions**:

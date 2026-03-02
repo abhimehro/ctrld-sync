@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 import main
 
+
 class TestLogSanitization(unittest.TestCase):
     def test_sanitize_for_log_escapes_ansi(self):
         """Test that sanitize_for_log escapes ANSI characters."""
@@ -15,11 +16,13 @@ class TestLogSanitization(unittest.TestCase):
         # It should NOT contain the actual escape character
         self.assertNotIn("\x1b", sanitized)
 
-    @patch('main.log')
-    @patch('main.time.sleep')
-    @patch('main._api_post')
-    @patch('main._api_get')
-    def test_create_folder_logs_unsafe_name(self, mock_get, mock_post, mock_sleep, mock_log):
+    @patch("main.log")
+    @patch("main.time.sleep")
+    @patch("main._api_post")
+    @patch("main._api_get")
+    def test_create_folder_logs_unsafe_name(
+        self, mock_get, mock_post, mock_sleep, mock_log
+    ):
         """
         Verify that create_folder logs the raw name if not sanitized.
         We expect this to FAIL (or show raw usage) before the fix.
@@ -29,7 +32,9 @@ class TestLogSanitization(unittest.TestCase):
         main.FOLDER_CREATION_DELAY = 0
 
         # Mock POST to succeed (returns None, assuming polling needed if direct ID missing)
-        mock_post.return_value.json.return_value = {"body": {"group": {"something": "else"}}}
+        mock_post.return_value.json.return_value = {
+            "body": {"group": {"something": "else"}}
+        }
 
         # Mock GET to return empty groups (fail to find)
         mock_get.return_value.json.return_value = {"body": {"groups": []}}
@@ -97,5 +102,6 @@ class TestLogSanitization(unittest.TestCase):
         self.assertNotIn("mytoken", sanitized)
         self.assertIn("[REDACTED]", sanitized)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

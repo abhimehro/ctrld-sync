@@ -189,22 +189,22 @@ with _rate_limit_lock:
 
 ### 1. Ignoring 429 Responses
 
-**Symptom:** Sync fails with "Too Many Requests"  
+**Symptom:** Sync fails with "Too Many Requests"
 **Fix:** Check rate limit status in summary, space out syncs
 
 ### 2. Over-Parallelizing
 
-**Symptom:** 429 errors despite low overall request volume  
+**Symptom:** 429 errors despite low overall request volume
 **Fix:** Reduce worker counts, never exceed API-documented limits
 
 ### 3. Stale Cache Corruption
 
-**Symptom:** Sync uses outdated rules despite blocklist changes  
+**Symptom:** Sync uses outdated rules despite blocklist changes
 **Fix:** Cache invalidation is automatic via ETag/Last-Modified. If issues persist, clear cache: `rm -rf ~/.cache/ctrld-sync`
 
 ### 4. Ignoring Summary Statistics
 
-**Symptom:** Unclear why sync is slow  
+**Symptom:** Unclear why sync is slow
 **Fix:** Always check summary output for:
 - Cache effectiveness (should be > 70% for repeated runs)
 - Rate limit remaining (should not drop to < 10%)

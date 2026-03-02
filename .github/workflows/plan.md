@@ -36,7 +36,7 @@ You are an expert planning assistant for GitHub Copilot agents. Your task is to 
 - **Repository**: ${{ github.repository }}
 - **Issue Number**: ${{ github.event.issue.number }}
 - **Discussion Number**: ${{ github.event.discussion.number }}
-- **Comment Content**: 
+- **Comment Content**:
 
 <comment>
 ${{ needs.activation.outputs.text }}
