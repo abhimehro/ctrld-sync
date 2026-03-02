@@ -10,6 +10,8 @@
 A tiny Python script that keeps your Control D Folders in sync with a set of
 remote block-lists.
 
+See [CHANGELOG.md](CHANGELOG.md) for a full list of changes between versions.
+
 ## What it does
 1. Downloads the current JSON block-lists.
 2. Deletes any existing folders with the same names.
