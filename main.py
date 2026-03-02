@@ -240,7 +240,7 @@ _SENSITIVE_PARAM_PATTERN = re.compile(
 )
 
 
-def sanitize_for_log(text: str) -> str:
+def sanitize_for_log(text: Any) -> str:
     """Sanitize text for logging.
 
     Redacts:
