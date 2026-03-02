@@ -1907,8 +1907,11 @@ def fetch_folder_data(url: str) -> dict[str, Any]:
     except httpx.HTTPStatusError as e:
         status = e.response.status_code
         hint = _STATUS_HINTS.get(status, f"HTTP {status}")
+        # Include the original error message so we keep the numeric status code
+        # and reason phrase (e.g., "401 Unauthorized") in addition to our hint.
+        original_msg = str(e)
         raise httpx.HTTPStatusError(
-            f"API request failed ({hint}): {sanitize_for_log(url)}",
+            f"{original_msg} | hint: {hint} | url: {sanitize_for_log(url)}",
             request=e.request,
             response=e.response,
         ) from e
