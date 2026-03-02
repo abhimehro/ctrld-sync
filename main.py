@@ -94,13 +94,13 @@ class ColoredFormatter(logging.Formatter):
         logging.CRITICAL: Colors.FAIL + Colors.BOLD,
     }
 
-    def __init__(self, fmt=None, datefmt=None, style="%", validate=True):
+    def __init__(self, fmt: str | None = None, datefmt: str | None = None, style: str = "%", validate: bool = True) -> None:
         super().__init__(fmt, datefmt, style, validate)
         self.delegate_formatter = logging.Formatter(
             "%(asctime)s | %(levelname)s | %(message)s", datefmt="%H:%M:%S"
         )
 
-    def format(self, record):
+    def format(self, record: logging.LogRecord) -> str:
         original_levelname = record.levelname
         color = self.LEVEL_COLORS.get(record.levelno, Colors.ENDC)
         padded_level = f"{original_levelname:<8}"
@@ -240,7 +240,7 @@ _SENSITIVE_PARAM_PATTERN = re.compile(
 )
 
 
-def sanitize_for_log(text: Any) -> str:
+def sanitize_for_log(text: str) -> str:
     """Sanitize text for logging.
 
     Redacts:
@@ -1254,7 +1254,7 @@ def retry_with_jitter(attempt: int, base_delay: float = 1.0, max_delay: float = 
     return exponential_delay * random.random()
 
 
-def _retry_request(request_func, max_retries=MAX_RETRIES, delay=RETRY_DELAY):
+def _retry_request(request_func: Callable, max_retries: int = MAX_RETRIES, delay: float = RETRY_DELAY) -> httpx.Response:
     """
     Retry request with exponential backoff and full jitter.
 
@@ -1839,7 +1839,7 @@ def warm_up_cache(urls: Sequence[str]) -> None:
 
     # OPTIMIZATION: Combine validation (DNS) and fetching (HTTP) in one task
     # to allow validation latency to be parallelized.
-    def _validate_and_fetch(url: str):
+    def _validate_and_fetch(url: str) -> dict[str, Any] | None:
         if validate_folder_url(url):
             return _gh_get(url)
         return None
@@ -2261,7 +2261,7 @@ def sync_profile(
 
         # OPTIMIZATION: Move validation inside the thread pool to parallelize DNS lookups.
         # Previously, sequential validation blocked the main thread.
-        def _fetch_if_valid(url: str):
+        def _fetch_if_valid(url: str) -> dict[str, Any] | None:
             # Optimization: If we already have the content in cache, return it directly.
             # The content was validated at the time of fetch (warm_up_cache).
             # Read directly from cache to avoid calling fetch_folder_data while holding lock.
@@ -2529,10 +2529,10 @@ def print_summary_table(
         return
 
     # Unicode Table
-    def print_line(left_char, mid_char, right_char):
+    def print_line(left_char: str, mid_char: str, right_char: str) -> str:
         return f"{Colors.BOLD}{left_char}{mid_char.join('─' * (x+2) for x in w)}{right_char}{Colors.ENDC}"
 
-    def print_row(cols):
+    def print_row(cols: list[str]) -> str:
         return f"{Colors.BOLD}│{Colors.ENDC} {cols[0]:<{w[0]}} {Colors.BOLD}│{Colors.ENDC} {cols[1]:>{w[1]}} {Colors.BOLD}│{Colors.ENDC} {cols[2]:>{w[2]}} {Colors.BOLD}│{Colors.ENDC} {cols[3]:>{w[3]}} {Colors.BOLD}│{Colors.ENDC} {cols[4]:<{w[4]}} {Colors.BOLD}│{Colors.ENDC}"
 
     print(f"\n{print_line('┌', '─', '┐')}")
@@ -2610,7 +2610,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main():
+def main() -> None:
     """
     Main entry point for Control D Sync.
 
@@ -2840,7 +2840,7 @@ def main():
     w_duration = 10
     w_status = 15
 
-    def make_col_separator(left, mid, right, horiz):
+    def make_col_separator(left: str, mid: str, right: str, horiz: str) -> str:
         parts = [
             horiz * (w_profile + 2),
             horiz * (w_folders + 2),

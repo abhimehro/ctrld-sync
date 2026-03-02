@@ -25,3 +25,6 @@ omit = ["tests/*", "test_main.py", ".venv/*", ".venv/**"]
 
 [tool.coverage.report]
 show_missing = true
+
+[tool.ruff.lint]
+select = ["E", "F", "ANN"]
