@@ -17,8 +17,29 @@ _DEFAULT_CONFIG_PATHS = [
 
 
 def get_default_config() -> Dict:
-    from main import DEFAULT_FOLDER_URLS, BATCH_SIZE, MAX_RETRIES
-    """Return the built-in default configuration (mirrors DEFAULT_FOLDER_URLS)."""
+    """
+    Return the built-in default configuration (mirrors DEFAULT_FOLDER_URLS).
+
+    We intentionally avoid unconditionally importing from `main` here because
+    when the application is started via `python main.py`, that file is already
+    loaded as the `__main__` module. Importing `main` again would re-execute
+    the file under the `main` module name, causing duplicated side effects
+    (e.g., logging setup, global state).
+    """
+    # Prefer reading constants from the already-running __main__ module to
+    # avoid re-importing and re-executing main.py. Fall back to importing
+    # from main when get_default_config() is used from other entry points
+    # (e.g., tests or library usage).
+    main_module = sys.modules.get("__main__")
+    if main_module is not None and all(
+        hasattr(main_module, name)
+        for name in ("DEFAULT_FOLDER_URLS", "BATCH_SIZE", "MAX_RETRIES")
+    ):
+        DEFAULT_FOLDER_URLS = main_module.DEFAULT_FOLDER_URLS
+        BATCH_SIZE = main_module.BATCH_SIZE
+        MAX_RETRIES = main_module.MAX_RETRIES
+    else:
+        from main import DEFAULT_FOLDER_URLS, BATCH_SIZE, MAX_RETRIES
     return {
         "folders": [{"url": u} for u in DEFAULT_FOLDER_URLS],
         "settings": {
