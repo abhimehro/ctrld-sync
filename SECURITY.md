@@ -18,7 +18,7 @@ We take security vulnerabilities seriously. If you discover a security issue, pl
 ### How to Report
 
 1. **DO NOT** open a public GitHub issue for security vulnerabilities
-2. Use [GitHub's private vulnerability reporting](https://github.com/abhimehro/ctrld-sync/security/advisories/new) to open a confidential security advisory.
+2. Use [GitHub's private vulnerability reporting](/security/advisories/new) to open a confidential security advisory.
 3. Include the following in your report:
    - Description of the vulnerability
    - Steps to reproduce the issue
