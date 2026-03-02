@@ -26,6 +26,10 @@ class TestPerformanceRegression:
         main.validate_hostname.cache_clear()
         result = benchmark(main.validate_hostname, "192.168.1.1")
         assert result is False  # Private IP is rejected
+
+        # Handle xdist execution where stats are not populated
+        if not benchmark.stats:
+            return
         assert benchmark.stats["mean"] < _MAX_MEAN_S
 
     def test_validate_hostname_cached_performance(self, benchmark):
@@ -36,6 +40,10 @@ class TestPerformanceRegression:
         # Now benchmark the cached call
         result = benchmark(main.validate_hostname, "10.0.0.1")
         assert result is False
+
+        # Handle xdist execution where stats are not populated
+        if not benchmark.stats:
+            return
         assert benchmark.stats["mean"] < _MAX_MEAN_S
 
     def test_rate_limit_parsing_performance(self, benchmark):
@@ -49,6 +57,10 @@ class TestPerformanceRegression:
 
         result = benchmark(main._parse_rate_limit_headers, mock_response)
         assert result is None  # Function returns None
+
+        # Handle xdist execution where stats are not populated
+        if not benchmark.stats:
+            return
         assert benchmark.stats["mean"] < _MAX_MEAN_S
 
     def test_rate_limit_parsing_empty_headers_performance(self, benchmark):
@@ -56,4 +68,8 @@ class TestPerformanceRegression:
         mock_response = httpx.Response(200, headers={})
         result = benchmark(main._parse_rate_limit_headers, mock_response)
         assert result is None
+
+        # Handle xdist execution where stats are not populated
+        if not benchmark.stats:
+            return
         assert benchmark.stats["mean"] < _MAX_MEAN_S
