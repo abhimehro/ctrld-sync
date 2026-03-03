@@ -107,6 +107,11 @@ Use the [pull request template](.github/PULL_REQUEST_TEMPLATE.md) provided in th
    - How to test or verify the change
    - Any relevant issue numbers (e.g., `Closes #123`)
 
+4. **Update `CHANGELOG.md`** — add an entry under the `[Unreleased]` section
+   using [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) categories
+   (`Added`, `Changed`, `Fixed`, `Removed`, `Security`, `Deprecated`).
+   One concise bullet per logical change is enough.
+
 ## Secrets
 
 `TOKEN` (Control D API token) and `PROFILE` (profile ID) are required only for live runs against the API.
