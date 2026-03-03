@@ -87,18 +87,22 @@ uv run python main.py --dry-run
 
 ## Submitting a Pull Request
 
-1. **Branch naming** — use a short, descriptive name:
+### What to Include in the PR Description
+
+Use the [pull request template](.github/PULL_REQUEST_TEMPLATE.md) provided in the repository. At a minimum, your pull request should meet the following standards:
+
+1. **Branch naming**, use a short, descriptive name:
    - `fix/<short-description>` for bug fixes
    - `feat/<short-description>` for new features
    - `docs/<short-description>` for documentation changes
    - `chore/<short-description>` for maintenance tasks
 
-2. **Before opening a PR**
+2. **Before opening a PR:**
    - Run the full test suite: `uv run pytest tests/ -v`
    - Run the linter: `ruff check .`
    - Run pre-commit: `uv run pre-commit run --all-files`
 
-3. **PR description** — include:
+3. **PR description**, include:
    - A summary of what changed and why
    - How to test or verify the change
    - Any relevant issue numbers (e.g., `Closes #123`)
