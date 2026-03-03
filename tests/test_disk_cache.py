@@ -22,6 +22,7 @@ import sys
 # Add root to path to import main
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import cache
 import main
 
 
@@ -32,19 +33,24 @@ class TestDiskCache(unittest.TestCase):
         main._cache.clear()
         main._disk_cache.clear()
         main.validate_folder_url.cache_clear()
-        # Reset stats
-        main._cache_stats = {"hits": 0, "misses": 0, "validations": 0, "errors": 0}
+        # Reset stats in-place so both cache._cache_stats and main._cache_stats
+        # (which are the same dict) reflect fresh zeroes.
+        cache._cache_stats.clear()
+        cache._cache_stats.update({"hits": 0, "misses": 0, "validations": 0, "errors": 0})
 
         # Create temporary cache directory for testing
         self.temp_dir = tempfile.mkdtemp()
-        self.original_get_cache_dir = main.get_cache_dir
+        self.original_get_cache_dir = cache.get_cache_dir
 
     def tearDown(self):
         """Clean up after each test."""
         main._cache.clear()
         main._disk_cache.clear()
         main.validate_folder_url.cache_clear()
-        main._cache_stats = {"hits": 0, "misses": 0, "validations": 0, "errors": 0}
+        cache._cache_stats.clear()
+        cache._cache_stats.update({"hits": 0, "misses": 0, "validations": 0, "errors": 0})
+        # Restore original get_cache_dir in the cache module.
+        cache.get_cache_dir = self.original_get_cache_dir
 
         # Clean up temp directory
         import shutil
@@ -83,13 +89,13 @@ class TestDiskCache(unittest.TestCase):
 
     def test_load_disk_cache_no_file(self):
         """Test loading cache when no cache file exists."""
-        main.get_cache_dir = lambda: Path(self.temp_dir) / "nonexistent"
+        cache.get_cache_dir = lambda: Path(self.temp_dir) / "nonexistent"
 
         main.load_disk_cache()
 
         # Should have empty cache, no errors
         self.assertEqual(len(main._disk_cache), 0)
-        self.assertEqual(main._cache_stats["errors"], 0)
+        self.assertEqual(cache._cache_stats["errors"], 0)
 
     def test_load_disk_cache_valid_file(self):
         """Test loading cache from valid cache file."""
@@ -110,13 +116,13 @@ class TestDiskCache(unittest.TestCase):
         with open(cache_file, "w") as f:
             json.dump(test_cache, f)
 
-        main.get_cache_dir = lambda: cache_dir
+        cache.get_cache_dir = lambda: cache_dir
         main.load_disk_cache()
 
         # Should have loaded cache
         self.assertEqual(len(main._disk_cache), 1)
         self.assertIn("https://example.com/list1.json", main._disk_cache)
-        self.assertEqual(main._cache_stats["errors"], 0)
+        self.assertEqual(cache._cache_stats["errors"], 0)
 
     def test_load_disk_cache_corrupted_json(self):
         """Test graceful handling of corrupted cache file."""
@@ -128,12 +134,12 @@ class TestDiskCache(unittest.TestCase):
         with open(cache_file, "w") as f:
             f.write("{ invalid json }")
 
-        main.get_cache_dir = lambda: cache_dir
+        cache.get_cache_dir = lambda: cache_dir
         main.load_disk_cache()
 
         # Should have empty cache but not crash
         self.assertEqual(len(main._disk_cache), 0)
-        self.assertEqual(main._cache_stats["errors"], 1)
+        self.assertEqual(cache._cache_stats["errors"], 1)
 
     def test_load_disk_cache_invalid_format(self):
         """Test graceful handling of invalid cache format."""
@@ -145,7 +151,7 @@ class TestDiskCache(unittest.TestCase):
         with open(cache_file, "w") as f:
             json.dump(["not", "a", "dict"], f)
 
-        main.get_cache_dir = lambda: cache_dir
+        cache.get_cache_dir = lambda: cache_dir
         main.load_disk_cache()
 
         # Should have empty cache but not crash
@@ -155,7 +161,7 @@ class TestDiskCache(unittest.TestCase):
     def test_save_disk_cache(self):
         """Test saving cache to disk."""
         cache_dir = Path(self.temp_dir)
-        main.get_cache_dir = lambda: cache_dir
+        cache.get_cache_dir = lambda: cache_dir
 
         # Populate cache
         main._disk_cache["https://example.com/test.json"] = {
@@ -183,7 +189,7 @@ class TestDiskCache(unittest.TestCase):
     def test_save_disk_cache_atomic_write(self):
         """Test that cache saving uses atomic write (temp file + rename)."""
         cache_dir = Path(self.temp_dir)
-        main.get_cache_dir = lambda: cache_dir
+        cache.get_cache_dir = lambda: cache_dir
 
         main._disk_cache["https://example.com/test.json"] = {
             "data": {"group": {"group": "Test"}, "domains": ["test.com"]},
@@ -208,8 +214,9 @@ class TestDiskCache(unittest.TestCase):
         test_url = "https://example.com/test.json"
         test_data = {"group": {"group": "Test"}, "domains": ["example.com"]}
 
-        # Reset stats
-        main._cache_stats = {"hits": 0, "misses": 0, "validations": 0, "errors": 0}
+        # Reset stats in-place so cache._cache_stats (the live dict) is zeroed.
+        cache._cache_stats.clear()
+        cache._cache_stats.update({"hits": 0, "misses": 0, "validations": 0, "errors": 0})
 
         def mock_stream(method, url, headers=None):
             mock_response = MagicMock()
@@ -401,7 +408,7 @@ class TestDiskCache(unittest.TestCase):
             "last_validated": 0.0,
         }
 
-        with patch("main.get_cache_dir", return_value=cache_dir):
+        with patch("cache.get_cache_dir", return_value=cache_dir):
             # Simulate --clear-cache logic
             if cache_file.exists():
                 cache_file.unlink()
