@@ -63,12 +63,16 @@ _cache_stats: dict[str, int] = {
 # --------------------------------------------------------------------------- #
 
 
-def _sanitize(text: Any) -> str:
-    """Minimal log-safe representation of *text* for cache I/O error messages.
+def _sanitize_for_log(text: Any) -> str:
+    """Sanitize *text* for safe inclusion in log messages.
 
-    Uses ``repr()`` to escape control characters (prevents log injection /
-    terminal hijacking).  Strips the surrounding quote pair that repr() adds
-    for plain strings so that log lines read naturally.
+    Uses ``repr()`` to escape control characters, preventing log injection
+    and terminal hijacking.  Strips the surrounding quote pair that ``repr()``
+    adds for plain strings so that log lines read naturally.
+
+    This is a lightweight version of the full ``sanitize_for_log`` in
+    ``main.py``.  It omits TOKEN redaction because cache I/O exceptions
+    (JSONDecodeError, PermissionError, etc.) do not contain API credentials.
     """
     s = repr(str(text))
     # repr wraps strings in matching single or double quotes – strip them.
@@ -176,16 +180,16 @@ def load_disk_cache() -> None:
         _disk_cache.clear()
         _disk_cache.update(sanitized_cache)
     except json.JSONDecodeError as e:
-        log.warning(f"Corrupted cache file (invalid JSON), starting fresh: {_sanitize(e)}")
+        log.warning(f"Corrupted cache file (invalid JSON), starting fresh: {_sanitize_for_log(e)}")
         _cache_stats["errors"] += 1
     except PermissionError as e:
         log.warning(
-            f"Cannot read cache file (permission denied), starting fresh: {_sanitize(e)}"
+            f"Cannot read cache file (permission denied), starting fresh: {_sanitize_for_log(e)}"
         )
         _cache_stats["errors"] += 1
     except Exception as e:
         # Catch-all for unexpected errors (disk full, etc.)
-        log.warning(f"Failed to load cache, starting fresh: {_sanitize(e)}")
+        log.warning(f"Failed to load cache, starting fresh: {_sanitize_for_log(e)}")
         _cache_stats["errors"] += 1
 
 
@@ -225,7 +229,7 @@ def save_disk_cache() -> None:
 
     except Exception as e:
         # Cache save failures are non-fatal; next run simply starts without cache.
-        log.warning(f"Failed to save cache (non-fatal): {_sanitize(e)}")
+        log.warning(f"Failed to save cache (non-fatal): {_sanitize_for_log(e)}")
         _cache_stats["errors"] += 1
 
 
