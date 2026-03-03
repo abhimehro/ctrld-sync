@@ -35,15 +35,6 @@ Run the following in order:
 
 - [ ] No secrets or credentials are introduced or exposed by this change
 
-## Checklist
-
-- [ ] Branch follows naming convention (`fix/<short-description>`, `feat/<short-description>`, `docs/<short-description>`, `chore/<short-description>`, etc.)
-- [ ] Commit messages are clear and descriptive
-- [ ] New or modified code includes relevant tests
-- [ ] Pre-commit hooks pass (`uv run pre-commit run --all-files`)
-- [ ] Documentation updated if behaviour changed (README, docstrings, etc.)
-- [ ] No secrets, credentials, tokens, profiles, or `.env` files are included in this PR
-
 ---
 
 ## Secrets
@@ -59,3 +50,12 @@ PROFILE=your_profile_id
 ```
 
 - For GitHub Actions, add them as repository secrets under **Settings, Secrets and variables, Actions**.
+
+## Checklist
+
+- [ ] Branch follows naming convention (`fix/<short-description>`, `feat/<short-description>`, `docs/<short-description>`, `chore/<short-description>`, etc.)
+- [ ] Commit messages are clear and descriptive
+- [ ] New or modified code includes relevant tests
+- [ ] Pre-commit hooks pass (`uv run pre-commit run --all-files`)
+- [ ] Documentation updated if behaviour changed (README, docstrings, etc.)
+- [ ] No secrets, credentials, tokens, profiles, or `.env` files are included in this PR
