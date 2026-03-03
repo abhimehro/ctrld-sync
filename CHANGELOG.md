@@ -23,7 +23,6 @@ the Control D REST API.
 
 ### Added
 
-**Core functionality**
 - Single-file CLI (`main.py`, ~3,200 lines) with `--dry-run`, multi-profile,
   and `--verbose` flags
 - YAML config loading via `config.yaml` / `pyyaml`; falls back to environment
@@ -35,15 +34,11 @@ the Control D REST API.
 - Exponential backoff with jitter for transient API errors (configurable
   `MAX_RETRIES`)
 - Human-readable CLI summary tables with duration formatting (e.g. `2m 5.5s`)
-
-**Security hardening**
 - `sanitize_for_log()` — redacts `TOKEN`, Basic-Auth credentials, and
   sensitive query parameters; escapes control characters in log output
 - SSRF guard — blocks sync targets that resolve to `localhost` / RFC-1918
   private ranges
 - CSV-injection prevention in any output that could be opened as a spreadsheet
-
-**Testing**
 - 29+ dedicated test modules under `tests/` covering security, performance,
   cache, config, SSRF, CSV injection, benchmarks, and UX formatting
 - `test_main.py` — 30+ integration-style test functions
@@ -51,8 +46,6 @@ the Control D REST API.
   (`tests/test_benchmarks.py`)
 - `pytest-xdist` enabled for parallel test execution (`-n auto`)
 - `pytest-cov` with `fail_under = 55` minimum coverage threshold
-
-**Developer experience**
 - `CONTRIBUTING.md` with full setup guide, secrets handling, and PR
   conventions
 - `SECURITY.md` with vulnerability reporting policy and supported-version
@@ -60,8 +53,6 @@ the Control D REST API.
 - Pre-commit hooks configuration (`.pre-commit-config.yaml`)
 - `uv` as the project package manager; `pyproject.toml` as the single source
   of truth for dependencies and tooling
-
-**CI / automation**
 - `test.yml` — pytest on every PR and push to `main` (Python 3.13, xdist)
 - `bandit.yml` — SAST scanning for known Python security patterns
 - `codacy.yml` — code-quality analysis
