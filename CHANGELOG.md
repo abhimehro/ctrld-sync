@@ -15,7 +15,7 @@ _No unreleased changes yet._
 
 ---
 
-## [0.1.0] — 2026-02
+## [0.1.0] — 2026-02-28
 
 Initial working release of `ctrld-sync`, a Python 3.13+ CLI utility that
 synchronises Control D DNS filtering folders with remote JSON block-lists via
