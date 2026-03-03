@@ -124,6 +124,20 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
    - `TOKEN`: your Control D API token
    - `PROFILE`: your Control D profile ID(s)
 
+## Environment Variables
+
+| Variable   | Description                                                                 |
+|------------|-----------------------------------------------------------------------------|
+| `TOKEN`    | Control D API token (required for live runs)                                |
+| `PROFILE`  | Control D profile ID(s), comma-separated (required for live runs)           |
+| `NO_COLOR` | Set to any non-empty value to disable ANSI colour output (https://no-color.org/) |
+| `JSON_LOG` | Set to `1` (or any non-empty value) to emit structured JSON log lines instead of human-readable coloured text. Useful for observability pipelines (Datadog, CloudWatch, Loki, etc.). Automatically disables colour output. |
+
+**JSON log example:**
+```json
+{"time": "2026-03-03T13:00:00Z", "level": "INFO", "logger": "control-d-sync", "message": "Syncing folder dns-block-list"}
+```
+
 ## Requirements
 - Python 3.13+
 - Runtime dependencies (install with `uv sync --all-extras`):

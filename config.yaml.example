@@ -86,3 +86,11 @@ settings:
   # Maximum number of HTTP retry attempts that would be made before giving
   # up on a request if settings support is enabled in a future version.
   max_retries: 10
+
+  # Log output format.
+  # Accepted values: "human" (default coloured text) or "json" (one JSON
+  # object per line, suitable for observability pipelines such as Datadog,
+  # CloudWatch, or Loki).
+  # Equivalent to setting the JSON_LOG=1 environment variable.
+  # NOTE: this key is reserved for future use; it has no effect at runtime.
+  log_format: human
