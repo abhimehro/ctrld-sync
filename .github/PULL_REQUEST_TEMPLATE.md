@@ -17,25 +17,23 @@ Use a short, descriptive name:
 
 Run the following in order:
 
-1. **Full test suite:** `uv run pytest tests/ -v`
-2. **Linter:** `ruff check .`
-3. **Pre-commit hooks:** `uv run pre-commit run --all-files`
+1. Run the full test suite: `uv run pytest tests/ -v`
+2. Run the linter: `ruff check .`
+3. Run pre-commit: `uv run pre-commit run --all-files`
 
 ## PR Description
 
 ### What Changed and Why
 
-Include:
+**Include:**
 
-- A summary of what changed and why
-- How to test or verify the change
-- Any relevant issue numbers (e.g., `Closes #123`)
+- [ ] A summary of what changed and why
+- [ ] How to test or verify the change
+- [ ] Any relevant issue numbers (e.g., `Closes #123`)
 
 ## Security Implications
 
 - [ ] No secrets or credentials are introduced or exposed by this change
-
-**Security notes:**
 
 ## Checklist
 
