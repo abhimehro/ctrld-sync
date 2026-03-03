@@ -44,9 +44,9 @@ the Control D REST API.
 - CSV-injection prevention in any output that could be opened as a spreadsheet
 
 **Testing**
-- 29 + dedicated test modules under `tests/` covering security, performance,
+- 29+ dedicated test modules under `tests/` covering security, performance,
   cache, config, SSRF, CSV injection, benchmarks, and UX formatting
-- `test_main.py` — 30 + integration-style test functions
+- `test_main.py` — 30+ integration-style test functions
 - `pytest-benchmark` integration for performance regression detection
   (`tests/test_benchmarks.py`)
 - `pytest-xdist` enabled for parallel test execution (`-n auto`)
