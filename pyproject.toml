@@ -18,6 +18,8 @@ dev = [
     "pytest-benchmark>=4.0.0",
     "pytest-cov>=4.0.0",
     "pre-commit>=3.0.0",
+    "mypy>=1.9",
+    "types-PyYAML>=6.0",
 ]
 
 [tool.coverage.run]
@@ -27,3 +29,11 @@ omit = ["tests/*", "test_main.py", ".venv/*", ".venv/**"]
 [tool.coverage.report]
 show_missing = true
 fail_under = 55
+
+[tool.mypy]
+python_version = "3.13"
+strict = false
+ignore_missing_imports = true
+check_untyped_defs = true
+warn_return_any = true
+warn_unused_ignores = true
