@@ -30,7 +30,7 @@ the Control D REST API.
   variables (`TOKEN`, `PROFILE`)
 - Persistent disk cache with `ETag` / `Last-Modified` validation to skip
   unchanged block-lists on repeat runs
-- Memory-efficient streaming for large block-lists (100 k+ entries)
+- Memory-efficient streaming for large block-lists (100k+ entries)
 - Smart API batching with dynamic batch size tuned to rule complexity
 - Exponential backoff with jitter for transient API errors (configurable
   `MAX_RETRIES`)
