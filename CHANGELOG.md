@@ -80,5 +80,5 @@ the Control D REST API.
 
 ---
 
-[Unreleased]: https://github.com/abhimehro/ctrld-sync/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/abhimehro/ctrld-sync/releases/tag/v0.1.0
+[Unreleased]: https://github.com/abhimehro/ctrld-sync/compare/main...HEAD
+[0.1.0]: https://github.com/abhimehro/ctrld-sync/tree/main
