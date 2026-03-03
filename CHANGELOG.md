@@ -24,7 +24,7 @@ the Control D REST API.
 ### Added
 
 **Core functionality**
-- Single-file CLI (`main.py`, ~3 200 lines) with `--dry-run`, multi-profile,
+- Single-file CLI (`main.py`, ~3,200 lines) with `--dry-run`, multi-profile,
   and `--verbose` flags
 - YAML config loading via `config.yaml` / `pyyaml`; falls back to environment
   variables (`TOKEN`, `PROFILE`)
