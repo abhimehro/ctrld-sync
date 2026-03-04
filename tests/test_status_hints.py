@@ -254,3 +254,172 @@ class TestTimeoutHint:
         assert result is False
         error_calls = str(mock_log.error.call_args_list)
         assert main._TIMEOUT_HINT not in error_calls
+
+
+class TestListExistingFoldersHints:
+    """Verify list_existing_folders() includes status and timeout hints in error logs."""
+
+    def test_401_hint_logged(self):
+        mock_client = MagicMock()
+        mock_response = MagicMock(spec=httpx.Response)
+        mock_response.status_code = 401
+        mock_request = MagicMock(spec=httpx.Request)
+        err = httpx.HTTPStatusError("401 Unauthorized", request=mock_request, response=mock_response)
+
+        mock_log = MagicMock()
+        with patch.object(main, "_api_get", side_effect=err):
+            with patch.object(main, "log", mock_log):
+                result = main.list_existing_folders(mock_client, "profile123")
+
+        assert result == {}
+        error_calls = str(mock_log.error.call_args_list)
+        assert "TOKEN" in error_calls
+
+    def test_404_hint_logged(self):
+        mock_client = MagicMock()
+        mock_response = MagicMock(spec=httpx.Response)
+        mock_response.status_code = 404
+        mock_request = MagicMock(spec=httpx.Request)
+        err = httpx.HTTPStatusError("404 Not Found", request=mock_request, response=mock_response)
+
+        mock_log = MagicMock()
+        with patch.object(main, "_api_get", side_effect=err):
+            with patch.object(main, "log", mock_log):
+                result = main.list_existing_folders(mock_client, "profile123")
+
+        assert result == {}
+        error_calls = str(mock_log.error.call_args_list)
+        assert "folder" in error_calls.lower()
+
+    def test_unknown_status_fallback_logged(self):
+        mock_client = MagicMock()
+        mock_response = MagicMock(spec=httpx.Response)
+        mock_response.status_code = 503
+        mock_request = MagicMock(spec=httpx.Request)
+        err = httpx.HTTPStatusError("503 Service Unavailable", request=mock_request, response=mock_response)
+
+        mock_log = MagicMock()
+        with patch.object(main, "_api_get", side_effect=err):
+            with patch.object(main, "log", mock_log):
+                result = main.list_existing_folders(mock_client, "profile123")
+
+        assert result == {}
+        error_calls = str(mock_log.error.call_args_list)
+        assert "HTTP 503" in error_calls
+
+    def test_timeout_hint_logged(self):
+        mock_client = MagicMock()
+        mock_request = MagicMock(spec=httpx.Request)
+        err = httpx.TimeoutException("timed out", request=mock_request)
+
+        mock_log = MagicMock()
+        with patch.object(main, "_api_get", side_effect=err):
+            with patch.object(main, "log", mock_log):
+                result = main.list_existing_folders(mock_client, "profile123")
+
+        assert result == {}
+        error_calls = str(mock_log.error.call_args_list)
+        assert main._TIMEOUT_HINT in error_calls
+
+
+class TestDeleteFolderHints:
+    """Verify delete_folder() includes status and timeout hints in error logs."""
+
+    def test_401_hint_logged(self):
+        mock_client = MagicMock()
+        mock_response = MagicMock(spec=httpx.Response)
+        mock_response.status_code = 401
+        mock_request = MagicMock(spec=httpx.Request)
+        err = httpx.HTTPStatusError("401 Unauthorized", request=mock_request, response=mock_response)
+
+        mock_log = MagicMock()
+        with patch.object(main, "_api_delete", side_effect=err):
+            with patch.object(main, "log", mock_log):
+                result = main.delete_folder(mock_client, "profile123", "MyFolder", "fid1")
+
+        assert result is False
+        error_calls = str(mock_log.error.call_args_list)
+        assert "TOKEN" in error_calls
+
+    def test_404_hint_logged(self):
+        mock_client = MagicMock()
+        mock_response = MagicMock(spec=httpx.Response)
+        mock_response.status_code = 404
+        mock_request = MagicMock(spec=httpx.Request)
+        err = httpx.HTTPStatusError("404 Not Found", request=mock_request, response=mock_response)
+
+        mock_log = MagicMock()
+        with patch.object(main, "_api_delete", side_effect=err):
+            with patch.object(main, "log", mock_log):
+                result = main.delete_folder(mock_client, "profile123", "MyFolder", "fid1")
+
+        assert result is False
+        error_calls = str(mock_log.error.call_args_list)
+        assert "folder" in error_calls.lower()
+
+    def test_unknown_status_fallback_logged(self):
+        mock_client = MagicMock()
+        mock_response = MagicMock(spec=httpx.Response)
+        mock_response.status_code = 503
+        mock_request = MagicMock(spec=httpx.Request)
+        err = httpx.HTTPStatusError("503 Service Unavailable", request=mock_request, response=mock_response)
+
+        mock_log = MagicMock()
+        with patch.object(main, "_api_delete", side_effect=err):
+            with patch.object(main, "log", mock_log):
+                result = main.delete_folder(mock_client, "profile123", "MyFolder", "fid1")
+
+        assert result is False
+        error_calls = str(mock_log.error.call_args_list)
+        assert "HTTP 503" in error_calls
+
+    def test_timeout_hint_logged(self):
+        mock_client = MagicMock()
+        mock_request = MagicMock(spec=httpx.Request)
+        err = httpx.TimeoutException("timed out", request=mock_request)
+
+        mock_log = MagicMock()
+        with patch.object(main, "_api_delete", side_effect=err):
+            with patch.object(main, "log", mock_log):
+                result = main.delete_folder(mock_client, "profile123", "MyFolder", "fid1")
+
+        assert result is False
+        error_calls = str(mock_log.error.call_args_list)
+        assert main._TIMEOUT_HINT in error_calls
+
+
+class TestVerifyAccessHints:
+    """Verify verify_access_and_get_folders() surfaces timeout hint on final network error."""
+
+    def test_timeout_hint_logged_on_final_attempt(self):
+        mock_client = MagicMock()
+        mock_request = MagicMock(spec=httpx.Request)
+        err = httpx.TimeoutException("timed out", request=mock_request)
+        mock_client.get.side_effect = err
+
+        mock_log = MagicMock()
+        with patch.object(main, "log", mock_log):
+            with patch.object(main, "time") as mock_time:
+                mock_time.sleep = MagicMock()
+                result = main.verify_access_and_get_folders(mock_client, "profile123")
+
+        assert result is None
+        # Collect all error log message strings
+        error_calls = str(mock_log.error.call_args_list)
+        assert main._TIMEOUT_HINT in error_calls
+
+    def test_no_timeout_hint_for_non_timeout_error(self):
+        mock_client = MagicMock()
+        mock_request = MagicMock(spec=httpx.Request)
+        err = httpx.RequestError("connection refused", request=mock_request)
+        mock_client.get.side_effect = err
+
+        mock_log = MagicMock()
+        with patch.object(main, "log", mock_log):
+            with patch.object(main, "time") as mock_time:
+                mock_time.sleep = MagicMock()
+                result = main.verify_access_and_get_folders(mock_client, "profile123")
+
+        assert result is None
+        error_calls = str(mock_log.error.call_args_list)
+        assert main._TIMEOUT_HINT not in error_calls

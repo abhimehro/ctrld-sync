@@ -167,9 +167,43 @@ From all identified tasks, select the **top 3-5 highest-value tasks** based on:
 - Check extracted-tasks.json to avoid creating duplicate issues
 - Search existing GitHub issues to ensure task isn't already tracked
 
+### Step 4.5: Pre-flight Verification
+
+Before creating any issue, verify that the task's target file or feature does **not** already exist in the repository. This prevents opening stale issues for work that has already been completed.
+
+For each candidate task:
+
+```bash
+# Check whether a target file or directory already exists
+# (replace <target_file> with the path mentioned in the task)
+[ -e "<target_file>" ] && echo "EXISTS" || echo "MISSING"
+
+# Check whether a target symbol or keyword appears in the codebase
+# (replace <symbol> with the function/class/config key to look for)
+grep -r "<symbol>" . \
+  --include="*.py" --include="*.toml" --include="*.yaml" --include="*.yml" --include="*.md" \
+  --exclude-dir=.venv --exclude-dir=.git --exclude-dir=__pycache__ \
+  -l 2>/dev/null | head -5
+```
+
+Apply these rules to each candidate task:
+
+| Condition | Action |
+|-----------|--------|
+| `target_file` exists on disk | Set `status: "already_resolved"`, skip issue creation, log the skip |
+| `target_symbol` found in codebase | Set `status: "already_resolved"`, skip issue creation, log the skip |
+| Neither condition met | Proceed to Step 5, set `status: "created"` after issue is opened |
+
+**Log every skipped task** so the summary is transparent:
+
+```
+Skipped: "Add performance benchmark suite" — tests/test_benchmarks.py already exists ✅
+Skipped: "Fix SECURITY.md placeholder versions" — SECURITY.md already contains version entry ✅
+```
+
 ### Step 5: Create GitHub Issues
 
-For each selected task, use the `create-issue` safe output:
+For each selected task **that passed the pre-flight verification**, use the `create-issue` safe output:
 
 ```json
 {
@@ -212,8 +246,19 @@ cat > memory/discussion-task-miner/extracted-tasks.json << 'EOF'
       "source_discussion": 1234,
       "issue_number": 5678,
       "title": "...",
+      "pre_check": "file_check: target_file not present",
       "created_at": "2026-01-08T09:00:00Z",
-      "status": "created"
+      "status": "created",
+      "issue_created": true
+    },
+    {
+      "source_discussion": 1234,
+      "issue_number": null,
+      "title": "Add performance benchmark suite",
+      "pre_check": "file_check: tests/test_benchmarks.py exists",
+      "created_at": "2026-01-08T09:00:00Z",
+      "status": "already_resolved",
+      "issue_created": false
     },
     ...
   ]
@@ -229,11 +274,16 @@ cat > memory/discussion-task-miner/latest-run.md << 'EOF'
 - Tasks identified: 8
 - Issues created: 3
 - Duplicates avoided: 5
+- Skipped (already resolved): 2
 
 ## Created Issues
 - #5678: Refactor authentication module
 - #5679: Add missing tests for API client
 - #5680: Update deprecated logging patterns
+
+## Skipped — Already Resolved
+- "Add performance benchmark suite" — tests/test_benchmarks.py already exists ✅
+- "Fix SECURITY.md placeholder versions" — SECURITY.md already contains version entry ✅
 
 ## Top Patterns Observed
 - Authentication code needs refactoring (3 mentions)
@@ -256,6 +306,10 @@ Scanned **[N] discussions** from the last 7 days and identified **[M] actionable
 - #[num]: [title]
 - #[num]: [title]
 
+### Skipped — Already Resolved
+- "[task title]" — [pre_check reason] ✅
+- "[task title]" — [pre_check reason] ✅
+
 ### Top Quality Themes
 - [Theme 1]: [count] mentions
 - [Theme 2]: [count] mentions
@@ -273,7 +327,7 @@ All tasks focus on code quality improvements and are ready for assignment to age
 
 ### Memory Tracking
 - Always update processed-discussions.json to avoid duplicates
-- Maintain extracted-tasks.json for historical tracking
+- Maintain extracted-tasks.json for historical tracking; include `pre_check`, `status`, and `issue_created` fields for every task
 - Create readable summary in latest-run.md
 
 ### Quality Standards
@@ -320,3 +374,4 @@ Good examples of discussions to mine:
 ❌ Forgetting to update repo-memory
 ❌ Not linking back to source discussion
 ❌ Creating more than 5 issues per run
+❌ Skipping the pre-flight verification step (leads to stale issues for already-done work)

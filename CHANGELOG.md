@@ -41,8 +41,13 @@
 
 **Closed issues:**
 
+- \[Code Quality\] Add pre-flight verification to QA/task-mining workflows to prevent stale issues [\#523](https://github.com/abhimehro/ctrld-sync/issues/523)
 - \[Code Quality\] Add mypy static type-checking to CI to enforce annotations [\#522](https://github.com/abhimehro/ctrld-sync/issues/522)
+- \[repo-status\] Daily Repo Status — March 3, 2026 🚀 [\#521](https://github.com/abhimehro/ctrld-sync/issues/521)
 - \[Code Quality\] Add structured JSON logging output mode \(`JSON_LOG` env var\) [\#520](https://github.com/abhimehro/ctrld-sync/issues/520)
+- \[Code Quality\] Extract cache subsystem from `main.py` into `cache.py` module [\#519](https://github.com/abhimehro/ctrld-sync/issues/519)
+- \[Code Quality\] Improve API error message quality to surface actionable guidance [\#517](https://github.com/abhimehro/ctrld-sync/issues/517)
+- \[Code Quality\] Extract API client logic from `main.py` into `api_client.py` module [\#516](https://github.com/abhimehro/ctrld-sync/issues/516)
 - \[Code Quality\] Add CHANGELOG.md to track version history and structural changes [\#513](https://github.com/abhimehro/ctrld-sync/issues/513)
 - \[repo-status\] Daily Repo Status — March 2, 2026 🚀 [\#504](https://github.com/abhimehro/ctrld-sync/issues/504)
 - \[Code Quality\] Add CHANGELOG.md following Keep a Changelog format [\#499](https://github.com/abhimehro/ctrld-sync/issues/499)
@@ -164,6 +169,9 @@
 
 **Merged pull requests:**
 
+- Add pre-flight verification to task-miner and QA workflows to prevent stale issues [\#532](https://github.com/abhimehro/ctrld-sync/pull/532) ([Copilot](https://github.com/apps/copilot-swe-agent))
+- feat: surface actionable guidance for timeout and HTTP error paths [\#531](https://github.com/abhimehro/ctrld-sync/pull/531) ([Copilot](https://github.com/apps/copilot-swe-agent))
+- Extract cache subsystem from main.py into cache.py [\#527](https://github.com/abhimehro/ctrld-sync/pull/527) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - Add mypy static type-checking to CI [\#526](https://github.com/abhimehro/ctrld-sync/pull/526) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - feat: Add structured JSON logging mode via `JSON_LOG` env var [\#525](https://github.com/abhimehro/ctrld-sync/pull/525) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - docs: rewrite CHANGELOG.md in Keep a Changelog format [\#514](https://github.com/abhimehro/ctrld-sync/pull/514) ([github-actions[bot]](https://github.com/apps/github-actions))
