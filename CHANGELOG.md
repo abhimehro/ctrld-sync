@@ -41,6 +41,7 @@
 
 **Closed issues:**
 
+- \[repo-status\] Daily Repo Status — March 4, 2026 🚀 [\#548](https://github.com/abhimehro/ctrld-sync/issues/548)
 - \[Code Quality\] Add actionable warning logs for 4xx auth/client errors in api\_client.py retry paths [\#547](https://github.com/abhimehro/ctrld-sync/issues/547)
 - \[Code Quality\] Add ruff `PERF` \(perflint\) rules to catch performance anti-patterns [\#546](https://github.com/abhimehro/ctrld-sync/issues/546)
 - \[Code Quality\] Align `cache.py` sanitization with `api_client.py` injection pattern for consistent token redaction [\#536](https://github.com/abhimehro/ctrld-sync/issues/536)
@@ -53,9 +54,12 @@
 - \[Code Quality\] Extract cache subsystem from `main.py` into `cache.py` module [\#519](https://github.com/abhimehro/ctrld-sync/issues/519)
 - \[Code Quality\] Improve API error message quality to surface actionable guidance [\#517](https://github.com/abhimehro/ctrld-sync/issues/517)
 - \[Code Quality\] Extract API client logic from `main.py` into `api_client.py` module [\#516](https://github.com/abhimehro/ctrld-sync/issues/516)
+- \[Code Quality\] Extract disk cache logic from `main.py` into `cache.py` module [\#515](https://github.com/abhimehro/ctrld-sync/issues/515)
 - \[Code Quality\] Add CHANGELOG.md to track version history and structural changes [\#513](https://github.com/abhimehro/ctrld-sync/issues/513)
+- \[Code Quality\] Add `LOG_JSON` env var / `--log-json` flag for structured JSON log output [\#511](https://github.com/abhimehro/ctrld-sync/issues/511)
 - \[Code Quality\] Improve API error message quality and fix `_retry_request()` return type [\#510](https://github.com/abhimehro/ctrld-sync/issues/510)
 - \[Code Quality\] Extract disk cache logic into `cache.py` module [\#506](https://github.com/abhimehro/ctrld-sync/issues/506)
+- \[Code Quality\] Extract HTTP API client into `api_client.py` module [\#505](https://github.com/abhimehro/ctrld-sync/issues/505)
 - \[repo-status\] Daily Repo Status — March 2, 2026 🚀 [\#504](https://github.com/abhimehro/ctrld-sync/issues/504)
 - \[Code Quality\] Add CHANGELOG.md following Keep a Changelog format [\#499](https://github.com/abhimehro/ctrld-sync/issues/499)
 - \[Code Quality\] Improve API error messages with actionable HTTP status code hints [\#498](https://github.com/abhimehro/ctrld-sync/issues/498)
@@ -65,6 +69,7 @@
 - \[Code Quality\] Enforce minimum test coverage threshold \(--cov-fail-under\) in test.yml [\#483](https://github.com/abhimehro/ctrld-sync/issues/483)
 - \[Code Quality\] Standardize sync.yml to use uv instead of pip for dependency installation [\#482](https://github.com/abhimehro/ctrld-sync/issues/482)
 - \[Code Quality\] Add CONTRIBUTING.md with development setup and contribution guide [\#481](https://github.com/abhimehro/ctrld-sync/issues/481)
+- \[Code Quality\] Extract config loading/validation from main.py into config.py module [\#473](https://github.com/abhimehro/ctrld-sync/issues/473)
 - \[Code Quality\] Add type annotations to main.py public functions [\#472](https://github.com/abhimehro/ctrld-sync/issues/472)
 - \[Code Quality\] Add pytest CI workflow for pull request test validation [\#471](https://github.com/abhimehro/ctrld-sync/issues/471)
 - \[Code Quality\] Add performance benchmark suite for regression detection [\#469](https://github.com/abhimehro/ctrld-sync/issues/469)
@@ -177,6 +182,7 @@
 
 **Merged pull requests:**
 
+- 🎨 Palette: Prevent horizontal jitter in CLI animations [\#554](https://github.com/abhimehro/ctrld-sync/pull/554) ([abhimehro](https://github.com/abhimehro))
 - Add PERF \(perflint\) ruff rules and fix performance anti-patterns [\#550](https://github.com/abhimehro/ctrld-sync/pull/550) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - Add actionable warning logs for 4xx auth/client errors in api\_client retry paths [\#549](https://github.com/abhimehro/ctrld-sync/pull/549) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - ⚡ Bolt: Optimize `push_rules` deduplication logic [\#544](https://github.com/abhimehro/ctrld-sync/pull/544) ([abhimehro](https://github.com/abhimehro))
