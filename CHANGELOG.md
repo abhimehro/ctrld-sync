@@ -169,6 +169,7 @@
 
 **Merged pull requests:**
 
+- fix: resolve mypy type error for JsonFormatter.converter [\#533](https://github.com/abhimehro/ctrld-sync/pull/533) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - Add pre-flight verification to task-miner and QA workflows to prevent stale issues [\#532](https://github.com/abhimehro/ctrld-sync/pull/532) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - feat: surface actionable guidance for timeout and HTTP error paths [\#531](https://github.com/abhimehro/ctrld-sync/pull/531) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - Extract cache subsystem from main.py into cache.py [\#527](https://github.com/abhimehro/ctrld-sync/pull/527) ([Copilot](https://github.com/apps/copilot-swe-agent))
