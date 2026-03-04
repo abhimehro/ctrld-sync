@@ -1735,9 +1735,8 @@ def list_existing_folders(client: httpx.Client, profile_id: str) -> dict[str, st
     except (httpx.HTTPError, KeyError) as e:
         hint = ""
         if isinstance(e, httpx.HTTPStatusError):
-            hint = f" ({_STATUS_HINTS.get(e.response.status_code, f'HTTP {e.response.status_code}')})"
+            hint = f" | hint: {_STATUS_HINTS.get(e.response.status_code, f'HTTP {e.response.status_code}')}"
         elif isinstance(e, httpx.TimeoutException):
-            # Use consistent timeout hint formatting with other functions (e.g., _retry_request, check_api_access)
             hint = f" | hint: {_TIMEOUT_HINT}"
         log.error(f"Failed to list existing folders{hint}: {sanitize_for_log(e)}")
         return {}
@@ -2042,9 +2041,8 @@ def delete_folder(
     except httpx.HTTPError as e:
         hint = ""
         if isinstance(e, httpx.HTTPStatusError):
-            hint = f" ({_STATUS_HINTS.get(e.response.status_code, f'HTTP {e.response.status_code}')})"
+            hint = f" | hint: {_STATUS_HINTS.get(e.response.status_code, f'HTTP {e.response.status_code}')}"
         elif isinstance(e, httpx.TimeoutException):
-            # Use the same hint format as other _TIMEOUT_HINT callers for log consistency
             hint = f" | hint: {_TIMEOUT_HINT}"
         log.error(
             f"Failed to delete folder {sanitize_for_log(name)} (ID {sanitize_for_log(folder_id)}){hint}: {sanitize_for_log(e)}"
