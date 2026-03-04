@@ -21,4 +21,4 @@ jobs:
         with:
           python-version: '3.13'
       - run: uv sync --all-extras
-      - run: uv run ruff --config .trunk/configs/ruff.toml check .
+      - run: uv run ruff check .
