@@ -172,6 +172,7 @@
 
 **Merged pull requests:**
 
+- fix\(ci\): Add ruff to dev deps and suppress pre-existing SIM violations [\#537](https://github.com/abhimehro/ctrld-sync/pull/537) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - chore\(ci\): Add lint workflow and configure ruff rules [\#534](https://github.com/abhimehro/ctrld-sync/pull/534) ([abhimehro](https://github.com/abhimehro))
 - fix: resolve mypy type error for JsonFormatter.converter [\#533](https://github.com/abhimehro/ctrld-sync/pull/533) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - Add pre-flight verification to task-miner and QA workflows to prevent stale issues [\#532](https://github.com/abhimehro/ctrld-sync/pull/532) ([Copilot](https://github.com/apps/copilot-swe-agent))
