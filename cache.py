@@ -5,8 +5,6 @@ Provides:
 - Platform-specific cache directory resolution (get_cache_dir)
 - Loading/saving a JSON blocklist cache with graceful degradation (load_disk_cache,
   save_disk_cache)
-- Parallel URL warm-up that pre-populates the in-memory cache before sync
-  (warm_up_cache)
 
 Module-level state
 ------------------
@@ -27,14 +25,12 @@ CACHE_TTL_SECONDS : int
 
 from __future__ import annotations
 
-import concurrent.futures
 import json
 import logging
 import os
 import platform
-import sys
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any
 
 log = logging.getLogger("control-d-sync")
 
@@ -231,71 +227,3 @@ def save_disk_cache() -> None:
         # Cache save failures are non-fatal; next run simply starts without cache.
         log.warning(f"Failed to save cache (non-fatal): {_sanitize_for_log(e)}")
         _cache_stats["errors"] += 1
-
-
-def warm_up_cache(urls: Sequence[str]) -> None:
-    """Pre-fetch and cache folder data for *urls* in parallel.
-
-    Validates each URL and fetches its content concurrently to minimise
-    cold-start latency.  Shows a progress bar when colours are enabled.
-    Invalid or un-fetchable URLs are skipped with a warning.
-
-    This function deliberately imports ``main`` lazily (inside the function
-    body) to avoid a circular import at module load time.  By the time this
-    function is invoked, ``main`` is always fully initialised and available in
-    ``sys.modules``.
-    """
-    # Deferred import: cache.py is imported by main.py, so a top-level
-    # ``import main`` here would create a circular dependency.  A local import
-    # is safe because warm_up_cache is only ever called after main.py has
-    # finished loading.
-    import main as _m
-
-    urls = list(set(urls))
-    with _m._cache_lock:
-        urls_to_process = [u for u in urls if u not in _m._cache]
-    if not urls_to_process:
-        return
-
-    total = len(urls_to_process)
-    if not _m.USE_COLORS:
-        log.info(f"Warming up cache for {total:,} URLs...")
-
-    # OPTIMIZATION: Combine validation (DNS) and fetching (HTTP) in one task
-    # to allow validation latency to be parallelised.
-    def _validate_and_fetch(url: str):
-        if _m.validate_folder_url(url):
-            return _m._gh_get(url)
-        return None
-
-    completed = 0
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = {
-            executor.submit(_validate_and_fetch, url): url for url in urls_to_process
-        }
-
-        _m.render_progress_bar(0, total, "Warming up cache", prefix="⏳")
-
-        for future in concurrent.futures.as_completed(futures):
-            completed += 1
-            _m.render_progress_bar(completed, total, "Warming up cache", prefix="⏳")
-            try:
-                future.result()
-            except Exception as e:
-                if _m.USE_COLORS:
-                    # Clear line to print warning cleanly.
-                    sys.stderr.write("\r\033[K")
-                    sys.stderr.flush()
-
-                log.warning(
-                    f"Failed to pre-fetch {_m.sanitize_for_log(futures[future])}: "
-                    f"{_m.sanitize_for_log(e)}"
-                )
-                # Restore progress bar after warning.
-                _m.render_progress_bar(completed, total, "Warming up cache", prefix="⏳")
-
-    if _m.USE_COLORS:
-        sys.stderr.write(
-            f"\r\033[K{_m.Colors.GREEN}✅ Warming up cache: Done!{_m.Colors.ENDC}\n"
-        )
-        sys.stderr.flush()

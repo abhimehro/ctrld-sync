@@ -46,7 +46,6 @@ from cache import (
     get_cache_dir,
     load_disk_cache,
     save_disk_cache,
-    warm_up_cache,
 )
 from dotenv import load_dotenv
 
@@ -1779,6 +1778,63 @@ def fetch_folder_data(url: str) -> dict[str, Any]:
         raise KeyError(f"Invalid folder data from {sanitize_for_log(url)}")
     return js
 
+
+def warm_up_cache(urls: Sequence[str]) -> None:
+    """
+    Pre-fetches and caches folder data from multiple URLs in parallel.
+
+    Validates URLs and fetches data concurrently to minimize cold-start latency.
+    Shows progress bar when USE_COLORS is enabled. Skips invalid URLs while
+    emitting warnings/log entries for validation and fetch failures.
+    """
+    urls = list(set(urls))
+    with _cache_lock:
+        urls_to_process = [u for u in urls if u not in _cache]
+    if not urls_to_process:
+        return
+
+    total = len(urls_to_process)
+    if not USE_COLORS:
+        log.info(f"Warming up cache for {total:,} URLs...")
+
+    # OPTIMIZATION: Combine validation (DNS) and fetching (HTTP) in one task
+    # to allow validation latency to be parallelized.
+    def _validate_and_fetch(url: str):
+        if validate_folder_url(url):
+            return _gh_get(url)
+        return None
+
+    completed = 0
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = {
+            executor.submit(_validate_and_fetch, url): url for url in urls_to_process
+        }
+
+        render_progress_bar(0, total, "Warming up cache", prefix="⏳")
+
+        for future in concurrent.futures.as_completed(futures):
+            completed += 1
+            render_progress_bar(completed, total, "Warming up cache", prefix="⏳")
+            try:
+                future.result()
+            except Exception as e:
+                if USE_COLORS:
+                    # Clear line to print warning cleanly
+                    sys.stderr.write("\r\033[K")
+                    sys.stderr.flush()
+
+                log.warning(
+                    f"Failed to pre-fetch {sanitize_for_log(futures[future])}: "
+                    f"{sanitize_for_log(e)}"
+                )
+                # Restore progress bar after warning
+                render_progress_bar(completed, total, "Warming up cache", prefix="⏳")
+
+    if USE_COLORS:
+        sys.stderr.write(
+            f"\r\033[K{Colors.GREEN}✅ Warming up cache: Done!{Colors.ENDC}\n"
+        )
+        sys.stderr.flush()
 
 
 def delete_folder(
