@@ -1806,12 +1806,11 @@ def push_rules(
 
     original_count = len(hostnames)
 
-    # Optimization 1: Combine deduplication and existence checks using a single set.
-    # Copying existing_rules to a 'seen' set allows us to track duplicates and
-    # filter out already-existing rules in a single O(1) lookup per hostname,
-    # completely avoiding the overhead of dictionary creation via dict.fromkeys().
-    seen = existing_rules.copy()
-    seen_add = seen.add
+    # Optimization 1: Deduplicate input hostnames efficiently using dict.fromkeys()
+    # (preserves order) and perform O(1) existence checks against existing_rules.
+    # This completely avoids copying the potentially massive existing_rules set
+    # (which could be millions of items) for every folder processed.
+    unique_hostnames_dict = dict.fromkeys(hostnames)
 
     filtered_hostnames: list[str] = []
     skipped_unsafe = 0
@@ -1820,12 +1819,10 @@ def push_rules(
     match_rule = RULE_PATTERN.match
     append = filtered_hostnames.append
 
-    for h in hostnames:
-        if h in seen:
+    for h in unique_hostnames_dict:
+        # Skip if rule already exists remotely
+        if h in existing_rules:
             continue
-
-        # Add to seen to deduplicate subsequent occurrences of this hostname
-        seen_add(h)
 
         if not match_rule(h):
             log.warning(
