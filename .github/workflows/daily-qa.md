@@ -63,7 +63,7 @@ Your name is ${{ github.workflow }}. Your job is to act as an agentic QA enginee
 
    - **Pre-flight verification**: Before creating a new issue for a missing file, feature, or configuration, verify the item does not already exist:
      - Use `bash` to check file/directory presence: `[ -e "<path>" ] && echo EXISTS || echo MISSING`
-     - Use `bash` to check for a symbol or config key: `grep -r "<symbol>" . --include="*.py" --include="*.toml" --include="*.md" --exclude-dir=.venv --exclude-dir=.git -l`
+     - Use `bash` to check for a symbol or config key: `grep -r "<symbol>" . --include="*.py" --include="*.toml" --include="*.md" --include="*.yml" --include="*.yaml" --exclude-dir=.venv --exclude-dir=.git --exclude-dir="__pycache__" -l 2>/dev/null`
      - If the target is already present, **skip issue creation** and note the skip in your summary discussion with a ✅ marker (e.g., `Skipped: "Add benchmark suite" — tests/test_benchmarks.py already exists ✅`).
 
    - Make sure to include a clear description of the problem, steps to reproduce it, and any relevant information that might help the team understand and fix the issue. If you create a pull request, make sure to include a clear description of the changes you made and why they are necessary.
