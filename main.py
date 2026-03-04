@@ -34,7 +34,7 @@ import threading
 import time
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Callable, Sequence
+from typing import Any, Callable, Sequence, cast
 from urllib.parse import urlparse
 
 import httpx
@@ -742,7 +742,7 @@ def load_config(config_path: str | None = None) -> dict:
             sys.exit(1)
 
         log.info("Loaded configuration from %s", p)
-        return loaded
+        return cast(dict, loaded)
 
     if config_path:
         # Explicit path was given but not found — this is always an error
@@ -805,7 +805,7 @@ _api_stats = {"control_d_api_calls": 0, "blocklist_fetches": 0}
 # --------------------------------------------------------------------------- #
 # Track rate limit information from API responses to enable proactive throttling
 # and provide visibility into API quota usage
-_rate_limit_info = {
+_rate_limit_info: dict[str, int | None] = {
     "limit": None,  # Max requests allowed per window (from X-RateLimit-Limit)
     "remaining": None,  # Requests remaining in current window (from X-RateLimit-Remaining)
     "reset": None,  # Timestamp when limit resets (from X-RateLimit-Reset)
@@ -1355,7 +1355,7 @@ def retry_with_jitter(
     Returns:
         Delay in seconds with full jitter applied
     """
-    exponential_delay = min(base_delay * (2**attempt), max_delay)
+    exponential_delay = min(base_delay * (2.0**attempt), max_delay)
     return exponential_delay * random.random()
 
 
@@ -1363,7 +1363,7 @@ def _retry_request(
     request_func: Callable[[], httpx.Response],
     max_retries: int = MAX_RETRIES,
     delay: float = RETRY_DELAY,
-) -> httpx.Response | None:
+) -> httpx.Response:
     """
     Retry request with exponential backoff and full jitter.
 
@@ -1453,6 +1453,7 @@ def _retry_request(
             )
             time.sleep(wait_time)
 
+    raise RuntimeError("_retry_request called with max_retries=0")
 
 def _gh_get(url: str) -> dict:
     """
@@ -1489,7 +1490,7 @@ def _gh_get(url: str) -> dict:
             _cache_stats["hits"] += 1
             if log.isEnabledFor(logging.DEBUG):
                 log.debug(f"Disk cache hit (within TTL) for {sanitize_for_log(url)}")
-            return data
+            return cast(dict, data)
         # Beyond TTL: send conditional request using cached ETag/Last-Modified
         # Server returns 304 if content hasn't changed
         # NOTE: Cached values may be None if the server didn't send these headers.
@@ -1520,7 +1521,7 @@ def _gh_get(url: str) -> dict:
 
                     # Update timestamp in disk cache to track last validation
                     cached_entry["last_validated"] = time.time()
-                    return data
+                    return cast(dict, data)
                 else:
                     # Shouldn't happen, but handle gracefully
                     log.warning(
@@ -1587,7 +1588,7 @@ def _gh_get(url: str) -> dict:
                         }
 
                         _cache_stats["misses"] += 1
-                        return data
+                        return cast(dict, data)
 
             r.raise_for_status()
 
@@ -1850,6 +1851,7 @@ def verify_access_and_get_folders(
         )
         time.sleep(wait_time)
 
+    return None
 
 def get_all_existing_rules(
     client: httpx.Client,
@@ -2161,7 +2163,7 @@ def push_rules(
     seen = existing_rules.copy()
     seen_add = seen.add
 
-    filtered_hostnames = []
+    filtered_hostnames: list[str] = []
     skipped_unsafe = 0
 
     # Optimization 2: Inline method references for hot loop performance
@@ -2276,7 +2278,7 @@ def push_rules(
     else:
         # Use provided executor or create a local one (fallback)
         if batch_executor:
-            executor_ctx = contextlib.nullcontext(batch_executor)
+            executor_ctx: contextlib.AbstractContextManager[concurrent.futures.Executor] = contextlib.nullcontext(batch_executor)
         else:
             executor_ctx = concurrent.futures.ThreadPoolExecutor(max_workers=3)
 
@@ -2439,7 +2441,7 @@ def sync_profile(
             return False
 
         # Build plan entries
-        plan_entry = {"profile": profile_id, "folders": []}
+        plan_entry: dict[str, Any] = {"profile": profile_id, "folders": []}
         for folder_data in folder_data_list:
             grp = folder_data["group"]
             name = grp["group"].strip()
@@ -2932,7 +2934,7 @@ def main() -> None:
 
     plan: list[dict[str, Any]] = []
     success_count = 0
-    sync_results = []
+    sync_results: list[dict[str, Any]] = []
 
     profile_id = "unknown"
     start_time = time.time()
