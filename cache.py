@@ -21,6 +21,15 @@ _cache_stats : dict[str, int]
 CACHE_TTL_SECONDS : int
     How long (in seconds) a cached entry is considered fresh before a
     conditional HTTP request is sent to validate it (default: 24 h).
+
+_sanitize_fn : Callable[[Any], str]
+    Sanitization hook for log messages.  Defaults to ``repr`` (escapes control
+    characters) so that ``cache.py`` is usable in isolation without importing
+    ``main.py``.  ``main.py`` injects its token-aware ``sanitize_for_log``
+    after startup — matching the same injection pattern used by ``api_client``::
+
+        import cache
+        cache._sanitize_fn = sanitize_for_log
 """
 
 from __future__ import annotations
@@ -29,6 +38,7 @@ import json
 import logging
 import os
 import platform
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -53,29 +63,12 @@ _cache_stats: dict[str, int] = {
     "errors": 0,
 }
 
-
 # --------------------------------------------------------------------------- #
-# Internal helpers
+# Sanitisation hook — see module docstring for the injection contract.
+# Defaults to repr() so cache.py is usable in isolation (e.g., tests).
+# main.py injects sanitize_for_log here after startup.
 # --------------------------------------------------------------------------- #
-
-
-def _sanitize_for_log(text: Any) -> str:
-    """Sanitize *text* for safe inclusion in log messages.
-
-    Uses ``repr()`` to escape control characters, preventing log injection
-    and terminal hijacking.  Strips the surrounding quote pair that ``repr()``
-    adds for plain strings so that log lines read naturally.
-
-    This is a lightweight version of the full ``sanitize_for_log`` in
-    ``main.py``.  It omits TOKEN redaction because cache I/O exceptions
-    (JSONDecodeError, PermissionError, etc.) do not contain API credentials.
-    """
-    s = repr(str(text))
-    # repr wraps strings in matching single or double quotes – strip them.
-    if len(s) >= 2 and s[0] == s[-1] and s[0] in ("'", '"'):
-        return s[1:-1]
-    return s
-
+_sanitize_fn: Callable[[Any], str] = repr
 
 # --------------------------------------------------------------------------- #
 # Public API
@@ -176,16 +169,16 @@ def load_disk_cache() -> None:
         _disk_cache.clear()
         _disk_cache.update(sanitized_cache)
     except json.JSONDecodeError as e:
-        log.warning(f"Corrupted cache file (invalid JSON), starting fresh: {_sanitize_for_log(e)}")
+        log.warning(f"Corrupted cache file (invalid JSON), starting fresh: {_sanitize_fn(e)}")
         _cache_stats["errors"] += 1
     except PermissionError as e:
         log.warning(
-            f"Cannot read cache file (permission denied), starting fresh: {_sanitize_for_log(e)}"
+            f"Cannot read cache file (permission denied), starting fresh: {_sanitize_fn(e)}"
         )
         _cache_stats["errors"] += 1
     except Exception as e:
         # Catch-all for unexpected errors (disk full, etc.)
-        log.warning(f"Failed to load cache, starting fresh: {_sanitize_for_log(e)}")
+        log.warning(f"Failed to load cache, starting fresh: {_sanitize_fn(e)}")
         _cache_stats["errors"] += 1
 
 
@@ -225,5 +218,5 @@ def save_disk_cache() -> None:
 
     except Exception as e:
         # Cache save failures are non-fatal; next run simply starts without cache.
-        log.warning(f"Failed to save cache (non-fatal): {_sanitize_for_log(e)}")
+        log.warning(f"Failed to save cache (non-fatal): {_sanitize_fn(e)}")
         _cache_stats["errors"] += 1

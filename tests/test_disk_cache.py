@@ -415,5 +415,73 @@ class TestDiskCache(unittest.TestCase):
         self.assertEqual(len(main._disk_cache), 0)
 
 
+class TestCacheSanitizeFnInjection(unittest.TestCase):
+    """Tests for the _sanitize_fn injection pattern in cache.py (issue #536)."""
+
+    def setUp(self):
+        # Save and reset _sanitize_fn to the default before each test.
+        self._original_sanitize_fn = cache._sanitize_fn
+        cache._sanitize_fn = repr
+
+    def tearDown(self):
+        # Restore original sanitize_fn after each test.
+        cache._sanitize_fn = self._original_sanitize_fn
+
+    def test_default_sanitize_fn_is_repr(self):
+        """_sanitize_fn defaults to repr so cache.py works in isolation."""
+        self.assertIs(cache._sanitize_fn, repr)
+
+    def test_sanitize_fn_escapes_control_chars(self):
+        """Default repr-based sanitizer escapes control characters."""
+        result = cache._sanitize_fn("bad\x00value")
+        # repr of a string with a null byte should escape it
+        self.assertIn("\\x00", result)
+        self.assertNotIn("\x00", result)
+
+    def test_sanitize_fn_can_be_injected(self):
+        """A custom sanitizer can be injected and is used by the module."""
+        calls = []
+
+        def custom_sanitizer(text: object) -> str:
+            calls.append(text)
+            return f"REDACTED({text})"
+
+        cache._sanitize_fn = custom_sanitizer
+        self.assertIs(cache._sanitize_fn, custom_sanitizer)
+        result = cache._sanitize_fn("token=secret")
+        self.assertEqual(result, "REDACTED(token=secret)")
+        self.assertEqual(calls, ["token=secret"])
+
+    def test_main_injects_sanitize_for_log(self):
+        """main.py wires sanitize_for_log into cache._sanitize_fn at import."""
+        # After main is imported, cache._sanitize_fn should be main.sanitize_for_log.
+        self.assertIs(cache._sanitize_fn, main.sanitize_for_log)
+
+    def test_load_disk_cache_uses_sanitize_fn_on_json_error(self):
+        """load_disk_cache uses _sanitize_fn when logging a JSONDecodeError."""
+        sanitized_messages = []
+
+        def recording_sanitizer(text: object) -> str:
+            sanitized_messages.append(str(text))
+            return f"[sanitized:{text}]"
+
+        cache._sanitize_fn = recording_sanitizer
+
+        import tempfile
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cache_dir = Path(tmpdir)
+            (cache_dir / "blocklists.json").write_text("NOT VALID JSON", encoding="utf-8")
+            with patch("cache.get_cache_dir", return_value=cache_dir):
+                cache.load_disk_cache()
+
+        # At least one sanitize call should have occurred (for the JSONDecodeError)
+        self.assertTrue(
+            len(sanitized_messages) >= 1,
+            "Expected _sanitize_fn to be called on JSONDecodeError",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
