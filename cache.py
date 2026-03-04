@@ -34,6 +34,15 @@ from typing import Any
 
 log = logging.getLogger("control-d-sync")
 
+__all__ = [
+    "CACHE_TTL_SECONDS",
+    "_disk_cache",       # live reference kept by main.py
+    "_cache_stats",      # accessed by main.py for reporting
+    "get_cache_dir",
+    "load_disk_cache",
+    "save_disk_cache",
+]
+
 # --------------------------------------------------------------------------- #
 # Module-level cache state
 # --------------------------------------------------------------------------- #
