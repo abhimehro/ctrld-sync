@@ -49,6 +49,25 @@ from cache import (
 )
 from dotenv import load_dotenv
 
+import api_client
+from api_client import (
+    MAX_RETRIES,
+    RETRY_DELAY,
+    MAX_RETRY_DELAY,
+    _TIMEOUT_HINT,
+    _api_stats,
+    _api_stats_lock,
+    _rate_limit_info,
+    _rate_limit_lock,
+    _parse_rate_limit_headers,
+    retry_with_jitter,
+    _retry_request,
+    _api_get,
+    _api_delete,
+    _api_post,
+    _api_post_form,
+)
+
 # --------------------------------------------------------------------------- #
 # 0. Bootstrap – load secrets and configure logging
 # --------------------------------------------------------------------------- #
@@ -344,6 +363,11 @@ def sanitize_for_log(text: Any) -> str:
     return safe
 
 
+# Wire the token-aware sanitizer into api_client so that _retry_request
+# redacts tokens from log messages without creating a circular import.
+api_client._sanitize_fn = sanitize_for_log
+
+
 def print_plan_details(plan_entry: dict[str, Any]) -> None:
     """Pretty-print the folder-level breakdown during a dry-run."""
     profile = sanitize_for_log(plan_entry.get("profile", "unknown"))
@@ -609,9 +633,7 @@ DEFAULT_FOLDER_URLS = [
 
 BATCH_SIZE = 500
 BATCH_KEYS = [f"hostnames[{i}]" for i in range(BATCH_SIZE)]
-MAX_RETRIES = 10
-RETRY_DELAY = 1
-MAX_RETRY_DELAY = 60.0  # Maximum retry delay in seconds (caps exponential growth)
+# MAX_RETRIES, RETRY_DELAY, MAX_RETRY_DELAY imported from api_client above
 FOLDER_CREATION_DELAY = 5  # <--- CHANGED: Increased from 2 to 5 for patience
 MAX_RESPONSE_SIZE = 10 * 1024 * 1024  # 10MB limit
 
@@ -624,8 +646,7 @@ _STATUS_HINTS: dict[int, str] = {
     500: "Control D API error — try again later or check status.controld.com.",
 }
 
-# Actionable guidance for network timeout errors.
-_TIMEOUT_HINT = "Connection timed out. Check your network and the Control D API status."
+# _TIMEOUT_HINT imported from api_client above
 
 # Default config search paths (highest to lowest precedence after CLI flag)
 _DEFAULT_CONFIG_PATHS = [
@@ -805,99 +826,14 @@ _cache_lock = threading.RLock()
 # 3a. Persistent Disk Cache Support  (implementation lives in cache.py)
 # --------------------------------------------------------------------------- #
 
-_api_stats = {"control_d_api_calls": 0, "blocklist_fetches": 0}
+# _api_stats imported from api_client above
 
 # --------------------------------------------------------------------------- #
 # 3b. Rate Limit Tracking
 # --------------------------------------------------------------------------- #
-# Track rate limit information from API responses to enable proactive throttling
-# and provide visibility into API quota usage
-_rate_limit_info: dict[str, int | None] = {
-    "limit": None,  # Max requests allowed per window (from X-RateLimit-Limit)
-    "remaining": None,  # Requests remaining in current window (from X-RateLimit-Remaining)
-    "reset": None,  # Timestamp when limit resets (from X-RateLimit-Reset)
-}
-_rate_limit_lock = threading.Lock()  # Protect _rate_limit_info updates
+# _rate_limit_info, _rate_limit_lock imported from api_client above
 
-
-
-def _parse_rate_limit_headers(response: httpx.Response) -> None:
-    """
-    Parse rate limit headers from API response and update global tracking.
-
-    Supports standard rate limit headers:
-    - X-RateLimit-Limit: Maximum requests per window
-    - X-RateLimit-Remaining: Requests remaining in current window
-    - X-RateLimit-Reset: Unix timestamp when limit resets
-    - Retry-After: Seconds to wait (priority on 429 responses)
-
-    This enables:
-    1. Proactive throttling when approaching limits
-    2. Visibility into API quota usage
-    3. Smarter retry strategies based on actual limit state
-
-    THREAD-SAFE: Uses _rate_limit_lock to protect shared state
-    GRACEFUL: Invalid/missing headers are ignored (no crashes)
-    """
-    headers = response.headers
-
-    # Parse standard rate limit headers
-    # These may not exist on all responses, so we check individually
-    try:
-        with _rate_limit_lock:
-            # X-RateLimit-Limit: Total requests allowed per window
-            if "X-RateLimit-Limit" in headers:
-                try:
-                    _rate_limit_info["limit"] = int(headers["X-RateLimit-Limit"])
-                except (ValueError, TypeError):
-                    pass  # Invalid value, ignore
-
-            # X-RateLimit-Remaining: Requests left in current window
-            if "X-RateLimit-Remaining" in headers:
-                try:
-                    _rate_limit_info["remaining"] = int(
-                        headers["X-RateLimit-Remaining"]
-                    )
-                except (ValueError, TypeError):
-                    pass
-
-            # X-RateLimit-Reset: Unix timestamp when window resets
-            if "X-RateLimit-Reset" in headers:
-                try:
-                    _rate_limit_info["reset"] = int(headers["X-RateLimit-Reset"])
-                except (ValueError, TypeError):
-                    pass
-
-            # Log warnings when approaching rate limits
-            # Only log if we have both limit and remaining values
-            if (
-                _rate_limit_info["limit"] is not None
-                and _rate_limit_info["remaining"] is not None
-            ):
-                limit = _rate_limit_info["limit"]
-                remaining = _rate_limit_info["remaining"]
-
-                # Warn at 20% remaining capacity
-                if limit > 0 and remaining / limit < 0.2:
-                    if _rate_limit_info["reset"]:
-                        reset_time = time.strftime(
-                            "%H:%M:%S", time.localtime(_rate_limit_info["reset"])
-                        )
-                        log.warning(
-                            f"Approaching rate limit: {remaining}/{limit} requests remaining "
-                            f"(resets at {reset_time})"
-                        )
-                    else:
-                        log.warning(
-                            f"Approaching rate limit: {remaining}/{limit} requests remaining"
-                        )
-    except Exception as e:
-        # Rate limit parsing failures should never crash the sync
-        # Just log and continue
-        if log.isEnabledFor(logging.DEBUG):
-            log.debug(f"Failed to parse rate limit headers: {e}")
-
-
+# _parse_rate_limit_headers imported from api_client above
 @lru_cache(maxsize=128)
 def validate_hostname(hostname: str) -> bool:
     """
@@ -1168,158 +1104,8 @@ def validate_folder_data(data: dict[str, Any], url: str) -> bool:
     return True
 
 
-# Lock to protect updates to _api_stats in multi-threaded contexts.
-# Without this, concurrent increments can lose updates because `+=` is not atomic.
-_api_stats_lock = threading.Lock()
-
-
-def _api_get(client: httpx.Client, url: str) -> httpx.Response:
-    with _api_stats_lock:
-        _api_stats["control_d_api_calls"] += 1
-    return _retry_request(lambda: client.get(url))
-
-
-def _api_delete(client: httpx.Client, url: str) -> httpx.Response:
-    with _api_stats_lock:
-        _api_stats["control_d_api_calls"] += 1
-    return _retry_request(lambda: client.delete(url))
-
-
-def _api_post(client: httpx.Client, url: str, data: dict) -> httpx.Response:
-    with _api_stats_lock:
-        _api_stats["control_d_api_calls"] += 1
-    return _retry_request(lambda: client.post(url, data=data))
-
-
-def _api_post_form(client: httpx.Client, url: str, data: dict) -> httpx.Response:
-    with _api_stats_lock:
-        _api_stats["control_d_api_calls"] += 1
-    return _retry_request(
-        lambda: client.post(
-            url,
-            data=data,
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
-        )
-    )
-
-
-def retry_with_jitter(
-    attempt: int, base_delay: float = 1.0, max_delay: float = MAX_RETRY_DELAY
-) -> float:
-    """Calculate retry delay with exponential backoff and full jitter.
-
-    Full jitter draws uniformly from [0, min(base_delay * 2^attempt, max_delay))
-    to spread retries evenly across the full window and prevent thundering herd.
-
-    Args:
-        attempt: Retry attempt number (0-indexed)
-        base_delay: Base delay in seconds (default: 1.0)
-        max_delay: Maximum delay cap in seconds (default: MAX_RETRY_DELAY)
-
-    Returns:
-        Delay in seconds with full jitter applied
-    """
-    exponential_delay = min(base_delay * (2.0**attempt), max_delay)
-    return exponential_delay * random.random()
-
-
-def _retry_request(
-    request_func: Callable[[], httpx.Response],
-    max_retries: int = MAX_RETRIES,
-    delay: float = RETRY_DELAY,
-) -> httpx.Response:
-    """
-    Retry request with exponential backoff and full jitter.
-
-    RETRY STRATEGY:
-    - Uses retry_with_jitter() for full jitter: delay drawn from [0, min(delay*2^attempt, MAX_RETRY_DELAY)]
-    - Full jitter prevents thundering herd when multiple clients fail simultaneously
-
-    RATE LIMIT HANDLING:
-    - Parses X-RateLimit-* headers from all API responses
-    - On 429 (Too Many Requests): uses Retry-After header if present
-    - Logs warnings when approaching rate limits (< 20% remaining)
-
-    SECURITY:
-    - Does NOT retry 4xx client errors (except 429)
-    - Sanitizes error messages in logs
-    """
-    for attempt in range(max_retries):
-        try:
-            response = request_func()
-
-            # Parse rate limit headers from successful responses
-            # This gives us visibility into quota usage even when requests succeed
-            _parse_rate_limit_headers(response)
-
-            response.raise_for_status()
-            return response
-        except (httpx.HTTPError, httpx.TimeoutException) as e:
-            # Security Enhancement: Do not retry client errors (4xx) except 429 (Too Many Requests).
-            # Retrying 4xx errors is inefficient and can trigger security alerts or rate limits.
-            if isinstance(e, httpx.HTTPStatusError):
-                code = e.response.status_code
-
-                # Parse rate limit headers even from error responses
-                # This helps us understand why we hit limits
-                _parse_rate_limit_headers(e.response)
-
-                # Handle 429 (Too Many Requests) with Retry-After
-                if code == 429:
-                    # Check for Retry-After header (in seconds)
-                    retry_after = e.response.headers.get("Retry-After")
-                    if retry_after:
-                        try:
-                            # Retry-After can be seconds or HTTP date
-                            # Try parsing as int (seconds) first
-                            wait_seconds = int(retry_after)
-                            log.warning(
-                                f"Rate limited (429). Server requests {wait_seconds}s wait "
-                                f"(attempt {attempt + 1}/{max_retries})"
-                            )
-                            if attempt < max_retries - 1:
-                                time.sleep(wait_seconds)
-                                continue  # Retry after waiting
-                            else:
-                                raise  # Max retries exceeded
-                        except ValueError:
-                            # Retry-After might be HTTP date format, ignore for now
-                            pass
-
-                # Don't retry other 4xx errors (auth failures, bad requests, etc.)
-                if 400 <= code < 500 and code != 429:
-                    if (
-                        hasattr(e, "response")
-                        and e.response is not None
-                        and log.isEnabledFor(logging.DEBUG)
-                    ):
-                        log.debug(
-                            f"Response content: {sanitize_for_log(e.response.text)}"
-                        )
-                    raise
-
-            if attempt == max_retries - 1:
-                if (
-                    hasattr(e, "response")
-                    and e.response is not None
-                    and log.isEnabledFor(logging.DEBUG)
-                ):
-                    log.debug(f"Response content: {sanitize_for_log(e.response.text)}")
-                raise
-
-            # Full jitter exponential backoff: delay drawn from [0, min(delay * 2^attempt, MAX_RETRY_DELAY)]
-            # Spreads retries evenly across the full window to prevent thundering herd
-            wait_time = retry_with_jitter(attempt, base_delay=delay)
-
-            hint = f" | hint: {_TIMEOUT_HINT}" if isinstance(e, httpx.TimeoutException) else ""
-            log.warning(
-                f"Request failed (attempt {attempt + 1}/{max_retries}): "
-                f"{sanitize_for_log(e)}{hint}. Retrying in {wait_time:.2f}s..."
-            )
-            time.sleep(wait_time)
-
-    raise RuntimeError("_retry_request called with max_retries=0")
-
+# _api_stats_lock, _api_get, _api_delete, _api_post, _api_post_form,
+# retry_with_jitter, _retry_request imported from api_client above
 def _gh_get(url: str) -> dict:
     """
     Fetch blocklist data from URL with HTTP cache header support.

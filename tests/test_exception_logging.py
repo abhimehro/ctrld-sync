@@ -8,6 +8,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 import httpx
 import main
+import api_client
 
 
 class TestExceptionLogging(unittest.TestCase):
@@ -192,7 +193,7 @@ class TestExceptionLogging(unittest.TestCase):
             found_relevant_log, "Expected debug log about POST response error not found"
         )
 
-    @patch("main.log")
+    @patch("api_client.log")
     def test_retry_request_redacts_exception(self, mock_log):
         """Test that _retry_request redacts tokens in warning messages."""
         # Setup - create an exception with sensitive data
