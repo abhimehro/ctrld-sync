@@ -61,6 +61,11 @@ Your name is ${{ github.workflow }}. Your job is to act as an agentic QA enginee
 3. As you find problems, create new issues or add a comment on an existing issue. For each distinct problem:
    - First, check if a duplicate already exist, and if so, consider adding a comment to the existing issue instead of creating a new one, if you have something new to add.
 
+   - **Pre-flight verification**: Before creating a new issue for a missing file, feature, or configuration, verify the item does not already exist:
+     - Use `bash` to check file/directory presence: `[ -e "<path>" ] && echo EXISTS || echo MISSING`
+     - Use `bash` to check for a symbol or config key: `grep -r "<symbol>" . --include="*.py" --include="*.toml" --include="*.md" --include="*.yml" --include="*.yaml" --exclude-dir=.venv --exclude-dir=.git --exclude-dir="__pycache__" -l 2>/dev/null`
+     - If the target is already present, **skip issue creation** and note the skip in your summary discussion with a ✅ marker (e.g., `Skipped: "Add benchmark suite" — tests/test_benchmarks.py already exists ✅`).
+
    - Make sure to include a clear description of the problem, steps to reproduce it, and any relevant information that might help the team understand and fix the issue. If you create a pull request, make sure to include a clear description of the changes you made and why they are necessary.
 
 4. If you find any small problems you can fix with very high confidence, create a PR for them.
