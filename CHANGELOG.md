@@ -41,6 +41,8 @@
 
 **Closed issues:**
 
+- \[Code Quality\] Add actionable warning logs for 4xx auth/client errors in api\_client.py retry paths [\#547](https://github.com/abhimehro/ctrld-sync/issues/547)
+- \[Code Quality\] Add ruff `PERF` \(perflint\) rules to catch performance anti-patterns [\#546](https://github.com/abhimehro/ctrld-sync/issues/546)
 - \[Code Quality\] Align `cache.py` sanitization with `api_client.py` injection pattern for consistent token redaction [\#536](https://github.com/abhimehro/ctrld-sync/issues/536)
 - \[Code Quality\] Add `__all__` exports to `api_client.py` and `cache.py` to define explicit public APIs [\#535](https://github.com/abhimehro/ctrld-sync/issues/535)
 - \[Code Quality\] Configure ruff lint rules in pyproject.toml to catch dead code and return-path bugs [\#528](https://github.com/abhimehro/ctrld-sync/issues/528)
@@ -175,6 +177,8 @@
 
 **Merged pull requests:**
 
+- Add PERF \(perflint\) ruff rules and fix performance anti-patterns [\#550](https://github.com/abhimehro/ctrld-sync/pull/550) ([Copilot](https://github.com/apps/copilot-swe-agent))
+- Add actionable warning logs for 4xx auth/client errors in api\_client retry paths [\#549](https://github.com/abhimehro/ctrld-sync/pull/549) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - ⚡ Bolt: Optimize `push_rules` deduplication logic [\#544](https://github.com/abhimehro/ctrld-sync/pull/544) ([abhimehro](https://github.com/abhimehro))
 - Add `__all__` to `api_client.py` and `cache.py` [\#539](https://github.com/abhimehro/ctrld-sync/pull/539) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - Align `cache.py` sanitization with `api_client.py` injection pattern for consistent token redaction [\#538](https://github.com/abhimehro/ctrld-sync/pull/538) ([Copilot](https://github.com/apps/copilot-swe-agent))
