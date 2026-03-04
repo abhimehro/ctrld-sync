@@ -39,6 +39,7 @@ from urllib.parse import urlparse
 
 import httpx
 import yaml
+import cache
 from cache import (
     CACHE_TTL_SECONDS,
     _cache_stats,
@@ -361,6 +362,9 @@ def sanitize_for_log(text: Any) -> str:
 # Wire the token-aware sanitizer into api_client so that _retry_request
 # redacts tokens from log messages without creating a circular import.
 api_client._sanitize_fn = sanitize_for_log
+# Wire the same sanitizer into cache so that load/save error messages also
+# get full token redaction, consistent with the api_client pattern.
+cache._sanitize_fn = sanitize_for_log
 
 
 def print_plan_details(plan_entry: dict[str, Any]) -> None:

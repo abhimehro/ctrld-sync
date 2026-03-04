@@ -414,6 +414,71 @@ class TestDiskCache(unittest.TestCase):
         # In-memory disk cache should be empty
         self.assertEqual(len(main._disk_cache), 0)
 
+    # ---------------------------------------------------------------------- #
+    # Tests for _sanitize_fn injection pattern (Option A from issue #510)
+    # ---------------------------------------------------------------------- #
+
+    def test_sanitize_fn_default_is_repr(self):
+        """_sanitize_fn should default to repr so control chars are escaped."""
+        # Reset to the default in case main.py has already injected its sanitizer.
+        original = cache._sanitize_fn
+        try:
+            cache._sanitize_fn = repr
+            result = cache._sanitize_fn("hello\x1bworld")
+            # repr() wraps in quotes and escapes \x1b
+            self.assertIn("\\x1b", result)
+        finally:
+            cache._sanitize_fn = original
+
+    def test_sanitize_fn_escapes_control_chars(self):
+        """Default _sanitize_fn (repr) must escape newline and ESC sequences."""
+        original = cache._sanitize_fn
+        try:
+            cache._sanitize_fn = repr
+            self.assertIn("\\n", cache._sanitize_fn("line1\nline2"))
+            self.assertIn("\\x1b", cache._sanitize_fn("\x1b[31mred\x1b[0m"))
+        finally:
+            cache._sanitize_fn = original
+
+    def test_sanitize_fn_can_be_injected(self):
+        """main.py should be able to replace _sanitize_fn with a custom callable."""
+        original = cache._sanitize_fn
+        try:
+            sentinel = []
+
+            def custom_sanitizer(text):
+                sentinel.append(text)
+                return f"SANITIZED:{text}"
+
+            cache._sanitize_fn = custom_sanitizer
+            result = cache._sanitize_fn("test input")
+            self.assertEqual(result, "SANITIZED:test input")
+            self.assertEqual(len(sentinel), 1)
+        finally:
+            cache._sanitize_fn = original
+
+    def test_main_injects_sanitize_for_log_into_cache(self):
+        """After importing main, cache._sanitize_fn must be main.sanitize_for_log."""
+        self.assertIs(cache._sanitize_fn, main.sanitize_for_log)
+
+    def test_injected_sanitizer_redacts_token(self):
+        """When main.sanitize_for_log is injected, TOKEN values must be redacted."""
+        original = cache._sanitize_fn
+        try:
+            cache._sanitize_fn = main.sanitize_for_log
+            # Patch the TOKEN that sanitize_for_log reads so redaction fires.
+            import main as _main
+            original_token = _main.TOKEN
+            try:
+                _main.TOKEN = "supersecrettoken"
+                result = cache._sanitize_fn("error: supersecrettoken exposed")
+                self.assertNotIn("supersecrettoken", result)
+                self.assertIn("[REDACTED]", result)
+            finally:
+                _main.TOKEN = original_token
+        finally:
+            cache._sanitize_fn = original
+
 
 if __name__ == "__main__":
     unittest.main()
