@@ -96,14 +96,14 @@ def get_cache_dir() -> Path:
     system = platform.system()
     if system == "Darwin":  # macOS
         return Path.home() / "Library" / "Caches" / "ctrld-sync"
-    elif system == "Windows":
+    if system == "Windows":
         appdata = os.getenv("LOCALAPPDATA", str(Path.home() / "AppData" / "Local"))
         return Path(appdata) / "ctrld-sync" / "cache"
-    else:  # Linux, Unix, and others – follow XDG Base Directory spec
-        xdg_cache = os.getenv("XDG_CACHE_HOME")
-        if xdg_cache:
-            return Path(xdg_cache) / "ctrld-sync"
-        return Path.home() / ".cache" / "ctrld-sync"
+    # Linux, Unix, and others – follow XDG Base Directory spec
+    xdg_cache = os.getenv("XDG_CACHE_HOME")
+    if xdg_cache:
+        return Path(xdg_cache) / "ctrld-sync"
+    return Path.home() / ".cache" / "ctrld-sync"
 
 
 def load_disk_cache() -> None:
@@ -123,7 +123,7 @@ def load_disk_cache() -> None:
             log.debug("No existing cache file found, starting fresh")
             return
 
-        with open(cache_file, "r", encoding="utf-8") as f:
+        with open(cache_file, encoding="utf-8") as f:
             data = json.load(f)
 
         # Validate cache structure at the top level.

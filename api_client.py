@@ -25,9 +25,11 @@ import logging
 import random
 import threading
 import time
-from typing import Any, Callable
+from typing import Any
+from collections.abc import Callable
 
 import httpx
+import contextlib
 
 log = logging.getLogger(__name__)
 
@@ -102,19 +104,15 @@ def _parse_rate_limit_headers(response: httpx.Response) -> None:
 
             # X-RateLimit-Remaining: Requests left in current window
             if "X-RateLimit-Remaining" in headers:
-                try:
+                with contextlib.suppress(ValueError, TypeError):
                     _rate_limit_info["remaining"] = int(
                         headers["X-RateLimit-Remaining"]
                     )
-                except (ValueError, TypeError):
-                    pass
 
             # X-RateLimit-Reset: Unix timestamp when window resets
             if "X-RateLimit-Reset" in headers:
-                try:
+                with contextlib.suppress(ValueError, TypeError):
                     _rate_limit_info["reset"] = int(headers["X-RateLimit-Reset"])
-                except (ValueError, TypeError):
-                    pass
 
             # Log warnings when approaching rate limits
             # Only log if we have both limit and remaining values
@@ -227,8 +225,7 @@ def _retry_request(
                             if attempt < max_retries - 1:
                                 time.sleep(wait_seconds)
                                 continue  # Retry after waiting
-                            else:
-                                raise  # Max retries exceeded
+                            raise  # Max retries exceeded
                         except ValueError:
                             # Retry-After might be HTTP date format, ignore for now
                             pass

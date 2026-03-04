@@ -9,10 +9,9 @@ Usage: python3 benchmark_retry_jitter.py
 """
 
 import random
-from typing import List
 
 
-def simulate_retries_without_jitter(max_retries: int, base_delay: float) -> List[float]:
+def simulate_retries_without_jitter(max_retries: int, base_delay: float) -> list[float]:
     """Simulate retry delays WITHOUT jitter (old behavior)."""
     delays = []
     for attempt in range(max_retries - 1):
@@ -21,7 +20,7 @@ def simulate_retries_without_jitter(max_retries: int, base_delay: float) -> List
     return delays
 
 
-def simulate_retries_with_jitter(max_retries: int, base_delay: float) -> List[float]:
+def simulate_retries_with_jitter(max_retries: int, base_delay: float) -> list[float]:
     """Simulate retry delays WITH jitter (new behavior)."""
     delays = []
     for attempt in range(max_retries - 1):

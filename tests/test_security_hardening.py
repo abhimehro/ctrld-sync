@@ -15,10 +15,9 @@ def create_mock_error(status_code, text, request_url="https://example.com"):
     response.request.url = request_url
 
     # Use HTTPStatusError which accepts request and response
-    error = httpx.HTTPStatusError(
+    return httpx.HTTPStatusError(
         f"HTTP Error {status_code}", request=response.request, response=response
     )
-    return error
 
 
 def test_retry_request_sanitizes_token_in_debug_logs(caplog):

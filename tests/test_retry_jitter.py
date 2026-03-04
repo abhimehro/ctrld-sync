@@ -15,6 +15,7 @@ import httpx
 
 # Import functions under test
 import main
+import contextlib
 
 
 class TestRetryJitter:
@@ -30,19 +31,15 @@ class TestRetryJitter:
 
         with patch("time.sleep") as mock_sleep:
             # First run
-            try:
+            with contextlib.suppress(httpx.TimeoutException):
                 main._retry_request(request_func, max_retries=3, delay=1)
-            except httpx.TimeoutException:
-                pass
             wait_times_run1 = [call.args[0] for call in mock_sleep.call_args_list]
 
         with patch("time.sleep") as mock_sleep:
             # Second run with fresh mock
             request_func.side_effect = httpx.TimeoutException("Connection timeout")
-            try:
+            with contextlib.suppress(httpx.TimeoutException):
                 main._retry_request(request_func, max_retries=3, delay=1)
-            except httpx.TimeoutException:
-                pass
             wait_times_run2 = [call.args[0] for call in mock_sleep.call_args_list]
 
         # Both runs should have same number of retries (2 retries for 3 max_retries)
@@ -60,10 +57,8 @@ class TestRetryJitter:
         request_func = Mock(side_effect=httpx.TimeoutException("Connection timeout"))
 
         with patch("time.sleep") as mock_sleep:
-            try:
+            with contextlib.suppress(httpx.TimeoutException):
                 main._retry_request(request_func, max_retries=5, delay=1)
-            except httpx.TimeoutException:
-                pass
 
             wait_times = [call.args[0] for call in mock_sleep.call_args_list]
 
@@ -92,10 +87,8 @@ class TestRetryJitter:
             patch("time.sleep") as mock_sleep,
             patch("random.random", return_value=0.5),
         ):
-            try:
+            with contextlib.suppress(httpx.TimeoutException):
                 main._retry_request(request_func, max_retries=5, delay=1)
-            except httpx.TimeoutException:
-                pass
 
             wait_times = [call.args[0] for call in mock_sleep.call_args_list]
 
