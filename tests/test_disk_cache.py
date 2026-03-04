@@ -415,20 +415,35 @@ class TestDiskCache(unittest.TestCase):
         self.assertEqual(len(main._disk_cache), 0)
 
     # ---------------------------------------------------------------------- #
-    # Tests for _sanitize_fn injection pattern (Option A from issue #510)
+    # Tests for _sanitize_fn injection pattern (Option A from issue #536)
     # ---------------------------------------------------------------------- #
 
     def test_sanitize_fn_default_is_repr(self):
-        """_sanitize_fn should default to repr so control chars are escaped."""
-        # Reset to the default in case main.py has already injected its sanitizer.
-        original = cache._sanitize_fn
+        """_sanitize_fn must default to repr when cache is imported in isolation."""
+        import importlib
+        import sys
+
+        # Remove both cache and main from sys.modules so we get a clean import
+        # of cache without main.py's injection.
+        saved_cache = sys.modules.pop("cache", None)
+        saved_main = sys.modules.pop("main", None)
         try:
-            cache._sanitize_fn = repr
-            result = cache._sanitize_fn("hello\x1bworld")
-            # repr() wraps in quotes and escapes \x1b
+            fresh_cache = importlib.import_module("cache")
+            self.assertIs(fresh_cache._sanitize_fn, repr,
+                          "_sanitize_fn should default to repr before main.py injects it")
+            # Also verify it actually escapes control chars
+            result = fresh_cache._sanitize_fn("hello\x1bworld")
             self.assertIn("\\x1b", result)
         finally:
-            cache._sanitize_fn = original
+            # Restore original modules
+            if saved_cache is not None:
+                sys.modules["cache"] = saved_cache
+            else:
+                sys.modules.pop("cache", None)
+            if saved_main is not None:
+                sys.modules["main"] = saved_main
+            else:
+                sys.modules.pop("main", None)
 
     def test_sanitize_fn_escapes_control_chars(self):
         """Default _sanitize_fn (repr) must escape newline and ESC sequences."""
