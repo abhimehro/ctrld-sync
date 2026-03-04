@@ -61,6 +61,13 @@ MAX_RETRY_DELAY = 60.0  # Maximum retry delay in seconds (caps exponential growt
 # use in functions that don't go through _retry_request).
 _TIMEOUT_HINT = "Connection timed out. Check your network and the Control D API status."
 
+# Actionable guidance for 4xx client errors logged as warnings before re-raising
+_4XX_HINTS: dict[int, str] = {
+    401: "Check that your TOKEN environment variable is set and valid.",
+    403: "Check that your API token has the required permissions for this profile.",
+    404: "Check that the PROFILE or folder ID exists in your Control D account.",
+}
+
 # --------------------------------------------------------------------------- #
 # Shared mutable state – in-place mutations keep importers' references live
 # --------------------------------------------------------------------------- #
@@ -249,6 +256,12 @@ def _retry_request(
 
                 # Don't retry other 4xx errors (auth failures, bad requests, etc.)
                 if 400 <= code < 500 and code != 429:
+                    hint = _4XX_HINTS.get(code, "")
+                    hint_suffix = f" | hint: {hint}" if hint else ""
+                    log.warning(
+                        f"API request failed with HTTP {code}{hint_suffix}: "
+                        f"{_sanitize_fn(e)}"
+                    )
                     if (
                         hasattr(e, "response")
                         and e.response is not None

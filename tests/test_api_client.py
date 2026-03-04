@@ -1,0 +1,154 @@
+"""
+Tests for actionable warning logs in api_client._retry_request() 4xx error paths.
+
+Covers:
+- _4XX_HINTS dict contains expected codes (401, 403, 404)
+- log.warning() is emitted for 401, 403, 404 with correct hint text
+- log.warning() is emitted for other 4xx codes without a hint suffix
+- 429 behavior is unchanged (no log.warning from 4xx branch)
+- _sanitize_fn is applied to the exception in the warning message
+"""
+
+import logging
+from unittest.mock import MagicMock, patch
+
+import httpx
+import pytest
+
+import api_client
+
+
+def _make_4xx_error(status_code: int) -> httpx.HTTPStatusError:
+    """Create a minimal HTTPStatusError with the given status code."""
+    mock_response = MagicMock(spec=httpx.Response)
+    mock_response.status_code = status_code
+    mock_response.headers = {}
+    mock_response.text = "error body"
+    mock_request = MagicMock(spec=httpx.Request)
+    return httpx.HTTPStatusError(
+        f"{status_code} Error",
+        request=mock_request,
+        response=mock_response,
+    )
+
+
+class TestFourXXHintsDict:
+    """Verify the _4XX_HINTS constant exists and contains the required entries."""
+
+    def test_hints_dict_exists(self):
+        assert hasattr(api_client, "_4XX_HINTS")
+        assert isinstance(api_client._4XX_HINTS, dict)
+
+    def test_hint_401_mentions_token(self):
+        assert 401 in api_client._4XX_HINTS
+        assert "TOKEN" in api_client._4XX_HINTS[401]
+
+    def test_hint_403_mentions_permissions(self):
+        assert 403 in api_client._4XX_HINTS
+        assert "permission" in api_client._4XX_HINTS[403].lower()
+
+    def test_hint_404_mentions_folder(self):
+        assert 404 in api_client._4XX_HINTS
+        assert "folder" in api_client._4XX_HINTS[404].lower()
+
+
+class TestRetryRequestFourXXWarnings:
+    """Verify _retry_request() emits log.warning() for 4xx errors before re-raising."""
+
+    def test_401_warning_logged(self, caplog):
+        error = _make_4xx_error(401)
+        request_func = MagicMock(side_effect=error)
+
+        with caplog.at_level(logging.WARNING, logger="api_client"):
+            with pytest.raises(httpx.HTTPStatusError):
+                api_client._retry_request(request_func, max_retries=1, delay=0.01)
+
+        warnings = [r for r in caplog.records if r.levelname == "WARNING"]
+        assert warnings, "Expected a WARNING log for HTTP 401"
+        warning_text = warnings[0].message
+        assert "401" in warning_text
+        assert "TOKEN" in warning_text
+
+    def test_403_warning_logged(self, caplog):
+        error = _make_4xx_error(403)
+        request_func = MagicMock(side_effect=error)
+
+        with caplog.at_level(logging.WARNING, logger="api_client"):
+            with pytest.raises(httpx.HTTPStatusError):
+                api_client._retry_request(request_func, max_retries=1, delay=0.01)
+
+        warnings = [r for r in caplog.records if r.levelname == "WARNING"]
+        assert warnings, "Expected a WARNING log for HTTP 403"
+        warning_text = warnings[0].message
+        assert "403" in warning_text
+        assert "permission" in warning_text.lower()
+
+    def test_404_warning_logged(self, caplog):
+        error = _make_4xx_error(404)
+        request_func = MagicMock(side_effect=error)
+
+        with caplog.at_level(logging.WARNING, logger="api_client"):
+            with pytest.raises(httpx.HTTPStatusError):
+                api_client._retry_request(request_func, max_retries=1, delay=0.01)
+
+        warnings = [r for r in caplog.records if r.levelname == "WARNING"]
+        assert warnings, "Expected a WARNING log for HTTP 404"
+        warning_text = warnings[0].message
+        assert "404" in warning_text
+        assert "folder" in warning_text.lower()
+
+    def test_other_4xx_warning_logged_without_hint(self, caplog):
+        """HTTP 400 should still log a warning but without a hint suffix."""
+        error = _make_4xx_error(400)
+        request_func = MagicMock(side_effect=error)
+
+        with caplog.at_level(logging.WARNING, logger="api_client"):
+            with pytest.raises(httpx.HTTPStatusError):
+                api_client._retry_request(request_func, max_retries=1, delay=0.01)
+
+        warnings = [r for r in caplog.records if r.levelname == "WARNING"]
+        assert warnings, "Expected a WARNING log for HTTP 400"
+        warning_text = warnings[0].message
+        assert "400" in warning_text
+        assert "hint:" not in warning_text
+
+    def test_429_does_not_use_4xx_branch(self, caplog):
+        """429 should NOT produce a warning from the 4xx branch (it has its own path)."""
+        mock_request = MagicMock(spec=httpx.Request)
+        mock_response = MagicMock(spec=httpx.Response)
+        mock_response.status_code = 429
+        mock_response.headers = {}  # No Retry-After
+        mock_response.request = mock_request
+        error = httpx.HTTPStatusError(
+            "429 Too Many Requests",
+            request=mock_request,
+            response=mock_response,
+        )
+        # Only 1 retry so it exhausts and raises without succeeding
+        request_func = MagicMock(side_effect=error)
+
+        with caplog.at_level(logging.WARNING, logger="api_client"):
+            with pytest.raises(httpx.HTTPStatusError):
+                api_client._retry_request(request_func, max_retries=1, delay=0.01)
+
+        # The 4xx branch warning should NOT appear for 429
+        four_xx_warnings = [
+            r for r in caplog.records
+            if r.levelname == "WARNING" and "API request failed with HTTP" in r.message
+        ]
+        assert not four_xx_warnings, "429 should not trigger the 4xx branch warning"
+
+    def test_sanitize_fn_applied_to_exception(self, caplog):
+        """The exception in the warning message passes through _sanitize_fn."""
+        error = _make_4xx_error(401)
+
+        with patch.object(api_client, "_sanitize_fn", side_effect=lambda x: f"SANITIZED({str(x)})"):
+            request_func = MagicMock(side_effect=error)
+
+            with caplog.at_level(logging.WARNING, logger="api_client"):
+                with pytest.raises(httpx.HTTPStatusError):
+                    api_client._retry_request(request_func, max_retries=1, delay=0.01)
+
+        warnings = [r for r in caplog.records if r.levelname == "WARNING"]
+        assert warnings
+        assert "SANITIZED(" in warnings[0].message
