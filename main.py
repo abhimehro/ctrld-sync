@@ -614,6 +614,9 @@ _STATUS_HINTS: dict[int, str] = {
     500: "Control D API error — try again later or check status.controld.com.",
 }
 
+# Actionable guidance for network timeout errors.
+_TIMEOUT_HINT = "Connection timed out. Check your network and the Control D API status."
+
 # Default config search paths (highest to lowest precedence after CLI flag)
 _DEFAULT_CONFIG_PATHS = [
     "config.yaml",
@@ -1447,9 +1450,10 @@ def _retry_request(
             # Spreads retries evenly across the full window to prevent thundering herd
             wait_time = retry_with_jitter(attempt, base_delay=delay)
 
+            hint = f" | hint: {_TIMEOUT_HINT}" if isinstance(e, httpx.TimeoutException) else ""
             log.warning(
                 f"Request failed (attempt {attempt + 1}/{max_retries}): "
-                f"{sanitize_for_log(e)}. Retrying in {wait_time:.2f}s..."
+                f"{sanitize_for_log(e)}{hint}. Retrying in {wait_time:.2f}s..."
             )
             time.sleep(wait_time)
 
@@ -1705,7 +1709,8 @@ def check_api_access(client: httpx.Client, profile_id: str) -> bool:
             log.error(f"API Access Check Failed ({code}): {sanitize_for_log(e)}")
         return False
     except httpx.RequestError as e:
-        log.error(f"Network Error during access check: {sanitize_for_log(e)}")
+        hint = f" | hint: {_TIMEOUT_HINT}" if isinstance(e, httpx.TimeoutException) else ""
+        log.error(f"Network Error during access check: {sanitize_for_log(e)}{hint}")
         return False
 
 
@@ -1728,7 +1733,12 @@ def list_existing_folders(client: httpx.Client, profile_id: str) -> dict[str, st
                 result[f["group"].strip()] = pk
         return result
     except (httpx.HTTPError, KeyError) as e:
-        log.error(f"Failed to list existing folders: {sanitize_for_log(e)}")
+        hint = ""
+        if isinstance(e, httpx.HTTPStatusError):
+            hint = f" ({_STATUS_HINTS.get(e.response.status_code, f'HTTP {e.response.status_code}')})"
+        elif isinstance(e, httpx.TimeoutException):
+            hint = f" ({_TIMEOUT_HINT})"
+        log.error(f"Failed to list existing folders{hint}: {sanitize_for_log(e)}")
         return {}
 
 
@@ -1836,9 +1846,11 @@ def verify_access_and_get_folders(
 
         except httpx.RequestError as err:
             if attempt == MAX_RETRIES - 1:
+                hint = f" | hint: {_TIMEOUT_HINT}" if isinstance(err, httpx.TimeoutException) else ""
                 log.error(
-                    "Network error during access verification: %s",
+                    "Network error during access verification: %s%s",
                     sanitize_for_log(err),
+                    hint,
                 )
                 return None
 
@@ -2027,8 +2039,13 @@ def delete_folder(
         )
         return True
     except httpx.HTTPError as e:
+        hint = ""
+        if isinstance(e, httpx.HTTPStatusError):
+            hint = f" ({_STATUS_HINTS.get(e.response.status_code, f'HTTP {e.response.status_code}')})"
+        elif isinstance(e, httpx.TimeoutException):
+            hint = f" ({_TIMEOUT_HINT})"
         log.error(
-            f"Failed to delete folder {sanitize_for_log(name)} (ID {sanitize_for_log(folder_id)}): {sanitize_for_log(e)}"
+            f"Failed to delete folder {sanitize_for_log(name)} (ID {sanitize_for_log(folder_id)}){hint}: {sanitize_for_log(e)}"
         )
         return False
 

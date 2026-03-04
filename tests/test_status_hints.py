@@ -3,8 +3,11 @@ Tests for actionable HTTP status code hints in API error messages.
 
 Covers:
 - _STATUS_HINTS dict contains expected codes
+- _TIMEOUT_HINT constant exists with actionable message
 - fetch_folder_data() re-raises with hint on HTTP error
 - push_rules() includes hint in log message on HTTP error
+- _retry_request() includes timeout hint in retry warnings
+- check_api_access() surfaces timeout hint on TimeoutException
 """
 
 import os
@@ -172,3 +175,82 @@ class TestPushRulesBatchHints:
 
         error_calls = str(mock_log.error.call_args_list)
         assert "HTTP 503" in error_calls
+
+
+class TestTimeoutHint:
+    """Verify _TIMEOUT_HINT constant and its use in error paths."""
+
+    def test_timeout_hint_exists(self):
+        assert hasattr(main, "_TIMEOUT_HINT")
+        assert isinstance(main._TIMEOUT_HINT, str)
+
+    def test_timeout_hint_mentions_network(self):
+        assert "network" in main._TIMEOUT_HINT.lower() or "timed out" in main._TIMEOUT_HINT.lower()
+
+    def test_retry_request_includes_timeout_hint_in_warning(self, caplog):
+        """_retry_request() should include the timeout hint when a TimeoutException occurs."""
+        mock_request = MagicMock(spec=httpx.Request)
+        timeout_error = httpx.TimeoutException("timed out", request=mock_request)
+
+        # Fail twice then succeed
+        success_response = MagicMock(spec=httpx.Response)
+        success_response.raise_for_status = MagicMock()
+        success_response.headers = {}
+
+        request_func = MagicMock(side_effect=[timeout_error, success_response])
+
+        with patch.object(main, "time") as mock_time:
+            mock_time.sleep = MagicMock()
+            with caplog.at_level("WARNING"):
+                main._retry_request(request_func, max_retries=3, delay=0.01)
+
+        warning_text = " ".join(r.message for r in caplog.records if r.levelname == "WARNING")
+        assert "timed out" in warning_text.lower() or "timeout" in warning_text.lower() or "network" in warning_text.lower()
+        assert main._TIMEOUT_HINT in warning_text
+
+    def test_retry_request_no_timeout_hint_for_non_timeout(self, caplog):
+        """_retry_request() should NOT include the timeout hint for non-timeout errors."""
+        mock_request = MagicMock(spec=httpx.Request)
+        conn_error = httpx.RequestError("connection refused", request=mock_request)
+
+        success_response = MagicMock(spec=httpx.Response)
+        success_response.raise_for_status = MagicMock()
+        success_response.headers = {}
+
+        request_func = MagicMock(side_effect=[conn_error, success_response])
+
+        with patch.object(main, "time") as mock_time:
+            mock_time.sleep = MagicMock()
+            with caplog.at_level("WARNING"):
+                main._retry_request(request_func, max_retries=3, delay=0.01)
+
+        warning_text = " ".join(r.message for r in caplog.records if r.levelname == "WARNING")
+        assert main._TIMEOUT_HINT not in warning_text
+
+    def test_check_api_access_includes_timeout_hint(self):
+        """check_api_access() should include the timeout hint on TimeoutException."""
+        mock_client = MagicMock()
+        mock_request = MagicMock(spec=httpx.Request)
+        mock_client.get.side_effect = httpx.TimeoutException("timed out", request=mock_request)
+        mock_log = MagicMock()
+
+        with patch.object(main, "log", mock_log):
+            result = main.check_api_access(mock_client, "test_profile")
+
+        assert result is False
+        error_calls = str(mock_log.error.call_args_list)
+        assert main._TIMEOUT_HINT in error_calls
+
+    def test_check_api_access_no_timeout_hint_for_non_timeout(self):
+        """check_api_access() should NOT include timeout hint for generic RequestError."""
+        mock_client = MagicMock()
+        mock_request = MagicMock(spec=httpx.Request)
+        mock_client.get.side_effect = httpx.RequestError("connection refused", request=mock_request)
+        mock_log = MagicMock()
+
+        with patch.object(main, "log", mock_log):
+            result = main.check_api_access(mock_client, "test_profile")
+
+        assert result is False
+        error_calls = str(mock_log.error.call_args_list)
+        assert main._TIMEOUT_HINT not in error_calls
