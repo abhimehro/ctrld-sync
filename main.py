@@ -415,7 +415,7 @@ def print_plan_details(plan_entry: dict[str, Any]) -> None:
                 )
             else:
                 # All groups have same action
-                action_val = list(actions)[0]
+                action_val = next(iter(actions))
                 if action_val == 0:
                     action_label = "Block"
                     action_color = Colors.FAIL
@@ -1857,9 +1857,10 @@ def push_rules(
     successful_batches = 0
 
     # Prepare batches
-    batches = []
-    for start in range(0, len(filtered_hostnames), BATCH_SIZE):
-        batches.append(filtered_hostnames[start : start + BATCH_SIZE])
+    batches = [
+        filtered_hostnames[start : start + BATCH_SIZE]
+        for start in range(0, len(filtered_hostnames), BATCH_SIZE)
+    ]
 
     total_batches = len(batches)
 
@@ -2793,8 +2794,7 @@ def main() -> None:
 
             # Reconstruct other args if they were used (optional but helpful)
             if args.folder_url:
-                for url in args.folder_url:
-                    cmd_parts.append(f"--folder-url {url}")
+                cmd_parts.extend(f"--folder-url {url}" for url in args.folder_url)
 
             cmd_str = " ".join(cmd_parts)
 

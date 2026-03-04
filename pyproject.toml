@@ -44,6 +44,7 @@ select = [
     "E",
     "W",
     "F",
+    "PERF",
     "RET",
     "SIM",
     "UP",
