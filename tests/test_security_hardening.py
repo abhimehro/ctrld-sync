@@ -15,10 +15,9 @@ def create_mock_error(status_code, text, request_url="https://example.com"):
     response.request.url = request_url
 
     # Use HTTPStatusError which accepts request and response
-    error = httpx.HTTPStatusError(
+    return httpx.HTTPStatusError(
         f"HTTP Error {status_code}", request=response.request, response=response
     )
-    return error
 
 
 def test_retry_request_sanitizes_token_in_debug_logs(caplog):
@@ -37,7 +36,7 @@ def test_retry_request_sanitizes_token_in_debug_logs(caplog):
     # Call _retry_request (it re-raises the exception)
     with pytest.raises(httpx.HTTPError):
         # Set retries to 1 to fail fast
-        main._retry_request(mock_func, max_retries=1, delay=0)
+        main.api_client._retry_request(mock_func, max_retries=1, delay=0)
 
     # Check logs
     assert "Response content:" in caplog.text

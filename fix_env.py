@@ -1,11 +1,12 @@
 import os
 import re
 import stat
+import contextlib
 
 
 def fix_env():
     try:
-        with open(".env", "r") as f:
+        with open(".env") as f:
             content = f.read()
     except FileNotFoundError:
         print("No .env file found.")
@@ -17,8 +18,7 @@ def fix_env():
             return ""
         # Remove surrounding quotes of any kind
         val = val.strip()
-        val = re.sub(r"^[\"\u201c\u201d\']|[\"\u201c\u201d\']$", "", val)
-        return val
+        return re.sub(r"^[\"\u201c\u201d\']|[\"\u201c\u201d\']$", "", val)
 
     # Helper to escape value for shell
     def escape_val(val):
@@ -95,10 +95,8 @@ def fix_env():
         print(f"Error writing .env: {e}")
         # Clean up temp file on error
         if os.path.exists(".env.tmp"):
-            try:
+            with contextlib.suppress(OSError):
                 os.unlink(".env.tmp")
-            except OSError:
-                pass
         return
 
     print("Fixed .env file: standardized quotes and corrected variable assignments.")

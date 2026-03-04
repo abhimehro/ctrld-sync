@@ -15,6 +15,7 @@ import httpx
 
 # Import functions under test
 import main
+import contextlib
 
 
 class TestRetryJitter:
@@ -30,19 +31,15 @@ class TestRetryJitter:
 
         with patch("time.sleep") as mock_sleep:
             # First run
-            try:
-                main._retry_request(request_func, max_retries=3, delay=1)
-            except httpx.TimeoutException:
-                pass
+            with contextlib.suppress(httpx.TimeoutException):
+                main.api_client._retry_request(request_func, max_retries=3, delay=1)
             wait_times_run1 = [call.args[0] for call in mock_sleep.call_args_list]
 
         with patch("time.sleep") as mock_sleep:
             # Second run with fresh mock
             request_func.side_effect = httpx.TimeoutException("Connection timeout")
-            try:
-                main._retry_request(request_func, max_retries=3, delay=1)
-            except httpx.TimeoutException:
-                pass
+            with contextlib.suppress(httpx.TimeoutException):
+                main.api_client._retry_request(request_func, max_retries=3, delay=1)
             wait_times_run2 = [call.args[0] for call in mock_sleep.call_args_list]
 
         # Both runs should have same number of retries (2 retries for 3 max_retries)
@@ -60,10 +57,8 @@ class TestRetryJitter:
         request_func = Mock(side_effect=httpx.TimeoutException("Connection timeout"))
 
         with patch("time.sleep") as mock_sleep:
-            try:
-                main._retry_request(request_func, max_retries=5, delay=1)
-            except httpx.TimeoutException:
-                pass
+            with contextlib.suppress(httpx.TimeoutException):
+                main.api_client._retry_request(request_func, max_retries=5, delay=1)
 
             wait_times = [call.args[0] for call in mock_sleep.call_args_list]
 
@@ -71,7 +66,7 @@ class TestRetryJitter:
             for attempt, wait_time in enumerate(wait_times):
                 base_delay = 1 * (2**attempt)  # Exponential backoff formula
                 min_expected = 0.0  # Full jitter can produce 0
-                max_expected = min(base_delay, main.MAX_RETRY_DELAY)
+                max_expected = min(base_delay, main.api_client.MAX_RETRY_DELAY)
 
                 assert min_expected <= wait_time <= max_expected, (
                     f"Attempt {attempt}: wait time {wait_time:.2f}s outside jitter bounds "
@@ -92,16 +87,14 @@ class TestRetryJitter:
             patch("time.sleep") as mock_sleep,
             patch("random.random", return_value=0.5),
         ):
-            try:
-                main._retry_request(request_func, max_retries=5, delay=1)
-            except httpx.TimeoutException:
-                pass
+            with contextlib.suppress(httpx.TimeoutException):
+                main.api_client._retry_request(request_func, max_retries=5, delay=1)
 
             wait_times = [call.args[0] for call in mock_sleep.call_args_list]
 
             for attempt, wait_time in enumerate(wait_times):
                 base_delay = 1 * (2**attempt)
-                exponential_delay = min(base_delay, main.MAX_RETRY_DELAY)
+                exponential_delay = min(base_delay, main.api_client.MAX_RETRY_DELAY)
                 expected_delay = exponential_delay * 0.5  # random.random() fixed at 0.5
                 # Use approx to avoid brittle float equality while still being strict.
                 assert wait_time == pytest.approx(expected_delay), (
@@ -117,7 +110,7 @@ class TestRetryJitter:
 
         with patch("time.sleep") as mock_sleep:
             with pytest.raises(httpx.HTTPStatusError):
-                main._retry_request(request_func, max_retries=5, delay=1)
+                main.api_client._retry_request(request_func, max_retries=5, delay=1)
 
             # Should not sleep at all - fail immediately
             assert mock_sleep.call_count == 0
@@ -134,7 +127,7 @@ class TestRetryJitter:
 
         with patch("time.sleep") as mock_sleep:
             with pytest.raises(httpx.HTTPStatusError):
-                main._retry_request(request_func, max_retries=3, delay=1)
+                main.api_client._retry_request(request_func, max_retries=3, delay=1)
 
             # Should retry (2 retries for max_retries=3)
             assert mock_sleep.call_count == 2
@@ -158,7 +151,7 @@ class TestRetryJitter:
         )
 
         with patch("time.sleep") as mock_sleep:
-            response = main._retry_request(request_func, max_retries=5, delay=1)
+            response = main.api_client._retry_request(request_func, max_retries=5, delay=1)
 
             # Should have made 3 requests total (2 failures + 1 success)
             assert request_func.call_count == 3
@@ -175,7 +168,7 @@ class TestRetryJitter:
 
         with patch("time.sleep") as mock_sleep:
             with pytest.raises(httpx.TimeoutException):
-                main._retry_request(request_func, max_retries=4, delay=1)
+                main.api_client._retry_request(request_func, max_retries=4, delay=1)
 
             # Should attempt exactly max_retries times
             assert request_func.call_count == 4

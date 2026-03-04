@@ -66,7 +66,6 @@ class TestJsonFormatter(unittest.TestCase):
 
     def test_time_format(self):
         """The time field must follow ISO-8601 format ending in Z."""
-        import re
 
         formatter = main.JsonFormatter()
         record = self._make_record("msg")

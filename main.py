@@ -23,7 +23,6 @@ import ipaddress
 import json
 import logging
 import os
-import platform
 import random
 import re
 import shutil
@@ -34,7 +33,8 @@ import threading
 import time
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Callable, Sequence, cast
+from typing import Any, cast
+from collections.abc import Callable, Sequence
 from urllib.parse import urlparse
 
 import httpx
@@ -53,15 +53,10 @@ import api_client
 from api_client import (
     MAX_RETRIES,
     RETRY_DELAY,
-    MAX_RETRY_DELAY,
     _TIMEOUT_HINT,
     _api_stats,
-    _api_stats_lock,
     _rate_limit_info,
     _rate_limit_lock,
-    _parse_rate_limit_headers,
-    retry_with_jitter,
-    _retry_request,
     _api_get,
     _api_delete,
     _api_post,
@@ -730,11 +725,8 @@ def load_config(config_path: str | None = None) -> dict:
     Raises SystemExit on invalid YAML or schema violations so the operator
     sees a clear error message rather than a cryptic traceback.
     """
-    paths_to_try: list[str] = []
-    if config_path:
-        paths_to_try = [config_path]
-    else:
-        paths_to_try = list(_DEFAULT_CONFIG_PATHS)
+
+    paths_to_try: list[str] = [config_path] if config_path else list(_DEFAULT_CONFIG_PATHS)
 
     for raw_path in paths_to_try:
         p = Path(raw_path).expanduser()
@@ -931,10 +923,7 @@ def is_valid_profile_id_format(profile_id: str) -> bool:
 
     if not PROFILE_ID_PATTERN.match(profile_id):
         return False
-    if len(profile_id) > MAX_PROFILE_ID_LENGTH:
-        return False
-
-    return True
+    return not len(profile_id) > MAX_PROFILE_ID_LENGTH
 
 
 def validate_profile_id(profile_id: str, log_errors: bool = True) -> bool:
@@ -989,10 +978,7 @@ def is_valid_rule(rule: str) -> bool:
         return False
 
     # Strict whitelist to prevent injection
-    if not RULE_PATTERN.match(rule):
-        return False
-
-    return True
+    return bool(RULE_PATTERN.match(rule))
 
 
 def is_valid_folder_name(name: str) -> bool:
@@ -1023,10 +1009,7 @@ def is_valid_folder_name(name: str) -> bool:
         return False
 
     # Security: Block command option injection (if name is passed to shell)
-    if clean_name.startswith("-"):
-        return False
-
-    return True
+    return not clean_name.startswith("-")
 
 
 def validate_folder_data(data: dict[str, Any], url: str) -> bool:
@@ -1173,73 +1156,72 @@ def _gh_get(url: str) -> dict:
                     # Update timestamp in disk cache to track last validation
                     cached_entry["last_validated"] = time.time()
                     return cast(dict, data)
-                else:
-                    # Shouldn't happen, but handle gracefully
-                    log.warning(
-                        f"Got 304 but no cached data for {sanitize_for_log(url)}, re-fetching"
-                    )
-                    _cache_stats["errors"] += 1
-                    # Close the original streaming response before retrying
-                    r.close()
-                    # Retry without conditional headers using streaming again so that
-                    # MAX_RESPONSE_SIZE and related protections still apply.
-                    headers = {}
-                    with _gh.stream("GET", url, headers=headers) as r_retry:
-                        r_retry.raise_for_status()
+                # Shouldn't happen, but handle gracefully
+                log.warning(
+                    f"Got 304 but no cached data for {sanitize_for_log(url)}, re-fetching"
+                )
+                _cache_stats["errors"] += 1
+                # Close the original streaming response before retrying
+                r.close()
+                # Retry without conditional headers using streaming again so that
+                # MAX_RESPONSE_SIZE and related protections still apply.
+                headers = {}
+                with _gh.stream("GET", url, headers=headers) as r_retry:
+                    r_retry.raise_for_status()
 
-                        # 1. Check Content-Length header if present
-                        cl = r_retry.headers.get("Content-Length")
-                        if cl:
-                            try:
-                                if int(cl) > MAX_RESPONSE_SIZE:
-                                    raise ValueError(
-                                        f"Response too large from {sanitize_for_log(url)} "
-                                        f"({int(cl) / (1024 * 1024):.2f} MB)"
-                                    )
-                            except ValueError as e:
-                                # Only catch the conversion error, let the size error propagate
-                                if "Response too large" in str(e):
-                                    raise e
-                                log.warning(
-                                    f"Malformed Content-Length header from {sanitize_for_log(url)}: {cl!r}. "
-                                    "Falling back to streaming size check."
-                                )
-
-                        # 2. Stream and check actual size
-                        chunks = []
-                        current_size = 0
-                        for chunk in r_retry.iter_bytes():
-                            current_size += len(chunk)
-                            if current_size > MAX_RESPONSE_SIZE:
+                    # 1. Check Content-Length header if present
+                    cl = r_retry.headers.get("Content-Length")
+                    if cl:
+                        try:
+                            if int(cl) > MAX_RESPONSE_SIZE:
                                 raise ValueError(
                                     f"Response too large from {sanitize_for_log(url)} "
-                                    f"(> {MAX_RESPONSE_SIZE / (1024 * 1024):.2f} MB)"
+                                    f"({int(cl) / (1024 * 1024):.2f} MB)"
                                 )
-                            chunks.append(chunk)
+                        except ValueError as e:
+                            # Only catch the conversion error, let the size error propagate
+                            if "Response too large" in str(e):
+                                raise
+                            log.warning(
+                                f"Malformed Content-Length header from {sanitize_for_log(url)}: {cl!r}. "
+                                "Falling back to streaming size check."
+                            )
 
-                        try:
-                            data = json.loads(b"".join(chunks))
-                        except json.JSONDecodeError as e:
+                    # 2. Stream and check actual size
+                    chunks = []
+                    current_size = 0
+                    for chunk in r_retry.iter_bytes():
+                        current_size += len(chunk)
+                        if current_size > MAX_RESPONSE_SIZE:
                             raise ValueError(
-                                f"Invalid JSON response from {sanitize_for_log(url)}"
-                            ) from e
+                                f"Response too large from {sanitize_for_log(url)} "
+                                f"(> {MAX_RESPONSE_SIZE / (1024 * 1024):.2f} MB)"
+                            )
+                        chunks.append(chunk)
 
-                        # Store cache headers for future conditional requests
-                        # ETag is preferred over Last-Modified (more reliable)
-                        etag = r_retry.headers.get("ETag")
-                        last_modified = r_retry.headers.get("Last-Modified")
+                    try:
+                        data = json.loads(b"".join(chunks))
+                    except json.JSONDecodeError as e:
+                        raise ValueError(
+                            f"Invalid JSON response from {sanitize_for_log(url)}"
+                        ) from e
 
-                        # Update disk cache with new data and headers
-                        _disk_cache[url] = {
-                            "data": data,
-                            "etag": etag,
-                            "last_modified": last_modified,
-                            "fetched_at": time.time(),
-                            "last_validated": time.time(),
-                        }
+                    # Store cache headers for future conditional requests
+                    # ETag is preferred over Last-Modified (more reliable)
+                    etag = r_retry.headers.get("ETag")
+                    last_modified = r_retry.headers.get("Last-Modified")
 
-                        _cache_stats["misses"] += 1
-                        return cast(dict, data)
+                    # Update disk cache with new data and headers
+                    _disk_cache[url] = {
+                        "data": data,
+                        "etag": etag,
+                        "last_modified": last_modified,
+                        "fetched_at": time.time(),
+                        "last_validated": time.time(),
+                    }
+
+                    _cache_stats["misses"] += 1
+                    return cast(dict, data)
 
             r.raise_for_status()
 
@@ -1265,7 +1247,7 @@ def _gh_get(url: str) -> dict:
                 except ValueError as e:
                     # Only catch the conversion error, let the size error propagate
                     if "Response too large" in str(e):
-                        raise e
+                        raise
                     log.warning(
                         f"Malformed Content-Length header from {sanitize_for_log(url)}: {cl!r}. "
                         "Falling back to streaming size check."
@@ -1975,17 +1957,16 @@ def push_rules(
                 f"Folder {sanitize_for_log(folder_name)} – finished ({len(filtered_hostnames):,} new rules added)"
             )
         return True
-    else:
-        if USE_COLORS:
-            sys.stderr.write("\r\033[K")
-            sys.stderr.flush()
-        log.error(
-            "Folder %s – only %d/%d batches succeeded",
-            sanitize_for_log(folder_name),
-            successful_batches,
-            total_batches,
-        )
-        return False
+    if USE_COLORS:
+        sys.stderr.write("\r\033[K")
+        sys.stderr.flush()
+    log.error(
+        "Folder %s – only %d/%d batches succeeded",
+        sanitize_for_log(folder_name),
+        successful_batches,
+        total_batches,
+    )
+    return False
 
 
 def _process_single_folder(
@@ -2536,15 +2517,13 @@ def main() -> None:
 
             # Configure number of concurrent workers used for folder deletions.
             delete_workers = settings.get("delete_workers")
-            if isinstance(delete_workers, int) and delete_workers > 0:
-                if "DELETE_WORKERS" in globals():
-                    globals()["DELETE_WORKERS"] = delete_workers
+            if isinstance(delete_workers, int) and delete_workers > 0 and "DELETE_WORKERS" in globals():
+                globals()["DELETE_WORKERS"] = delete_workers
 
             # Configure maximum retry attempts for HTTP operations.
             max_retries = settings.get("max_retries")
-            if isinstance(max_retries, int) and max_retries >= 0:
-                if "MAX_RETRIES" in globals():
-                    globals()["MAX_RETRIES"] = max_retries
+            if isinstance(max_retries, int) and max_retries >= 0 and "MAX_RETRIES" in globals():
+                globals()["MAX_RETRIES"] = max_retries
         folder_urls = [entry["url"] for entry in cfg.get("folders", [])]
 
     # Interactive prompts for missing config
@@ -2774,15 +2753,9 @@ def main() -> None:
     all_success = success_count == total
 
     if args.dry_run:
-        if all_success:
-            total_status_text = "✅ Ready"
-        else:
-            total_status_text = "❌ Errors"
+        total_status_text = "✅ Ready" if all_success else "❌ Errors"
     else:
-        if all_success:
-            total_status_text = "✅ All Good"
-        else:
-            total_status_text = "❌ Errors"
+        total_status_text = "✅ All Good" if all_success else "❌ Errors"
 
     total_status_color = Colors.GREEN if all_success else Colors.FAIL
 
@@ -2811,11 +2784,7 @@ def main() -> None:
             # Build the suggested command once so it stays consistent between
             # color and non-color output modes.
             cmd_parts = ["python", "main.py"]
-            if profile_ids:
-                # Join multiple profiles if needed
-                p_str = ",".join(profile_ids)
-            else:
-                p_str = "<your-profile-id>"
+            p_str = ",".join(profile_ids) if profile_ids else "<your-profile-id>"
             cmd_parts.append(f"--profiles {p_str}")
 
             # Reconstruct other args if they were used (optional but helpful)

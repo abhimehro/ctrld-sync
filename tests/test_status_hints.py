@@ -202,7 +202,7 @@ class TestTimeoutHint:
         with patch.object(main, "time") as mock_time:
             mock_time.sleep = MagicMock()
             with caplog.at_level("WARNING"):
-                main._retry_request(request_func, max_retries=3, delay=0.01)
+                main.api_client._retry_request(request_func, max_retries=3, delay=0.01)
 
         warning_text = " ".join(r.message for r in caplog.records if r.levelname == "WARNING")
         assert "timed out" in warning_text.lower() or "timeout" in warning_text.lower() or "network" in warning_text.lower()
@@ -222,7 +222,7 @@ class TestTimeoutHint:
         with patch.object(main, "time") as mock_time:
             mock_time.sleep = MagicMock()
             with caplog.at_level("WARNING"):
-                main._retry_request(request_func, max_retries=3, delay=0.01)
+                main.api_client._retry_request(request_func, max_retries=3, delay=0.01)
 
         warning_text = " ".join(r.message for r in caplog.records if r.levelname == "WARNING")
         assert main._TIMEOUT_HINT not in warning_text

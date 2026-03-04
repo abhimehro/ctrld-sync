@@ -8,7 +8,6 @@ import unittest
 from unittest.mock import MagicMock, patch
 import httpx
 import main
-import api_client
 
 
 class TestExceptionLogging(unittest.TestCase):
@@ -103,9 +102,8 @@ class TestExceptionLogging(unittest.TestCase):
                     mock_response = MagicMock()
                     mock_response.json.return_value = {"body": {"rules": []}}
                     return mock_response
-                else:
-                    # Folder rules fail with our error
-                    raise error_with_token
+                # Folder rules fail with our error
+                raise error_with_token
 
             mock_api_get.side_effect = api_get_side_effect
 
@@ -208,7 +206,7 @@ class TestExceptionLogging(unittest.TestCase):
 
         # Action
         try:
-            main._retry_request(failing_request, max_retries=2, delay=0.01)
+            main.api_client._retry_request(failing_request, max_retries=2, delay=0.01)
         except httpx.RequestError:
             pass  # Expected to fail after retries
 

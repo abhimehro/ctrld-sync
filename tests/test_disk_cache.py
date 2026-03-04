@@ -75,14 +75,13 @@ class TestDiskCache(unittest.TestCase):
 
     def test_get_cache_dir_windows(self):
         """Test that cache directory is correct on Windows."""
-        with patch("platform.system", return_value="Windows"):
-            with patch.dict(
-                os.environ, {"LOCALAPPDATA": r"C:\Users\Test\AppData\Local"}
-            ):
-                cache_dir = main.get_cache_dir()
-                # Use string comparison to avoid path separator differences
-                expected = Path(r"C:\Users\Test\AppData\Local") / "ctrld-sync" / "cache"
-                self.assertEqual(cache_dir, expected)
+        with patch("platform.system", return_value="Windows"), patch.dict(
+            os.environ, {"LOCALAPPDATA": r"C:\Users\Test\AppData\Local"}
+        ):
+            cache_dir = main.get_cache_dir()
+            # Use string comparison to avoid path separator differences
+            expected = Path(r"C:\Users\Test\AppData\Local") / "ctrld-sync" / "cache"
+            self.assertEqual(cache_dir, expected)
 
     def test_load_disk_cache_no_file(self):
         """Test loading cache when no cache file exists."""
@@ -175,7 +174,7 @@ class TestDiskCache(unittest.TestCase):
         self.assertTrue(cache_file.exists())
 
         # Verify content
-        with open(cache_file, "r") as f:
+        with open(cache_file) as f:
             loaded = json.load(f)
 
         self.assertEqual(len(loaded), 1)

@@ -56,7 +56,7 @@ class TestPerformanceRegression:
         }
         mock_response = httpx.Response(200, headers=headers)
 
-        result = benchmark(main._parse_rate_limit_headers, mock_response)
+        result = benchmark(main.api_client._parse_rate_limit_headers, mock_response)
         assert result is None  # Function returns None
 
         _check_benchmark_stats(benchmark)
@@ -65,7 +65,7 @@ class TestPerformanceRegression:
     def test_rate_limit_parsing_empty_headers_performance(self, benchmark):
         """Rate limit parsing with no rate-limit headers should complete in <1ms."""
         mock_response = httpx.Response(200, headers={})
-        result = benchmark(main._parse_rate_limit_headers, mock_response)
+        result = benchmark(main.api_client._parse_rate_limit_headers, mock_response)
         assert result is None
 
         _check_benchmark_stats(benchmark)
