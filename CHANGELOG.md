@@ -41,6 +41,7 @@
 
 **Closed issues:**
 
+- \[Code Quality\] Add structured JSON logging output mode \(`JSON_LOG` env var\) [\#520](https://github.com/abhimehro/ctrld-sync/issues/520)
 - \[Code Quality\] Add CHANGELOG.md to track version history and structural changes [\#513](https://github.com/abhimehro/ctrld-sync/issues/513)
 - \[repo-status\] Daily Repo Status — March 2, 2026 🚀 [\#504](https://github.com/abhimehro/ctrld-sync/issues/504)
 - \[Code Quality\] Add CHANGELOG.md following Keep a Changelog format [\#499](https://github.com/abhimehro/ctrld-sync/issues/499)
@@ -162,6 +163,7 @@
 
 **Merged pull requests:**
 
+- feat: Add structured JSON logging mode via `JSON_LOG` env var [\#525](https://github.com/abhimehro/ctrld-sync/pull/525) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - docs: rewrite CHANGELOG.md in Keep a Changelog format [\#514](https://github.com/abhimehro/ctrld-sync/pull/514) ([github-actions[bot]](https://github.com/apps/github-actions))
 - Add actionable HTTP status code hints to API error messages [\#508](https://github.com/abhimehro/ctrld-sync/pull/508) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - Add CHANGELOG.md following Keep a Changelog format [\#507](https://github.com/abhimehro/ctrld-sync/pull/507) ([Copilot](https://github.com/apps/copilot-swe-agent))
