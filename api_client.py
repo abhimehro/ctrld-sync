@@ -61,13 +61,10 @@ _api_stats_lock = threading.Lock()
 _rate_limit_lock = threading.Lock()
 
 # --------------------------------------------------------------------------- #
-# Sanitisation hook
-# --------------------------------------------------------------------------- #
 # Sanitisation hook — see module docstring for the injection contract.
 # Defaults to str() so api_client.py is usable in isolation (e.g., tests).
+# --------------------------------------------------------------------------- #
 _sanitize_fn: Callable[[Any], str] = str
-
-
 # --------------------------------------------------------------------------- #
 # Rate-limit header parsing
 # --------------------------------------------------------------------------- #
