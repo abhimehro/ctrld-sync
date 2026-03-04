@@ -2043,7 +2043,8 @@ def delete_folder(
         if isinstance(e, httpx.HTTPStatusError):
             hint = f" ({_STATUS_HINTS.get(e.response.status_code, f'HTTP {e.response.status_code}')})"
         elif isinstance(e, httpx.TimeoutException):
-            hint = f" ({_TIMEOUT_HINT})"
+            # Use the same hint format as other _TIMEOUT_HINT callers for log consistency
+            hint = f" | hint: {_TIMEOUT_HINT}"
         log.error(
             f"Failed to delete folder {sanitize_for_log(name)} (ID {sanitize_for_log(folder_id)}){hint}: {sanitize_for_log(e)}"
         )
