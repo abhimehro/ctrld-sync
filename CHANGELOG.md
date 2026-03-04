@@ -175,6 +175,7 @@
 
 **Merged pull requests:**
 
+- ⚡ Bolt: Optimize `push_rules` deduplication logic [\#544](https://github.com/abhimehro/ctrld-sync/pull/544) ([abhimehro](https://github.com/abhimehro))
 - Add `__all__` to `api_client.py` and `cache.py` [\#539](https://github.com/abhimehro/ctrld-sync/pull/539) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - Align `cache.py` sanitization with `api_client.py` injection pattern for consistent token redaction [\#538](https://github.com/abhimehro/ctrld-sync/pull/538) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - fix\(ci\): Add ruff to dev deps and suppress pre-existing SIM violations [\#537](https://github.com/abhimehro/ctrld-sync/pull/537) ([Copilot](https://github.com/apps/copilot-swe-agent))
@@ -247,6 +248,7 @@
 - feat: broaden pip cache keys to cover pyproject.toml and add caching to bandit workflow [\#400](https://github.com/abhimehro/ctrld-sync/pull/400) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - docs: fix README CI/CD workflow documentation and test commands [\#398](https://github.com/abhimehro/ctrld-sync/pull/398) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - Remove dead code and unnecessary global declarations [\#396](https://github.com/abhimehro/ctrld-sync/pull/396) ([Copilot](https://github.com/apps/copilot-swe-agent))
+- Add dedicated test.yml workflow for PR validation [\#395](https://github.com/abhimehro/ctrld-sync/pull/395) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - Fix SECURITY.md: replace placeholder versions and clarify pre-1.0 compatibility policy [\#393](https://github.com/abhimehro/ctrld-sync/pull/393) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - Fix inaccurate sync.yml description in README [\#392](https://github.com/abhimehro/ctrld-sync/pull/392) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - Add performance regression test suite to CI [\#391](https://github.com/abhimehro/ctrld-sync/pull/391) ([Copilot](https://github.com/apps/copilot-swe-agent))
