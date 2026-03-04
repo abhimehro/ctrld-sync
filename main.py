@@ -150,7 +150,9 @@ class JsonFormatter(logging.Formatter):
         ``message`` – formatted log message
     """
 
-    converter = time.gmtime  # ensure timestamps are always UTC
+    @staticmethod
+    def converter(t: float | None) -> time.struct_time:  # ensure timestamps are always UTC
+        return time.gmtime(t)
 
     def format(self, record: logging.LogRecord) -> str:
         payload: dict[str, str] = {
