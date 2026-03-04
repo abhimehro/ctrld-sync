@@ -30,7 +30,8 @@ import logging
 import os
 import platform
 from pathlib import Path
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 log = logging.getLogger("control-d-sync")
 
