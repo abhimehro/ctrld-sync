@@ -181,7 +181,7 @@ For each candidate task:
 # Check whether a target symbol or keyword appears in the codebase
 # (replace <symbol> with the function/class/config key to look for)
 grep -r "<symbol>" . \
-  --include="*.py" --include="*.toml" --include="*.yaml" --include="*.md" \
+  --include="*.py" --include="*.toml" --include="*.yaml" --include="*.yml" --include="*.md" \
   --exclude-dir=.venv --exclude-dir=.git --exclude-dir=__pycache__ \
   -l 2>/dev/null | head -5
 ```
