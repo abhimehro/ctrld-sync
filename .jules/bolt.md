@@ -71,5 +71,5 @@
 **Action:** Lift `ThreadPoolExecutor` creation to the highest possible scope and pass it down as a dependency (using `contextlib.nullcontext` for flexible ownership).
 
 ## 2024-05-24 - Stop copying massive state sets inside loops
-**Learning:** In Python, tracking deduplication or "already seen" items by performing a deep copy (`set.copy()`) of an existing global dataset is an anti-pattern when the global dataset grows large. Copying a set of millions of items per-folder iteration completely bottlenecks CPU and memory, rendering micro-optimizations inside the loop irrelevant.
+**Learning:** In Python, tracking deduplication or "already seen" items by performing a shallow copy (`set.copy()`) of an existing global dataset is an anti-pattern when the global dataset grows large. Copying a set of millions of items per-folder iteration completely bottlenecks CPU and memory, rendering micro-optimizations inside the loop irrelevant.
 **Action:** When filtering a list of items against a massive "existing" set, use `dict.fromkeys(items)` to instantly deduplicate the incoming list while preserving order, then iterate over those keys with an `O(1)` membership check against the original massive set. This avoids copying the large set entirely and dramatically reduces overhead.
