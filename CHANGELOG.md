@@ -41,6 +41,8 @@
 
 **Closed issues:**
 
+- \[Code Quality\] Align `cache.py` sanitization with `api_client.py` injection pattern for consistent token redaction [\#536](https://github.com/abhimehro/ctrld-sync/issues/536)
+- \[Code Quality\] Add `__all__` exports to `api_client.py` and `cache.py` to define explicit public APIs [\#535](https://github.com/abhimehro/ctrld-sync/issues/535)
 - \[Code Quality\] Configure ruff lint rules in pyproject.toml to catch dead code and return-path bugs [\#528](https://github.com/abhimehro/ctrld-sync/issues/528)
 - \[Code Quality\] Add pre-flight verification to QA/task-mining workflows to prevent stale issues [\#523](https://github.com/abhimehro/ctrld-sync/issues/523)
 - \[Code Quality\] Add mypy static type-checking to CI to enforce annotations [\#522](https://github.com/abhimehro/ctrld-sync/issues/522)
@@ -50,6 +52,7 @@
 - \[Code Quality\] Improve API error message quality to surface actionable guidance [\#517](https://github.com/abhimehro/ctrld-sync/issues/517)
 - \[Code Quality\] Extract API client logic from `main.py` into `api_client.py` module [\#516](https://github.com/abhimehro/ctrld-sync/issues/516)
 - \[Code Quality\] Add CHANGELOG.md to track version history and structural changes [\#513](https://github.com/abhimehro/ctrld-sync/issues/513)
+- \[Code Quality\] Improve API error message quality and fix `_retry_request()` return type [\#510](https://github.com/abhimehro/ctrld-sync/issues/510)
 - \[Code Quality\] Extract disk cache logic into `cache.py` module [\#506](https://github.com/abhimehro/ctrld-sync/issues/506)
 - \[repo-status\] Daily Repo Status — March 2, 2026 🚀 [\#504](https://github.com/abhimehro/ctrld-sync/issues/504)
 - \[Code Quality\] Add CHANGELOG.md following Keep a Changelog format [\#499](https://github.com/abhimehro/ctrld-sync/issues/499)
@@ -172,6 +175,8 @@
 
 **Merged pull requests:**
 
+- Add `__all__` to `api_client.py` and `cache.py` [\#539](https://github.com/abhimehro/ctrld-sync/pull/539) ([Copilot](https://github.com/apps/copilot-swe-agent))
+- Align `cache.py` sanitization with `api_client.py` injection pattern for consistent token redaction [\#538](https://github.com/abhimehro/ctrld-sync/pull/538) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - fix\(ci\): Add ruff to dev deps and suppress pre-existing SIM violations [\#537](https://github.com/abhimehro/ctrld-sync/pull/537) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - chore\(ci\): Add lint workflow and configure ruff rules [\#534](https://github.com/abhimehro/ctrld-sync/pull/534) ([abhimehro](https://github.com/abhimehro))
 - fix: resolve mypy type error for JsonFormatter.converter [\#533](https://github.com/abhimehro/ctrld-sync/pull/533) ([Copilot](https://github.com/apps/copilot-swe-agent))
@@ -242,7 +247,6 @@
 - feat: broaden pip cache keys to cover pyproject.toml and add caching to bandit workflow [\#400](https://github.com/abhimehro/ctrld-sync/pull/400) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - docs: fix README CI/CD workflow documentation and test commands [\#398](https://github.com/abhimehro/ctrld-sync/pull/398) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - Remove dead code and unnecessary global declarations [\#396](https://github.com/abhimehro/ctrld-sync/pull/396) ([Copilot](https://github.com/apps/copilot-swe-agent))
-- Add dedicated test.yml workflow for PR validation [\#395](https://github.com/abhimehro/ctrld-sync/pull/395) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - Fix SECURITY.md: replace placeholder versions and clarify pre-1.0 compatibility policy [\#393](https://github.com/abhimehro/ctrld-sync/pull/393) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - Fix inaccurate sync.yml description in README [\#392](https://github.com/abhimehro/ctrld-sync/pull/392) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - Add performance regression test suite to CI [\#391](https://github.com/abhimehro/ctrld-sync/pull/391) ([Copilot](https://github.com/apps/copilot-swe-agent))
