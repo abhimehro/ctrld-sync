@@ -41,6 +41,7 @@
 
 **Closed issues:**
 
+- \[Code Quality\] Configure ruff lint rules in pyproject.toml to catch dead code and return-path bugs [\#528](https://github.com/abhimehro/ctrld-sync/issues/528)
 - \[Code Quality\] Add pre-flight verification to QA/task-mining workflows to prevent stale issues [\#523](https://github.com/abhimehro/ctrld-sync/issues/523)
 - \[Code Quality\] Add mypy static type-checking to CI to enforce annotations [\#522](https://github.com/abhimehro/ctrld-sync/issues/522)
 - \[repo-status\] Daily Repo Status — March 3, 2026 🚀 [\#521](https://github.com/abhimehro/ctrld-sync/issues/521)
@@ -66,6 +67,7 @@
 - \[repo-status\] Daily Repo Status — March 1, 2026 🌟 [\#467](https://github.com/abhimehro/ctrld-sync/issues/467)
 - \[Code Quality\] Add test coverage reporting to CI [\#463](https://github.com/abhimehro/ctrld-sync/issues/463)
 - \[Code Quality\] Update AGENTS.md: remove stale "Known Issue" for fixed syntax error [\#462](https://github.com/abhimehro/ctrld-sync/issues/462)
+- \[Code Quality\] Add ruff linting check to CI/CD workflows [\#460](https://github.com/abhimehro/ctrld-sync/issues/460)
 - \[Code Quality\] Implement persistent disk cache for blocklist data [\#387](https://github.com/abhimehro/ctrld-sync/issues/387)
 - \[Code Quality\] Improve docstring coverage from 43% to 80% [\#386](https://github.com/abhimehro/ctrld-sync/issues/386)
 - \[Code Quality\] Create dedicated test workflow with parallel pytest execution [\#385](https://github.com/abhimehro/ctrld-sync/issues/385)
@@ -170,6 +172,7 @@
 
 **Merged pull requests:**
 
+- chore\(ci\): Add lint workflow and configure ruff rules [\#534](https://github.com/abhimehro/ctrld-sync/pull/534) ([abhimehro](https://github.com/abhimehro))
 - fix: resolve mypy type error for JsonFormatter.converter [\#533](https://github.com/abhimehro/ctrld-sync/pull/533) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - Add pre-flight verification to task-miner and QA workflows to prevent stale issues [\#532](https://github.com/abhimehro/ctrld-sync/pull/532) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - feat: surface actionable guidance for timeout and HTTP error paths [\#531](https://github.com/abhimehro/ctrld-sync/pull/531) ([Copilot](https://github.com/apps/copilot-swe-agent))
