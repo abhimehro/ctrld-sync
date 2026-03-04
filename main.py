@@ -978,7 +978,7 @@ def is_valid_rule(rule: str) -> bool:
         return False
 
     # Strict whitelist to prevent injection
-    return RULE_PATTERN.match(rule)
+    return bool(RULE_PATTERN.match(rule))
 
 
 def is_valid_folder_name(name: str) -> bool:
