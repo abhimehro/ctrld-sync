@@ -22,6 +22,10 @@ def mock_env(monkeypatch):
     import api_client as _ac
     orig_sanitize_fn = _ac._sanitize_fn
     monkeypatch.setattr(_ac, "_sanitize_fn", orig_sanitize_fn)
+    # Do the same for cache._sanitize_fn for the same reason.
+    import cache as _cache_mod
+    orig_cache_sanitize_fn = _cache_mod._sanitize_fn
+    monkeypatch.setattr(_cache_mod, "_sanitize_fn", orig_cache_sanitize_fn)
 
 
 def test_delete_workers_constant_exists(mock_env):
