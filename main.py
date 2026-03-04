@@ -1737,7 +1737,8 @@ def list_existing_folders(client: httpx.Client, profile_id: str) -> dict[str, st
         if isinstance(e, httpx.HTTPStatusError):
             hint = f" ({_STATUS_HINTS.get(e.response.status_code, f'HTTP {e.response.status_code}')})"
         elif isinstance(e, httpx.TimeoutException):
-            hint = f" ({_TIMEOUT_HINT})"
+            # Use consistent timeout hint formatting with other functions (e.g., _retry_request, check_api_access)
+            hint = f" | hint: {_TIMEOUT_HINT}"
         log.error(f"Failed to list existing folders{hint}: {sanitize_for_log(e)}")
         return {}
 
