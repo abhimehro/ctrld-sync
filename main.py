@@ -136,9 +136,39 @@ class ColoredFormatter(logging.Formatter):
         return result
 
 
-# Setup logging
+class JsonFormatter(logging.Formatter):
+    """Emit one JSON object per log record for structured/observability pipelines.
+
+    Activated by setting the ``JSON_LOG`` environment variable to a non-empty
+    value (e.g. ``JSON_LOG=1``).  When active, ``USE_COLORS`` is also disabled
+    so that ANSI escape codes never pollute the JSON stream.
+
+    Each line contains at minimum:
+        ``time``    – ISO-8601 timestamp (UTC, second precision)
+        ``level``   – log level name (DEBUG / INFO / WARNING / ERROR / CRITICAL)
+        ``logger``  – logger name
+        ``message`` – formatted log message
+    """
+
+    converter = time.gmtime  # ensure timestamps are always UTC
+
+    def format(self, record: logging.LogRecord) -> str:
+        payload: dict[str, str] = {
+            "time": self.formatTime(record, "%Y-%m-%dT%H:%M:%SZ"),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+        }
+        return json.dumps(payload)
+
+
+# Setup logging – switch to JsonFormatter when JSON_LOG env var is set
+_use_json_log: bool = bool(os.getenv("JSON_LOG"))
+if _use_json_log:
+    USE_COLORS = False  # ANSI codes must not appear inside JSON output
+
 handler = logging.StreamHandler()
-handler.setFormatter(ColoredFormatter())
+handler.setFormatter(JsonFormatter() if _use_json_log else ColoredFormatter())
 logging.basicConfig(level=logging.INFO, handlers=[handler])
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
