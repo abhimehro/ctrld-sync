@@ -41,6 +41,7 @@
 
 **Closed issues:**
 
+- \[Code Quality\] Add pre-flight verification to QA/task-mining workflows to prevent stale issues [\#523](https://github.com/abhimehro/ctrld-sync/issues/523)
 - \[Code Quality\] Add mypy static type-checking to CI to enforce annotations [\#522](https://github.com/abhimehro/ctrld-sync/issues/522)
 - \[repo-status\] Daily Repo Status — March 3, 2026 🚀 [\#521](https://github.com/abhimehro/ctrld-sync/issues/521)
 - \[Code Quality\] Add structured JSON logging output mode \(`JSON_LOG` env var\) [\#520](https://github.com/abhimehro/ctrld-sync/issues/520)
@@ -166,6 +167,7 @@
 
 **Merged pull requests:**
 
+- Add pre-flight verification to task-miner and QA workflows to prevent stale issues [\#532](https://github.com/abhimehro/ctrld-sync/pull/532) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - Extract cache subsystem from main.py into cache.py [\#527](https://github.com/abhimehro/ctrld-sync/pull/527) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - Add mypy static type-checking to CI [\#526](https://github.com/abhimehro/ctrld-sync/pull/526) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - feat: Add structured JSON logging mode via `JSON_LOG` env var [\#525](https://github.com/abhimehro/ctrld-sync/pull/525) ([Copilot](https://github.com/apps/copilot-swe-agent))
