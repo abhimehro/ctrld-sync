@@ -39,6 +39,14 @@ from urllib.parse import urlparse
 
 import httpx
 import yaml
+from cache import (
+    CACHE_TTL_SECONDS,
+    _cache_stats,
+    _disk_cache,
+    get_cache_dir,
+    load_disk_cache,
+    save_disk_cache,
+)
 from dotenv import load_dotenv
 
 import api_client
@@ -46,6 +54,7 @@ from api_client import (
     MAX_RETRIES,
     RETRY_DELAY,
     MAX_RETRY_DELAY,
+    _TIMEOUT_HINT,
     _api_stats,
     _api_stats_lock,
     _rate_limit_info,
@@ -635,6 +644,8 @@ _STATUS_HINTS: dict[int, str] = {
     500: "Control D API error — try again later or check status.controld.com.",
 }
 
+# _TIMEOUT_HINT imported from api_client above
+
 # Default config search paths (highest to lowest precedence after CLI flag)
 _DEFAULT_CONFIG_PATHS = [
     "config.yaml",
@@ -810,15 +821,9 @@ _cache: dict[str, dict] = {}
 _cache_lock = threading.RLock()
 
 # --------------------------------------------------------------------------- #
-# 3a. Persistent Disk Cache Support
+# 3a. Persistent Disk Cache Support  (implementation lives in cache.py)
 # --------------------------------------------------------------------------- #
-# Disk cache stores validated blocklist data with HTTP cache headers (ETag, Last-Modified)
-# to enable fast cold-start syncs via conditional HTTP requests (304 Not Modified)
-CACHE_TTL_SECONDS = (
-    24 * 60 * 60
-)  # 24 hours: within TTL, serve from disk without HTTP request
-_disk_cache: dict[str, dict[str, Any]] = {}  # Loaded from disk on startup
-_cache_stats = {"hits": 0, "misses": 0, "validations": 0, "errors": 0}
+
 # _api_stats imported from api_client above
 
 # --------------------------------------------------------------------------- #
@@ -826,153 +831,7 @@ _cache_stats = {"hits": 0, "misses": 0, "validations": 0, "errors": 0}
 # --------------------------------------------------------------------------- #
 # _rate_limit_info, _rate_limit_lock imported from api_client above
 
-
-def get_cache_dir() -> Path:
-    """
-    Returns platform-specific cache directory for ctrld-sync.
-
-    Uses standard cache locations:
-    - Linux/Unix: ~/.cache/ctrld-sync
-    - macOS: ~/Library/Caches/ctrld-sync
-    - Windows: %LOCALAPPDATA%/ctrld-sync/cache
-
-    SECURITY: No user input in path construction - prevents path traversal attacks
-    """
-    system = platform.system()
-    if system == "Darwin":  # macOS
-        return Path.home() / "Library" / "Caches" / "ctrld-sync"
-    elif system == "Windows":
-        appdata = os.getenv("LOCALAPPDATA", str(Path.home() / "AppData" / "Local"))
-        return Path(appdata) / "ctrld-sync" / "cache"
-    else:  # Linux, Unix, and others
-        # Follow XDG Base Directory spec
-        xdg_cache = os.getenv("XDG_CACHE_HOME")
-        if xdg_cache:
-            return Path(xdg_cache) / "ctrld-sync"
-        return Path.home() / ".cache" / "ctrld-sync"
-
-
-def load_disk_cache() -> None:
-    """
-    Loads persistent cache from disk on startup.
-
-    GRACEFUL DEGRADATION: Any error (corrupted JSON, permissions, etc.)
-    is logged but ignored - we simply start with empty cache.
-    This protects against crashes from corrupted cache files.
-    """
-    global _disk_cache
-
-    try:
-        cache_file = get_cache_dir() / "blocklists.json"
-        if not cache_file.exists():
-            log.debug("No existing cache file found, starting fresh")
-            return
-
-        with open(cache_file, "r", encoding="utf-8") as f:
-            data = json.load(f)
-
-        # Validate cache structure at the top level
-        if not isinstance(data, dict):
-            log.warning("Cache file has invalid format (root is not a dict), ignoring")
-            return
-
-        # Sanitize individual cache entries to ensure graceful degradation:
-        # - keys must be strings
-        # - values must be dicts
-        # - each entry must contain at least a 'data' field
-        sanitized_cache: dict[str, Any] = {}
-        dropped_entries = 0
-
-        for key, value in data.items():
-            if not isinstance(key, str):
-                dropped_entries += 1
-                log.debug("Dropping cache entry with non-string key: %r", key)
-                continue
-
-            if not isinstance(value, dict):
-                dropped_entries += 1
-                log.debug("Dropping cache entry %r: value is not a dict", key)
-                continue
-
-            if "data" not in value:
-                dropped_entries += 1
-                log.debug("Dropping cache entry %r: missing required 'data' field", key)
-                continue
-
-            sanitized_cache[key] = value
-
-        if not sanitized_cache:
-            # If nothing is valid, start with an empty cache instead of crashing later
-            _disk_cache = {}
-            log.warning(
-                "Cache file contained no valid entries; starting with empty cache"
-            )
-            return
-
-        if dropped_entries:
-            log.info(
-                "Loaded %d valid entries from disk cache (dropped %d malformed entries)",
-                len(sanitized_cache),
-                dropped_entries,
-            )
-        else:
-            log.info("Loaded %d entries from disk cache", len(sanitized_cache))
-
-        _disk_cache = sanitized_cache
-    except json.JSONDecodeError as e:
-        log.warning(f"Corrupted cache file (invalid JSON), starting fresh: {e}")
-        _cache_stats["errors"] += 1
-    except PermissionError as e:
-        log.warning(f"Cannot read cache file (permission denied), starting fresh: {e}")
-        _cache_stats["errors"] += 1
-    except Exception as e:
-        # Catch-all for unexpected errors (disk full, etc.)
-        log.warning(f"Failed to load cache, starting fresh: {sanitize_for_log(e)}")
-        _cache_stats["errors"] += 1
-
-
-def save_disk_cache() -> None:
-    """
-    Saves persistent cache to disk after successful sync.
-
-    SECURITY: Creates cache directory with user-only permissions (0o700)
-    to prevent other users from reading cached blocklist data.
-    """
-    try:
-        cache_dir = get_cache_dir()
-        cache_dir.mkdir(parents=True, exist_ok=True)
-
-        # Set directory permissions to user-only (rwx------)
-        # This prevents other users from reading cached data
-        if platform.system() != "Windows":
-            cache_dir.chmod(0o700)
-
-        cache_file = cache_dir / "blocklists.json"
-
-        # Write atomically: write to temp file, then rename
-        # This prevents corrupted cache if process is killed mid-write
-        temp_file = cache_file.with_suffix(".tmp")
-
-        # Security: Use os.open to ensure file is created with 0o600 permissions
-        # This prevents TOCTOU race condition where file could be world-readable before chmod
-        fd = os.open(temp_file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
-            json.dump(_disk_cache, f, indent=2)
-
-        # Atomic rename (POSIX guarantees atomicity)
-        temp_file.replace(cache_file)
-
-        if log.isEnabledFor(logging.DEBUG):
-            log.debug(f"Saved {len(_disk_cache):,} entries to disk cache")
-
-    except Exception as e:
-        # Cache save failures are non-fatal - we just won't have cache next time
-        log.warning(f"Failed to save cache (non-fatal): {sanitize_for_log(e)}")
-        _cache_stats["errors"] += 1
-
-
 # _parse_rate_limit_headers imported from api_client above
-
 @lru_cache(maxsize=128)
 def validate_hostname(hostname: str) -> bool:
     """
@@ -1245,8 +1104,6 @@ def validate_folder_data(data: dict[str, Any], url: str) -> bool:
 
 # _api_stats_lock, _api_get, _api_delete, _api_post, _api_post_form,
 # retry_with_jitter, _retry_request imported from api_client above
-
-
 def _gh_get(url: str) -> dict:
     """
     Fetch blocklist data from URL with HTTP cache header support.
@@ -1497,7 +1354,8 @@ def check_api_access(client: httpx.Client, profile_id: str) -> bool:
             log.error(f"API Access Check Failed ({code}): {sanitize_for_log(e)}")
         return False
     except httpx.RequestError as e:
-        log.error(f"Network Error during access check: {sanitize_for_log(e)}")
+        hint = f" | hint: {_TIMEOUT_HINT}" if isinstance(e, httpx.TimeoutException) else ""
+        log.error(f"Network Error during access check: {sanitize_for_log(e)}{hint}")
         return False
 
 
@@ -1520,7 +1378,12 @@ def list_existing_folders(client: httpx.Client, profile_id: str) -> dict[str, st
                 result[f["group"].strip()] = pk
         return result
     except (httpx.HTTPError, KeyError) as e:
-        log.error(f"Failed to list existing folders: {sanitize_for_log(e)}")
+        hint = ""
+        if isinstance(e, httpx.HTTPStatusError):
+            hint = f" | hint: {_STATUS_HINTS.get(e.response.status_code, f'HTTP {e.response.status_code}')}"
+        elif isinstance(e, httpx.TimeoutException):
+            hint = f" | hint: {_TIMEOUT_HINT}"
+        log.error(f"Failed to list existing folders{hint}: {sanitize_for_log(e)}")
         return {}
 
 
@@ -1628,9 +1491,11 @@ def verify_access_and_get_folders(
 
         except httpx.RequestError as err:
             if attempt == MAX_RETRIES - 1:
+                hint = f" | hint: {_TIMEOUT_HINT}" if isinstance(err, httpx.TimeoutException) else ""
                 log.error(
-                    "Network error during access verification: %s",
+                    "Network error during access verification: %s%s",
                     sanitize_for_log(err),
+                    hint,
                 )
                 return None
 
@@ -1819,8 +1684,13 @@ def delete_folder(
         )
         return True
     except httpx.HTTPError as e:
+        hint = ""
+        if isinstance(e, httpx.HTTPStatusError):
+            hint = f" | hint: {_STATUS_HINTS.get(e.response.status_code, f'HTTP {e.response.status_code}')}"
+        elif isinstance(e, httpx.TimeoutException):
+            hint = f" | hint: {_TIMEOUT_HINT}"
         log.error(
-            f"Failed to delete folder {sanitize_for_log(name)} (ID {sanitize_for_log(folder_id)}): {sanitize_for_log(e)}"
+            f"Failed to delete folder {sanitize_for_log(name)} (ID {sanitize_for_log(folder_id)}){hint}: {sanitize_for_log(e)}"
         )
         return False
 

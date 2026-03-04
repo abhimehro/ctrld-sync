@@ -38,6 +38,10 @@ MAX_RETRIES = 10
 RETRY_DELAY = 1
 MAX_RETRY_DELAY = 60.0  # Maximum retry delay in seconds (caps exponential growth)
 
+# Actionable guidance for network timeout errors (also imported by main.py for
+# use in functions that don't go through _retry_request).
+_TIMEOUT_HINT = "Connection timed out. Check your network and the Control D API status."
+
 # --------------------------------------------------------------------------- #
 # Shared mutable state – in-place mutations keep importers' references live
 # --------------------------------------------------------------------------- #
@@ -257,9 +261,10 @@ def _retry_request(
             # Spreads retries evenly across the full window to prevent thundering herd
             wait_time = retry_with_jitter(attempt, base_delay=delay)
 
+            hint = f" | hint: {_TIMEOUT_HINT}" if isinstance(e, httpx.TimeoutException) else ""
             log.warning(
                 f"Request failed (attempt {attempt + 1}/{max_retries}): "
-                f"{_sanitize_fn(e)}. Retrying in {wait_time:.2f}s..."
+                f"{_sanitize_fn(e)}{hint}. Retrying in {wait_time:.2f}s..."
             )
             time.sleep(wait_time)
 
