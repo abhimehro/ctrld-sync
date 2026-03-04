@@ -206,7 +206,7 @@ class TestExceptionLogging(unittest.TestCase):
 
         # Action
         try:
-            main._retry_request(failing_request, max_retries=2, delay=0.01)
+            main.api_client._retry_request(failing_request, max_retries=2, delay=0.01)
         except httpx.RequestError:
             pass  # Expected to fail after retries
 

@@ -36,7 +36,7 @@ def test_retry_request_sanitizes_token_in_debug_logs(caplog):
     # Call _retry_request (it re-raises the exception)
     with pytest.raises(httpx.HTTPError):
         # Set retries to 1 to fail fast
-        main._retry_request(mock_func, max_retries=1, delay=0)
+        main.api_client._retry_request(mock_func, max_retries=1, delay=0)
 
     # Check logs
     assert "Response content:" in caplog.text

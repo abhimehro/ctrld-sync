@@ -37,7 +37,7 @@ class TestRateLimitParsing:
             "X-RateLimit-Reset": "1708225200",  # Some future timestamp
         }
 
-        main._parse_rate_limit_headers(mock_response)
+        main.api_client._parse_rate_limit_headers(mock_response)
 
         with main._rate_limit_lock:
             assert main._rate_limit_info["limit"] == 100
@@ -51,7 +51,7 @@ class TestRateLimitParsing:
             "X-RateLimit-Remaining": "50",
         }
 
-        main._parse_rate_limit_headers(mock_response)
+        main.api_client._parse_rate_limit_headers(mock_response)
 
         with main._rate_limit_lock:
             assert main._rate_limit_info["limit"] is None
@@ -69,7 +69,7 @@ class TestRateLimitParsing:
             original_remaining = main._rate_limit_info["remaining"]
             original_reset = main._rate_limit_info["reset"]
 
-        main._parse_rate_limit_headers(mock_response)
+        main.api_client._parse_rate_limit_headers(mock_response)
 
         # Values should remain unchanged
         with main._rate_limit_lock:
@@ -87,7 +87,7 @@ class TestRateLimitParsing:
         }
 
         # Should not crash, just ignore invalid values
-        main._parse_rate_limit_headers(mock_response)
+        main.api_client._parse_rate_limit_headers(mock_response)
 
         with main._rate_limit_lock:
             # Values should remain unchanged (None if setup was clean)
@@ -105,7 +105,7 @@ class TestRateLimitParsing:
         }
 
         with caplog.at_level("WARNING"):
-            main._parse_rate_limit_headers(mock_response)
+            main.api_client._parse_rate_limit_headers(mock_response)
 
         # Should log a warning about approaching rate limit
         assert any(
@@ -121,7 +121,7 @@ class TestRateLimitParsing:
         }
 
         with caplog.at_level("WARNING"):
-            main._parse_rate_limit_headers(mock_response)
+            main.api_client._parse_rate_limit_headers(mock_response)
 
         # Should NOT log a warning
         assert not any(
@@ -140,7 +140,7 @@ class TestRateLimitParsing:
         threads = []
         for _ in range(10):
             t = threading.Thread(
-                target=main._parse_rate_limit_headers, args=(mock_response,)
+                target=main.api_client._parse_rate_limit_headers, args=(mock_response,)
             )
             threads.append(t)
             t.start()
@@ -190,7 +190,7 @@ class TestRetryWithRateLimit:
 
         start_time = time.time()
         with caplog.at_level("WARNING"):
-            result = main._retry_request(request_func, max_retries=3, delay=1)
+            result = main.api_client._retry_request(request_func, max_retries=3, delay=1)
         elapsed = time.time() - start_time
 
         # Should have waited ~2 seconds (from Retry-After)
@@ -211,7 +211,7 @@ class TestRetryWithRateLimit:
 
         request_func = MagicMock(return_value=mock_response)
 
-        main._retry_request(request_func)
+        main.api_client._retry_request(request_func)
 
         # Rate limit info should be updated
         with main._rate_limit_lock:
@@ -238,7 +238,7 @@ class TestRetryWithRateLimit:
         request_func = MagicMock(side_effect=error)
 
         with pytest.raises(httpx.HTTPStatusError):
-            main._retry_request(request_func, max_retries=1, delay=0.1)
+            main.api_client._retry_request(request_func, max_retries=1, delay=0.1)
 
         # Rate limit info should still be updated from error response
         with main._rate_limit_lock:
@@ -269,7 +269,7 @@ class TestRetryWithRateLimit:
         # With delay=1 and random.random()=1.0 (full jitter), backoff is: 1s, 2s
         # Total wait should be >= 3 seconds
         start_time = time.time()
-        result = main._retry_request(request_func, max_retries=3, delay=1)
+        result = main.api_client._retry_request(request_func, max_retries=3, delay=1)
         elapsed = time.time() - start_time
 
         assert elapsed >= 1.5

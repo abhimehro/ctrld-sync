@@ -725,8 +725,8 @@ def load_config(config_path: str | None = None) -> dict:
     Raises SystemExit on invalid YAML or schema violations so the operator
     sees a clear error message rather than a cryptic traceback.
     """
-    paths_to_try: list[str] = []
-    paths_to_try = [config_path] if config_path else list(_DEFAULT_CONFIG_PATHS)
+
+    paths_to_try: list[str] = [config_path] if config_path else list(_DEFAULT_CONFIG_PATHS)
 
     for raw_path in paths_to_try:
         p = Path(raw_path).expanduser()
@@ -1181,7 +1181,7 @@ def _gh_get(url: str) -> dict:
                         except ValueError as e:
                             # Only catch the conversion error, let the size error propagate
                             if "Response too large" in str(e):
-                                raise e
+                                raise
                             log.warning(
                                 f"Malformed Content-Length header from {sanitize_for_log(url)}: {cl!r}. "
                                 "Falling back to streaming size check."
@@ -1247,7 +1247,7 @@ def _gh_get(url: str) -> dict:
                 except ValueError as e:
                     # Only catch the conversion error, let the size error propagate
                     if "Response too large" in str(e):
-                        raise e
+                        raise
                     log.warning(
                         f"Malformed Content-Length header from {sanitize_for_log(url)}: {cl!r}. "
                         "Falling back to streaming size check."
@@ -2518,12 +2518,12 @@ def main() -> None:
             # Configure number of concurrent workers used for folder deletions.
             delete_workers = settings.get("delete_workers")
             if isinstance(delete_workers, int) and delete_workers > 0 and "DELETE_WORKERS" in globals():
-                    globals()["DELETE_WORKERS"] = delete_workers
+                globals()["DELETE_WORKERS"] = delete_workers
 
             # Configure maximum retry attempts for HTTP operations.
             max_retries = settings.get("max_retries")
             if isinstance(max_retries, int) and max_retries >= 0 and "MAX_RETRIES" in globals():
-                    globals()["MAX_RETRIES"] = max_retries
+                globals()["MAX_RETRIES"] = max_retries
         folder_urls = [entry["url"] for entry in cfg.get("folders", [])]
 
     # Interactive prompts for missing config
