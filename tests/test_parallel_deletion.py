@@ -12,9 +12,16 @@ def mock_env(monkeypatch):
     """Set up test environment with required TOKEN."""
     monkeypatch.setenv("TOKEN", "test-token-123")
     monkeypatch.setenv("NO_COLOR", "1")
-    # Clear any cached imports
-    if "main" in sys.modules:
-        del sys.modules["main"]
+    # Use monkeypatch.delitem so sys.modules["main"] is restored after each test.
+    # This prevents stale cross-module references (e.g. api_client._sanitize_fn)
+    # from leaking into subsequent tests.
+    monkeypatch.delitem(sys.modules, "main", raising=False)
+    # Save and restore api_client._sanitize_fn, which main.py updates when
+    # it is (re-)imported.  Without this, the re-import inside the test would
+    # leave api_client pointing at a different module instance's sanitize_for_log.
+    import api_client as _ac
+    orig_sanitize_fn = _ac._sanitize_fn
+    monkeypatch.setattr(_ac, "_sanitize_fn", orig_sanitize_fn)
 
 
 def test_delete_workers_constant_exists(mock_env):
