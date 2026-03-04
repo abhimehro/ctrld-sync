@@ -41,6 +41,7 @@
 
 **Closed issues:**
 
+- \[Code Quality\] Add mypy static type-checking to CI to enforce annotations [\#522](https://github.com/abhimehro/ctrld-sync/issues/522)
 - \[Code Quality\] Add structured JSON logging output mode \(`JSON_LOG` env var\) [\#520](https://github.com/abhimehro/ctrld-sync/issues/520)
 - \[Code Quality\] Add CHANGELOG.md to track version history and structural changes [\#513](https://github.com/abhimehro/ctrld-sync/issues/513)
 - \[repo-status\] Daily Repo Status — March 2, 2026 🚀 [\#504](https://github.com/abhimehro/ctrld-sync/issues/504)
@@ -163,6 +164,7 @@
 
 **Merged pull requests:**
 
+- Add mypy static type-checking to CI [\#526](https://github.com/abhimehro/ctrld-sync/pull/526) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - feat: Add structured JSON logging mode via `JSON_LOG` env var [\#525](https://github.com/abhimehro/ctrld-sync/pull/525) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - docs: rewrite CHANGELOG.md in Keep a Changelog format [\#514](https://github.com/abhimehro/ctrld-sync/pull/514) ([github-actions[bot]](https://github.com/apps/github-actions))
 - Add actionable HTTP status code hints to API error messages [\#508](https://github.com/abhimehro/ctrld-sync/pull/508) ([Copilot](https://github.com/apps/copilot-swe-agent))
