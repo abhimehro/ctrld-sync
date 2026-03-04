@@ -33,6 +33,23 @@ import contextlib
 
 log = logging.getLogger(__name__)
 
+__all__ = [
+    "MAX_RETRIES",
+    "RETRY_DELAY",
+    "MAX_RETRY_DELAY",
+    "retry_with_jitter",
+    "_TIMEOUT_HINT",      # imported by main.py for use outside _retry_request
+    "_api_stats",         # accessed by main.py for metrics reporting
+    "_api_stats_lock",
+    "_rate_limit_info",
+    "_rate_limit_lock",
+    "_sanitize_fn",       # injection point for token-aware sanitizer
+    "_api_get",           # HTTP wrapper used by main.py
+    "_api_delete",        # HTTP wrapper used by main.py
+    "_api_post",          # HTTP wrapper used by main.py
+    "_api_post_form",     # HTTP wrapper used by main.py
+]
+
 # --------------------------------------------------------------------------- #
 # HTTP retry constants
 # --------------------------------------------------------------------------- #
