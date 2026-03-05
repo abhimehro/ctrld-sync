@@ -72,8 +72,9 @@ def fix_env():
 
     # Security: Write using os.open to a temp file, then os.replace to prevent TOCTOU
     # symlink attacks and ensure 0o600 permissions at creation time.
+    # Use O_EXCL to prevent writing to an existing symlink or file.
     try:
-        flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
         mode = stat.S_IRUSR | stat.S_IWUSR  # 0o600
 
         # O_NOFOLLOW is not available on all platforms (like Windows)
@@ -81,7 +82,14 @@ def fix_env():
             flags |= os.O_NOFOLLOW
 
         temp_file = ".env.tmp"
-        fd = os.open(temp_file, flags, mode)
+        try:
+            fd = os.open(temp_file, flags, mode)
+        except FileExistsError:
+            # If the temp file exists from a previous aborted run, unlink and retry.
+            with contextlib.suppress(OSError):
+                os.unlink(temp_file)
+            fd = os.open(temp_file, flags, mode)
+
         with os.fdopen(fd, "w") as f:
             f.write(new_content)
             # Enforce permissions on the file descriptor directly (safe against race conditions)
