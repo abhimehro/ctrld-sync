@@ -2117,13 +2117,13 @@ def sync_profile(
                 )
             else:
                 # Legacy single-action format
-                hostnames = [
-                    r["PK"] for r in folder_data.get("rules", []) if r.get("PK")
-                ]
+                # Optimization: Counting valid rules without allocating a full list is faster
+                # Using sum generator expression avoids copying N items just to measure length
+                rules_count = sum(1 for r in folder_data.get("rules", []) if r.get("PK"))
                 plan_entry["folders"].append(
                     {
                         "name": name,
-                        "rules": len(hostnames),
+                        "rules": rules_count,
                         "action": grp.get("action", {}).get("do"),
                         "status": grp.get("action", {}).get("status"),
                     }
