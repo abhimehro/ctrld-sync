@@ -182,6 +182,7 @@
 
 **Merged pull requests:**
 
+- 🛡️ Sentinel: \[HIGH\] Fix TOCTOU symlink vulnerability in temporary file creation [\#558](https://github.com/abhimehro/ctrld-sync/pull/558) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Prevent horizontal jitter in CLI animations [\#554](https://github.com/abhimehro/ctrld-sync/pull/554) ([abhimehro](https://github.com/abhimehro))
 - Add PERF \(perflint\) ruff rules and fix performance anti-patterns [\#550](https://github.com/abhimehro/ctrld-sync/pull/550) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - Add actionable warning logs for 4xx auth/client errors in api\_client retry paths [\#549](https://github.com/abhimehro/ctrld-sync/pull/549) ([Copilot](https://github.com/apps/copilot-swe-agent))
