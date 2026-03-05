@@ -152,3 +152,82 @@ class TestRetryRequestFourXXWarnings:
         warnings = [r for r in caplog.records if r.levelname == "WARNING"]
         assert warnings
         assert "SANITIZED(" in warnings[0].message
+
+
+class TestServerErrorHint:
+    """Verify _SERVER_ERROR_HINT is defined and emitted on 5xx retries."""
+
+    def test_server_error_hint_constant_exists(self):
+        assert hasattr(api_client, "_SERVER_ERROR_HINT")
+        assert "Server error" in api_client._SERVER_ERROR_HINT
+        assert "status.controld.com" in api_client._SERVER_ERROR_HINT
+
+    def test_server_error_hint_in_all(self):
+        assert "_SERVER_ERROR_HINT" in api_client.__all__
+
+    def test_500_retry_warning_includes_hint(self, caplog):
+        """A 500 response that is retried should include the server error hint."""
+        mock_request = MagicMock(spec=httpx.Request)
+        mock_response = MagicMock(spec=httpx.Response)
+        mock_response.status_code = 500
+        mock_response.headers = {}
+        mock_response.text = "Internal Server Error"
+        error = httpx.HTTPStatusError(
+            "500 Internal Server Error",
+            request=mock_request,
+            response=mock_response,
+        )
+        request_func = MagicMock(side_effect=error)
+
+        with caplog.at_level(logging.WARNING, logger="api_client"):
+            with pytest.raises(httpx.HTTPStatusError):
+                api_client._retry_request(request_func, max_retries=2, delay=0.01)
+
+        retry_warnings = [
+            r for r in caplog.records
+            if r.levelname == "WARNING" and "Retrying" in r.message
+        ]
+        assert retry_warnings, "Expected a retry WARNING for HTTP 500"
+        assert "hint: Server error" in retry_warnings[0].message
+
+    def test_503_retry_warning_includes_hint(self, caplog):
+        """A 503 response that is retried should also include the server error hint."""
+        mock_request = MagicMock(spec=httpx.Request)
+        mock_response = MagicMock(spec=httpx.Response)
+        mock_response.status_code = 503
+        mock_response.headers = {}
+        mock_response.text = "Service Unavailable"
+        error = httpx.HTTPStatusError(
+            "503 Service Unavailable",
+            request=mock_request,
+            response=mock_response,
+        )
+        request_func = MagicMock(side_effect=error)
+
+        with caplog.at_level(logging.WARNING, logger="api_client"):
+            with pytest.raises(httpx.HTTPStatusError):
+                api_client._retry_request(request_func, max_retries=2, delay=0.01)
+
+        retry_warnings = [
+            r for r in caplog.records
+            if r.levelname == "WARNING" and "Retrying" in r.message
+        ]
+        assert retry_warnings, "Expected a retry WARNING for HTTP 503"
+        assert "hint: Server error" in retry_warnings[0].message
+
+    def test_timeout_hint_unchanged(self, caplog):
+        """_TIMEOUT_HINT should still appear for TimeoutException, not _SERVER_ERROR_HINT."""
+        error = httpx.TimeoutException("timed out", request=MagicMock())
+        request_func = MagicMock(side_effect=error)
+
+        with caplog.at_level(logging.WARNING, logger="api_client"):
+            with pytest.raises(httpx.TimeoutException):
+                api_client._retry_request(request_func, max_retries=2, delay=0.01)
+
+        retry_warnings = [
+            r for r in caplog.records
+            if r.levelname == "WARNING" and "Retrying" in r.message
+        ]
+        assert retry_warnings
+        assert api_client._TIMEOUT_HINT in retry_warnings[0].message
+        assert "Server error" not in retry_warnings[0].message

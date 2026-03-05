@@ -39,6 +39,7 @@ __all__ = [
     "MAX_RETRY_DELAY",
     "retry_with_jitter",
     "_TIMEOUT_HINT",      # imported by main.py for use outside _retry_request
+    "_SERVER_ERROR_HINT", # companion to _TIMEOUT_HINT; exported for use in main.py if needed
     "_api_stats",         # accessed by main.py for metrics reporting
     "_api_stats_lock",
     "_rate_limit_info",
@@ -60,6 +61,12 @@ MAX_RETRY_DELAY = 60.0  # Maximum retry delay in seconds (caps exponential growt
 # Actionable guidance for network timeout errors (also imported by main.py for
 # use in functions that don't go through _retry_request).
 _TIMEOUT_HINT = "Connection timed out. Check your network and the Control D API status."
+
+# Actionable guidance for 5xx server errors that are retried but may indicate an outage.
+_SERVER_ERROR_HINT = (
+    "Server error. The Control D API may be experiencing issues; "
+    "check https://status.controld.com and try again later."
+)
 
 # Actionable guidance for 4xx client errors logged as warnings before re-raising
 _4XX_HINTS: dict[int, str] = {
@@ -285,7 +292,16 @@ def _retry_request(
             # Spreads retries evenly across the full window to prevent thundering herd
             wait_time = retry_with_jitter(attempt, base_delay=delay)
 
-            hint = f" | hint: {_TIMEOUT_HINT}" if isinstance(e, httpx.TimeoutException) else ""
+            hint = f" | hint: {_TIMEOUT_HINT}" if isinstance(e, httpx.TimeoutException) else (
+                f" | hint: {_SERVER_ERROR_HINT}"
+                if (
+                    isinstance(e, httpx.HTTPStatusError)
+                    and hasattr(e, "response")
+                    and e.response is not None
+                    and e.response.status_code >= 500
+                )
+                else ""
+            )
             log.warning(
                 f"Request failed (attempt {attempt + 1}/{max_retries}): "
                 f"{_sanitize_fn(e)}{hint}. Retrying in {wait_time:.2f}s..."
