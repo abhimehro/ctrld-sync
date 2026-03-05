@@ -212,7 +212,14 @@ def save_disk_cache() -> None:
         # Security: use os.open so the file is created with 0o600 from the
         # start, avoiding a TOCTOU race where a world-readable file exists
         # briefly before a subsequent chmod.
-        fd = os.open(temp_file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        # Use O_EXCL to prevent symlink attacks on predictable temporary file names.
+        try:
+            fd = os.open(temp_file, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        except FileExistsError:
+            # If the temp file exists from a previous aborted run, unlink and retry.
+            temp_file.unlink()
+            fd = os.open(temp_file, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             json.dump(_disk_cache, f, indent=2)
 
