@@ -79,3 +79,45 @@ def test_fix_env_creates_secure_file(tmp_path):
 
     finally:
         os.chdir(cwd)
+
+def test_fix_env_handles_existing_temp_file(tmp_path, monkeypatch):
+    """
+    Verify that fix_env handles an existing .env.tmp file correctly
+    by unlinking it and recreating it exclusively.
+    """
+    cwd = os.getcwd()
+    os.chdir(tmp_path)
+    try:
+        # Create a valid .env so fix_env has something to process
+        token = "api.1234567890abcdef"
+        profile = "12345abc"
+        with open(".env", "w") as f:
+            f.write(f"TOKEN={token}\nPROFILE={profile}")
+
+        # Pre-create the temp file that fix_env uses
+        temp_file = ".env.tmp"
+        with open(temp_file, "w") as f:
+            f.write("malicious content")
+
+        # Create a symlink if supported to test symlink attack mitigation on temp file
+        if os.name != "nt":
+            target = tmp_path / "target_secret"
+            target.write_text("safe")
+            os.remove(temp_file)
+            os.symlink("target_secret", temp_file)
+
+        # Run fix_env
+        fix_env.fix_env()
+
+        # The symlink/file should be replaced by the atomic rename,
+        # but let's check that the target wasn't overwritten if it was a symlink
+        if os.name != "nt":
+            assert target.read_text() == "safe"
+
+        # Verify the final .env contains the right content
+        content = open(".env").read()
+        assert f'TOKEN="{token}"' in content
+        assert f'PROFILE="{profile}"' in content
+
+    finally:
+        os.chdir(cwd)

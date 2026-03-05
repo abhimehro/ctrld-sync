@@ -216,15 +216,8 @@ def save_disk_cache() -> None:
         try:
             fd = os.open(temp_file, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         except FileExistsError:
-            # If the temp file exists from a previous aborted run, attempt to
-            # remove it and retry. Another process may have already removed it
-            # between our failed open and the unlink; in that case ignore the
-            # FileNotFoundError and still retry the exclusive create.
-            try:
-                temp_file.unlink()
-            except FileNotFoundError:
-                # Temp file disappeared concurrently; safe to ignore and retry.
-                pass
+            # If the temp file exists from a previous aborted run, unlink and retry.
+            temp_file.unlink()
             fd = os.open(temp_file, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
 
         with os.fdopen(fd, "w", encoding="utf-8") as f:

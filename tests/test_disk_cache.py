@@ -497,3 +497,28 @@ class TestDiskCache(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+    def test_save_disk_cache_temp_file_symlink(self):
+        """Test that O_EXCL prevents overwriting an existing symlink."""
+        cache_dir = Path(self.temp_dir)
+        cache_file = cache_dir / "blocklists.json"
+        temp_file = cache_dir / "blocklists.json.tmp"
+
+        # Pre-create a symlink at the temporary file location
+        if os.name != "nt":
+            target = cache_dir / "target_secret"
+            target.write_text("safe")
+            os.symlink("target_secret", temp_file)
+
+        # Add some data to the cache
+        main._disk_cache["test_url"] = {"data": "test_data"}
+
+        with patch("cache.get_cache_dir", return_value=cache_dir):
+            main.save_disk_cache()
+
+        # The cache should be saved successfully
+        self.assertTrue(cache_file.exists())
+
+        # If symlinks are supported, verify the target was NOT overwritten
+        if os.name != "nt":
+            self.assertEqual(target.read_text(), "safe")
