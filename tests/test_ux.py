@@ -148,3 +148,46 @@ def test_print_success_message_no_colors(monkeypatch):
     main.print_success_message(["123"])
 
     mock_stdout.write.assert_not_called()
+
+
+class TestGetProgressBarWidth:
+    def test_returns_int_within_bounds(self, monkeypatch):
+        """Width is always between 15 and 50 for a normal terminal."""
+        monkeypatch.setattr(main.shutil, "get_terminal_size", lambda fallback=(80, 24): (80, 24))
+        result = main._get_progress_bar_width()
+        assert isinstance(result, int)
+        assert 15 <= result <= 50
+
+    def test_narrow_terminal_clamps_to_minimum(self, monkeypatch):
+        """Narrow terminal (e.g., 20 cols) yields the 15-char minimum."""
+        monkeypatch.setattr(main.shutil, "get_terminal_size", lambda fallback=(80, 24): (20, 24))
+        assert main._get_progress_bar_width() == 15
+
+    def test_wide_terminal_clamps_to_maximum(self, monkeypatch):
+        """Very wide terminal (e.g., 200 cols) yields the 50-char maximum."""
+        monkeypatch.setattr(main.shutil, "get_terminal_size", lambda fallback=(80, 24): (200, 24))
+        assert main._get_progress_bar_width() == 50
+
+
+class TestRenderProgressBar:
+    def test_no_output_when_use_colors_false(self, monkeypatch, capsys):
+        """render_progress_bar writes nothing when USE_COLORS is False."""
+        monkeypatch.setattr(main, "USE_COLORS", False)
+        main.render_progress_bar(5, 10, "test")
+        assert capsys.readouterr().err == ""
+
+    def test_no_output_when_total_zero(self, monkeypatch, capsys):
+        """render_progress_bar exits early when total=0 to avoid division by zero."""
+        monkeypatch.setattr(main, "USE_COLORS", True)
+        main.render_progress_bar(0, 0, "test")
+        assert capsys.readouterr().err == ""
+
+    def test_writes_progress_bar_to_stderr(self, monkeypatch, capsys):
+        """render_progress_bar writes a formatted bar to stderr when enabled."""
+        monkeypatch.setattr(main, "USE_COLORS", True)
+        monkeypatch.setattr(main.shutil, "get_terminal_size", lambda fallback=(80, 24): (80, 24))
+        main.render_progress_bar(5, 10, "Loading")
+        err = capsys.readouterr().err
+        assert "Loading" in err
+        assert "█" in err
+        assert "\r\033[K" in err
