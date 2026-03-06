@@ -225,9 +225,9 @@ class AlertSystem:
         # consistent and to honour the "module-level logger" contract.
         self.logger = logger or logging.getLogger("control-d-sync")
 
-    def _on_enqueue_done(  # type: ignore[type-arg]
+    def _on_enqueue_done(
         self,
-        future: concurrent.futures.Future,  # Generic arg omitted: callback handles futures of any return type
+        future: concurrent.futures.Future[Any],  # Accept futures of any return type; we only inspect exceptions
     ) -> None:
         """Callback invoked when an enqueue future completes.
 
