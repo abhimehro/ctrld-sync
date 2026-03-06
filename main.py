@@ -256,7 +256,7 @@ class AlertSystem:
                     "Enqueued task raised an exception",
                     exc_info=(type(exc), exc, exc.__traceback__),
                 )
-        except Exception as ex:
+        except Exception:
             # Here we *are* in an ``except`` context, so logging can safely use
             # the current exception from ``sys.exc_info()``. Using
             # ``exc_info=True`` is the idiomatic way to log this traceback.
