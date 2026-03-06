@@ -39,7 +39,7 @@ __all__ = [
     "MAX_RETRY_DELAY",
     "retry_with_jitter",
     "_TIMEOUT_HINT",      # imported by main.py for use outside _retry_request
-    "_CONNECT_ERROR_HINT",  # imported by main.py for use in functions outside _retry_request
+    "_CONNECT_ERROR_HINT",  # exported for reuse outside _retry_request
     "_api_stats",         # accessed by main.py for metrics reporting
     "_api_stats_lock",
     "_rate_limit_info",

@@ -1,5 +1,5 @@
 """
-Tests for actionable warning logs in api_client._retry_request() 4xx error paths.
+Tests for actionable warning logs in api_client._retry_request() error paths.
 
 Covers:
 - _4XX_HINTS dict contains expected codes (401, 403, 404)
@@ -7,7 +7,7 @@ Covers:
 - log.warning() is emitted for other 4xx codes without a hint suffix
 - 429 behavior is unchanged (no log.warning from 4xx branch)
 - _sanitize_fn is applied to the exception in the warning message
-- ConnectError hint is surfaced in retry warning logs
+- ConnectError hint (_CONNECT_ERROR_HINT) is surfaced in retry warning logs
 """
 
 import logging
