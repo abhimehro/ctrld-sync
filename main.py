@@ -242,16 +242,21 @@ class AlertSystem:
         try:
             exc = future.exception()
             if exc is not None:
+                # We are *not* in an ``except`` block here, so there is no
+                # active exception for logging to pull from ``sys.exc_info()``.
+                # Construct the (type, value, traceback) tuple explicitly so the
+                # original worker-thread traceback is preserved.
                 self.logger.error(
                     "Enqueued task raised an exception",
-                    exc_info=exc,
+                    exc_info=(type(exc), exc, exc.__traceback__),
                 )
         except Exception as ex:
-            # Pass the real exception object (not the boolean sentinel ``True``)
-            # so that log handlers and tests can inspect the actual error.
+            # Here we *are* in an ``except`` context, so logging can safely use
+            # the current exception from ``sys.exc_info()``. Using
+            # ``exc_info=True`` is the idiomatic way to log this traceback.
             self.logger.error(
                 "Unexpected error while inspecting enqueue future",
-                exc_info=ex,
+                exc_info=True,
             )
 
 
