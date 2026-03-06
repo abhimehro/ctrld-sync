@@ -1,5 +1,5 @@
 """
-Tests for actionable warning logs in api_client._retry_request() 4xx/5xx error paths.
+Tests for actionable warning logs in api_client._retry_request() HTTP and transport error paths.
 
 Covers:
 - _4XX_HINTS dict contains expected codes (401, 403, 404)
@@ -7,7 +7,7 @@ Covers:
 - log.warning() is emitted for other 4xx codes without a hint suffix
 - 429 behavior is unchanged (no log.warning from 4xx branch)
 - _sanitize_fn is applied to the exception in the warning message
-- ConnectError hint (_CONNECT_ERROR_HINT) is surfaced in retry warning logs
+- ConnectError hint (_CONNECT_ERROR_HINT) is surfaced in retry warning logs (non-HTTP transport error)
 - _SERVER_ERROR_HINT is emitted for 5xx responses (500, 503)
 """
 
@@ -162,6 +162,9 @@ class TestConnectErrorHint:
     def test_connect_error_hint_constant_exists(self):
         assert hasattr(api_client, "_CONNECT_ERROR_HINT")
         assert "Connection failed" in api_client._CONNECT_ERROR_HINT
+
+    def test_connect_error_hint_in_all(self):
+        assert "_CONNECT_ERROR_HINT" in api_client.__all__
 
     def test_connect_error_hint_in_retry_warning(self, caplog):
         """ConnectError during a retry attempt should surface the connect-error hint."""
