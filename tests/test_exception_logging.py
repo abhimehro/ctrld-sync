@@ -224,5 +224,63 @@ class TestExceptionLogging(unittest.TestCase):
             )
 
 
+    @patch("main.log")
+    def test_root_rules_http_error_logs_debug(self, mock_log):
+        """Test that an HTTPError during root-rules fetch emits a DEBUG log."""
+        client = MagicMock()
+        profile_id = "test_profile"
+
+        with patch("main._api_get") as mock_api_get:
+            mock_api_get.side_effect = httpx.HTTPError("connection failed")
+
+            main.get_all_existing_rules(client, profile_id, known_folders={})
+
+        # A debug log should have been emitted
+        self.assertTrue(mock_log.debug.called, "log.debug should have been called")
+
+        debug_calls = mock_log.debug.call_args_list
+        found = any(
+            "root-level rules" in str(call) for call in debug_calls
+        )
+        self.assertTrue(found, "Expected debug message about root-level rules not found")
+
+    @patch("main.log")
+    def test_folder_rules_http_error_logs_debug(self, mock_log):
+        """Test that an HTTPError during folder-rules fetch emits a DEBUG log."""
+        client = MagicMock()
+        profile_id = "test_profile"
+        folder_id = "folder_abc"
+
+        with patch("main._api_get") as mock_api_get:
+
+            def api_get_side_effect(client_arg, url):
+                if url.endswith("/rules"):
+                    # Root rules succeed with empty list
+                    mock_response = MagicMock()
+                    mock_response.json.return_value = {"body": {"rules": []}}
+                    return mock_response
+                # Folder rules fail with HTTPError
+                raise httpx.HTTPError("timeout")
+
+            mock_api_get.side_effect = api_get_side_effect
+
+            main.get_all_existing_rules(
+                client, profile_id, known_folders={"Folder A": folder_id}
+            )
+
+        self.assertTrue(mock_log.debug.called, "log.debug should have been called")
+        debug_calls = mock_log.debug.call_args_list
+        # Verify the folder_id appears in the log call args (format string or args tuple)
+        found = any(
+            folder_id in str(call) for call in debug_calls
+        )
+        self.assertTrue(found, "Expected debug message mentioning folder_id not found")
+        # Verify the sanitized error text is passed as an argument
+        found_error = any(
+            "timeout" in str(call) for call in debug_calls
+        )
+        self.assertTrue(found_error, "Expected sanitized error text in debug log not found")
+
+
 if __name__ == "__main__":
     unittest.main()

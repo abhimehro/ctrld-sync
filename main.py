@@ -1599,7 +1599,12 @@ def get_all_existing_rules(
             data = _api_get(client, f"{API_BASE}/{profile_id}/rules/{folder_id}").json()
             folder_rules = data.get("body", {}).get("rules", [])
             return [rule["PK"] for rule in folder_rules if rule.get("PK")]
-        except httpx.HTTPError:
+        except httpx.HTTPError as e:
+            log.debug(
+                "Could not fetch rules for folder %s (will skip): %s",
+                folder_id,
+                sanitize_for_log(e),
+            )
             return []
         except Exception as e:
             # We log error but don't stop the whole process;
@@ -1617,8 +1622,11 @@ def get_all_existing_rules(
             for rule in root_rules:
                 if rule.get("PK"):
                     all_rules.add(rule["PK"])
-        except httpx.HTTPError:
-            pass
+        except httpx.HTTPError as e:
+            log.debug(
+                "Could not fetch root-level rules (will proceed with folder rules only): %s",
+                sanitize_for_log(e),
+            )
 
         # Get rules from folders in parallel
         # Optimization: Use known_folders if provided to avoid redundant API call
