@@ -1,20 +1,55 @@
 """Tests for AlertSystem._on_enqueue_done async callback.
 
-These tests verify that the two code branches in ``_on_enqueue_done`` behave
+These tests verify that the three code branches in ``_on_enqueue_done`` behave
 correctly:
 
-* **Branch A** – happy path: ``future.exception()`` returns ``None``; no log
-  call is made.
-* **Branch B** – ``future.exception()`` itself raises an unexpected exception;
-  the error must be logged with the *actual* exception instance passed as
-  ``exc_info`` (not the boolean sentinel ``True``), so callers can inspect
-  the real error programmatically.
+* **Branch A** – ``future.exception()`` returns ``None``; no log call is made.
+* **Branch B** – ``future.exception()`` returns a non-``None`` exception object;
+  the error is logged and ``record.exc_info`` captures the full traceback tuple
+  ``(type, value, traceback)`` so handlers can format it correctly.
+* **Branch C** – ``future.exception()`` itself raises an unexpected exception;
+  the error is logged with ``exc_info=True`` (idiomatic inside an ``except``
+  block) so ``record.exc_info`` is populated from ``sys.exc_info()`` at log time.
+
+Tests that validate ``exc_info`` content capture real ``logging.LogRecord``
+objects via an in-process handler rather than asserting on MagicMock call
+arguments, so they exercise the actual stdlib logging path.
 """
 
+import contextlib
+import logging
 import unittest
+from collections.abc import Iterator
 from unittest.mock import MagicMock
 
 from main import AlertSystem
+
+_LOGGER_NAME = "control-d-sync"
+
+
+@contextlib.contextmanager
+def _capture_records(logger_name: str = _LOGGER_NAME) -> Iterator[list[logging.LogRecord]]:
+    """Attach a list-collecting handler to *logger_name* for the duration of the block.
+
+    Propagation is temporarily disabled so that captured records do not also
+    bubble up to the root logger and pollute other test output.
+    """
+    records: list[logging.LogRecord] = []
+
+    class _Collector(logging.Handler):
+        def emit(self, record: logging.LogRecord) -> None:
+            records.append(record)
+
+    handler = _Collector()
+    logger = logging.getLogger(logger_name)
+    original_propagate = logger.propagate
+    logger.addHandler(handler)
+    logger.propagate = False
+    try:
+        yield records
+    finally:
+        logger.removeHandler(handler)
+        logger.propagate = original_propagate
 
 
 class TestAlertSystemAsync(unittest.TestCase):
@@ -31,68 +66,79 @@ class TestAlertSystemAsync(unittest.TestCase):
     def test_branch_a_no_exception_does_not_log(self):
         """When future.exception() returns None, logger must not be called."""
         system = self._make_system()
-        system.logger = MagicMock()
-
         fut = MagicMock()
         fut.exception.return_value = None  # clean completion
 
-        system._on_enqueue_done(fut)
+        with _capture_records() as records:
+            system._on_enqueue_done(fut)
 
-        system.logger.error.assert_not_called()
+        self.assertEqual(records, [], "No records should be emitted for a clean future")
 
     # ------------------------------------------------------------------
-    # Branch A (variant): future holds a task-level exception
+    # Branch B: future holds a task-level exception
     # ------------------------------------------------------------------
 
-    def test_branch_a_task_exception_logs_error(self):
-        """When future.exception() returns an exception, it must be logged."""
-        system = self._make_system()
-        system.logger = MagicMock()
+    def test_branch_b_task_exception_logs_error(self):
+        """When future.exception() returns an exception, it must be logged.
 
+        Branch B passes ``exc_info=(type, value, traceback)`` explicitly because
+        we are *not* inside an ``except`` block, so ``sys.exc_info()`` would
+        return ``(None, None, None)``.  The explicit tuple ensures the full
+        worker-thread traceback is preserved in the LogRecord.
+        """
         task_exc = ValueError("task failed")
         fut = MagicMock()
         fut.exception.return_value = task_exc
 
-        system._on_enqueue_done(fut)
-
-        system.logger.error.assert_called_once()
-        _, kwargs = system.logger.error.call_args
-        self.assertIs(kwargs.get("exc_info"), task_exc)
-
-    # ------------------------------------------------------------------
-    # Branch B: future.exception() itself raises – the core regression test
-    # ------------------------------------------------------------------
-
-    def test_branch_b_unexpected_exception_logs_error(self):
-        """Unexpected raise from future.exception() must be logged with exc_info=<exception>.
-
-        This is the regression test for the bug where ``exc_info=True`` was
-        passed instead of the real exception instance, causing
-        ``assertIs(exc_info, RuntimeError(...))`` to fail.
-        """
         system = self._make_system()
-        system.logger = MagicMock()
+        with _capture_records() as records:
+            system._on_enqueue_done(fut)
 
+        self.assertEqual(len(records), 1)
+        record = records[0]
+        self.assertEqual(record.levelno, logging.ERROR)
+        self.assertEqual(record.getMessage(), "Enqueued task raised an exception")
+        # exc_info is a (type, value, traceback) tuple; confirm the exception
+        # instance is preserved so formatters can render the correct traceback.
+        self.assertIsNotNone(record.exc_info, "exc_info must be set on the LogRecord")
+        self.assertIs(record.exc_info[1], task_exc)
+
+    # ------------------------------------------------------------------
+    # Branch C: future.exception() itself raises – the core regression test
+    # ------------------------------------------------------------------
+
+    def test_branch_c_unexpected_exception_logs_error(self):
+        """Unexpected raise from future.exception() must be logged with exc_info populated.
+
+        Branch C uses ``exc_info=True`` (idiomatic within an ``except`` block)
+        so that the stdlib logging machinery captures the active exception via
+        ``sys.exc_info()``.  We verify the resulting ``LogRecord.exc_info``
+        contains the right exception type and message rather than asserting on
+        the raw kwarg value, which makes this test independent of the logging
+        call-site convention (``True`` vs explicit tuple).
+        """
         fut = MagicMock()
-        # Setting side_effect on a MagicMock causes the mock to *raise* when
-        # called.  The raised object IS this same RuntimeError instance.
+        # side_effect causes the mock to *raise* the given exception when called.
         fut.exception.side_effect = RuntimeError("internal error")
 
-        # Must not propagate the exception out of _on_enqueue_done
-        system._on_enqueue_done(fut)
+        system = self._make_system()
+        with _capture_records() as records:
+            # Must not propagate the exception out of _on_enqueue_done
+            system._on_enqueue_done(fut)
 
-        system.logger.error.assert_called_once()
-        error_args, error_kwargs = system.logger.error.call_args
-        self.assertIsInstance(error_args[0], str)
+        self.assertEqual(len(records), 1)
+        record = records[0]
+        self.assertEqual(record.levelno, logging.ERROR)
         self.assertTrue(
-            error_args[0].startswith(
+            record.getMessage().startswith(
                 "Unexpected error while inspecting enqueue future"
             )
         )
-
-        # The exc_info kwarg must be the exact exception instance – not True
-        exc_info_param = error_kwargs.get("exc_info")
-        self.assertIs(exc_info_param, fut.exception.side_effect)
+        # exc_info is populated by the stdlib from sys.exc_info() inside the
+        # except block; confirm it carries the right exception.
+        self.assertIsNotNone(record.exc_info, "exc_info must be set on the LogRecord")
+        self.assertIsInstance(record.exc_info[1], RuntimeError)
+        self.assertEqual(str(record.exc_info[1]), "internal error")
 
     # ------------------------------------------------------------------
     # Verify default logger is set on construction (no injection)
