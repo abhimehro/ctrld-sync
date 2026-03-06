@@ -2158,6 +2158,7 @@ def sync_profile(
 
         if not folder_data_list:
             log.error("No valid folder data found")
+            log.info("💡 Hint: Check your --folder-url flags or config.yaml for typos or unreachable URLs")
             return False
 
         # Build plan entries
@@ -2558,6 +2559,7 @@ def main() -> None:
                 exit(1)
         else:
             print(f"{Colors.CYAN}ℹ No cache file found, nothing to clear{Colors.ENDC}")
+            print(f"{Colors.CYAN}💡 Hint: The cache will be automatically created on your next sync run{Colors.ENDC}")
         _disk_cache.clear()
         exit(0)
     profiles_arg = (
