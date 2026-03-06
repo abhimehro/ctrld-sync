@@ -1609,8 +1609,11 @@ def get_all_existing_rules(
             for rule in root_rules:
                 if rule.get("PK"):
                     all_rules.add(rule["PK"])
-        except httpx.HTTPError:
-            pass
+        except httpx.HTTPError as e:
+            log.debug(
+                "Could not fetch root-level rules (will proceed with folder rules only): %s",
+                sanitize_for_log(e),
+            )
 
         # Get rules from folders in parallel
         # Optimization: Use known_folders if provided to avoid redundant API call

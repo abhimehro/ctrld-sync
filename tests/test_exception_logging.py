@@ -224,5 +224,26 @@ class TestExceptionLogging(unittest.TestCase):
             )
 
 
+    @patch("main.log")
+    def test_root_rules_http_error_logs_debug(self, mock_log):
+        """Test that an HTTPError during root-rules fetch emits a DEBUG log."""
+        client = MagicMock()
+        profile_id = "test_profile"
+
+        with patch("main._api_get") as mock_api_get:
+            mock_api_get.side_effect = httpx.HTTPError("connection failed")
+
+            main.get_all_existing_rules(client, profile_id, known_folders={})
+
+        # A debug log should have been emitted
+        self.assertTrue(mock_log.debug.called, "log.debug should have been called")
+
+        debug_calls = mock_log.debug.call_args_list
+        found = any(
+            "root-level rules" in str(call) for call in debug_calls
+        )
+        self.assertTrue(found, "Expected debug message about root-level rules not found")
+
+
 if __name__ == "__main__":
     unittest.main()
