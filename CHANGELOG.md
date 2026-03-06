@@ -41,8 +41,11 @@
 
 **Closed issues:**
 
+- \[Code Quality\] Document `fix_env.py` public interface: add docstring to `fix_env()` and `__all__` [\#573](https://github.com/abhimehro/ctrld-sync/issues/573)
 - \[repo-status\] Daily Repo Status — March 5, 2026 🚀 [\#571](https://github.com/abhimehro/ctrld-sync/issues/571)
 - \[Code Quality\] Replace `try/except pass` with `contextlib.suppress` in `_parse_rate_limit_headers` [\#570](https://github.com/abhimehro/ctrld-sync/issues/570)
+- \[Code Quality\] Add unit tests for `render_progress_bar` and `_get_progress_bar_width` [\#569](https://github.com/abhimehro/ctrld-sync/issues/569)
+- \[Code Quality\] Add \_CONNECT\_ERROR\_HINT for httpx.ConnectError in api\_client retry logic [\#557](https://github.com/abhimehro/ctrld-sync/issues/557)
 - \[repo-status\] Daily Repo Status — March 4, 2026 🚀 [\#548](https://github.com/abhimehro/ctrld-sync/issues/548)
 - \[Code Quality\] Add actionable warning logs for 4xx auth/client errors in api\_client.py retry paths [\#547](https://github.com/abhimehro/ctrld-sync/issues/547)
 - \[Code Quality\] Add ruff `PERF` \(perflint\) rules to catch performance anti-patterns [\#546](https://github.com/abhimehro/ctrld-sync/issues/546)
@@ -184,7 +187,10 @@
 
 **Merged pull requests:**
 
+- docs\(fix\_env\): add `__all__` and docstring to `fix_env()` [\#578](https://github.com/abhimehro/ctrld-sync/pull/578) ([Copilot](https://github.com/apps/copilot-swe-agent))
+- Add `_CONNECT_ERROR_HINT` for `httpx.ConnectError` in retry logic [\#577](https://github.com/abhimehro/ctrld-sync/pull/577) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - Replace try/except pass with contextlib.suppress in \_parse\_rate\_limit\_headers [\#575](https://github.com/abhimehro/ctrld-sync/pull/575) ([Copilot](https://github.com/apps/copilot-swe-agent))
+- Add unit tests for `_get_progress_bar_width` and `render_progress_bar` [\#574](https://github.com/abhimehro/ctrld-sync/pull/574) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - 🎨 Palette: Add empty state hint with call-to-action [\#572](https://github.com/abhimehro/ctrld-sync/pull/572) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: optimize plan rule counting memory usage [\#567](https://github.com/abhimehro/ctrld-sync/pull/567) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[HIGH\] Fix TOCTOU symlink vulnerability in temporary file creation [\#558](https://github.com/abhimehro/ctrld-sync/pull/558) ([abhimehro](https://github.com/abhimehro))
