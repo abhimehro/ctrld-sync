@@ -14,7 +14,7 @@ def fix_env():
     Writes the corrected values back using an atomic O_EXCL temp-file replace
     with 0o600 permissions to prevent symlink attacks and privilege escalation.
 
-    Prints a status message and exits silently if `.env` is not found.
+    Prints a notice and returns early if `.env` is not found.
     """
     try:
         with open(".env") as f:
