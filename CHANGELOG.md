@@ -187,6 +187,7 @@
 
 **Merged pull requests:**
 
+- fix: correct exc\_info usage in AlertSystem.\_on\_enqueue\_done and validate via real LogRecord [\#580](https://github.com/abhimehro/ctrld-sync/pull/580) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - docs\(fix\_env\): add `__all__` and docstring to `fix_env()` [\#578](https://github.com/abhimehro/ctrld-sync/pull/578) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - Add `_CONNECT_ERROR_HINT` for `httpx.ConnectError` in retry logic [\#577](https://github.com/abhimehro/ctrld-sync/pull/577) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - Replace try/except pass with contextlib.suppress in \_parse\_rate\_limit\_headers [\#575](https://github.com/abhimehro/ctrld-sync/pull/575) ([Copilot](https://github.com/apps/copilot-swe-agent))
