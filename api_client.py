@@ -135,10 +135,8 @@ def _parse_rate_limit_headers(response: httpx.Response) -> None:
         with _rate_limit_lock:
             # X-RateLimit-Limit: Total requests allowed per window
             if "X-RateLimit-Limit" in headers:
-                try:
+                with contextlib.suppress(ValueError, TypeError):
                     _rate_limit_info["limit"] = int(headers["X-RateLimit-Limit"])
-                except (ValueError, TypeError):
-                    pass  # Invalid value, ignore
 
             # X-RateLimit-Remaining: Requests left in current window
             if "X-RateLimit-Remaining" in headers:
