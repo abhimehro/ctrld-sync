@@ -251,10 +251,12 @@ def _retry_request(
                     # Check for Retry-After header (in seconds)
                     retry_after = e.response.headers.get("Retry-After")
                     if retry_after:
-                        try:
-                            # Retry-After can be seconds or HTTP date
-                            # Try parsing as int (seconds) first
+                        # Retry-After can be seconds or HTTP date format.
+                        # Only suppress ValueError from int() parsing; leave all other logic outside.
+                        wait_seconds: int | None = None
+                        with contextlib.suppress(ValueError):
                             wait_seconds = int(retry_after)
+                        if wait_seconds is not None:
                             log.warning(
                                 f"Rate limited (429). Server requests {wait_seconds}s wait "
                                 f"(attempt {attempt + 1}/{max_retries})"
@@ -263,9 +265,6 @@ def _retry_request(
                                 time.sleep(wait_seconds)
                                 continue  # Retry after waiting
                             raise  # Max retries exceeded
-                        except ValueError:
-                            # Retry-After might be HTTP date format, ignore for now
-                            pass
 
                 # Don't retry other 4xx errors (auth failures, bad requests, etc.)
                 if 400 <= code < 500 and code != 429:
