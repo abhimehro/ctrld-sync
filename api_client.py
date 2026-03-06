@@ -251,9 +251,12 @@ def _retry_request(
                     # Check for Retry-After header (in seconds)
                     retry_after = e.response.headers.get("Retry-After")
                     if retry_after:
-                        # Retry-After can be seconds or HTTP date; suppress if not an integer
+                        # Retry-After can be seconds or HTTP date format.
+                        # Only suppress ValueError from int() parsing; leave all other logic outside.
+                        wait_seconds: int | None = None
                         with contextlib.suppress(ValueError):
                             wait_seconds = int(retry_after)
+                        if wait_seconds is not None:
                             log.warning(
                                 f"Rate limited (429). Server requests {wait_seconds}s wait "
                                 f"(attempt {attempt + 1}/{max_retries})"
