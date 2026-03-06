@@ -710,10 +710,10 @@ FOLDER_CREATION_DELAY = 5  # <--- CHANGED: Increased from 2 to 5 for patience
 MAX_RESPONSE_SIZE = 10 * 1024 * 1024  # 10MB limit
 
 # Maps common HTTP status codes to actionable operator guidance surfaced in error messages.
+# 4xx hints (401, 403, 404) are sourced from api_client._4XX_HINTS to ensure a single
+# source of truth — updating the hint text in api_client automatically propagates here.
 _STATUS_HINTS: dict[int, str] = {
-    401: "Check that your TOKEN environment variable is correct.",
-    403: "Access denied — verify your token has the required permissions.",
-    404: "Folder or resource not found — check folder IDs in config.",
+    **api_client._4XX_HINTS,  # single source of truth for 401, 403, 404
     429: "Rate limited — the sync will retry automatically with backoff.",
     500: "Control D API error — try again later or check status.controld.com.",
 }

@@ -18,6 +18,7 @@ import httpx
 import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import api_client
 import main
 
 
@@ -62,6 +63,14 @@ class TestStatusHintsDict:
     def test_unknown_code_not_in_hints(self):
         # Codes not in the dict should gracefully fall back via .get()
         assert main._STATUS_HINTS.get(418, "HTTP 418") == "HTTP 418"
+
+    def test_4xx_hints_are_single_source_of_truth(self):
+        """_STATUS_HINTS must reuse _4XX_HINTS values for 401/403/404 (no drift)."""
+        for code in (401, 403, 404):
+            assert main._STATUS_HINTS[code] == api_client._4XX_HINTS[code], (
+                f"_STATUS_HINTS[{code}] differs from api_client._4XX_HINTS[{code}]; "
+                "update one dict — not both — to keep them in sync."
+            )
 
 
 class TestFetchFolderDataHints:
