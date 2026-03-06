@@ -292,16 +292,19 @@ def _retry_request(
             # Spreads retries evenly across the full window to prevent thundering herd
             wait_time = retry_with_jitter(attempt, base_delay=delay)
 
-            hint = f" | hint: {_TIMEOUT_HINT}" if isinstance(e, httpx.TimeoutException) else (
-                f" | hint: {_SERVER_ERROR_HINT}"
-                if (
-                    isinstance(e, httpx.HTTPStatusError)
-                    and hasattr(e, "response")
-                    and e.response is not None
-                    and e.response.status_code >= 500
-                )
-                else ""
-            )
+            if isinstance(e, httpx.TimeoutException):
+                # Timeout-specific hint to help users understand transient network issues
+                hint = f" | hint: {_TIMEOUT_HINT}"
+            elif (
+                isinstance(e, httpx.HTTPStatusError)
+                and hasattr(e, "response")
+                and e.response is not None
+                and e.response.status_code >= 500
+            ):
+                # Server-side error hint for 5xx responses
+                hint = f" | hint: {_SERVER_ERROR_HINT}"
+            else:
+                hint = ""
             log.warning(
                 f"Request failed (attempt {attempt + 1}/{max_retries}): "
                 f"{_sanitize_fn(e)}{hint}. Retrying in {wait_time:.2f}s..."
