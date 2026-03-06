@@ -185,6 +185,14 @@ class JsonFormatter(logging.Formatter):
             "logger": record.name,
             "message": record.getMessage(),
         }
+        if record.exc_info:
+            # Mirror stdlib logging.Formatter behavior:
+            # cache the formatted exception in record.exc_text so that
+            # other formatters/handlers don't need to reformat it.
+            if not record.exc_text:
+                record.exc_text = self.formatException(record.exc_info)
+            if record.exc_text:
+                payload["exc"] = record.exc_text
         return json.dumps(payload)
 
 

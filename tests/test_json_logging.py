@@ -2,6 +2,7 @@
 
 import json
 import logging
+import sys
 import unittest
 
 import main
@@ -83,6 +84,34 @@ class TestJsonFormatter(unittest.TestCase):
     def test_json_formatter_class_exists(self):
         """main.JsonFormatter must be importable and a logging.Formatter subclass."""
         self.assertTrue(issubclass(main.JsonFormatter, logging.Formatter))
+
+    def test_exc_info_field_present_on_exception_records(self):
+        """exc field must be present when record carries exc_info."""
+        formatter = main.JsonFormatter()
+        try:
+            raise ValueError("boom")
+        except ValueError:
+            exc_info = sys.exc_info()
+        record = logging.LogRecord(
+            name="test-logger",
+            level=logging.ERROR,
+            pathname="",
+            lineno=0,
+            msg="something went wrong",
+            args=(),
+            exc_info=exc_info,
+        )
+        parsed = json.loads(formatter.format(record))
+        self.assertIn("exc", parsed)
+        self.assertIn("ValueError", parsed["exc"])
+        self.assertIn("boom", parsed["exc"])
+
+    def test_no_exc_field_for_non_exception_records(self):
+        """exc field must be absent when no exception is attached."""
+        formatter = main.JsonFormatter()
+        record = self._make_record("normal info message")
+        parsed = json.loads(formatter.format(record))
+        self.assertNotIn("exc", parsed)
 
 
 if __name__ == "__main__":
