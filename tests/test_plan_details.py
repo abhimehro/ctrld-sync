@@ -55,6 +55,7 @@ def test_print_plan_details_empty_folders(capsys):
 
     assert "Plan Details for test_profile:" in output
     assert "No folders to sync." in output
+    assert "Hint: Add folder URLs using --folder-url or in your config.yaml" in output
 
 
 def test_print_plan_details_with_colors(capsys):

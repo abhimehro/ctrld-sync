@@ -13,3 +13,7 @@
 ## 2025-03-05 - [CLI Progress Line Residue]
 **Learning:** When using carriage return (`\r`) to animate CLI progress bars or countdowns, shrinking strings (e.g., transitioning from "10s" to "9s") leave visible ghost characters (residue) at the end of the line if not explicitly cleared.
 **Action:** Always prefix carriage-return updates with the ANSI clear-line sequence (`\033[K`) to ensure the entire line is cleanly re-rendered.
+
+## 2025-03-05 - [CLI Empty States]
+**Learning:** Presenting a simple "Nothing to do" message when an operation is empty leaves the user without guidance.
+**Action:** When presenting empty states in the CLI (e.g., no items to process), always provide actionable hints or call-to-actions, such as suggesting relevant CLI flags or configuration edits.

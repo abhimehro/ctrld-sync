@@ -380,8 +380,10 @@ def print_plan_details(plan_entry: dict[str, Any]) -> None:
     if not folders:
         if USE_COLORS:
             print(f"  {Colors.WARNING}No folders to sync.{Colors.ENDC}")
+            print(f"  {Colors.CYAN}💡 Hint: Add folder URLs using --folder-url or in your config.yaml{Colors.ENDC}")
         else:
             print("  No folders to sync.")
+            print("  Hint: Add folder URLs using --folder-url or in your config.yaml")
         return
 
     # Calculate max width for alignment
