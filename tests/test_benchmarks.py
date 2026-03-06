@@ -1,9 +1,11 @@
+import pytest
 import json
 import sys
 import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import main
+import httpx
 
 
 # Benchmark pre-compiled regex validation (already optimized per discussion #219)
@@ -51,3 +53,34 @@ def test_benchmark_sanitize_for_log(benchmark):
     result = benchmark(main.sanitize_for_log, url)
     assert "supersecret" not in result
     assert "abc123" not in result
+
+
+@pytest.mark.benchmark
+@pytest.mark.parametrize(
+    "overlap_ratio",
+    [0.0, 0.9],
+    ids=["no_overlap", "high_overlap"]
+)
+def test_push_rules_benchmark_10k(benchmark, overlap_ratio):
+    """Benchmark pushing 10,000 rules with varying overlap."""
+    hostnames = [f"example{i}.com" for i in range(10_000)]
+
+    num_existing = int(len(hostnames) * overlap_ratio)
+    existing_rules = {f"example{i}.com" for i in range(num_existing)}
+
+    profile_id = "benchmark-profile-id"
+    folder_name = "benchmark-folder"
+    folder_id = "benchmark-folder-id"
+
+    class DummyClient(httpx.Client):
+        def post(self, url, **kwargs):
+            class Response:
+                status_code = 200
+                headers = {}
+                def json(self): return {}
+                def raise_for_status(self): pass
+            return Response()
+
+    mock_client = DummyClient()
+
+    benchmark(main.push_rules, profile_id, folder_name, folder_id, 1, 1, hostnames, existing_rules, mock_client)

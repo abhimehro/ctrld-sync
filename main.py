@@ -34,6 +34,7 @@ import time
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, cast
+import typing
 from collections.abc import Callable, Sequence
 from urllib.parse import urlparse
 
@@ -1885,6 +1886,15 @@ def push_rules(
     # (which could be millions of items) for every folder processed.
     unique_hostnames_dict = dict.fromkeys(hostnames)
 
+    # We use a C-optimized list comprehension to filter out existing rules quickly,
+    # bypassing the Python loop overhead for the vast majority of items that are already synced.
+    # FAST-PATH: If existing_rules is empty (e.g., first sync), avoid the list allocation.
+    new_hostnames: typing.Iterable[str]
+    if not existing_rules:
+        new_hostnames = unique_hostnames_dict
+    else:
+        new_hostnames = [h for h in unique_hostnames_dict if h not in existing_rules]
+
     filtered_hostnames: list[str] = []
     skipped_unsafe = 0
 
@@ -1892,11 +1902,7 @@ def push_rules(
     match_rule = RULE_PATTERN.match
     append = filtered_hostnames.append
 
-    for h in unique_hostnames_dict:
-        # Skip if rule already exists remotely
-        if h in existing_rules:
-            continue
-
+    for h in new_hostnames:
         if not match_rule(h):
             log.warning(
                 f"Skipping unsafe rule in {sanitize_for_log(folder_name)}: {sanitize_for_log(h)}"
