@@ -34,6 +34,7 @@ import time
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, cast
+import typing
 from collections.abc import Callable, Sequence
 from urllib.parse import urlparse
 
@@ -1888,6 +1889,7 @@ def push_rules(
     # We use a C-optimized list comprehension to filter out existing rules quickly,
     # bypassing the Python loop overhead for the vast majority of items that are already synced.
     # FAST-PATH: If existing_rules is empty (e.g., first sync), avoid the list allocation.
+    new_hostnames: typing.Iterable[str]
     if not existing_rules:
         new_hostnames = unique_hostnames_dict
     else:
