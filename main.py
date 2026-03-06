@@ -1591,7 +1591,12 @@ def get_all_existing_rules(
             data = _api_get(client, f"{API_BASE}/{profile_id}/rules/{folder_id}").json()
             folder_rules = data.get("body", {}).get("rules", [])
             return [rule["PK"] for rule in folder_rules if rule.get("PK")]
-        except httpx.HTTPError:
+        except httpx.HTTPError as e:
+            log.debug(
+                "Could not fetch rules for folder %s (will skip): %s",
+                folder_id,
+                sanitize_for_log(e),
+            )
             return []
         except Exception as e:
             # We log error but don't stop the whole process;
