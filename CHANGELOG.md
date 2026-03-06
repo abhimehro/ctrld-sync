@@ -41,6 +41,8 @@
 
 **Closed issues:**
 
+- \[Code Quality\] Add debug log to silent `except httpx.HTTPError: pass` in `get_all_existing_rules()` root fetch [\#589](https://github.com/abhimehro/ctrld-sync/issues/589)
+- \[Code Quality\] Replace `except ValueError: pass` with `contextlib.suppress` in `_retry_request` 429 handler [\#588](https://github.com/abhimehro/ctrld-sync/issues/588)
 - \[Code Quality\] Deduplicate hint messages between main.\_STATUS\_HINTS and api\_client.\_4XX\_HINTS [\#584](https://github.com/abhimehro/ctrld-sync/issues/584)
 - \[Code Quality\] Document `fix_env.py` public interface: add docstring to `fix_env()` and `__all__` [\#573](https://github.com/abhimehro/ctrld-sync/issues/573)
 - \[repo-status\] Daily Repo Status — March 5, 2026 🚀 [\#571](https://github.com/abhimehro/ctrld-sync/issues/571)
@@ -51,6 +53,7 @@
 - \[repo-status\] Daily Repo Status — March 4, 2026 🚀 [\#548](https://github.com/abhimehro/ctrld-sync/issues/548)
 - \[Code Quality\] Add actionable warning logs for 4xx auth/client errors in api\_client.py retry paths [\#547](https://github.com/abhimehro/ctrld-sync/issues/547)
 - \[Code Quality\] Add ruff `PERF` \(perflint\) rules to catch performance anti-patterns [\#546](https://github.com/abhimehro/ctrld-sync/issues/546)
+- \[Code Quality\] Add exception info to JsonFormatter for error-level log records [\#541](https://github.com/abhimehro/ctrld-sync/issues/541)
 - \[Code Quality\] Align `cache.py` sanitization with `api_client.py` injection pattern for consistent token redaction [\#536](https://github.com/abhimehro/ctrld-sync/issues/536)
 - \[Code Quality\] Add `__all__` exports to `api_client.py` and `cache.py` to define explicit public APIs [\#535](https://github.com/abhimehro/ctrld-sync/issues/535)
 - \[Code Quality\] Configure ruff lint rules in pyproject.toml to catch dead code and return-path bugs [\#528](https://github.com/abhimehro/ctrld-sync/issues/528)
@@ -189,6 +192,9 @@
 
 **Merged pull requests:**
 
+- Add exc field to JsonFormatter for exception log records [\#599](https://github.com/abhimehro/ctrld-sync/pull/599) ([Copilot](https://github.com/apps/copilot-swe-agent))
+- Add debug log to silent `except httpx.HTTPError` in `get_all_existing_rules()` \(root and folder fetches\) [\#598](https://github.com/abhimehro/ctrld-sync/pull/598) ([Copilot](https://github.com/apps/copilot-swe-agent))
+- refactor\(api\_client\): replace `except ValueError: pass` with `contextlib.suppress` in `_retry_request` [\#597](https://github.com/abhimehro/ctrld-sync/pull/597) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - 🎨 Palette: Add actionable hints to empty states [\#596](https://github.com/abhimehro/ctrld-sync/pull/596) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Optimize push\_rules with list comprehension filter [\#591](https://github.com/abhimehro/ctrld-sync/pull/591) ([abhimehro](https://github.com/abhimehro))
 - fix: deduplicate 4xx hint messages via api\_client.\_4XX\_HINTS \(\#584\) [\#587](https://github.com/abhimehro/ctrld-sync/pull/587) ([github-actions[bot]](https://github.com/apps/github-actions))
