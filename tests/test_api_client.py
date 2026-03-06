@@ -8,6 +8,7 @@ Covers:
 - 429 behavior is unchanged (no log.warning from 4xx branch)
 - _sanitize_fn is applied to the exception in the warning message
 - ConnectError hint (_CONNECT_ERROR_HINT) is surfaced in retry warning logs
+- _SERVER_ERROR_HINT is emitted for 5xx responses (500, 503)
 """
 
 import logging
@@ -19,7 +20,7 @@ import pytest
 import api_client
 
 
-def _make_4xx_error(status_code: int) -> httpx.HTTPStatusError:
+def _make_http_error(status_code: int) -> httpx.HTTPStatusError:
     """Create a minimal HTTPStatusError with the given status code."""
     mock_response = MagicMock(spec=httpx.Response)
     mock_response.status_code = status_code
@@ -57,7 +58,7 @@ class TestRetryRequestFourXXWarnings:
     """Verify _retry_request() emits log.warning() for 4xx errors before re-raising."""
 
     def test_401_warning_logged(self, caplog):
-        error = _make_4xx_error(401)
+        error = _make_http_error(401)
         request_func = MagicMock(side_effect=error)
 
         with caplog.at_level(logging.WARNING, logger="api_client"):
@@ -71,7 +72,7 @@ class TestRetryRequestFourXXWarnings:
         assert "TOKEN" in warning_text
 
     def test_403_warning_logged(self, caplog):
-        error = _make_4xx_error(403)
+        error = _make_http_error(403)
         request_func = MagicMock(side_effect=error)
 
         with caplog.at_level(logging.WARNING, logger="api_client"):
@@ -85,7 +86,7 @@ class TestRetryRequestFourXXWarnings:
         assert "permission" in warning_text.lower()
 
     def test_404_warning_logged(self, caplog):
-        error = _make_4xx_error(404)
+        error = _make_http_error(404)
         request_func = MagicMock(side_effect=error)
 
         with caplog.at_level(logging.WARNING, logger="api_client"):
@@ -100,7 +101,7 @@ class TestRetryRequestFourXXWarnings:
 
     def test_other_4xx_warning_logged_without_hint(self, caplog):
         """HTTP 400 should still log a warning but without a hint suffix."""
-        error = _make_4xx_error(400)
+        error = _make_http_error(400)
         request_func = MagicMock(side_effect=error)
 
         with caplog.at_level(logging.WARNING, logger="api_client"):
@@ -141,7 +142,7 @@ class TestRetryRequestFourXXWarnings:
 
     def test_sanitize_fn_applied_to_exception(self, caplog):
         """The exception in the warning message passes through _sanitize_fn."""
-        error = _make_4xx_error(401)
+        error = _make_http_error(401)
 
         with patch.object(api_client, "_sanitize_fn", side_effect=lambda x: f"SANITIZED({str(x)})"):
             request_func = MagicMock(side_effect=error)
@@ -162,6 +163,9 @@ class TestConnectErrorHint:
         assert hasattr(api_client, "_CONNECT_ERROR_HINT")
         assert "Connection failed" in api_client._CONNECT_ERROR_HINT
 
+    def test_connect_error_hint_in_all(self):
+        assert "_CONNECT_ERROR_HINT" in api_client.__all__
+
     def test_connect_error_hint_in_retry_warning(self, caplog):
         """ConnectError during a retry attempt should surface the connect-error hint."""
         mock_request = MagicMock(spec=httpx.Request)
@@ -176,3 +180,64 @@ class TestConnectErrorHint:
         assert warnings, "Expected a WARNING log for ConnectError"
         warning_text = warnings[0].message
         assert "hint: Connection failed" in warning_text
+
+
+class TestServerErrorHint:
+    """Verify _SERVER_ERROR_HINT is defined and emitted on 5xx retries."""
+
+    def test_server_error_hint_constant_exists(self):
+        assert hasattr(api_client, "_SERVER_ERROR_HINT")
+        assert "Server error" in api_client._SERVER_ERROR_HINT
+        assert "status.controld.com" in api_client._SERVER_ERROR_HINT
+
+    def test_server_error_hint_in_all(self):
+        assert "_SERVER_ERROR_HINT" in api_client.__all__
+
+    def test_500_retry_warning_includes_hint(self, caplog):
+        """A 500 response that is retried should include the server error hint."""
+        error = _make_http_error(500)
+        request_func = MagicMock(side_effect=error)
+
+        with caplog.at_level(logging.WARNING, logger="api_client"):
+            with pytest.raises(httpx.HTTPStatusError):
+                api_client._retry_request(request_func, max_retries=2, delay=0.01)
+
+        retry_warnings = [
+            r for r in caplog.records
+            if r.levelname == "WARNING" and "Retrying" in r.message
+        ]
+        assert retry_warnings, "Expected a retry WARNING for HTTP 500"
+        assert "hint: Server error" in retry_warnings[0].message
+
+    def test_503_retry_warning_includes_hint(self, caplog):
+        """A 503 response that is retried should also include the server error hint."""
+        error = _make_http_error(503)
+        request_func = MagicMock(side_effect=error)
+
+        with caplog.at_level(logging.WARNING, logger="api_client"):
+            with pytest.raises(httpx.HTTPStatusError):
+                api_client._retry_request(request_func, max_retries=2, delay=0.01)
+
+        retry_warnings = [
+            r for r in caplog.records
+            if r.levelname == "WARNING" and "Retrying" in r.message
+        ]
+        assert retry_warnings, "Expected a retry WARNING for HTTP 503"
+        assert "hint: Server error" in retry_warnings[0].message
+
+    def test_timeout_hint_unchanged(self, caplog):
+        """_TIMEOUT_HINT should still appear for TimeoutException, not _SERVER_ERROR_HINT."""
+        error = httpx.TimeoutException("timed out", request=MagicMock())
+        request_func = MagicMock(side_effect=error)
+
+        with caplog.at_level(logging.WARNING, logger="api_client"):
+            with pytest.raises(httpx.TimeoutException):
+                api_client._retry_request(request_func, max_retries=2, delay=0.01)
+
+        retry_warnings = [
+            r for r in caplog.records
+            if r.levelname == "WARNING" and "Retrying" in r.message
+        ]
+        assert retry_warnings
+        assert api_client._TIMEOUT_HINT in retry_warnings[0].message
+        assert "Server error" not in retry_warnings[0].message
