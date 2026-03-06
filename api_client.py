@@ -39,6 +39,7 @@ __all__ = [
     "MAX_RETRY_DELAY",
     "retry_with_jitter",
     "_TIMEOUT_HINT",      # imported by main.py for use outside _retry_request
+    "_CONNECT_ERROR_HINT",  # exported for reuse outside _retry_request
     "_SERVER_ERROR_HINT", # companion to _TIMEOUT_HINT; exported for use in main.py if needed
     "_api_stats",         # accessed by main.py for metrics reporting
     "_api_stats_lock",
@@ -66,6 +67,12 @@ _TIMEOUT_HINT = "Connection timed out. Check your network and the Control D API 
 _SERVER_ERROR_HINT = (
     "Server error. The Control D API may be experiencing issues; "
     "check https://status.controld.com and try again later."
+)
+
+# Actionable guidance for transport-layer connection failures (DNS, refused, unreachable)
+_CONNECT_ERROR_HINT = (
+    "Connection failed. Check your network connection and DNS resolution, "
+    "and verify the Control D API is reachable."
 )
 
 # Actionable guidance for 4xx client errors logged as warnings before re-raising
@@ -295,6 +302,8 @@ def _retry_request(
             if isinstance(e, httpx.TimeoutException):
                 # Timeout-specific hint to help users understand transient network issues
                 hint = f" | hint: {_TIMEOUT_HINT}"
+            elif isinstance(e, httpx.ConnectError):
+                hint = f" | hint: {_CONNECT_ERROR_HINT}"
             elif (
                 isinstance(e, httpx.HTTPStatusError)
                 and hasattr(e, "response")

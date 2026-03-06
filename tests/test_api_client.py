@@ -7,6 +7,7 @@ Covers:
 - log.warning() is emitted for other 4xx codes without a hint suffix
 - 429 behavior is unchanged (no log.warning from 4xx branch)
 - _sanitize_fn is applied to the exception in the warning message
+- ConnectError hint (_CONNECT_ERROR_HINT) is surfaced in retry warning logs
 - _SERVER_ERROR_HINT is emitted for 5xx responses (500, 503)
 """
 
@@ -153,6 +154,29 @@ class TestRetryRequestFourXXWarnings:
         warnings = [r for r in caplog.records if r.levelname == "WARNING"]
         assert warnings
         assert "SANITIZED(" in warnings[0].message
+
+
+class TestConnectErrorHint:
+    """Verify _CONNECT_ERROR_HINT constant and its appearance in retry warnings."""
+
+    def test_connect_error_hint_constant_exists(self):
+        assert hasattr(api_client, "_CONNECT_ERROR_HINT")
+        assert "Connection failed" in api_client._CONNECT_ERROR_HINT
+
+    def test_connect_error_hint_in_retry_warning(self, caplog):
+        """ConnectError during a retry attempt should surface the connect-error hint."""
+        mock_request = MagicMock(spec=httpx.Request)
+        error = httpx.ConnectError("Connection refused", request=mock_request)
+        request_func = MagicMock(side_effect=error)
+
+        with caplog.at_level(logging.WARNING, logger="api_client"):
+            with pytest.raises(httpx.ConnectError):
+                api_client._retry_request(request_func, max_retries=2, delay=0.01)
+
+        warnings = [r for r in caplog.records if r.levelname == "WARNING"]
+        assert warnings, "Expected a WARNING log for ConnectError"
+        warning_text = warnings[0].message
+        assert "hint: Connection failed" in warning_text
 
 
 class TestServerErrorHint:
