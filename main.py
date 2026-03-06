@@ -229,13 +229,17 @@ class AlertSystem:
     ) -> None:
         """Callback invoked when an enqueue future completes.
 
-        Two code paths ("branches") are handled here:
+        Three code paths ("branches") are handled here:
 
-        * **Branch A** – ``future.exception()`` returns ``None`` or the raised
-          exception: normal completion; nothing extra to log.
-        * **Branch B** – ``future.exception()`` itself raises (e.g. the future
+        * **Branch A** – ``future.exception()`` returns ``None``: normal
+          completion; nothing extra is logged.
+        * **Branch B** – ``future.exception()`` returns a non-``None``
+          exception object: we log this as an error and pass the exception
+          instance as ``exc_info`` so that the full traceback is preserved and
+          log handlers (and tests) can inspect the real error.
+        * **Branch C** – ``future.exception()`` itself raises (e.g. the future
           was cancelled before we could inspect it): we catch *that* secondary
-          exception and log it, passing the actual exception instance as
+          exception and log it, again passing the actual exception instance as
           ``exc_info`` so that the full traceback is preserved and callers can
           programmatically inspect the real error.
         """
