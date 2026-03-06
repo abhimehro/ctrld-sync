@@ -41,6 +41,7 @@
 
 **Closed issues:**
 
+- \[Code Quality\] Deduplicate hint messages between main.\_STATUS\_HINTS and api\_client.\_4XX\_HINTS [\#584](https://github.com/abhimehro/ctrld-sync/issues/584)
 - \[Code Quality\] Document `fix_env.py` public interface: add docstring to `fix_env()` and `__all__` [\#573](https://github.com/abhimehro/ctrld-sync/issues/573)
 - \[repo-status\] Daily Repo Status — March 5, 2026 🚀 [\#571](https://github.com/abhimehro/ctrld-sync/issues/571)
 - \[Code Quality\] Replace `try/except pass` with `contextlib.suppress` in `_parse_rate_limit_headers` [\#570](https://github.com/abhimehro/ctrld-sync/issues/570)
@@ -188,6 +189,9 @@
 
 **Merged pull requests:**
 
+- 🎨 Palette: Add actionable hints to empty states [\#596](https://github.com/abhimehro/ctrld-sync/pull/596) ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: Optimize push\_rules with list comprehension filter [\#591](https://github.com/abhimehro/ctrld-sync/pull/591) ([abhimehro](https://github.com/abhimehro))
+- fix: deduplicate 4xx hint messages via api\_client.\_4XX\_HINTS \(\#584\) [\#587](https://github.com/abhimehro/ctrld-sync/pull/587) ([github-actions[bot]](https://github.com/apps/github-actions))
 - fix: correct exc\_info usage in AlertSystem.\_on\_enqueue\_done and validate via real LogRecord [\#580](https://github.com/abhimehro/ctrld-sync/pull/580) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - docs\(fix\_env\): add `__all__` and docstring to `fix_env()` [\#578](https://github.com/abhimehro/ctrld-sync/pull/578) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - Add `_CONNECT_ERROR_HINT` for `httpx.ConnectError` in retry logic [\#577](https://github.com/abhimehro/ctrld-sync/pull/577) ([Copilot](https://github.com/apps/copilot-swe-agent))
