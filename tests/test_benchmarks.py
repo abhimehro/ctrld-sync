@@ -1,6 +1,10 @@
+import time
+import pytest
 import json
 import sys
 import os
+import httpx
+from main import push_rules
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import main
@@ -51,3 +55,29 @@ def test_benchmark_sanitize_for_log(benchmark):
     result = benchmark(main.sanitize_for_log, url)
     assert "supersecret" not in result
     assert "abc123" not in result
+
+
+@pytest.mark.benchmark
+def test_push_rules_benchmark_10k():
+    """Benchmark pushing 10,000 rules."""
+    hostnames = [f"example{i}.com" for i in range(10_000)]
+
+    profile_id = "benchmark-profile-id"
+    folder_name = "benchmark-folder"
+    folder_id = "benchmark-folder-id"
+
+    class DummyClient(httpx.Client):
+        def post(self, url, **kwargs):
+            class Response:
+                status_code = 200
+                headers = {}
+                def json(self): return {}
+                def raise_for_status(self): pass
+            return Response()
+
+    mock_client = DummyClient()
+
+    start = time.perf_counter()
+    push_rules(profile_id, folder_name, folder_id, 1, 1, hostnames, set(), mock_client)
+    elapsed = time.perf_counter() - start
+    assert elapsed < 30.0, f"10k rules took {elapsed:.2f}s (expected <30s)"

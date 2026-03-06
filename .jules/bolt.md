@@ -76,3 +76,7 @@
 ## 2024-05-25 - [Optimize rule counting memory usage]
 **Learning:** In the `sync_profile` function, when computing the length of the list of rules for generating dry run plan output, the previous approach created a list just to count the number of valid `PK` fields via `len([r["PK"] for r in folder_data.get("rules", []) if r.get("PK")])`. Using `sum(1 for r in folder_data.get("rules", []) if r.get("PK"))` prevents allocating that large intermediate list and reduces memory allocations.
 **Action:** Use a generator expression combined with `sum()` when only counting the length of an iterable that is filtered, instead of materializing a whole list.
+
+## 2024-03-24 - [Avoid Python Loop Overhead for Set Differences]
+**Learning:** When iterating over a large list to filter out items that exist in a large set, performing the membership check inside a standard Python `for` loop introduces significant overhead per iteration. Using a C-optimized list comprehension (e.g., `[h for h in items if h not in existing_set]`) to perform the filtering before a subsequent processing loop bypasses this Python overhead for items that are already synced, yielding measurable speedups when the overlap is high (which is typical for blocklist syncing).
+**Action:** Use list comprehensions to pre-filter items against sets before entering more complex processing loops when a high match rate is expected.
