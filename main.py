@@ -2158,7 +2158,10 @@ def sync_profile(
 
         if not folder_data_list:
             log.error("No valid folder data found")
-            log.info("💡 Hint: Check your --folder-url flags or config.yaml for typos or unreachable URLs")
+            log.warning(
+                "💡 Hint: Check your --folder-url flags or your config file "
+                "(see --config, config.yaml, or config.yml) for typos or unreachable URLs"
+            )
             return False
 
         # Build plan entries
