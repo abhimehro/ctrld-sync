@@ -3,8 +3,19 @@ import re
 import stat
 import contextlib
 
+__all__ = ["fix_env"]
+
 
 def fix_env():
+    """Read `.env`, correct swapped TOKEN/PROFILE assignments, and rewrite securely.
+
+    Uses heuristics to detect if TOKEN and PROFILE values have been swapped
+    (e.g., the API key ends up in PROFILE and the profile ID in TOKEN).
+    Writes the corrected values back using an atomic O_EXCL temp-file replace
+    with 0o600 permissions to prevent symlink attacks and privilege escalation.
+
+    Prints a status message and exits silently if `.env` is not found.
+    """
     try:
         with open(".env") as f:
             content = f.read()
