@@ -1883,9 +1883,15 @@ def push_rules(
     # (preserves order) and perform O(1) existence checks against existing_rules.
     # This completely avoids copying the potentially massive existing_rules set
     # (which could be millions of items) for every folder processed.
+    unique_hostnames_dict = dict.fromkeys(hostnames)
+
     # We use a C-optimized list comprehension to filter out existing rules quickly,
     # bypassing the Python loop overhead for the vast majority of items that are already synced.
-    new_hostnames = [h for h in dict.fromkeys(hostnames) if h not in existing_rules]
+    # FAST-PATH: If existing_rules is empty (e.g., first sync), avoid the list allocation.
+    if not existing_rules:
+        new_hostnames = unique_hostnames_dict
+    else:
+        new_hostnames = [h for h in unique_hostnames_dict if h not in existing_rules]
 
     filtered_hostnames: list[str] = []
     skipped_unsafe = 0

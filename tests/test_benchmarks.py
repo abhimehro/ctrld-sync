@@ -1,13 +1,11 @@
-import time
 import pytest
 import json
 import sys
 import os
-import httpx
-from main import push_rules
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import main
+import httpx
 
 
 # Benchmark pre-compiled regex validation (already optimized per discussion #219)
@@ -58,9 +56,17 @@ def test_benchmark_sanitize_for_log(benchmark):
 
 
 @pytest.mark.benchmark
-def test_push_rules_benchmark_10k():
-    """Benchmark pushing 10,000 rules."""
+@pytest.mark.parametrize(
+    "overlap_ratio",
+    [0.0, 0.9],
+    ids=["no_overlap", "high_overlap"]
+)
+def test_push_rules_benchmark_10k(benchmark, overlap_ratio):
+    """Benchmark pushing 10,000 rules with varying overlap."""
     hostnames = [f"example{i}.com" for i in range(10_000)]
+
+    num_existing = int(len(hostnames) * overlap_ratio)
+    existing_rules = {f"example{i}.com" for i in range(num_existing)}
 
     profile_id = "benchmark-profile-id"
     folder_name = "benchmark-folder"
@@ -77,7 +83,4 @@ def test_push_rules_benchmark_10k():
 
     mock_client = DummyClient()
 
-    start = time.perf_counter()
-    push_rules(profile_id, folder_name, folder_id, 1, 1, hostnames, set(), mock_client)
-    elapsed = time.perf_counter() - start
-    assert elapsed < 30.0, f"10k rules took {elapsed:.2f}s (expected <30s)"
+    benchmark(main.push_rules, profile_id, folder_name, folder_id, 1, 1, hostnames, existing_rules, mock_client)
