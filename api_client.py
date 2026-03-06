@@ -63,16 +63,16 @@ MAX_RETRY_DELAY = 60.0  # Maximum retry delay in seconds (caps exponential growt
 # use in functions that don't go through _retry_request).
 _TIMEOUT_HINT = "Connection timed out. Check your network and the Control D API status."
 
-# Actionable guidance for 5xx server errors that are retried but may indicate an outage.
-_SERVER_ERROR_HINT = (
-    "Server error. The Control D API may be experiencing issues; "
-    "check https://status.controld.com and try again later."
-)
-
 # Actionable guidance for transport-layer connection failures (DNS, refused, unreachable)
 _CONNECT_ERROR_HINT = (
     "Connection failed. Check your network connection and DNS resolution, "
     "and verify the Control D API is reachable."
+)
+
+# Actionable guidance for 5xx server errors that are retried but may indicate an outage.
+_SERVER_ERROR_HINT = (
+    "Server error. The Control D API may be experiencing issues; "
+    "check https://status.controld.com and try again later."
 )
 
 # Actionable guidance for 4xx client errors logged as warnings before re-raising
@@ -300,7 +300,6 @@ def _retry_request(
             wait_time = retry_with_jitter(attempt, base_delay=delay)
 
             if isinstance(e, httpx.TimeoutException):
-                # Timeout-specific hint to help users understand transient network issues
                 hint = f" | hint: {_TIMEOUT_HINT}"
             elif isinstance(e, httpx.ConnectError):
                 hint = f" | hint: {_CONNECT_ERROR_HINT}"
