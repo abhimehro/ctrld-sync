@@ -2117,8 +2117,7 @@ def sync_profile(
                 )
             else:
                 # Legacy single-action format
-                # Optimization: Counting valid rules without allocating a full list is faster
-                # Using sum generator expression avoids copying N items just to measure length
+                # OPTIMIZATION: Count valid rules via generator to avoid an intermediate list and lower peak memory use.
                 rules_count = sum(1 for r in folder_data.get("rules", []) if r.get("PK"))
                 plan_entry["folders"].append(
                     {
