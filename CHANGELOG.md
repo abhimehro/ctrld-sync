@@ -183,6 +183,7 @@
 **Merged pull requests:**
 
 - 🎨 Palette: Add empty state hint with call-to-action [\#572](https://github.com/abhimehro/ctrld-sync/pull/572) ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: optimize plan rule counting memory usage [\#567](https://github.com/abhimehro/ctrld-sync/pull/567) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[HIGH\] Fix TOCTOU symlink vulnerability in temporary file creation [\#558](https://github.com/abhimehro/ctrld-sync/pull/558) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Prevent horizontal jitter in CLI animations [\#554](https://github.com/abhimehro/ctrld-sync/pull/554) ([abhimehro](https://github.com/abhimehro))
 - Add PERF \(perflint\) ruff rules and fix performance anti-patterns [\#550](https://github.com/abhimehro/ctrld-sync/pull/550) ([Copilot](https://github.com/apps/copilot-swe-agent))
