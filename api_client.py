@@ -41,6 +41,7 @@ __all__ = [
     "_TIMEOUT_HINT",      # imported by main.py for use outside _retry_request
     "_CONNECT_ERROR_HINT",  # exported for reuse outside _retry_request
     "_SERVER_ERROR_HINT", # companion to _TIMEOUT_HINT; exported for use in main.py if needed
+    "_4XX_HINTS",         # per-status client-error hints; imported by main.py as single source of truth
     "_api_stats",         # accessed by main.py for metrics reporting
     "_api_stats_lock",
     "_rate_limit_info",
