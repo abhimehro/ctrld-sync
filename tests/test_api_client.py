@@ -1,5 +1,5 @@
 """
-Tests for actionable warning logs in api_client._retry_request() 4xx error paths.
+Tests for actionable warning logs in api_client._retry_request() 4xx/5xx error paths.
 
 Covers:
 - _4XX_HINTS dict contains expected codes (401, 403, 404)
@@ -7,6 +7,7 @@ Covers:
 - log.warning() is emitted for other 4xx codes without a hint suffix
 - 429 behavior is unchanged (no log.warning from 4xx branch)
 - _sanitize_fn is applied to the exception in the warning message
+- _SERVER_ERROR_HINT is emitted for 5xx responses (500, 503)
 """
 
 import logging
@@ -18,7 +19,7 @@ import pytest
 import api_client
 
 
-def _make_4xx_error(status_code: int) -> httpx.HTTPStatusError:
+def _make_http_error(status_code: int) -> httpx.HTTPStatusError:
     """Create a minimal HTTPStatusError with the given status code."""
     mock_response = MagicMock(spec=httpx.Response)
     mock_response.status_code = status_code
@@ -56,7 +57,7 @@ class TestRetryRequestFourXXWarnings:
     """Verify _retry_request() emits log.warning() for 4xx errors before re-raising."""
 
     def test_401_warning_logged(self, caplog):
-        error = _make_4xx_error(401)
+        error = _make_http_error(401)
         request_func = MagicMock(side_effect=error)
 
         with caplog.at_level(logging.WARNING, logger="api_client"):
@@ -70,7 +71,7 @@ class TestRetryRequestFourXXWarnings:
         assert "TOKEN" in warning_text
 
     def test_403_warning_logged(self, caplog):
-        error = _make_4xx_error(403)
+        error = _make_http_error(403)
         request_func = MagicMock(side_effect=error)
 
         with caplog.at_level(logging.WARNING, logger="api_client"):
@@ -84,7 +85,7 @@ class TestRetryRequestFourXXWarnings:
         assert "permission" in warning_text.lower()
 
     def test_404_warning_logged(self, caplog):
-        error = _make_4xx_error(404)
+        error = _make_http_error(404)
         request_func = MagicMock(side_effect=error)
 
         with caplog.at_level(logging.WARNING, logger="api_client"):
@@ -99,7 +100,7 @@ class TestRetryRequestFourXXWarnings:
 
     def test_other_4xx_warning_logged_without_hint(self, caplog):
         """HTTP 400 should still log a warning but without a hint suffix."""
-        error = _make_4xx_error(400)
+        error = _make_http_error(400)
         request_func = MagicMock(side_effect=error)
 
         with caplog.at_level(logging.WARNING, logger="api_client"):
@@ -140,7 +141,7 @@ class TestRetryRequestFourXXWarnings:
 
     def test_sanitize_fn_applied_to_exception(self, caplog):
         """The exception in the warning message passes through _sanitize_fn."""
-        error = _make_4xx_error(401)
+        error = _make_http_error(401)
 
         with patch.object(api_client, "_sanitize_fn", side_effect=lambda x: f"SANITIZED({str(x)})"):
             request_func = MagicMock(side_effect=error)
@@ -167,16 +168,7 @@ class TestServerErrorHint:
 
     def test_500_retry_warning_includes_hint(self, caplog):
         """A 500 response that is retried should include the server error hint."""
-        mock_request = MagicMock(spec=httpx.Request)
-        mock_response = MagicMock(spec=httpx.Response)
-        mock_response.status_code = 500
-        mock_response.headers = {}
-        mock_response.text = "Internal Server Error"
-        error = httpx.HTTPStatusError(
-            "500 Internal Server Error",
-            request=mock_request,
-            response=mock_response,
-        )
+        error = _make_http_error(500)
         request_func = MagicMock(side_effect=error)
 
         with caplog.at_level(logging.WARNING, logger="api_client"):
@@ -192,16 +184,7 @@ class TestServerErrorHint:
 
     def test_503_retry_warning_includes_hint(self, caplog):
         """A 503 response that is retried should also include the server error hint."""
-        mock_request = MagicMock(spec=httpx.Request)
-        mock_response = MagicMock(spec=httpx.Response)
-        mock_response.status_code = 503
-        mock_response.headers = {}
-        mock_response.text = "Service Unavailable"
-        error = httpx.HTTPStatusError(
-            "503 Service Unavailable",
-            request=mock_request,
-            response=mock_response,
-        )
+        error = _make_http_error(503)
         request_func = MagicMock(side_effect=error)
 
         with caplog.at_level(logging.WARNING, logger="api_client"):
