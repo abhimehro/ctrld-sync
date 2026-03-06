@@ -221,7 +221,9 @@ class AlertSystem:
     def __init__(self, logger: logging.Logger | None = None) -> None:
         # Allow callers (and tests) to inject a custom logger; fall back to the
         # module-level logger so production behaviour stays unchanged.
-        self.logger = logger or logging.getLogger(__name__)
+        # Use the same named logger as the rest of this module to keep logs
+        # consistent and to honour the "module-level logger" contract.
+        self.logger = logger or logging.getLogger("control-d-sync")
 
     def _on_enqueue_done(  # type: ignore[type-arg]
         self,
