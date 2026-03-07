@@ -115,8 +115,6 @@ class TestJsonFormatter(unittest.TestCase):
         parsed = json.loads(formatter.format(record))
         self.assertNotIn("exc", parsed)
 
-
-
     def test_converter_timestamps(self):
         """Converter should correctly map timestamps to UTC struct_time."""
         test_cases = {
