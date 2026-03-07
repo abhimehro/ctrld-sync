@@ -96,3 +96,89 @@ def test_folder_name_security():
 
     finally:
         main.log = original_log
+
+
+def test_validate_folder_data_rule_pk_types():
+    """
+    Verify that validate_folder_data rejects non-string PK values in rules
+    (top-level and inside rule_groups) and accepts absent or string PK values.
+    """
+    mock_log = MagicMock()
+    original_log = main.log
+    main.log = mock_log
+
+    base_group = {"group": {"group": "Test Folder"}}
+
+    try:
+        # ── Top-level 'rules' list ──────────────────────────────────────────
+
+        # String PK is valid
+        assert main.validate_folder_data(
+            {**base_group, "rules": [{"PK": "example.com"}]},
+            "http://ok.com",
+        ) is True
+
+        # Absent PK is valid (the key simply isn't present)
+        assert main.validate_folder_data(
+            {**base_group, "rules": [{"host": "example.com"}]},
+            "http://ok-no-pk.com",
+        ) is True
+
+        # Numeric PK must be rejected
+        assert main.validate_folder_data(
+            {**base_group, "rules": [{"PK": 12345}]},
+            "http://bad-int-pk.com",
+        ) is False
+
+        # Boolean PK must be rejected
+        assert main.validate_folder_data(
+            {**base_group, "rules": [{"PK": True}]},
+            "http://bad-bool-pk.com",
+        ) is False
+
+        # List PK must be rejected
+        assert main.validate_folder_data(
+            {**base_group, "rules": [{"PK": ["example.com"]}]},
+            "http://bad-list-pk.com",
+        ) is False
+
+        # Non-dict rule entry must be rejected
+        assert main.validate_folder_data(
+            {**base_group, "rules": ["example.com"]},
+            "http://bad-rule-type.com",
+        ) is False
+
+        # ── rule_groups[*].rules list ───────────────────────────────────────
+
+        # String PK inside rule_group is valid
+        assert main.validate_folder_data(
+            {**base_group, "rule_groups": [{"rules": [{"PK": "ads.example.com"}]}]},
+            "http://rg-ok.com",
+        ) is True
+
+        # Absent PK inside rule_group is valid
+        assert main.validate_folder_data(
+            {**base_group, "rule_groups": [{"rules": [{"host": "ads.example.com"}]}]},
+            "http://rg-no-pk.com",
+        ) is True
+
+        # Numeric PK inside rule_group must be rejected
+        assert main.validate_folder_data(
+            {**base_group, "rule_groups": [{"rules": [{"PK": 99}]}]},
+            "http://rg-bad-int-pk.com",
+        ) is False
+
+        # Boolean PK inside rule_group must be rejected
+        assert main.validate_folder_data(
+            {**base_group, "rule_groups": [{"rules": [{"PK": False}]}]},
+            "http://rg-bad-bool-pk.com",
+        ) is False
+
+        # Non-dict rule inside rule_group must be rejected
+        assert main.validate_folder_data(
+            {**base_group, "rule_groups": [{"rules": ["ads.example.com"]}]},
+            "http://rg-bad-rule-type.com",
+        ) is False
+
+    finally:
+        main.log = original_log

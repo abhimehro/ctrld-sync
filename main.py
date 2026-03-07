@@ -34,7 +34,7 @@ import threading
 import time
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, TypedDict, TypeGuard, cast
+from typing import Any, NotRequired, TypedDict, TypeGuard, cast
 import typing
 from collections.abc import Callable, Sequence
 from urllib.parse import urlparse
@@ -101,12 +101,12 @@ class FolderAction(TypedDict, total=False):
     status: int
 
 
-class FolderGroup(TypedDict, total=False):
+class FolderGroup(TypedDict):
     """The 'group' object inside a folder JSON response."""
 
     group: str  # folder display name (required in valid data)
-    PK: str  # folder primary key
-    action: FolderAction
+    PK: NotRequired[str]  # folder primary key
+    action: NotRequired[FolderAction]
 
 
 class RuleEntry(TypedDict, total=False):
@@ -124,15 +124,15 @@ class RuleGroup(TypedDict, total=False):
     action: FolderAction
 
 
-class FolderData(TypedDict, total=False):
+class FolderData(TypedDict):
     """Root shape of the JSON object returned by the blocklist endpoint."""
 
     group: FolderGroup  # required in valid data
-    rules: list[RuleEntry]  # present in legacy single-action format
-    rule_groups: list[RuleGroup]  # present in multi-action format
+    rules: NotRequired[list[RuleEntry]]  # present in legacy single-action format
+    rule_groups: NotRequired[list[RuleGroup]]  # present in multi-action format
 
 
-class PlanRuleGroup(TypedDict, total=False):
+class PlanRuleGroup(TypedDict):
     """Per-rule-group summary entry inside a dry-run plan folder."""
 
     rules: int
@@ -140,14 +140,14 @@ class PlanRuleGroup(TypedDict, total=False):
     status: int | None
 
 
-class PlanFolderEntry(TypedDict, total=False):
+class PlanFolderEntry(TypedDict):
     """Per-folder summary entry inside a dry-run plan."""
 
-    name: str  # required in valid plan entries
-    rules: int  # required in valid plan entries
-    action: int | None  # single-action format
-    status: int | None  # single-action format
-    rule_groups: list[PlanRuleGroup]  # multi-action format
+    name: str
+    rules: int
+    action: NotRequired[int | None]  # single-action format
+    status: NotRequired[int | None]  # single-action format
+    rule_groups: NotRequired[list[PlanRuleGroup]]  # multi-action format
 
 
 class PlanEntry(TypedDict):
@@ -1240,10 +1240,23 @@ def validate_folder_data(data: dict[str, Any], url: str) -> TypeGuard[FolderData
         )
         return False
 
-    # Validate 'rules' if present (must be a list)
-    if "rules" in data and not isinstance(data["rules"], list):
-        log.error(f"Invalid data from {sanitize_for_log(url)}: 'rules' must be a list.")
-        return False
+    # Validate 'rules' if present (must be a list of dicts with string PK values)
+    if "rules" in data:
+        if not isinstance(data["rules"], list):
+            log.error(f"Invalid data from {sanitize_for_log(url)}: 'rules' must be a list.")
+            return False
+        for j, rule in enumerate(data["rules"]):
+            if not isinstance(rule, dict):
+                log.error(
+                    f"Invalid data from {sanitize_for_log(url)}: rules[{j}] must be an object."
+                )
+                return False
+            pk = rule.get("PK")
+            if pk is not None and not isinstance(pk, str):
+                log.error(
+                    f"Invalid data from {sanitize_for_log(url)}: rules[{j}].PK must be a string."
+                )
+                return False
 
     # Validate 'rule_groups' if present (must be a list of dicts)
     if "rule_groups" in data:
@@ -1264,12 +1277,18 @@ def validate_folder_data(data: dict[str, Any], url: str) -> TypeGuard[FolderData
                         f"Invalid data from {sanitize_for_log(url)}: rule_groups[{i}].rules must be a list."
                     )
                     return False
-                # Ensure each rule within the group is an object (dict),
-                # because later code treats each rule as a mapping (e.g., rule.get(...)).
+                # Ensure each rule within the group is an object with a string PK,
+                # because later code treats each rule as a mapping and calls PK.strip().
                 for j, rule in enumerate(rg["rules"]):
                     if not isinstance(rule, dict):
                         log.error(
                             f"Invalid data from {sanitize_for_log(url)}: rule_groups[{i}].rules[{j}] must be an object."
+                        )
+                        return False
+                    pk = rule.get("PK")
+                    if pk is not None and not isinstance(pk, str):
+                        log.error(
+                            f"Invalid data from {sanitize_for_log(url)}: rule_groups[{i}].rules[{j}].PK must be a string."
                         )
                         return False
 
