@@ -80,3 +80,7 @@
 ## 2024-03-24 - [Avoid Python Loop Overhead for Set Differences]
 **Learning:** When iterating over a large list to filter out items that exist in a large set, performing the membership check inside a standard Python `for` loop introduces significant overhead per iteration. Using a C-optimized list comprehension (e.g., `[h for h in items if h not in existing_set]`) to perform the filtering before a subsequent processing loop bypasses this Python overhead for items that are already synced, yielding measurable speedups when the overlap is high (which is typical for blocklist syncing).
 **Action:** Use list comprehensions to pre-filter items against sets before entering more complex processing loops when a high match rate is expected.
+
+## 2026-03-05 - [Fast String Character Validation]
+**Learning:** Checking a string for the presence of forbidden characters using `any(c in FORBIDDEN_CHARS for c in name)` executes a Python-level loop which is slow. Pre-combining the sets of forbidden characters and using `not ALL_FORBIDDEN.isdisjoint(name)` drops the check to a fast, C-optimized set operation, running in O(N) where N is the length of the string name.
+**Action:** When validating string inputs against large sets of forbidden characters, combine the sets at the module level and use `set.isdisjoint(string)` for maximum performance.

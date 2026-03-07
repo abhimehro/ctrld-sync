@@ -410,6 +410,9 @@ _BIDI_CONTROL_CHARS = {
     "\u200f",  # RIGHT-TO-LEFT MARK (RLM) - defense in depth
 }
 
+# Pre-combine forbidden character sets for fast O(N) validation in is_valid_folder_name
+_ALL_FORBIDDEN_FOLDER_CHARS = _DANGEROUS_FOLDER_CHARS | _BIDI_CONTROL_CHARS
+
 # Pre-compiled patterns for log sanitization
 _BASIC_AUTH_PATTERN = re.compile(r"://[^/@]+@")
 _SENSITIVE_PARAM_PATTERN = re.compile(
@@ -1105,7 +1108,7 @@ def is_valid_folder_name(name: str) -> bool:
         return False
 
     # Check for dangerous characters (pre-compiled at module level for performance)
-    if any(c in _DANGEROUS_FOLDER_CHARS or c in _BIDI_CONTROL_CHARS for c in name):
+    if not _ALL_FORBIDDEN_FOLDER_CHARS.isdisjoint(name):
         return False
 
     # Security: Block path traversal attempts
