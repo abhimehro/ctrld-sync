@@ -49,15 +49,18 @@ class TestPushRulesPerf(unittest.TestCase):
         # self.main is likely sys.modules['main'] due to setUp logic
 
         with patch("main._api_post_form") as mock_post:
+            ctx = self.main.SyncContext(
+                profile_id=self.profile_id,
+                client=self.client,
+                existing_rules=self.existing_rules,
+            )
+            action = self.main.RuleAction(do=self.do, status=self.status)
             self.main.push_rules(
-                self.profile_id,
+                ctx,
                 self.folder_name,
                 self.folder_id,
-                self.do,
-                self.status,
+                action,
                 hostnames,
-                self.existing_rules,
-                self.client,
             )
 
             self.assertTrue(mock_post.called, "Expected _api_post_form to be called")
@@ -89,15 +92,18 @@ class TestPushRulesPerf(unittest.TestCase):
         mock_as_completed.return_value = [mock_future, mock_future]  # 2 batches
 
         with patch("main._api_post_form"):
+            ctx = self.main.SyncContext(
+                profile_id=self.profile_id,
+                client=self.client,
+                existing_rules=self.existing_rules,
+            )
+            action = self.main.RuleAction(do=self.do, status=self.status)
             self.main.push_rules(
-                self.profile_id,
+                ctx,
                 self.folder_name,
                 self.folder_id,
-                self.do,
-                self.status,
+                action,
                 hostnames,
-                self.existing_rules,
-                self.client,
             )
 
         # This should ALWAYS be True
@@ -120,15 +126,18 @@ class TestPushRulesPerf(unittest.TestCase):
             existing_rules = {"h1"}
 
             with patch("main._api_post_form"):
+                ctx = self.main.SyncContext(
+                    profile_id=self.profile_id,
+                    client=self.client,
+                    existing_rules=existing_rules,
+                )
+                action = self.main.RuleAction(do=self.do, status=self.status)
                 self.main.push_rules(
-                    self.profile_id,
+                    ctx,
                     self.folder_name,
                     self.folder_id,
-                    self.do,
-                    self.status,
+                    action,
                     hostnames,
-                    existing_rules,
-                    self.client,
                 )
 
             # h1 is in existing_rules, so we should skip validation for it.
@@ -153,16 +162,20 @@ class TestPushRulesPerf(unittest.TestCase):
         # Mock as_completed to return our futures
         mock_as_completed.return_value = [mock_future, mock_future]
 
+        ctx = self.main.SyncContext(
+            profile_id=self.profile_id,
+            client=self.client,
+            existing_rules=self.existing_rules,
+            batch_executor=mock_executor,
+        )
+        action = self.main.RuleAction(do=self.do, status=self.status)
+
         self.main.push_rules(
-            self.profile_id,
+            ctx,
             self.folder_name,
             self.folder_id,
-            self.do,
-            self.status,
+            action,
             hostnames,
-            self.existing_rules,
-            self.client,
-            batch_executor=mock_executor,
         )
 
         # Verify executor.submit was called twice (once for each batch)

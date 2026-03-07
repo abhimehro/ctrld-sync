@@ -38,15 +38,14 @@ def test_push_rules_filters_xss_payloads():
             "*.wildcard.com",
         ]
 
+        ctx = main.SyncContext(profile_id="p1", client=mock_client, existing_rules=set())
+        action = main.RuleAction(do=1, status=1)
         main.push_rules(
-            profile_id="p1",
+            ctx=ctx,
             folder_name="f1",
             folder_id="fid1",
-            do=1,
-            status=1,
+            action=action,
             hostnames=malicious_rules,
-            existing_rules=set(),
-            client=mock_client,
         )
 
         # Check what was sent

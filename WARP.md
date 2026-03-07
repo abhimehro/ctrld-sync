@@ -95,13 +95,13 @@ The entire tool lives in `main.py` and is structured into clear phases:
    - `list_existing_folders()` – Helper that returns a `{folder_name -> folder_id}` mapping (used as fallback).
    - `get_all_existing_rules()` – Collects all existing rule PKs from both the root and each folder, using a `ThreadPoolExecutor` to parallelize per-folder fetches while accumulating into a shared `set` guarded by a lock.
    - `delete_folder()` – Deletes a folder by ID with error-logged failures.
-   - `create_folder()` – Creates a folder and tries to read its ID directly from the response; if that fails, it polls `GET /groups` with increasing waits (using `FOLDER_CREATION_DELAY`) until the new folder appears.
-   - `push_rules()` – Sends hostname rules in batches (`BATCH_SIZE`) to `POST /rules`, de-duplicating against the global `existing_rules` set and updating it as batches succeed.
+   - `create_folder()` – Creates a folder and tries to read its ID directly from the response; if that fails, it polls `GET /groups` with increasing waits (using `FOLDER_CREATION_DELAY`) until the new folder appears. Uses `SyncContext` and `RuleAction` objects.
+   - `push_rules()` – Sends hostname rules in batches (`BATCH_SIZE`) to `POST /rules`, de-duplicating against the global `ctx.existing_rules` set and updating it as batches succeed. Uses `SyncContext` and `RuleAction` objects.
 
 5. **Folder data processing**
    - `fetch_folder_data()` – Fetches and validates a single folder JSON document.
    - `warm_up_cache()` – Pre-fetches and caches folder JSON definitions in parallel, so subsequent parsing is cheap.
-   - `_process_single_folder()` – Given one parsed folder JSON, it:
+   - `_process_single_folder()` – Given one parsed folder JSON and a `SyncContext`, it:
      - Determines the main folder attributes (name, default action/status).
      - Creates the folder via `create_folder()`.
      - Handles either legacy single-action JSON (flat `rules`) or the newer multi-action `rule_groups` format, dispatching batched `push_rules()` calls for each group.

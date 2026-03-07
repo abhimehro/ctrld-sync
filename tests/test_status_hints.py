@@ -137,52 +137,47 @@ class TestFetchFolderDataHints:
 class TestPushRulesBatchHints:
     """Verify push_rules() includes status hints in log messages on HTTP errors."""
 
+    def setup_method(self):
+        self.mock_client = MagicMock()
+        self.mock_log = MagicMock()
+        self.ctx = main.SyncContext(
+            profile_id="profile",
+            client=self.mock_client,
+            existing_rules=set(),
+        )
+        self.action = main.RuleAction(do=1, status=1)
+
     def test_401_hint_logged_on_batch_failure(self):
         err = _make_http_status_error(401)
-        mock_client = MagicMock()
-        mock_log = MagicMock()
 
         with patch.object(main, "_api_post_form", side_effect=err):
-            with patch.object(main, "log", mock_log):
+            with patch.object(main, "log", self.mock_log):
                 with patch.object(main, "USE_COLORS", False):
-                    main.push_rules(
-                        "profile", "folder", "fid", 1, 1,
-                        ["example.com"], set(), mock_client
-                    )
+                    main.push_rules(self.ctx, "folder", "fid", self.action, ["example.com"])
 
-        error_calls = str(mock_log.error.call_args_list)
+        error_calls = str(self.mock_log.error.call_args_list)
         assert "TOKEN" in error_calls
 
     def test_429_hint_logged_on_batch_failure(self):
         err = _make_http_status_error(429)
-        mock_client = MagicMock()
-        mock_log = MagicMock()
 
         with patch.object(main, "_api_post_form", side_effect=err):
-            with patch.object(main, "log", mock_log):
+            with patch.object(main, "log", self.mock_log):
                 with patch.object(main, "USE_COLORS", False):
-                    main.push_rules(
-                        "profile", "folder", "fid", 1, 1,
-                        ["example.com"], set(), mock_client
-                    )
+                    main.push_rules(self.ctx, "folder", "fid", self.action, ["example.com"])
 
-        error_calls = str(mock_log.error.call_args_list)
+        error_calls = str(self.mock_log.error.call_args_list)
         assert "rate" in error_calls.lower()
 
     def test_unknown_status_fallback_logged(self):
         err = _make_http_status_error(503)
-        mock_client = MagicMock()
-        mock_log = MagicMock()
 
         with patch.object(main, "_api_post_form", side_effect=err):
-            with patch.object(main, "log", mock_log):
+            with patch.object(main, "log", self.mock_log):
                 with patch.object(main, "USE_COLORS", False):
-                    main.push_rules(
-                        "profile", "folder", "fid", 1, 1,
-                        ["example.com"], set(), mock_client
-                    )
+                    main.push_rules(self.ctx, "folder", "fid", self.action, ["example.com"])
 
-        error_calls = str(mock_log.error.call_args_list)
+        error_calls = str(self.mock_log.error.call_args_list)
         assert "HTTP 503" in error_calls
 
 

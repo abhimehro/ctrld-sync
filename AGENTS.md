@@ -28,6 +28,14 @@ Single-file Python CLI tool (`main.py`) that syncs Control D DNS folders with re
 
 `main.py` compiles cleanly when checked with the project interpreter (`uv run python -m py_compile main.py`). All 30 `test_*.py` modules under `tests/` are importable. Run the full test suite with `uv run pytest tests/ -v`.
 
+### High-Level Architecture (`main.py`)
+
+The tool uses dataclasses to maintain clean function signatures for its core sync logic:
+- `SyncContext`: Encapsulates execution-level state (profile ID, HTTP client, shared executor, and the set of existing rules).
+- `RuleAction`: Encapsulates rule-specific settings (do and status).
+
+Core functions like `push_rules()`, `create_folder()`, and `_process_single_folder()` use these objects to improve readability and maintainability.
+
 ### Secrets for live runs
 
 A live sync run requires `TOKEN` (Control D API token) and `PROFILE` (profile ID) as environment variables or in a `.env` file. All tests use mocks and do not need these secrets.

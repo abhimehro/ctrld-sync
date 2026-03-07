@@ -156,7 +156,9 @@ class TestExceptionLogging(unittest.TestCase):
         # Mock time.sleep to avoid actual delays
         with patch("main.time.sleep"):
             # Action - this will try to call json(), catch exception, and log
-            result = main.create_folder(client, profile_id, folder_name, 1, 1)
+            ctx = main.SyncContext(profile_id=profile_id, client=client, existing_rules=set())
+            action = main.RuleAction(do=1, status=1)
+            result = main.create_folder(ctx, folder_name, action)
 
         # Should return None after retries fail
         self.assertIsNone(result)
