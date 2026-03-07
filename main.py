@@ -1037,7 +1037,18 @@ def validate_hostname(hostname: str) -> bool:
 
     try:
         ip = ipaddress.ip_address(hostname)
-        if not ip.is_global or ip.is_multicast:
+        # SSRF Protection: Block private, multicast, loopback, link-local, unspecified, and CGNAT IPs.
+        # ip.is_global handles most of these, but we explicitly check others for safety.
+        # CGNAT (100.64.0.0/10) is not considered private by ipaddress in older Python versions.
+        if (
+            not ip.is_global
+            or ip.is_multicast
+            or ip.is_private
+            or ip.is_unspecified
+            or ip.is_loopback
+            or ip.is_link_local
+            or (ip.version == 4 and ip in ipaddress.ip_network("100.64.0.0/10"))
+        ):
             log.warning(f"Skipping unsafe IP: {sanitize_for_log(hostname)}")
             return False
         return True
@@ -1052,7 +1063,15 @@ def validate_hostname(hostname: str) -> bool:
                 # sockaddr is (address, port) for AF_INET/AF_INET6
                 ip_str = res[4][0]
                 ip = ipaddress.ip_address(ip_str)
-                if not ip.is_global or ip.is_multicast:
+                if (
+                    not ip.is_global
+                    or ip.is_multicast
+                    or ip.is_private
+                    or ip.is_unspecified
+                    or ip.is_loopback
+                    or ip.is_link_local
+                    or (ip.version == 4 and ip in ipaddress.ip_network("100.64.0.0/10"))
+                ):
                     log.warning(
                         f"Skipping unsafe hostname {sanitize_for_log(hostname)} (resolves to non-global/multicast IP {ip})"
                     )
