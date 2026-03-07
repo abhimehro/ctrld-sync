@@ -133,7 +133,7 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
 | `--profiles ID[,ID]` | Comma-separated profile IDs (overrides `PROFILE` env var) |
 | `--folder-url URL` | Folder JSON URL (repeatable; overrides config file) |
 | `--config FILE` / `-c FILE` | Path to YAML config file |
-| `--no-delete` | Skip deletion of folders not present in the source list |
+| `--no-delete` | Do not delete/recreate existing folders that match the source list; update them in place |
 | `--plan-json FILE` | Write the dry-run plan as JSON to FILE (useful for CI diffing) |
 | `--clear-cache` | Purge the persistent blocklist cache and exit |
 
