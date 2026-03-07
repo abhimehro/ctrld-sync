@@ -758,6 +758,7 @@ def get_validated_input(
 
         if not value:
             print(f"{Colors.FAIL}❌ Value cannot be empty{Colors.ENDC}")
+            print(f"   {Colors.CYAN}💡 Hint: Please type a value and press Enter, or press Ctrl+C to cancel.{Colors.ENDC}")
             continue
 
         if validator(value):
@@ -781,6 +782,7 @@ def get_password(
 
         if not value:
             print(f"{Colors.FAIL}❌ Value cannot be empty{Colors.ENDC}")
+            print(f"   {Colors.CYAN}💡 Hint: Please type a value and press Enter, or press Ctrl+C to cancel.{Colors.ENDC}")
             continue
 
         if validator(value):
