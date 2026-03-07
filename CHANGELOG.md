@@ -52,6 +52,7 @@
 - \[Code Quality\] Add unit tests for `render_progress_bar` and `_get_progress_bar_width` [\#569](https://github.com/abhimehro/ctrld-sync/issues/569)
 - \[Code Quality\] Add \_SERVER\_ERROR\_HINT for 5xx HTTP responses in api\_client.\_retry\_request\(\) [\#561](https://github.com/abhimehro/ctrld-sync/issues/561)
 - \[Code Quality\] Add \_CONNECT\_ERROR\_HINT for httpx.ConnectError in api\_client retry logic [\#557](https://github.com/abhimehro/ctrld-sync/issues/557)
+- \[Code Quality\] Introduce TypedDict types for folder and rule data structures in main.py [\#556](https://github.com/abhimehro/ctrld-sync/issues/556)
 - \[repo-status\] Daily Repo Status — March 4, 2026 🚀 [\#548](https://github.com/abhimehro/ctrld-sync/issues/548)
 - \[Code Quality\] Add actionable warning logs for 4xx auth/client errors in api\_client.py retry paths [\#547](https://github.com/abhimehro/ctrld-sync/issues/547)
 - \[Code Quality\] Add ruff `PERF` \(perflint\) rules to catch performance anti-patterns [\#546](https://github.com/abhimehro/ctrld-sync/issues/546)
@@ -194,6 +195,8 @@
 
 **Merged pull requests:**
 
+- ⚡ Bolt: Optimize `is_valid_folder_name` string validation [\#609](https://github.com/abhimehro/ctrld-sync/pull/609) ([abhimehro](https://github.com/abhimehro))
+- feat\(types\): introduce TypedDicts for folder/rule data structures in main.py [\#606](https://github.com/abhimehro/ctrld-sync/pull/606) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - feat: add `_CONNECT_ERROR_HINT` to network error handlers \(closes \#593\) [\#605](https://github.com/abhimehro/ctrld-sync/pull/605) ([github-actions[bot]](https://github.com/apps/github-actions))
 - 🧹 Refactor push\_rules to reduce parameter count using dataclasses [\#604](https://github.com/abhimehro/ctrld-sync/pull/604) ([abhimehro](https://github.com/abhimehro))
 - 🧪 Add test coverage for UTC converter [\#603](https://github.com/abhimehro/ctrld-sync/pull/603) ([abhimehro](https://github.com/abhimehro))
