@@ -173,7 +173,9 @@ def test_push_rules_benchmark_10k():
     mock_client = DummyClient()
 
     start = time.perf_counter()
-    push_rules(profile_id, folder_name, folder_id, 1, 1, hostnames, set(), mock_client)
+    ctx = SyncContext(profile_id, mock_client, set())
+    action = RuleAction(1, 1)
+    push_rules(ctx, folder_name, folder_id, action, hostnames)
     elapsed = time.perf_counter() - start
     # Fail if significantly slower than baseline (update threshold after establishing baseline)
     assert elapsed < 30.0, f"10k rules took {elapsed:.2f}s (expected <30s)"

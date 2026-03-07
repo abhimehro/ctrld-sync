@@ -82,5 +82,7 @@ def test_push_rules_benchmark_10k(benchmark, overlap_ratio):
             return Response()
 
     mock_client = DummyClient()
+    ctx = main.SyncContext(profile_id=profile_id, client=mock_client, existing_rules=existing_rules)
+    action = main.RuleAction(do=1, status=1)
 
-    benchmark(main.push_rules, profile_id, folder_name, folder_id, 1, 1, hostnames, existing_rules, mock_client)
+    benchmark(main.push_rules, ctx, folder_name, folder_id, action, hostnames)

@@ -87,15 +87,14 @@ def test_push_rules_updates_data_with_batch_keys(monkeypatch):
     batch_size = m.BATCH_SIZE
     hostnames = [f"host{i}" for i in range(batch_size)]
 
+    ctx = m.SyncContext(profile_id="p1", client=mock_client, existing_rules=set())
+    action = m.RuleAction(do=1, status=1)
     m.push_rules(
-        profile_id="p1",
+        ctx=ctx,
         folder_name="f1",
         folder_id="fid1",
-        do=1,
-        status=1,
+        action=action,
         hostnames=hostnames,
-        existing_rules=set(),
-        client=mock_client,
     )
 
     assert mock_post_form.called
@@ -120,15 +119,14 @@ def test_push_rules_updates_existing_rules(monkeypatch):
     hostnames = ["h1", "h2"]
     existing_rules = set()
 
+    ctx = m.SyncContext(profile_id="p1", client=mock_client, existing_rules=existing_rules)
+    action = m.RuleAction(do=1, status=1)
     m.push_rules(
-        profile_id="p1",
+        ctx=ctx,
         folder_name="f1",
         folder_id="fid1",
-        do=1,
-        status=1,
+        action=action,
         hostnames=hostnames,
-        existing_rules=existing_rules,
-        client=mock_client,
     )
 
     assert "h1" in existing_rules
@@ -144,7 +142,9 @@ def test_push_rules_logs_conditionally_use_colors(monkeypatch):
     monkeypatch.setattr(m_no_color, "log", mock_log)
 
     hostnames = ["h1"]
-    m_no_color.push_rules("p", "f", "fid", 1, 1, hostnames, set(), MagicMock())
+    ctx = m_no_color.SyncContext(profile_id="p", client=MagicMock(), existing_rules=set())
+    action = m_no_color.RuleAction(do=1, status=1)
+    m_no_color.push_rules(ctx, "f", "fid", action, hostnames)
 
     # Should log info when USE_COLORS is False (lines 567-571)
     # log.info("Folder %s – batch %d: added %d rules", ...)
@@ -164,7 +164,9 @@ def test_push_rules_logs_conditionally_use_colors(monkeypatch):
     monkeypatch.setattr(m_color, "log", mock_log)
     mock_log.reset_mock()
 
-    m_color.push_rules("p", "f", "fid", 1, 1, hostnames, set(), MagicMock())
+    ctx = m_color.SyncContext(profile_id="p", client=MagicMock(), existing_rules=set())
+    action = m_color.RuleAction(do=1, status=1)
+    m_color.push_rules(ctx, "f", "fid", action, hostnames)
 
     # Should NOT log info for batch success when USE_COLORS is True
     # It might log other things, but not the batch success message handled by stderr
@@ -184,7 +186,9 @@ def test_push_rules_writes_colored_stderr(monkeypatch):
     monkeypatch.setattr(sys, "stderr", mock_stderr)
 
     hostnames = ["h1"]
-    m.push_rules("p", "f", "fid", 1, 1, hostnames, set(), MagicMock())
+    ctx = m.SyncContext(profile_id="p", client=MagicMock(), existing_rules=set())
+    action = m.RuleAction(do=1, status=1)
+    m.push_rules(ctx, "f", "fid", action, hostnames)
 
     # Check for color codes in stderr writes
     # Look for CYAN (progress) and GREEN (completion)

@@ -145,10 +145,13 @@ class TestPushRulesBatchHints:
         with patch.object(main, "_api_post_form", side_effect=err):
             with patch.object(main, "log", mock_log):
                 with patch.object(main, "USE_COLORS", False):
-                    main.push_rules(
-                        "profile", "folder", "fid", 1, 1,
-                        ["example.com"], set(), mock_client
+                    ctx = main.SyncContext(
+                        profile_id="profile",
+                        client=mock_client,
+                        existing_rules=set(),
                     )
+                    action = main.RuleAction(do=1, status=1)
+                    main.push_rules(ctx, "folder", "fid", action, ["example.com"])
 
         error_calls = str(mock_log.error.call_args_list)
         assert "TOKEN" in error_calls
@@ -161,10 +164,13 @@ class TestPushRulesBatchHints:
         with patch.object(main, "_api_post_form", side_effect=err):
             with patch.object(main, "log", mock_log):
                 with patch.object(main, "USE_COLORS", False):
-                    main.push_rules(
-                        "profile", "folder", "fid", 1, 1,
-                        ["example.com"], set(), mock_client
+                    ctx = main.SyncContext(
+                        profile_id="profile",
+                        client=mock_client,
+                        existing_rules=set(),
                     )
+                    action = main.RuleAction(do=1, status=1)
+                    main.push_rules(ctx, "folder", "fid", action, ["example.com"])
 
         error_calls = str(mock_log.error.call_args_list)
         assert "rate" in error_calls.lower()
@@ -177,10 +183,13 @@ class TestPushRulesBatchHints:
         with patch.object(main, "_api_post_form", side_effect=err):
             with patch.object(main, "log", mock_log):
                 with patch.object(main, "USE_COLORS", False):
-                    main.push_rules(
-                        "profile", "folder", "fid", 1, 1,
-                        ["example.com"], set(), mock_client
+                    ctx = main.SyncContext(
+                        profile_id="profile",
+                        client=mock_client,
+                        existing_rules=set(),
                     )
+                    action = main.RuleAction(do=1, status=1)
+                    main.push_rules(ctx, "folder", "fid", action, ["example.com"])
 
         error_calls = str(mock_log.error.call_args_list)
         assert "HTTP 503" in error_calls

@@ -61,15 +61,14 @@ def test_push_rules_sanitizes_token_in_debug_logs(caplog):
 
     # Patch time.sleep to avoid waiting
     with patch("time.sleep"):
+        ctx = main.SyncContext(profile_id="p1", client=mock_client, existing_rules=set())
+        action = main.RuleAction(do=0, status=1)
         res = main.push_rules(
-            profile_id="p1",
+            ctx=ctx,
             folder_name="f1",
             folder_id="fid1",
-            do=0,
-            status=1,
+            action=action,
             hostnames=["rule1"],
-            existing_rules=set(),
-            client=mock_client,
         )
 
         # push_rules catches the error and returns False (or continues if batch failed)
