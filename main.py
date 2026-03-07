@@ -56,6 +56,7 @@ import api_client
 from api_client import (
     MAX_RETRIES,
     RETRY_DELAY,
+    _CONNECT_ERROR_HINT,
     _TIMEOUT_HINT,
     _api_stats,
     _rate_limit_info,
@@ -1443,7 +1444,11 @@ def check_api_access(client: httpx.Client, profile_id: str) -> bool:
             log.error(f"API Access Check Failed ({code}): {sanitize_for_log(e)}")
         return False
     except httpx.RequestError as e:
-        hint = f" | hint: {_TIMEOUT_HINT}" if isinstance(e, httpx.TimeoutException) else ""
+        hint = ""
+        if isinstance(e, httpx.TimeoutException):
+            hint = f" | hint: {_TIMEOUT_HINT}"
+        elif isinstance(e, httpx.ConnectError):
+            hint = f" | hint: {_CONNECT_ERROR_HINT}"
         log.error(f"Network Error during access check: {sanitize_for_log(e)}{hint}")
         return False
 
@@ -1472,6 +1477,8 @@ def list_existing_folders(client: httpx.Client, profile_id: str) -> dict[str, st
             hint = f" | hint: {_STATUS_HINTS.get(e.response.status_code, f'HTTP {e.response.status_code}')}"
         elif isinstance(e, httpx.TimeoutException):
             hint = f" | hint: {_TIMEOUT_HINT}"
+        elif isinstance(e, httpx.ConnectError):
+            hint = f" | hint: {_CONNECT_ERROR_HINT}"
         log.error(f"Failed to list existing folders{hint}: {sanitize_for_log(e)}")
         return {}
 
@@ -1580,7 +1587,11 @@ def verify_access_and_get_folders(
 
         except httpx.RequestError as err:
             if attempt == MAX_RETRIES - 1:
-                hint = f" | hint: {_TIMEOUT_HINT}" if isinstance(err, httpx.TimeoutException) else ""
+                hint = ""
+                if isinstance(err, httpx.TimeoutException):
+                    hint = f" | hint: {_TIMEOUT_HINT}"
+                elif isinstance(err, httpx.ConnectError):
+                    hint = f" | hint: {_CONNECT_ERROR_HINT}"
                 log.error(
                     "Network error during access verification: %s%s",
                     sanitize_for_log(err),
@@ -1786,6 +1797,8 @@ def delete_folder(
             hint = f" | hint: {_STATUS_HINTS.get(e.response.status_code, f'HTTP {e.response.status_code}')}"
         elif isinstance(e, httpx.TimeoutException):
             hint = f" | hint: {_TIMEOUT_HINT}"
+        elif isinstance(e, httpx.ConnectError):
+            hint = f" | hint: {_CONNECT_ERROR_HINT}"
         log.error(
             f"Failed to delete folder {sanitize_for_log(name)} (ID {sanitize_for_log(folder_id)}){hint}: {sanitize_for_log(e)}"
         )
