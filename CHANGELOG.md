@@ -41,6 +41,7 @@
 
 **Closed issues:**
 
+- \[Code Quality\] Use `_CONNECT_ERROR_HINT` in `main.py` network error handlers [\#593](https://github.com/abhimehro/ctrld-sync/issues/593)
 - \[repo-status\] Daily Status Report — March 6, 2026 [\#592](https://github.com/abhimehro/ctrld-sync/issues/592)
 - \[Code Quality\] Add debug log to silent `except httpx.HTTPError: pass` in `get_all_existing_rules()` root fetch [\#589](https://github.com/abhimehro/ctrld-sync/issues/589)
 - \[Code Quality\] Replace `except ValueError: pass` with `contextlib.suppress` in `_retry_request` 429 handler [\#588](https://github.com/abhimehro/ctrld-sync/issues/588)
@@ -193,6 +194,7 @@
 
 **Merged pull requests:**
 
+- feat: add `_CONNECT_ERROR_HINT` to network error handlers \(closes \#593\) [\#605](https://github.com/abhimehro/ctrld-sync/pull/605) ([github-actions[bot]](https://github.com/apps/github-actions))
 - 🧹 Refactor push\_rules to reduce parameter count using dataclasses [\#604](https://github.com/abhimehro/ctrld-sync/pull/604) ([abhimehro](https://github.com/abhimehro))
 - 🧪 Add test coverage for UTC converter [\#603](https://github.com/abhimehro/ctrld-sync/pull/603) ([abhimehro](https://github.com/abhimehro))
 - Add exc field to JsonFormatter for exception log records [\#599](https://github.com/abhimehro/ctrld-sync/pull/599) ([Copilot](https://github.com/apps/copilot-swe-agent))
