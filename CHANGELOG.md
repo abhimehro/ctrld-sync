@@ -193,6 +193,7 @@
 
 **Merged pull requests:**
 
+- 🧹 Refactor push\_rules to reduce parameter count using dataclasses [\#604](https://github.com/abhimehro/ctrld-sync/pull/604) ([abhimehro](https://github.com/abhimehro))
 - 🧪 Add test coverage for UTC converter [\#603](https://github.com/abhimehro/ctrld-sync/pull/603) ([abhimehro](https://github.com/abhimehro))
 - Add exc field to JsonFormatter for exception log records [\#599](https://github.com/abhimehro/ctrld-sync/pull/599) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - Add debug log to silent `except httpx.HTTPError` in `get_all_existing_rules()` \(root and folder fetches\) [\#598](https://github.com/abhimehro/ctrld-sync/pull/598) ([Copilot](https://github.com/apps/copilot-swe-agent))
