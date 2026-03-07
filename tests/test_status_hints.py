@@ -7,7 +7,10 @@ Covers:
 - fetch_folder_data() re-raises with hint on HTTP error
 - push_rules() includes hint in log message on HTTP error
 - _retry_request() includes timeout hint in retry warnings
-- check_api_access() surfaces timeout hint on TimeoutException
+- check_api_access() surfaces timeout and connect-error hints on network errors
+- list_existing_folders() surfaces connect-error hint on ConnectError
+- delete_folder() surfaces connect-error hint on ConnectError
+- verify_access_and_get_folders() surfaces connect-error hint on ConnectError
 """
 
 import os
@@ -432,3 +435,131 @@ class TestVerifyAccessHints:
         assert result is None
         error_calls = str(mock_log.error.call_args_list)
         assert main._TIMEOUT_HINT not in error_calls
+
+
+class TestConnectErrorHint:
+    """Verify _CONNECT_ERROR_HINT is surfaced in all four network-error handlers."""
+
+    def _connect_error(self) -> httpx.ConnectError:
+        mock_request = MagicMock(spec=httpx.Request)
+        return httpx.ConnectError("connection refused", request=mock_request)
+
+    def test_connect_error_hint_exists_in_api_client(self):
+        assert hasattr(api_client, "_CONNECT_ERROR_HINT")
+        assert isinstance(api_client._CONNECT_ERROR_HINT, str)
+        assert api_client._CONNECT_ERROR_HINT  # non-empty
+
+    def test_check_api_access_includes_connect_error_hint(self):
+        """check_api_access() should include _CONNECT_ERROR_HINT on ConnectError."""
+        mock_client = MagicMock()
+        mock_client.get.side_effect = self._connect_error()
+        mock_log = MagicMock()
+
+        with patch.object(main, "log", mock_log):
+            result = main.check_api_access(mock_client, "test_profile")
+
+        assert result is False
+        error_calls = str(mock_log.error.call_args_list)
+        assert api_client._CONNECT_ERROR_HINT in error_calls
+
+    def test_check_api_access_no_connect_hint_for_timeout(self):
+        """check_api_access() should NOT include _CONNECT_ERROR_HINT for TimeoutException."""
+        mock_client = MagicMock()
+        mock_request = MagicMock(spec=httpx.Request)
+        mock_client.get.side_effect = httpx.TimeoutException("timed out", request=mock_request)
+        mock_log = MagicMock()
+
+        with patch.object(main, "log", mock_log):
+            result = main.check_api_access(mock_client, "test_profile")
+
+        assert result is False
+        error_calls = str(mock_log.error.call_args_list)
+        assert api_client._CONNECT_ERROR_HINT not in error_calls
+
+    def test_list_existing_folders_includes_connect_error_hint(self):
+        """list_existing_folders() should log _CONNECT_ERROR_HINT on ConnectError."""
+        mock_client = MagicMock()
+        mock_log = MagicMock()
+
+        with patch.object(main, "_api_get", side_effect=self._connect_error()):
+            with patch.object(main, "log", mock_log):
+                result = main.list_existing_folders(mock_client, "profile123")
+
+        assert result == {}
+        error_calls = str(mock_log.error.call_args_list)
+        assert api_client._CONNECT_ERROR_HINT in error_calls
+
+    def test_list_existing_folders_no_connect_hint_for_timeout(self):
+        """list_existing_folders() should NOT include _CONNECT_ERROR_HINT for TimeoutException."""
+        mock_client = MagicMock()
+        mock_request = MagicMock(spec=httpx.Request)
+        err = httpx.TimeoutException("timed out", request=mock_request)
+        mock_log = MagicMock()
+
+        with patch.object(main, "_api_get", side_effect=err):
+            with patch.object(main, "log", mock_log):
+                result = main.list_existing_folders(mock_client, "profile123")
+
+        assert result == {}
+        error_calls = str(mock_log.error.call_args_list)
+        assert api_client._CONNECT_ERROR_HINT not in error_calls
+
+    def test_delete_folder_includes_connect_error_hint(self):
+        """delete_folder() should log _CONNECT_ERROR_HINT on ConnectError."""
+        mock_client = MagicMock()
+        mock_log = MagicMock()
+
+        with patch.object(main, "_api_delete", side_effect=self._connect_error()):
+            with patch.object(main, "log", mock_log):
+                result = main.delete_folder(mock_client, "profile123", "MyFolder", "fid1")
+
+        assert result is False
+        error_calls = str(mock_log.error.call_args_list)
+        assert api_client._CONNECT_ERROR_HINT in error_calls
+
+    def test_delete_folder_no_connect_hint_for_timeout(self):
+        """delete_folder() should NOT include _CONNECT_ERROR_HINT for TimeoutException."""
+        mock_client = MagicMock()
+        mock_request = MagicMock(spec=httpx.Request)
+        err = httpx.TimeoutException("timed out", request=mock_request)
+        mock_log = MagicMock()
+
+        with patch.object(main, "_api_delete", side_effect=err):
+            with patch.object(main, "log", mock_log):
+                result = main.delete_folder(mock_client, "profile123", "MyFolder", "fid1")
+
+        assert result is False
+        error_calls = str(mock_log.error.call_args_list)
+        assert api_client._CONNECT_ERROR_HINT not in error_calls
+
+    def test_verify_access_includes_connect_error_hint(self):
+        """verify_access_and_get_folders() should log _CONNECT_ERROR_HINT on ConnectError."""
+        mock_client = MagicMock()
+        mock_client.get.side_effect = self._connect_error()
+        mock_log = MagicMock()
+
+        with patch.object(main, "log", mock_log):
+            with patch.object(main, "time") as mock_time:
+                mock_time.sleep = MagicMock()
+                result = main.verify_access_and_get_folders(mock_client, "profile123")
+
+        assert result is None
+        error_calls = str(mock_log.error.call_args_list)
+        assert api_client._CONNECT_ERROR_HINT in error_calls
+
+    def test_verify_access_no_connect_hint_for_generic_request_error(self):
+        """verify_access_and_get_folders() should NOT include _CONNECT_ERROR_HINT for generic RequestError."""
+        mock_client = MagicMock()
+        mock_request = MagicMock(spec=httpx.Request)
+        err = httpx.RequestError("some other network error", request=mock_request)
+        mock_client.get.side_effect = err
+        mock_log = MagicMock()
+
+        with patch.object(main, "log", mock_log):
+            with patch.object(main, "time") as mock_time:
+                mock_time.sleep = MagicMock()
+                result = main.verify_access_and_get_folders(mock_client, "profile123")
+
+        assert result is None
+        error_calls = str(mock_log.error.call_args_list)
+        assert api_client._CONNECT_ERROR_HINT not in error_calls
