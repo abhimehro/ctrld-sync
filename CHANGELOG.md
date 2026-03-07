@@ -42,6 +42,7 @@
 **Closed issues:**
 
 - \[Code Quality\] Add HTTP status code hint to `create_folder` error handler [\#610](https://github.com/abhimehro/ctrld-sync/issues/610)
+- \[Code Quality\] Add unit tests for `RuleAction` frozen immutability and `SyncContext` dataclass contracts [\#608](https://github.com/abhimehro/ctrld-sync/issues/608)
 - \[Code Quality\] Use `_CONNECT_ERROR_HINT` in `main.py` network error handlers [\#593](https://github.com/abhimehro/ctrld-sync/issues/593)
 - \[repo-status\] Daily Status Report — March 6, 2026 [\#592](https://github.com/abhimehro/ctrld-sync/issues/592)
 - \[Code Quality\] Add debug log to silent `except httpx.HTTPError: pass` in `get_all_existing_rules()` root fetch [\#589](https://github.com/abhimehro/ctrld-sync/issues/589)
@@ -198,6 +199,7 @@
 **Merged pull requests:**
 
 - test: cover `_retry_request` empty-range RuntimeError guard [\#615](https://github.com/abhimehro/ctrld-sync/pull/615) ([Copilot](https://github.com/apps/copilot-swe-agent))
+- test: add dataclass contract tests for RuleAction and SyncContext [\#614](https://github.com/abhimehro/ctrld-sync/pull/614) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - Add `_STATUS_HINTS` to `create_folder` error handler [\#613](https://github.com/abhimehro/ctrld-sync/pull/613) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - ⚡ Bolt: Optimize `is_valid_folder_name` string validation [\#609](https://github.com/abhimehro/ctrld-sync/pull/609) ([abhimehro](https://github.com/abhimehro))
 - feat\(types\): introduce TypedDicts for folder/rule data structures in main.py [\#606](https://github.com/abhimehro/ctrld-sync/pull/606) ([Copilot](https://github.com/apps/copilot-swe-agent))
