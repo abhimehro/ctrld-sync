@@ -1248,18 +1248,25 @@ def validate_folder_data(data: dict[str, Any], url: str) -> TypeGuard[FolderData
         if not isinstance(data["rules"], list):
             log.error(f"Invalid data from {sanitize_for_log(url)}: 'rules' must be a list.")
             return False
-        for j, rule in enumerate(data["rules"]):
-            if not isinstance(rule, dict):
-                log.error(
-                    f"Invalid data from {sanitize_for_log(url)}: rules[{j}] must be an object."
-                )
-                return False
-            pk = rule.get("PK")
-            if pk is not None and not isinstance(pk, str):
-                log.error(
-                    f"Invalid data from {sanitize_for_log(url)}: rules[{j}].PK must be a string."
-                )
-                return False
+
+        if not all(
+            isinstance(rule, dict)
+            and ((pk := rule.get("PK")) is None or isinstance(pk, str))
+            for rule in data["rules"]
+        ):
+            # Fallback to identify the exact error for logging
+            for j, rule in enumerate(data["rules"]):
+                if not isinstance(rule, dict):
+                    log.error(
+                        f"Invalid data from {sanitize_for_log(url)}: rules[{j}] must be an object."
+                    )
+                    return False
+                pk = rule.get("PK")
+                if pk is not None and not isinstance(pk, str):
+                    log.error(
+                        f"Invalid data from {sanitize_for_log(url)}: rules[{j}].PK must be a string."
+                    )
+                    return False
 
     # Validate 'rule_groups' if present (must be a list of dicts)
     if "rule_groups" in data:
@@ -1280,20 +1287,26 @@ def validate_folder_data(data: dict[str, Any], url: str) -> TypeGuard[FolderData
                         f"Invalid data from {sanitize_for_log(url)}: rule_groups[{i}].rules must be a list."
                     )
                     return False
-                # Ensure each rule within the group is an object with a string PK,
-                # because later code treats each rule as a mapping and calls PK.strip().
-                for j, rule in enumerate(rg["rules"]):
-                    if not isinstance(rule, dict):
-                        log.error(
-                            f"Invalid data from {sanitize_for_log(url)}: rule_groups[{i}].rules[{j}] must be an object."
-                        )
-                        return False
-                    pk = rule.get("PK")
-                    if pk is not None and not isinstance(pk, str):
-                        log.error(
-                            f"Invalid data from {sanitize_for_log(url)}: rule_groups[{i}].rules[{j}].PK must be a string."
-                        )
-                        return False
+
+                # Ensure each rule within the group is an object (dict) and has a string PK,
+                # because later code treats each rule as a mapping (e.g., rule.get(...)).
+                if not all(
+                    isinstance(rule, dict)
+                    and ((pk := rule.get("PK")) is None or isinstance(pk, str))
+                    for rule in rg["rules"]
+                ):
+                    for j, rule in enumerate(rg["rules"]):
+                        if not isinstance(rule, dict):
+                            log.error(
+                                f"Invalid data from {sanitize_for_log(url)}: rule_groups[{i}].rules[{j}] must be an object."
+                            )
+                            return False
+                        pk = rule.get("PK")
+                        if pk is not None and not isinstance(pk, str):
+                            log.error(
+                                f"Invalid data from {sanitize_for_log(url)}: rule_groups[{i}].rules[{j}].PK must be a string."
+                            )
+                            return False
 
     return True
 
