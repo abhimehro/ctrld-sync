@@ -3,6 +3,8 @@
 import json
 import logging
 import sys
+import time
+from unittest import mock
 import unittest
 
 import main
@@ -113,6 +115,35 @@ class TestJsonFormatter(unittest.TestCase):
         parsed = json.loads(formatter.format(record))
         self.assertNotIn("exc", parsed)
 
+
+
+    def test_converter_fixed_timestamp(self):
+        """Converter should correctly map a fixed timestamp (0.0) to the Unix epoch in UTC."""
+        result = main.JsonFormatter.converter(0.0)
+        self.assertIsInstance(result, time.struct_time)
+        self.assertEqual(result.tm_year, 1970)
+        self.assertEqual(result.tm_mon, 1)
+        self.assertEqual(result.tm_mday, 1)
+        self.assertEqual(result.tm_hour, 0)
+        self.assertEqual(result.tm_min, 0)
+        self.assertEqual(result.tm_sec, 0)
+
+    def test_converter_nonzero_timestamp(self):
+        """Converter should correctly map a generic non-zero fixed timestamp."""
+        # 1609459200.0 is 2021-01-01T00:00:00Z
+        result = main.JsonFormatter.converter(1609459200.0)
+        self.assertEqual(result.tm_year, 2021)
+        self.assertEqual(result.tm_mon, 1)
+        self.assertEqual(result.tm_mday, 1)
+        self.assertEqual(result.tm_hour, 0)
+        self.assertEqual(result.tm_min, 0)
+        self.assertEqual(result.tm_sec, 0)
+
+    @mock.patch('time.gmtime')
+    def test_converter_none_delegates(self, mock_gmtime):
+        """Converter should delegate to time.gmtime when None is passed."""
+        main.JsonFormatter.converter(None)
+        mock_gmtime.assert_called_once_with(None)
 
 if __name__ == "__main__":
     unittest.main()
