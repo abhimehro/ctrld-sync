@@ -411,7 +411,7 @@ _BIDI_CONTROL_CHARS = {
 }
 
 # Pre-combine forbidden character sets for fast O(N) validation in is_valid_folder_name
-_ALL_FORBIDDEN_FOLDER_CHARS = _DANGEROUS_FOLDER_CHARS | _BIDI_CONTROL_CHARS
+_ALL_FORBIDDEN_FOLDER_CHARS = frozenset(_DANGEROUS_FOLDER_CHARS | _BIDI_CONTROL_CHARS)
 
 # Pre-compiled patterns for log sanitization
 _BASIC_AUTH_PATTERN = re.compile(r"://[^/@]+@")
