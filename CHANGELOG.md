@@ -199,6 +199,7 @@
 
 **Merged pull requests:**
 
+- ⚡ Optimize array validation using all\(\) [\#617](https://github.com/abhimehro/ctrld-sync/pull/617) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Add actionable hints to empty CLI inputs [\#616](https://github.com/abhimehro/ctrld-sync/pull/616) ([abhimehro](https://github.com/abhimehro))
 - test: cover `_retry_request` empty-range RuntimeError guard [\#615](https://github.com/abhimehro/ctrld-sync/pull/615) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - test: add dataclass contract tests for RuleAction and SyncContext [\#614](https://github.com/abhimehro/ctrld-sync/pull/614) ([Copilot](https://github.com/apps/copilot-swe-agent))
