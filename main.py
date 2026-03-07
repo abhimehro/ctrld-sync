@@ -34,7 +34,7 @@ import threading
 import time
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, TypedDict, TypeGuard, cast
 import typing
 from collections.abc import Callable, Sequence
 from urllib.parse import urlparse
@@ -83,6 +83,89 @@ class SyncContext:
     client: httpx.Client
     existing_rules: set[str]
     batch_executor: concurrent.futures.Executor | None = None
+
+
+# --------------------------------------------------------------------------- #
+# TypedDicts – document the shapes of API response and plan objects
+# --------------------------------------------------------------------------- #
+
+
+class FolderAction(TypedDict, total=False):
+    """The 'action' sub-object on a folder group or rule group.
+
+    ``do`` controls the rule action type (0 = Block, 1 = Allow).
+    ``status`` controls whether the rule is active (1 = enabled, 0 = disabled).
+    """
+
+    do: int
+    status: int
+
+
+class FolderGroup(TypedDict, total=False):
+    """The 'group' object inside a folder JSON response."""
+
+    group: str  # folder display name (required in valid data)
+    PK: str  # folder primary key
+    action: FolderAction
+
+
+class RuleEntry(TypedDict, total=False):
+    """A single rule entry inside a folder's rule list."""
+
+    PK: str  # hostname / primary key
+    host: str
+    action: FolderAction
+
+
+class RuleGroup(TypedDict, total=False):
+    """A rule group (multi-action format) inside a folder JSON response."""
+
+    rules: list[RuleEntry]
+    action: FolderAction
+
+
+class FolderData(TypedDict, total=False):
+    """Root shape of the JSON object returned by the blocklist endpoint."""
+
+    group: FolderGroup  # required in valid data
+    rules: list[RuleEntry]  # present in legacy single-action format
+    rule_groups: list[RuleGroup]  # present in multi-action format
+
+
+class PlanRuleGroup(TypedDict, total=False):
+    """Per-rule-group summary entry inside a dry-run plan folder."""
+
+    rules: int
+    action: int | None
+    status: int | None
+
+
+class PlanFolderEntry(TypedDict, total=False):
+    """Per-folder summary entry inside a dry-run plan."""
+
+    name: str  # required in valid plan entries
+    rules: int  # required in valid plan entries
+    action: int | None  # single-action format
+    status: int | None  # single-action format
+    rule_groups: list[PlanRuleGroup]  # multi-action format
+
+
+class PlanEntry(TypedDict):
+    """Top-level dry-run plan entry for one profile."""
+
+    profile: str
+    folders: list[PlanFolderEntry]
+
+
+class SyncResult(TypedDict):
+    """Per-profile result recorded after a sync run."""
+
+    profile: str
+    folders: int
+    rules: int
+    status_label: str
+    success: bool
+    duration: float
 
 
 # --------------------------------------------------------------------------- #
@@ -464,7 +547,7 @@ api_client._sanitize_fn = sanitize_for_log
 cache._sanitize_fn = sanitize_for_log
 
 
-def print_plan_details(plan_entry: dict[str, Any]) -> None:
+def print_plan_details(plan_entry: PlanEntry) -> None:
     """Pretty-print the folder-level breakdown during a dry-run."""
     profile = sanitize_for_log(plan_entry.get("profile", "unknown"))
     folders = plan_entry.get("folders", [])
@@ -1118,7 +1201,7 @@ def is_valid_folder_name(name: str) -> bool:
     return not clean_name.startswith("-")
 
 
-def validate_folder_data(data: dict[str, Any], url: str) -> bool:
+def validate_folder_data(data: dict[str, Any], url: str) -> TypeGuard[FolderData]:
     """
     Validates folder JSON data structure and content.
 
@@ -1691,7 +1774,7 @@ def get_all_existing_rules(
         return set()
 
 
-def fetch_folder_data(url: str) -> dict[str, Any]:
+def fetch_folder_data(url: str) -> FolderData:
     """
     Downloads and validates folder JSON data from a URL.
 
@@ -2094,7 +2177,7 @@ def push_rules(
 
 def _process_single_folder(
     ctx: SyncContext,
-    folder_data: dict[str, Any],
+    folder_data: FolderData,
 ) -> bool:
     grp = folder_data["group"]
     name = grp["group"].strip()
@@ -2147,7 +2230,7 @@ def sync_profile(
     folder_urls: Sequence[str],
     dry_run: bool = False,
     no_delete: bool = False,
-    plan_accumulator: list[dict[str, Any]] | None = None,
+    plan_accumulator: list[PlanEntry] | None = None,
 ) -> bool:
     """
     Synchronizes Control D folders from remote blocklist URLs.
@@ -2205,7 +2288,7 @@ def sync_profile(
             return False
 
         # Build plan entries
-        plan_entry: dict[str, Any] = {"profile": profile_id, "folders": []}
+        plan_entry: PlanEntry = {"profile": profile_id, "folders": []}
         for folder_data in folder_data_list:
             grp = folder_data["group"]
             name = grp["group"].strip()
@@ -2424,7 +2507,7 @@ def prompt_for_interactive_restart(profile_ids: list[str]) -> None:
 
 
 def print_summary_table(
-    sync_results: list[dict[str, Any]], success_count: int, total: int, dry_run: bool
+    sync_results: list[SyncResult], success_count: int, total: int, dry_run: bool
 ) -> None:
     # 1. Setup Data
     max_p = max((len(r["profile"]) for r in sync_results), default=25)
@@ -2698,9 +2781,9 @@ def main() -> None:
 
     warm_up_cache(folder_urls)
 
-    plan: list[dict[str, Any]] = []
+    plan: list[PlanEntry] = []
     success_count = 0
-    sync_results: list[dict[str, Any]] = []
+    sync_results: list[SyncResult] = []
 
     profile_id = "unknown"
     start_time = time.time()
