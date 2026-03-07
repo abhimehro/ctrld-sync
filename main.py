@@ -1425,7 +1425,11 @@ def check_api_access(client: httpx.Client, profile_id: str) -> bool:
             log.error(f"API Access Check Failed ({code}): {sanitize_for_log(e)}")
         return False
     except httpx.RequestError as e:
-        hint = f" | hint: {_TIMEOUT_HINT}" if isinstance(e, httpx.TimeoutException) else (f" | hint: {_CONNECT_ERROR_HINT}" if isinstance(e, httpx.ConnectError) else "")
+        hint = ""
+        if isinstance(e, httpx.TimeoutException):
+            hint = f" | hint: {_TIMEOUT_HINT}"
+        elif isinstance(e, httpx.ConnectError):
+            hint = f" | hint: {_CONNECT_ERROR_HINT}"
         log.error(f"Network Error during access check: {sanitize_for_log(e)}{hint}")
         return False
 
