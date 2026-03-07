@@ -3,6 +3,8 @@
 import json
 import logging
 import sys
+import time
+from unittest import mock
 import unittest
 
 import main
@@ -113,6 +115,23 @@ class TestJsonFormatter(unittest.TestCase):
         parsed = json.loads(formatter.format(record))
         self.assertNotIn("exc", parsed)
 
+    def test_converter_timestamps(self):
+        """Converter should correctly map timestamps to UTC struct_time."""
+        test_cases = {
+            "unix_epoch": 0.0,
+            "specific_date": 1609459200.0,  # 2021-01-01T00:00:00Z
+        }
+        for name, timestamp in test_cases.items():
+            with self.subTest(name=name):
+                result = main.JsonFormatter.converter(timestamp)
+                expected = time.gmtime(timestamp)
+                self.assertEqual(result, expected)
+
+    @mock.patch('time.gmtime')
+    def test_converter_none_delegates(self, mock_gmtime):
+        """Converter should delegate to time.gmtime when None is passed."""
+        main.JsonFormatter.converter(None)
+        mock_gmtime.assert_called_once_with(None)
 
 if __name__ == "__main__":
     unittest.main()
