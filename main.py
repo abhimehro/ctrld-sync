@@ -1288,8 +1288,8 @@ def validate_folder_data(data: dict[str, Any], url: str) -> TypeGuard[FolderData
                     )
                     return False
 
-                # Ensure each rule within the group is an object (dict) and has a string PK,
-                # because later code treats each rule as a mapping (e.g., rule.get(...)).
+                # Ensure each rule within the group is an object (dict) and that PK, if present,
+                # is a string, because later code treats each rule as a mapping (e.g., rule.get(...)).
                 if not all(
                     isinstance(rule, dict)
                     and ((pk := rule.get("PK")) is None or isinstance(pk, str))
