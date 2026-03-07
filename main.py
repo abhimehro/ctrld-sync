@@ -454,6 +454,8 @@ log = logging.getLogger("control-d-sync")
 API_BASE = "https://api.controld.com/profiles"
 USER_AGENT = "Control-D-Sync/0.1.0"
 
+EMPTY_INPUT_HINT = f"   {Colors.CYAN}💡 Hint: Please type a value and press Enter, or press Ctrl+C/Ctrl+D to cancel.{Colors.ENDC}"
+
 # Pre-compiled regex patterns for hot-path validation (>2x speedup on 10k+ items)
 PROFILE_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
 # Folder IDs (PK) are typically alphanumeric but can contain other safe chars.
@@ -758,7 +760,7 @@ def get_validated_input(
 
         if not value:
             print(f"{Colors.FAIL}❌ Value cannot be empty{Colors.ENDC}")
-            print(f"   {Colors.CYAN}💡 Hint: Please type a value and press Enter, or press Ctrl+C to cancel.{Colors.ENDC}")
+            print(EMPTY_INPUT_HINT)
             continue
 
         if validator(value):
@@ -782,7 +784,7 @@ def get_password(
 
         if not value:
             print(f"{Colors.FAIL}❌ Value cannot be empty{Colors.ENDC}")
-            print(f"   {Colors.CYAN}💡 Hint: Please type a value and press Enter, or press Ctrl+C to cancel.{Colors.ENDC}")
+            print(EMPTY_INPUT_HINT)
             continue
 
         if validator(value):
