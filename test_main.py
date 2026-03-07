@@ -497,14 +497,15 @@ def test_get_validated_input_retry(monkeypatch, capsys):
     # Check output for error messages
     captured = capsys.readouterr()
     assert "Value cannot be empty" in captured.out
+    assert "💡 Hint: Please type a value and press Enter, or press Ctrl+C/Ctrl+D to cancel." in captured.out
     assert "Error message" in captured.out
 
 
 # Case 12: get_password works with getpass
-def test_get_password(monkeypatch):
+def test_get_password(monkeypatch, capsys):
     m = reload_main_with_env(monkeypatch)
 
-    getpass_mock = MagicMock(return_value="secret")
+    getpass_mock = MagicMock(side_effect=["", "secret"])
     monkeypatch.setattr("getpass.getpass", getpass_mock)
 
     def validator(x):
@@ -513,7 +514,11 @@ def test_get_password(monkeypatch):
     result = m.get_password("Password: ", validator, "Error")
 
     assert result == "secret"
-    getpass_mock.assert_called_once()
+    assert getpass_mock.call_count == 2
+
+    captured = capsys.readouterr()
+    assert "Value cannot be empty" in captured.out
+    assert "💡 Hint: Please type a value and press Enter, or press Ctrl+C/Ctrl+D to cancel." in captured.out
 
 
 # Case 13: render_progress_bar renders correctly
