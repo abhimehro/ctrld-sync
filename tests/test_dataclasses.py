@@ -42,9 +42,9 @@ def test_push_rules_creates_executor_when_none(
     mock_tpe_cls, mock_as_completed, main_module
 ):
     """push_rules must create a ThreadPoolExecutor internally when ctx.batch_executor is None."""
-    # 600 hostnames exceeds the BATCH_SIZE=500 limit, forcing 2 batches and
-    # triggering the ThreadPoolExecutor code path.
-    hostnames = [f"example{i}.com" for i in range(600)]
+    # Derive sizes from the module constant so this test stays correct if BATCH_SIZE is tuned.
+    batch_size = main_module.BATCH_SIZE
+    hostnames = [f"example{i}.com" for i in range(batch_size + 1)]  # 2 batches
 
     mock_executor_instance = MagicMock()
     mock_tpe_cls.return_value.__enter__ = MagicMock(
@@ -54,9 +54,9 @@ def test_push_rules_creates_executor_when_none(
 
     # Use two distinct futures representing the two batches
     mock_future_1 = MagicMock()
-    mock_future_1.result.return_value = hostnames[:500]
+    mock_future_1.result.return_value = hostnames[:batch_size]
     mock_future_2 = MagicMock()
-    mock_future_2.result.return_value = hostnames[500:]
+    mock_future_2.result.return_value = hostnames[batch_size:]
 
     mock_executor_instance.submit.side_effect = [mock_future_1, mock_future_2]
     mock_as_completed.return_value = [mock_future_1, mock_future_2]
