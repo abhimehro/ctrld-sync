@@ -241,3 +241,17 @@ class TestServerErrorHint:
         assert retry_warnings
         assert api_client._TIMEOUT_HINT in retry_warnings[0].message
         assert "Server error" not in retry_warnings[0].message
+
+
+class TestRetryRequestGuards:
+    """Verify _retry_request raises RuntimeError for max_retries <= 0 (empty-range guard)."""
+
+    def test_retry_request_zero_max_retries_raises(self):
+        """_retry_request raises RuntimeError when max_retries=0 (empty range guard)."""
+        with pytest.raises(RuntimeError, match="_retry_request called with max_retries=0"):
+            api_client._retry_request(lambda: None, max_retries=0)
+
+    def test_retry_request_negative_max_retries_raises(self):
+        """Negative max_retries also produces an empty range, triggering the RuntimeError."""
+        with pytest.raises(RuntimeError, match="_retry_request called"):
+            api_client._retry_request(lambda: None, max_retries=-1)
