@@ -41,6 +41,7 @@
 
 **Closed issues:**
 
+- \[Code Quality\] Add HTTP status code hint to `create_folder` error handler [\#610](https://github.com/abhimehro/ctrld-sync/issues/610)
 - \[Code Quality\] Use `_CONNECT_ERROR_HINT` in `main.py` network error handlers [\#593](https://github.com/abhimehro/ctrld-sync/issues/593)
 - \[repo-status\] Daily Status Report — March 6, 2026 [\#592](https://github.com/abhimehro/ctrld-sync/issues/592)
 - \[Code Quality\] Add debug log to silent `except httpx.HTTPError: pass` in `get_all_existing_rules()` root fetch [\#589](https://github.com/abhimehro/ctrld-sync/issues/589)
@@ -50,6 +51,7 @@
 - \[repo-status\] Daily Repo Status — March 5, 2026 🚀 [\#571](https://github.com/abhimehro/ctrld-sync/issues/571)
 - \[Code Quality\] Replace `try/except pass` with `contextlib.suppress` in `_parse_rate_limit_headers` [\#570](https://github.com/abhimehro/ctrld-sync/issues/570)
 - \[Code Quality\] Add unit tests for `render_progress_bar` and `_get_progress_bar_width` [\#569](https://github.com/abhimehro/ctrld-sync/issues/569)
+- \[Code Quality\] Add test for `_retry_request(max_retries=0)` raises RuntimeError [\#568](https://github.com/abhimehro/ctrld-sync/issues/568)
 - \[Code Quality\] Add \_SERVER\_ERROR\_HINT for 5xx HTTP responses in api\_client.\_retry\_request\(\) [\#561](https://github.com/abhimehro/ctrld-sync/issues/561)
 - \[Code Quality\] Add \_CONNECT\_ERROR\_HINT for httpx.ConnectError in api\_client retry logic [\#557](https://github.com/abhimehro/ctrld-sync/issues/557)
 - \[Code Quality\] Introduce TypedDict types for folder and rule data structures in main.py [\#556](https://github.com/abhimehro/ctrld-sync/issues/556)
@@ -195,6 +197,8 @@
 
 **Merged pull requests:**
 
+- test: cover `_retry_request` empty-range RuntimeError guard [\#615](https://github.com/abhimehro/ctrld-sync/pull/615) ([Copilot](https://github.com/apps/copilot-swe-agent))
+- Add `_STATUS_HINTS` to `create_folder` error handler [\#613](https://github.com/abhimehro/ctrld-sync/pull/613) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - ⚡ Bolt: Optimize `is_valid_folder_name` string validation [\#609](https://github.com/abhimehro/ctrld-sync/pull/609) ([abhimehro](https://github.com/abhimehro))
 - feat\(types\): introduce TypedDicts for folder/rule data structures in main.py [\#606](https://github.com/abhimehro/ctrld-sync/pull/606) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - feat: add `_CONNECT_ERROR_HINT` to network error handlers \(closes \#593\) [\#605](https://github.com/abhimehro/ctrld-sync/pull/605) ([github-actions[bot]](https://github.com/apps/github-actions))
