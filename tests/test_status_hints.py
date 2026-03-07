@@ -409,6 +409,81 @@ class TestDeleteFolderHints:
         assert main._TIMEOUT_HINT in error_calls
 
 
+class TestCreateFolderHints:
+    """Verify create_folder() includes status hints in error logs on HTTP errors."""
+
+    def test_401_hint_logged_on_create_failure(self):
+        mock_response = MagicMock(spec=httpx.Response)
+        mock_response.status_code = 401
+        mock_request = MagicMock(spec=httpx.Request)
+        err = httpx.HTTPStatusError("401 Unauthorized", request=mock_request, response=mock_response)
+
+        mock_client = MagicMock()
+        mock_log = MagicMock()
+        ctx = main.SyncContext(profile_id="profile123", client=mock_client, existing_rules=set())
+        action = main.RuleAction(do=1, status=1)
+
+        with patch.object(main, "_api_post", side_effect=err):
+            with patch.object(main, "log", mock_log):
+                result = main.create_folder(ctx, "MyFolder", action)
+
+        assert result is None
+        error_calls = str(mock_log.error.call_args_list)
+        assert "TOKEN" in error_calls
+
+    def test_429_hint_logged_on_create_failure(self):
+        mock_response = MagicMock(spec=httpx.Response)
+        mock_response.status_code = 429
+        mock_request = MagicMock(spec=httpx.Request)
+        err = httpx.HTTPStatusError("429 Too Many Requests", request=mock_request, response=mock_response)
+
+        mock_client = MagicMock()
+        mock_log = MagicMock()
+        ctx = main.SyncContext(profile_id="profile123", client=mock_client, existing_rules=set())
+        action = main.RuleAction(do=1, status=1)
+
+        with patch.object(main, "_api_post", side_effect=err):
+            with patch.object(main, "log", mock_log):
+                result = main.create_folder(ctx, "MyFolder", action)
+
+        assert result is None
+        error_calls = str(mock_log.error.call_args_list)
+        assert "rate" in error_calls.lower()
+
+    def test_unknown_status_fallback(self):
+        mock_response = MagicMock(spec=httpx.Response)
+        mock_response.status_code = 503
+        mock_request = MagicMock(spec=httpx.Request)
+        err = httpx.HTTPStatusError("503 Service Unavailable", request=mock_request, response=mock_response)
+
+        mock_client = MagicMock()
+        mock_log = MagicMock()
+        ctx = main.SyncContext(profile_id="profile123", client=mock_client, existing_rules=set())
+        action = main.RuleAction(do=1, status=1)
+
+        with patch.object(main, "_api_post", side_effect=err):
+            with patch.object(main, "log", mock_log):
+                result = main.create_folder(ctx, "MyFolder", action)
+
+        assert result is None
+        error_calls = str(mock_log.error.call_args_list)
+        assert "HTTP 503" in error_calls
+
+    def test_key_error_logged_without_hint(self):
+        mock_client = MagicMock()
+        mock_log = MagicMock()
+        ctx = main.SyncContext(profile_id="profile123", client=mock_client, existing_rules=set())
+        action = main.RuleAction(do=1, status=1)
+
+        with patch.object(main, "_api_post", side_effect=KeyError("missing_key")):
+            with patch.object(main, "log", mock_log):
+                result = main.create_folder(ctx, "MyFolder", action)
+
+        assert result is None
+        error_calls = str(mock_log.error.call_args_list)
+        assert "hint" not in error_calls.lower()
+
+
 class TestVerifyAccessHints:
     """Verify verify_access_and_get_folders() surfaces timeout hint on final network error."""
 
