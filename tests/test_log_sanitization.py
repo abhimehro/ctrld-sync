@@ -42,8 +42,9 @@ class TestLogSanitization(unittest.TestCase):
         unsafe_name = "\x1b[31mUNSAFE"
 
         # Call
-        client = MagicMock()
-        main.create_folder(client, "pid", unsafe_name, 0, 1)
+        ctx = main.SyncContext(profile_id="pid", client=MagicMock(), existing_rules=set())
+        action = main.RuleAction(do=0, status=1)
+        main.create_folder(ctx, unsafe_name, action)
 
         # Check logs: ensure we do not log the raw unsafe name, but do log the sanitized name.
         # For this test file, I want it to PASS when the code is FIXED.

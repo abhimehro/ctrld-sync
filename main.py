@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import concurrent.futures
 import contextlib
+from dataclasses import dataclass
 import getpass
 import ipaddress
 import json
@@ -64,6 +65,24 @@ from api_client import (
     _api_post,
     _api_post_form,
 )
+
+@dataclass(frozen=True)
+class RuleAction:
+    """Represents a rule action (do and status)."""
+
+    do: int
+    status: int
+
+
+@dataclass
+class SyncContext:
+    """Context for syncing rules and folders."""
+
+    profile_id: str
+    client: httpx.Client
+    existing_rules: set[str]
+    batch_executor: concurrent.futures.Executor | None = None
+
 
 # --------------------------------------------------------------------------- #
 # 0. Bootstrap – load secrets and configure logging
@@ -1773,9 +1792,7 @@ def delete_folder(
         return False
 
 
-def create_folder(
-    client: httpx.Client, profile_id: str, name: str, do: int, status: int
-) -> str | None:
+def create_folder(ctx: SyncContext, name: str, action: RuleAction) -> str | None:
     """
     Create a new folder and return its ID.
     Attempts to read ID from response first, then falls back to polling.
@@ -1783,9 +1800,9 @@ def create_folder(
     try:
         # 1. Send the Create Request
         response = _api_post(
-            client,
-            f"{API_BASE}/{profile_id}/groups",
-            data={"name": name, "do": do, "status": status},
+            ctx.client,
+            f"{API_BASE}/{ctx.profile_id}/groups",
+            data={"name": name, "do": action.do, "status": action.status},
         )
 
         # OPTIMIZATION: Try to grab ID directly from response to avoid the wait loop
@@ -1831,7 +1848,7 @@ def create_folder(
         # 2. Fallback: Poll for the new folder (The Robust Retry Logic)
         for attempt in range(MAX_RETRIES + 1):
             try:
-                data = _api_get(client, f"{API_BASE}/{profile_id}/groups").json()
+                data = _api_get(ctx.client, f"{API_BASE}/{ctx.profile_id}/groups").json()
                 groups = data.get("body", {}).get("groups", [])
 
                 for grp in groups:
@@ -1873,21 +1890,17 @@ def create_folder(
 
 
 def push_rules(
-    profile_id: str,
+    ctx: SyncContext,
     folder_name: str,
     folder_id: str,
-    do: int,
-    status: int,
+    action: RuleAction,
     hostnames: list[str],
-    existing_rules: set[str],
-    client: httpx.Client,
-    batch_executor: concurrent.futures.Executor | None = None,
 ) -> bool:
     """
     Pushes rules to a folder in batches, filtering duplicates and invalid rules.
 
     Deduplicates input, validates rules against RULE_PATTERN, and sends batches
-    in parallel for optimal performance. Updates existing_rules set with newly
+    in parallel for optimal performance. Updates ctx.existing_rules set with newly
     added rules. Returns True if all batches succeed.
     """
     if not hostnames:
@@ -1906,10 +1919,10 @@ def push_rules(
     # bypassing the Python loop overhead for the vast majority of items that are already synced.
     # FAST-PATH: If existing_rules is empty (e.g., first sync), avoid the list allocation.
     new_hostnames: typing.Iterable[str]
-    if not existing_rules:
+    if not ctx.existing_rules:
         new_hostnames = unique_hostnames_dict
     else:
-        new_hostnames = [h for h in unique_hostnames_dict if h not in existing_rules]
+        new_hostnames = [h for h in unique_hostnames_dict if h not in ctx.existing_rules]
 
     filtered_hostnames: list[str] = []
     skipped_unsafe = 0
@@ -1957,8 +1970,8 @@ def push_rules(
     total_batches = len(batches)
 
     # Optimization: Hoist loop invariants to avoid redundant computations
-    str_do = str(do)
-    str_status = str(status)
+    str_do = str(action.do)
+    str_status = str(action.status)
     str_group = str(folder_id)
     sanitized_folder_name = sanitize_for_log(folder_name)
     progress_label = f"Folder {sanitized_folder_name}"
@@ -1975,7 +1988,7 @@ def push_rules(
         data.update(zip(BATCH_KEYS, batch_data, strict=False))
 
         try:
-            _api_post_form(client, f"{API_BASE}/{profile_id}/rules", data=data)
+            _api_post_form(ctx.client, f"{API_BASE}/{ctx.profile_id}/rules", data=data)
             if not USE_COLORS:
                 log.info(
                     "Folder %s – batch %d: added %d rules",
@@ -2011,7 +2024,7 @@ def push_rules(
         result = process_batch(1, batches[0])
         if result:
             successful_batches += 1
-            existing_rules.update(result)
+            ctx.existing_rules.update(result)
 
         render_progress_bar(
             successful_batches,
@@ -2020,8 +2033,8 @@ def push_rules(
         )
     else:
         # Use provided executor or create a local one (fallback)
-        if batch_executor:
-            executor_ctx: contextlib.AbstractContextManager[concurrent.futures.Executor] = contextlib.nullcontext(batch_executor)
+        if ctx.batch_executor:
+            executor_ctx: contextlib.AbstractContextManager[concurrent.futures.Executor] = contextlib.nullcontext(ctx.batch_executor)
         else:
             executor_ctx = concurrent.futures.ThreadPoolExecutor(max_workers=3)
 
@@ -2035,7 +2048,7 @@ def push_rules(
                 result = future.result()
                 if result:
                     successful_batches += 1
-                    existing_rules.update(result)
+                    ctx.existing_rules.update(result)
 
                 render_progress_bar(
                     successful_batches,
@@ -2067,11 +2080,8 @@ def push_rules(
 
 
 def _process_single_folder(
+    ctx: SyncContext,
     folder_data: dict[str, Any],
-    profile_id: str,
-    existing_rules: set[str],
-    client: httpx.Client,
-    batch_executor: concurrent.futures.Executor | None = None,
 ) -> bool:
     grp = folder_data["group"]
     name = grp["group"].strip()
@@ -2079,42 +2089,37 @@ def _process_single_folder(
     # Client is now passed in, reusing the connection
     main_do = grp.get("action", {}).get("do", 0)
     main_status = grp.get("action", {}).get("status", 1)
+    main_action = RuleAction(do=main_do, status=main_status)
 
-    folder_id = create_folder(client, profile_id, name, main_do, main_status)
+    folder_id = create_folder(ctx, name, main_action)
     if not folder_id:
         return False
 
     folder_success = True
     if "rule_groups" in folder_data:
         for rule_group in folder_data["rule_groups"]:
-            action = rule_group.get("action", {})
-            do = action.get("do", 0)
-            status = action.get("status", 1)
+            action_data = rule_group.get("action", {})
+            action = RuleAction(
+                do=action_data.get("do", 0),
+                status=action_data.get("status", 1),
+            )
             hostnames = [r["PK"] for r in rule_group.get("rules", []) if r.get("PK")]
             if not push_rules(
-                profile_id,
+                ctx,
                 name,
                 folder_id,
-                do,
-                status,
+                action,
                 hostnames,
-                existing_rules,
-                client,
-                batch_executor=batch_executor,
             ):
                 folder_success = False
     else:
         hostnames = [r["PK"] for r in folder_data.get("rules", []) if r.get("PK")]
         if not push_rules(
-            profile_id,
+            ctx,
             name,
             folder_id,
-            main_do,
-            main_status,
+            main_action,
             hostnames,
-            existing_rules,
-            client,
-            batch_executor=batch_executor,
         ):
             folder_success = False
 
@@ -2313,17 +2318,21 @@ def sync_profile(
                 )
                 existing_rules = set()
 
+            ctx = SyncContext(
+                profile_id=profile_id,
+                client=client,
+                existing_rules=existing_rules,
+                batch_executor=shared_executor,
+            )
+
             with concurrent.futures.ThreadPoolExecutor(
                 max_workers=max_workers
             ) as executor:
                 future_to_folder = {
                     executor.submit(
                         _process_single_folder,
+                        ctx,
                         folder_data,
-                        profile_id,
-                        existing_rules,
-                        client,  # Pass the persistent client
-                        batch_executor=shared_executor,
                     ): folder_data
                     for folder_data in folder_data_list
                 }
