@@ -108,8 +108,9 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
 
 5. **Run locally**
    ```bash
-   python main.py --dry-run            # plan only, no API calls
-   python main.py --profiles your_id   # live run (requires TOKEN)
+   python main.py --dry-run                          # plan only, no API calls
+   python main.py --dry-run --plan-json plan.json    # machine-readable dry-run output
+   python main.py --profiles your_id                 # live run (requires TOKEN)
    ```
 
 6. **Run in CI**
@@ -123,6 +124,18 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
 4. Under "Secrets and variables > Actions" create the following secrets like above, under "Repository secrets":
    - `TOKEN`: your Control D API token
    - `PROFILE`: your Control D profile ID(s)
+
+## CLI Flags
+
+| Flag | Description |
+|------|-------------|
+| `--dry-run` | Plan only — preview changes without making API calls |
+| `--profiles ID[,ID]` | Comma-separated profile IDs (overrides `PROFILE` env var) |
+| `--folder-url URL` | Folder JSON URL (repeatable; overrides config file) |
+| `--config FILE` / `-c FILE` | Path to YAML config file |
+| `--no-delete` | Skip deletion of folders not present in the source list |
+| `--plan-json FILE` | Write the dry-run plan as JSON to FILE (useful for CI diffing) |
+| `--clear-cache` | Purge the persistent blocklist cache and exit |
 
 ## Environment Variables
 
