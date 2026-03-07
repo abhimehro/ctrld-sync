@@ -1568,7 +1568,11 @@ def verify_access_and_get_folders(
 
         except httpx.RequestError as err:
             if attempt == MAX_RETRIES - 1:
-                hint = f" | hint: {_TIMEOUT_HINT}" if isinstance(err, httpx.TimeoutException) else (f" | hint: {_CONNECT_ERROR_HINT}" if isinstance(err, httpx.ConnectError) else "")
+                hint = ""
+                if isinstance(err, httpx.TimeoutException):
+                    hint = f" | hint: {_TIMEOUT_HINT}"
+                elif isinstance(err, httpx.ConnectError):
+                    hint = f" | hint: {_CONNECT_ERROR_HINT}"
                 log.error(
                     "Network error during access verification: %s%s",
                     sanitize_for_log(err),
