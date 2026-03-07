@@ -2001,8 +2001,11 @@ def create_folder(ctx: SyncContext, name: str, action: RuleAction) -> str | None
         return None
 
     except (httpx.HTTPError, KeyError) as e:
+        hint = ""
+        if isinstance(e, httpx.HTTPStatusError):
+            hint = f" | hint: {_STATUS_HINTS.get(e.response.status_code, f'HTTP {e.response.status_code}')}"
         log.error(
-            f"Failed to create folder {sanitize_for_log(name)}: {sanitize_for_log(e)}"
+            f"Failed to create folder {sanitize_for_log(name)}{hint}: {sanitize_for_log(e)}"
         )
         return None
 
