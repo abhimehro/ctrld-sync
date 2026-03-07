@@ -49,6 +49,7 @@
 - \[Code Quality\] Add debug log to silent `except httpx.HTTPError: pass` in `get_all_existing_rules()` root fetch [\#589](https://github.com/abhimehro/ctrld-sync/issues/589)
 - \[Code Quality\] Replace `except ValueError: pass` with `contextlib.suppress` in `_retry_request` 429 handler [\#588](https://github.com/abhimehro/ctrld-sync/issues/588)
 - \[Code Quality\] Deduplicate hint messages between main.\_STATUS\_HINTS and api\_client.\_4XX\_HINTS [\#584](https://github.com/abhimehro/ctrld-sync/issues/584)
+- \[Code Quality\] Document undocumented CLI flags \(--no-delete, --plan-json, --clear-cache\) in README [\#582](https://github.com/abhimehro/ctrld-sync/issues/582)
 - \[Code Quality\] Document `fix_env.py` public interface: add docstring to `fix_env()` and `__all__` [\#573](https://github.com/abhimehro/ctrld-sync/issues/573)
 - \[repo-status\] Daily Repo Status — March 5, 2026 🚀 [\#571](https://github.com/abhimehro/ctrld-sync/issues/571)
 - \[Code Quality\] Replace `try/except pass` with `contextlib.suppress` in `_parse_rate_limit_headers` [\#570](https://github.com/abhimehro/ctrld-sync/issues/570)
@@ -199,6 +200,7 @@
 
 **Merged pull requests:**
 
+- docs: document --no-delete, --plan-json, --clear-cache CLI flags in README [\#618](https://github.com/abhimehro/ctrld-sync/pull/618) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - ⚡ Optimize array validation using all\(\) [\#617](https://github.com/abhimehro/ctrld-sync/pull/617) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Add actionable hints to empty CLI inputs [\#616](https://github.com/abhimehro/ctrld-sync/pull/616) ([abhimehro](https://github.com/abhimehro))
 - test: cover `_retry_request` empty-range RuntimeError guard [\#615](https://github.com/abhimehro/ctrld-sync/pull/615) ([Copilot](https://github.com/apps/copilot-swe-agent))
