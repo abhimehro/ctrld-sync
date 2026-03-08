@@ -134,7 +134,6 @@ def test_clean_val():
     assert fix_env.clean_val("'value'") == "value"
     assert fix_env.clean_val("\u201cvalue\u201d") == "value"  # curly quotes
     assert fix_env.clean_val('""value""') == '"value"'  # only removes outermost
-
 def test_escape_val():
     """
     Verify escape_val correctly escapes backslashes and double quotes.
