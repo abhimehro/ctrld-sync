@@ -2679,7 +2679,6 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-
 def make_col_separator(left: str, mid: str, right: str, horiz: str, col_widths: list[int]) -> str:
     """Generates a table row separator with given box drawing characters and column widths."""
     parts = [horiz * (w + 2) for w in col_widths]
