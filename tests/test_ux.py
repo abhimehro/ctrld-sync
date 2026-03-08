@@ -235,3 +235,82 @@ class TestMakeColSeparator:
         ]
         expected = "L" + "M".join(expected_parts) + "R"
         assert result == expected
+
+def test_print_line():
+    """Verify print_line produces correct unicode table borders."""
+    w = [2, 3]
+    result = main.print_line("[", "*", "]", w)
+    assert result.startswith(main.Colors.BOLD)
+    assert result.endswith(main.Colors.ENDC)
+    inner = result.replace(main.Colors.BOLD, "").replace(main.Colors.ENDC, "")
+    assert inner == "[────*─────]"
+
+def test_print_row():
+    """Verify print_row produces correctly padded columns with bold separators."""
+    w = [2, 3, 4, 5, 6]
+    cols = ["A", "B", "C", "D", "E"]
+    result = main.print_row(cols, w)
+    expected_inner = "│ A  │   B │    C │     D │ E      │"
+    clean_result = result.replace(main.Colors.BOLD, "").replace(main.Colors.ENDC, "")
+    assert clean_result == expected_inner
+
+def test_print_summary_table_unicode_print_line(monkeypatch, capsys):
+    """
+    Test that print_summary_table correctly uses the print_line and print_row helpers
+    when USE_COLORS is True (unicode table mode).
+    """
+    monkeypatch.setattr(main, "USE_COLORS", True)
+    sync_results = [
+        {
+            "profile": "Profile_1",
+            "folders": 3,
+            "rules": 1500,
+            "duration": 2.5,
+            "status_label": "ok",
+            "success": True,
+        }
+    ]
+    main.print_summary_table(
+        sync_results=sync_results, success_count=1, total=1, dry_run=False
+    )
+    captured = capsys.readouterr()
+    assert "┌─" in captured.out
+    assert "─┐" in captured.out
+    assert "├─" in captured.out or "├" in captured.out
+    assert "┼" in captured.out
+    assert "┤" in captured.out
+    assert "└─" in captured.out or "└" in captured.out
+    assert "┴" in captured.out
+    assert "┘" in captured.out
+    assert "SYNC SUMMARY" in captured.out
+    assert "Profile_1" in captured.out
+    assert "1,500" in captured.out
+    assert "2.5s" in captured.out
+
+def test_print_summary_table_ascii_fallback(monkeypatch, capsys):
+    """
+    Test that print_summary_table correctly falls back to ASCII output
+    when USE_COLORS is False.
+    """
+    monkeypatch.setattr(main, "USE_COLORS", False)
+    sync_results = [
+        {
+            "profile": "Profile_2",
+            "folders": 1,
+            "rules": 250,
+            "duration": 1.1,
+            "status_label": "error",
+            "success": False,
+        }
+    ]
+    main.print_summary_table(
+        sync_results=sync_results, success_count=0, total=1, dry_run=True
+    )
+    captured = capsys.readouterr()
+    assert "┌─" not in captured.out
+    assert "├" not in captured.out
+    assert "│" not in captured.out
+    assert "-" * 20 in captured.out
+    assert "DRY RUN SUMMARY" in captured.out
+    assert "Profile_2" in captured.out
+    assert "error" in captured.out
