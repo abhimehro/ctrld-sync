@@ -35,6 +35,7 @@ import time
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, NotRequired, TypedDict, TypeGuard, cast
+import typing
 from collections.abc import Callable, Sequence
 from urllib.parse import urlparse
 
@@ -190,7 +191,6 @@ class Colors:
         ENDC = "\033[0m"
         BOLD = "\033[1m"
         UNDERLINE = "\033[4m"
-        DIM = "\033[2m"
     else:
         HEADER = ""
         BLUE = ""
@@ -201,7 +201,6 @@ class Colors:
         ENDC = ""
         BOLD = ""
         UNDERLINE = ""
-        DIM = ""
 
 
 class Box:
@@ -455,7 +454,7 @@ log = logging.getLogger("control-d-sync")
 API_BASE = "https://api.controld.com/profiles"
 USER_AGENT = "Control-D-Sync/0.1.0"
 
-EMPTY_INPUT_HINT = f"   {Colors.DIM}💡 Hint: Please type a value and press Enter, or press Ctrl+C/Ctrl+D to cancel.{Colors.ENDC}"
+EMPTY_INPUT_HINT = f"   {Colors.CYAN}💡 Hint: Please type a value and press Enter, or press Ctrl+C/Ctrl+D to cancel.{Colors.ENDC}"
 
 # Pre-compiled regex patterns for hot-path validation (>2x speedup on 10k+ items)
 PROFILE_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
@@ -566,7 +565,7 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
     if not folders:
         if USE_COLORS:
             print(f"  {Colors.WARNING}No folders to sync.{Colors.ENDC}")
-            print(f"  {Colors.DIM}💡 Hint: Add folder URLs using --folder-url or in your config.yaml{Colors.ENDC}")
+            print(f"  {Colors.CYAN}💡 Hint: Add folder URLs using --folder-url or in your config.yaml{Colors.ENDC}")
         else:
             print("  No folders to sync.")
             print("  Hint: Add folder URLs using --folder-url or in your config.yaml")
@@ -1038,7 +1037,18 @@ def validate_hostname(hostname: str) -> bool:
 
     try:
         ip = ipaddress.ip_address(hostname)
-        if not ip.is_global or ip.is_multicast:
+        # SSRF Protection: Block private, multicast, loopback, link-local, unspecified, and CGNAT IPs.
+        # ip.is_global handles most of these, but we explicitly check others for safety.
+        # Explicitly block CGNAT (100.64.0.0/10) as defense-in-depth, even though modern ipaddress marks it non-global.
+        if (
+            not ip.is_global
+            or ip.is_multicast
+            or ip.is_private
+            or ip.is_unspecified
+            or ip.is_loopback
+            or ip.is_link_local
+            or (ip.version == 4 and ip in ipaddress.ip_network("100.64.0.0/10"))
+        ):
             log.warning(f"Skipping unsafe IP: {sanitize_for_log(hostname)}")
             return False
         return True
@@ -1053,7 +1063,15 @@ def validate_hostname(hostname: str) -> bool:
                 # sockaddr is (address, port) for AF_INET/AF_INET6
                 ip_str = res[4][0]
                 ip = ipaddress.ip_address(ip_str)
-                if not ip.is_global or ip.is_multicast:
+                if (
+                    not ip.is_global
+                    or ip.is_multicast
+                    or ip.is_private
+                    or ip.is_unspecified
+                    or ip.is_loopback
+                    or ip.is_link_local
+                    or (ip.version == 4 and ip in ipaddress.ip_network("100.64.0.0/10"))
+                ):
                     log.warning(
                         f"Skipping unsafe hostname {sanitize_for_log(hostname)} (resolves to non-global/multicast IP {ip})"
                     )
@@ -2041,34 +2059,31 @@ def push_rules(
     # (which could be millions of items) for every folder processed.
     unique_hostnames_dict = dict.fromkeys(hostnames)
 
-    # Optimization 2: Combine pre-filtering and validation into a single pass
-    # This avoids allocating an intermediate list for new_hostnames and reduces iteration overhead.
-    # Inline method references for hot loop performance.
-    match_rule = RULE_PATTERN.match
+    # We use a C-optimized list comprehension to filter out existing rules quickly,
+    # bypassing the Python loop overhead for the vast majority of items that are already synced.
+    # FAST-PATH: If existing_rules is empty (e.g., first sync), avoid the list allocation.
+    new_hostnames: typing.Iterable[str]
+    if not ctx.existing_rules:
+        new_hostnames = unique_hostnames_dict
+    else:
+        new_hostnames = [h for h in unique_hostnames_dict if h not in ctx.existing_rules]
+
     filtered_hostnames: list[str] = []
-    append = filtered_hostnames.append
     skipped_unsafe = 0
 
-    if not ctx.existing_rules:
-        for h in unique_hostnames_dict:
-            if not match_rule(h):
-                log.warning(
-                    f"Skipping unsafe rule in {sanitize_for_log(folder_name)}: {sanitize_for_log(h)}"
-                )
-                skipped_unsafe += 1
-                continue
-            append(h)
-    else:
-        for h in unique_hostnames_dict:
-            if h in ctx.existing_rules:
-                continue
-            if not match_rule(h):
-                log.warning(
-                    f"Skipping unsafe rule in {sanitize_for_log(folder_name)}: {sanitize_for_log(h)}"
-                )
-                skipped_unsafe += 1
-                continue
-            append(h)
+    # Optimization 2: Inline method references for hot loop performance
+    match_rule = RULE_PATTERN.match
+    append = filtered_hostnames.append
+
+    for h in new_hostnames:
+        if not match_rule(h):
+            log.warning(
+                f"Skipping unsafe rule in {sanitize_for_log(folder_name)}: {sanitize_for_log(h)}"
+            )
+            skipped_unsafe += 1
+            continue
+
+        append(h)
 
     if skipped_unsafe > 0:
         log.warning(
@@ -2729,7 +2744,7 @@ def main() -> None:
                 exit(1)
         else:
             print(f"{Colors.CYAN}ℹ No cache file found, nothing to clear{Colors.ENDC}")
-            print(f"{Colors.DIM}💡 Hint: The cache file will be created or updated after a successful sync run without --dry-run{Colors.ENDC}")
+            print(f"{Colors.CYAN}💡 Hint: The cache file will be created or updated after a successful sync run without --dry-run{Colors.ENDC}")
         _disk_cache.clear()
         exit(0)
     profiles_arg = (
