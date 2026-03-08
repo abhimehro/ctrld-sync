@@ -84,7 +84,3 @@
 ## 2026-03-05 - [Fast String Character Validation]
 **Learning:** Checking a string for the presence of forbidden characters using `any(c in FORBIDDEN_CHARS for c in name)` executes a Python-level loop which is slow. Pre-combining the sets of forbidden characters and using `not ALL_FORBIDDEN.isdisjoint(name)` drops the check to a fast, C-optimized set operation, running in O(N) where N is the length of the string name.
 **Action:** When validating string inputs against large sets of forbidden characters, combine the sets at the module level and use `set.isdisjoint(string)` for maximum performance.
-
-## 2026-03-05 - [Combine Deduplication and Validation Loops]
-**Learning:** Iterating over a large list of parsed items multiple times (once with a list comprehension for filtering, then again in a `for` loop for validation and logging) causes unnecessary intermediate list allocations and loop overhead. Even though C-optimized list comprehensions are fast, doing two passes in Python is slower than merging both operations into a single fast-path loop (with inlined method lookups). Benchmarks showed a 10% speedup locally.
-**Action:** When filtering and validating data arrays (e.g., `unique_hostnames_dict`), merge the "exists in set" check and "is valid format" check into the same single loop, avoiding intermediate allocations.
