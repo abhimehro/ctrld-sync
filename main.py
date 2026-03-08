@@ -1037,7 +1037,18 @@ def validate_hostname(hostname: str) -> bool:
 
     try:
         ip = ipaddress.ip_address(hostname)
-        if not ip.is_global or ip.is_multicast:
+        # SSRF Protection: Block private, multicast, loopback, link-local, unspecified, and CGNAT IPs.
+        # ip.is_global handles most of these, but we explicitly check others for safety.
+        # Explicitly block CGNAT (100.64.0.0/10) as defense-in-depth, even though modern ipaddress marks it non-global.
+        if (
+            not ip.is_global
+            or ip.is_multicast
+            or ip.is_private
+            or ip.is_unspecified
+            or ip.is_loopback
+            or ip.is_link_local
+            or (ip.version == 4 and ip in ipaddress.ip_network("100.64.0.0/10"))
+        ):
             log.warning(f"Skipping unsafe IP: {sanitize_for_log(hostname)}")
             return False
         return True
@@ -1052,7 +1063,15 @@ def validate_hostname(hostname: str) -> bool:
                 # sockaddr is (address, port) for AF_INET/AF_INET6
                 ip_str = res[4][0]
                 ip = ipaddress.ip_address(ip_str)
-                if not ip.is_global or ip.is_multicast:
+                if (
+                    not ip.is_global
+                    or ip.is_multicast
+                    or ip.is_private
+                    or ip.is_unspecified
+                    or ip.is_loopback
+                    or ip.is_link_local
+                    or (ip.version == 4 and ip in ipaddress.ip_network("100.64.0.0/10"))
+                ):
                     log.warning(
                         f"Skipping unsafe hostname {sanitize_for_log(hostname)} (resolves to non-global/multicast IP {ip})"
                     )
@@ -2535,6 +2554,15 @@ def prompt_for_interactive_restart(profile_ids: list[str]) -> None:
         print(f"\n{Colors.WARNING}⚠️  Cancelled.{Colors.ENDC}")
 
 
+
+def print_line(left_char: str, mid_char: str, right_char: str, w: list[int]) -> str:
+    """Format a horizontal table separator line."""
+    return f"{Colors.BOLD}{left_char}{mid_char.join('─' * (x + 2) for x in w)}{right_char}{Colors.ENDC}"
+
+def print_row(cols: list[str], w: list[int]) -> str:
+    """Format a row of table data."""
+    return f"{Colors.BOLD}│{Colors.ENDC} {cols[0]:<{w[0]}} {Colors.BOLD}│{Colors.ENDC} {cols[1]:>{w[1]}} {Colors.BOLD}│{Colors.ENDC} {cols[2]:>{w[2]}} {Colors.BOLD}│{Colors.ENDC} {cols[3]:>{w[3]}} {Colors.BOLD}│{Colors.ENDC} {cols[4]:<{w[4]}} {Colors.BOLD}│{Colors.ENDC}"
+
 def print_summary_table(
     sync_results: list[SyncResult], success_count: int, total: int, dry_run: bool
 ) -> None:
@@ -2569,21 +2597,15 @@ def print_summary_table(
         return
 
     # Unicode Table
-    def print_line(left_char, mid_char, right_char):
-        return f"{Colors.BOLD}{left_char}{mid_char.join('─' * (x + 2) for x in w)}{right_char}{Colors.ENDC}"
-
-    def print_row(cols):
-        return f"{Colors.BOLD}│{Colors.ENDC} {cols[0]:<{w[0]}} {Colors.BOLD}│{Colors.ENDC} {cols[1]:>{w[1]}} {Colors.BOLD}│{Colors.ENDC} {cols[2]:>{w[2]}} {Colors.BOLD}│{Colors.ENDC} {cols[3]:>{w[3]}} {Colors.BOLD}│{Colors.ENDC} {cols[4]:<{w[4]}} {Colors.BOLD}│{Colors.ENDC}"
-
-    print(f"\n{print_line('┌', '─', '┐')}")
+    print(f"\n{print_line('┌', '─', '┐', w)}")
     title = f"{'DRY RUN' if dry_run else 'SYNC'} SUMMARY"
     print(
         f"{Colors.BOLD}│{Colors.CYAN if dry_run else Colors.HEADER}{title:^{sum(w) + 14}}{Colors.ENDC}{Colors.BOLD}│{Colors.ENDC}"
     )
     print(
-        f"{print_line('├', '┬', '┤')}\n{print_row([f'{Colors.HEADER}Profile ID{Colors.ENDC}', f'{Colors.HEADER}Folders{Colors.ENDC}', f'{Colors.HEADER}Rules{Colors.ENDC}', f'{Colors.HEADER}Duration{Colors.ENDC}', f'{Colors.HEADER}Status{Colors.ENDC}'])}"
+        f"{print_line('├', '┬', '┤', w)}\n{print_row([f'{Colors.HEADER}Profile ID{Colors.ENDC}', f'{Colors.HEADER}Folders{Colors.ENDC}', f'{Colors.HEADER}Rules{Colors.ENDC}', f'{Colors.HEADER}Duration{Colors.ENDC}', f'{Colors.HEADER}Status{Colors.ENDC}'], w)}"
     )
-    print(print_line("├", "┼", "┤"))
+    print(print_line('├', '┼', '┤', w))
 
     for r in sync_results:
         sc = Colors.GREEN if r["success"] else Colors.FAIL
@@ -2595,14 +2617,14 @@ def print_summary_table(
                     f"{r['rules']:,}",
                     f"{r['duration']:.1f}s",
                     f"{sc}{r['status_label']}{Colors.ENDC}",
-                ]
+                ], w
             )
         )
 
     print(
-        f"{print_line('├', '┼', '┤')}\n{print_row(['TOTAL', str(t_f), f'{t_r:,}', f'{t_d:.1f}s', f'{t_col}{t_status}{Colors.ENDC}'])}"
+        f"{print_line('├', '┼', '┤', w)}\n{print_row(['TOTAL', str(t_f), f'{t_r:,}', f'{t_d:.1f}s', f'{t_col}{t_status}{Colors.ENDC}'], w)}"
     )
-    print(f"{print_line('└', '┴', '┘')}\n")
+    print(f"{print_line('└', '┴', '┘', w)}\n")
 
 
 def print_success_message(profile_ids: list[str]) -> None:
