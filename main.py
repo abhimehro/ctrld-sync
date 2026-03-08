@@ -191,6 +191,7 @@ class Colors:
         ENDC = "\033[0m"
         BOLD = "\033[1m"
         UNDERLINE = "\033[4m"
+        DIM = "\033[2m"
     else:
         HEADER = ""
         BLUE = ""
@@ -201,6 +202,7 @@ class Colors:
         ENDC = ""
         BOLD = ""
         UNDERLINE = ""
+        DIM = ""
 
 
 class Box:
@@ -454,7 +456,7 @@ log = logging.getLogger("control-d-sync")
 API_BASE = "https://api.controld.com/profiles"
 USER_AGENT = "Control-D-Sync/0.1.0"
 
-EMPTY_INPUT_HINT = f"   {Colors.CYAN}💡 Hint: Please type a value and press Enter, or press Ctrl+C/Ctrl+D to cancel.{Colors.ENDC}"
+EMPTY_INPUT_HINT = f"   {Colors.DIM}💡 Hint: Please type a value and press Enter, or press Ctrl+C/Ctrl+D to cancel.{Colors.ENDC}"
 
 # Pre-compiled regex patterns for hot-path validation (>2x speedup on 10k+ items)
 PROFILE_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
@@ -565,7 +567,7 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
     if not folders:
         if USE_COLORS:
             print(f"  {Colors.WARNING}No folders to sync.{Colors.ENDC}")
-            print(f"  {Colors.CYAN}💡 Hint: Add folder URLs using --folder-url or in your config.yaml{Colors.ENDC}")
+            print(f"  {Colors.DIM}💡 Hint: Add folder URLs using --folder-url or in your config.yaml{Colors.ENDC}")
         else:
             print("  No folders to sync.")
             print("  Hint: Add folder URLs using --folder-url or in your config.yaml")
@@ -2722,7 +2724,7 @@ def main() -> None:
                 exit(1)
         else:
             print(f"{Colors.CYAN}ℹ No cache file found, nothing to clear{Colors.ENDC}")
-            print(f"{Colors.CYAN}💡 Hint: The cache file will be created or updated after a successful sync run without --dry-run{Colors.ENDC}")
+            print(f"{Colors.DIM}💡 Hint: The cache file will be created or updated after a successful sync run without --dry-run{Colors.ENDC}")
         _disk_cache.clear()
         exit(0)
     profiles_arg = (
