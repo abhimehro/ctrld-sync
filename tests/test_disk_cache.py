@@ -36,7 +36,9 @@ class TestDiskCache(unittest.TestCase):
         # Reset stats in-place so both cache._cache_stats and main._cache_stats
         # (which are the same dict) reflect fresh zeroes.
         cache._cache_stats.clear()
-        cache._cache_stats.update({"hits": 0, "misses": 0, "validations": 0, "errors": 0})
+        cache._cache_stats.update(
+            {"hits": 0, "misses": 0, "validations": 0, "errors": 0}
+        )
 
         # Create temporary cache directory for testing
         self.temp_dir = tempfile.mkdtemp()
@@ -47,7 +49,9 @@ class TestDiskCache(unittest.TestCase):
         main._disk_cache.clear()
         main.validate_folder_url.cache_clear()
         cache._cache_stats.clear()
-        cache._cache_stats.update({"hits": 0, "misses": 0, "validations": 0, "errors": 0})
+        cache._cache_stats.update(
+            {"hits": 0, "misses": 0, "validations": 0, "errors": 0}
+        )
 
         # Clean up temp directory
         import shutil
@@ -75,8 +79,9 @@ class TestDiskCache(unittest.TestCase):
 
     def test_get_cache_dir_windows(self):
         """Test that cache directory is correct on Windows."""
-        with patch("platform.system", return_value="Windows"), patch.dict(
-            os.environ, {"LOCALAPPDATA": r"C:\Users\Test\AppData\Local"}
+        with (
+            patch("platform.system", return_value="Windows"),
+            patch.dict(os.environ, {"LOCALAPPDATA": r"C:\Users\Test\AppData\Local"}),
         ):
             cache_dir = main.get_cache_dir()
             # Use string comparison to avoid path separator differences
@@ -85,7 +90,9 @@ class TestDiskCache(unittest.TestCase):
 
     def test_load_disk_cache_no_file(self):
         """Test loading cache when no cache file exists."""
-        with patch("cache.get_cache_dir", return_value=Path(self.temp_dir) / "nonexistent"):
+        with patch(
+            "cache.get_cache_dir", return_value=Path(self.temp_dir) / "nonexistent"
+        ):
             main.load_disk_cache()
 
         # Should have empty cache, no errors
@@ -211,7 +218,9 @@ class TestDiskCache(unittest.TestCase):
 
         # Reset stats in-place so cache._cache_stats (the live dict) is zeroed.
         cache._cache_stats.clear()
-        cache._cache_stats.update({"hits": 0, "misses": 0, "validations": 0, "errors": 0})
+        cache._cache_stats.update(
+            {"hits": 0, "misses": 0, "validations": 0, "errors": 0}
+        )
 
         def mock_stream(method, url, headers=None):
             mock_response = MagicMock()
@@ -429,8 +438,11 @@ class TestDiskCache(unittest.TestCase):
         saved_main = sys.modules.pop("main", None)
         try:
             fresh_cache = importlib.import_module("cache")
-            self.assertIs(fresh_cache._sanitize_fn, repr,
-                          "_sanitize_fn should default to repr before main.py injects it")
+            self.assertIs(
+                fresh_cache._sanitize_fn,
+                repr,
+                "_sanitize_fn should default to repr before main.py injects it",
+            )
             # Also verify it actually escapes control chars
             result = fresh_cache._sanitize_fn("hello\x1bworld")
             self.assertIn("\\x1b", result)
@@ -483,6 +495,7 @@ class TestDiskCache(unittest.TestCase):
             cache._sanitize_fn = main.sanitize_for_log
             # Patch the TOKEN that sanitize_for_log reads so redaction fires.
             import main as _main
+
             original_token = _main.TOKEN
             try:
                 _main.TOKEN = "supersecrettoken"

@@ -42,7 +42,9 @@ class TestLogSanitization(unittest.TestCase):
         unsafe_name = "\x1b[31mUNSAFE"
 
         # Call
-        ctx = main.SyncContext(profile_id="pid", client=MagicMock(), existing_rules=set())
+        ctx = main.SyncContext(
+            profile_id="pid", client=MagicMock(), existing_rules=set()
+        )
         action = main.RuleAction(do=0, status=1)
         main.create_folder(ctx, unsafe_name, action)
 

@@ -57,9 +57,7 @@ def test_benchmark_sanitize_for_log(benchmark):
 
 @pytest.mark.benchmark
 @pytest.mark.parametrize(
-    "overlap_ratio",
-    [0.0, 0.9],
-    ids=["no_overlap", "high_overlap"]
+    "overlap_ratio", [0.0, 0.9], ids=["no_overlap", "high_overlap"]
 )
 def test_push_rules_benchmark_10k(benchmark, overlap_ratio):
     """Benchmark pushing 10,000 rules with varying overlap."""
@@ -77,12 +75,19 @@ def test_push_rules_benchmark_10k(benchmark, overlap_ratio):
             class Response:
                 status_code = 200
                 headers = {}
-                def json(self): return {}
-                def raise_for_status(self): pass
+
+                def json(self):
+                    return {}
+
+                def raise_for_status(self):
+                    pass
+
             return Response()
 
     mock_client = DummyClient()
-    ctx = main.SyncContext(profile_id=profile_id, client=mock_client, existing_rules=existing_rules)
+    ctx = main.SyncContext(
+        profile_id=profile_id, client=mock_client, existing_rules=existing_rules
+    )
     action = main.RuleAction(do=1, status=1)
 
     benchmark(main.push_rules, ctx, folder_name, folder_id, action, hostnames)

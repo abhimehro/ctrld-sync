@@ -66,6 +66,7 @@ from api_client import (
     _api_post_form,
 )
 
+
 @dataclass(frozen=True)
 class RuleAction:
     """Represents a rule action (do and status)."""
@@ -279,7 +280,9 @@ class JsonFormatter(logging.Formatter):
     """
 
     @staticmethod
-    def converter(t: float | None) -> time.struct_time:  # ensure timestamps are always UTC
+    def converter(
+        t: float | None,
+    ) -> time.struct_time:  # ensure timestamps are always UTC
         return time.gmtime(t)
 
     def format(self, record: logging.LogRecord) -> str:
@@ -340,7 +343,9 @@ class AlertSystem:
 
     def _on_enqueue_done(
         self,
-        future: concurrent.futures.Future[Any],  # Accept futures of any return type; we only inspect exceptions
+        future: concurrent.futures.Future[
+            Any
+        ],  # Accept futures of any return type; we only inspect exceptions
     ) -> None:
         """Callback invoked when an enqueue future completes.
 
@@ -566,7 +571,9 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
     if not folders:
         if USE_COLORS:
             print(f"  {Colors.WARNING}No folders to sync.{Colors.ENDC}")
-            print(f"  {Colors.DIM}💡 Hint: Add folder URLs using --folder-url or in your config.yaml{Colors.ENDC}")
+            print(
+                f"  {Colors.DIM}💡 Hint: Add folder URLs using --folder-url or in your config.yaml{Colors.ENDC}"
+            )
         else:
             print("  No folders to sync.")
             print("  Hint: Add folder URLs using --folder-url or in your config.yaml")
@@ -923,7 +930,9 @@ def load_config(config_path: str | None = None) -> dict:
     sees a clear error message rather than a cryptic traceback.
     """
 
-    paths_to_try: list[str] = [config_path] if config_path else list(_DEFAULT_CONFIG_PATHS)
+    paths_to_try: list[str] = (
+        [config_path] if config_path else list(_DEFAULT_CONFIG_PATHS)
+    )
 
     for raw_path in paths_to_try:
         p = Path(raw_path).expanduser()
@@ -1021,6 +1030,7 @@ _cache_lock = threading.RLock()
 # 3b. Rate Limit Tracking
 # --------------------------------------------------------------------------- #
 # _rate_limit_info, _rate_limit_lock imported from api_client above
+
 
 # _parse_rate_limit_headers imported from api_client above
 @lru_cache(maxsize=128)
@@ -1216,6 +1226,7 @@ def validate_folder_data(data: dict[str, Any], url: str) -> TypeGuard[FolderData
     Checks for required fields (name, action, rules), validates folder name
     and action type, and ensures rules are valid. Logs specific validation errors.
     """
+
     def _get_rule_error(rule: Any) -> str | None:
         """Returns an error message string if the rule is invalid, otherwise None."""
         if not isinstance(rule, dict):
@@ -1223,6 +1234,7 @@ def validate_folder_data(data: dict[str, Any], url: str) -> TypeGuard[FolderData
         if (pk := rule.get("PK")) is not None and not isinstance(pk, str):
             return ".PK must be a string."
         return None
+
     if not isinstance(data, dict):
         log.error(
             f"Invalid data from {sanitize_for_log(url)}: Root must be a JSON object."
@@ -1258,7 +1270,9 @@ def validate_folder_data(data: dict[str, Any], url: str) -> TypeGuard[FolderData
     # Validate 'rules' if present (must be a list of dicts with string PK values)
     if "rules" in data:
         if not isinstance(data["rules"], list):
-            log.error(f"Invalid data from {sanitize_for_log(url)}: 'rules' must be a list.")
+            log.error(
+                f"Invalid data from {sanitize_for_log(url)}: 'rules' must be a list."
+            )
             return False
 
         if not all(_get_rule_error(r) is None for r in data["rules"]):
@@ -1720,6 +1734,7 @@ def verify_access_and_get_folders(
 
     return None
 
+
 def get_all_existing_rules(
     client: httpx.Client,
     profile_id: str,
@@ -1971,7 +1986,9 @@ def create_folder(ctx: SyncContext, name: str, action: RuleAction) -> str | None
         # 2. Fallback: Poll for the new folder (The Robust Retry Logic)
         for attempt in range(MAX_RETRIES + 1):
             try:
-                data = _api_get(ctx.client, f"{API_BASE}/{ctx.profile_id}/groups").json()
+                data = _api_get(
+                    ctx.client, f"{API_BASE}/{ctx.profile_id}/groups"
+                ).json()
                 groups = data.get("body", {}).get("groups", [])
 
                 for grp in groups:
@@ -2163,7 +2180,9 @@ def push_rules(
     else:
         # Use provided executor or create a local one (fallback)
         if ctx.batch_executor:
-            executor_ctx: contextlib.AbstractContextManager[concurrent.futures.Executor] = contextlib.nullcontext(ctx.batch_executor)
+            executor_ctx: contextlib.AbstractContextManager[
+                concurrent.futures.Executor
+            ] = contextlib.nullcontext(ctx.batch_executor)
         else:
             executor_ctx = concurrent.futures.ThreadPoolExecutor(max_workers=3)
 
@@ -2348,7 +2367,9 @@ def sync_profile(
             else:
                 # Legacy single-action format
                 # OPTIMIZATION: Count valid rules via generator to avoid an intermediate list and lower peak memory use.
-                rules_count = sum(1 for r in folder_data.get("rules", []) if r.get("PK"))
+                rules_count = sum(
+                    1 for r in folder_data.get("rules", []) if r.get("PK")
+                )
                 plan_entry["folders"].append(
                     {
                         "name": name,
@@ -2683,10 +2704,14 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def make_col_separator(left: str, mid: str, right: str, horiz: str, col_widths: list[int]) -> str:
+def make_col_separator(
+    left: str, mid: str, right: str, horiz: str, col_widths: list[int]
+) -> str:
     """Generates a table row separator with given box drawing characters and column widths."""
     parts = [horiz * (w + 2) for w in col_widths]
     return left + mid.join(parts) + right
+
+
 def main() -> None:
     """
     Main entry point for Control D Sync.
@@ -2726,7 +2751,9 @@ def main() -> None:
                 exit(1)
         else:
             print(f"{Colors.CYAN}ℹ No cache file found, nothing to clear{Colors.ENDC}")
-            print(f"{Colors.DIM}💡 Hint: The cache file will be created or updated after a successful sync run without --dry-run{Colors.ENDC}")
+            print(
+                f"{Colors.DIM}💡 Hint: The cache file will be created or updated after a successful sync run without --dry-run{Colors.ENDC}"
+            )
         _disk_cache.clear()
         exit(0)
     profiles_arg = (
@@ -2760,12 +2787,20 @@ def main() -> None:
 
             # Configure number of concurrent workers used for folder deletions.
             delete_workers = settings.get("delete_workers")
-            if isinstance(delete_workers, int) and delete_workers > 0 and "DELETE_WORKERS" in globals():
+            if (
+                isinstance(delete_workers, int)
+                and delete_workers > 0
+                and "DELETE_WORKERS" in globals()
+            ):
                 globals()["DELETE_WORKERS"] = delete_workers
 
             # Configure maximum retry attempts for HTTP operations.
             max_retries = settings.get("max_retries")
-            if isinstance(max_retries, int) and max_retries >= 0 and "MAX_RETRIES" in globals():
+            if (
+                isinstance(max_retries, int)
+                and max_retries >= 0
+                and "MAX_RETRIES" in globals()
+            ):
                 globals()["MAX_RETRIES"] = max_retries
         folder_urls = [entry["url"] for entry in cfg.get("folders", [])]
 

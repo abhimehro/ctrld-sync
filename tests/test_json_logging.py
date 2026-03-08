@@ -13,7 +13,9 @@ import main
 class TestJsonFormatter(unittest.TestCase):
     """Verify that JsonFormatter emits valid JSON with required fields."""
 
-    def _make_record(self, message: str, level: int = logging.INFO) -> logging.LogRecord:
+    def _make_record(
+        self, message: str, level: int = logging.INFO
+    ) -> logging.LogRecord:
         return logging.LogRecord(
             name="test-logger",
             level=level,
@@ -127,11 +129,12 @@ class TestJsonFormatter(unittest.TestCase):
                 expected = time.gmtime(timestamp)
                 self.assertEqual(result, expected)
 
-    @mock.patch('time.gmtime')
+    @mock.patch("time.gmtime")
     def test_converter_none_delegates(self, mock_gmtime):
         """Converter should delegate to time.gmtime when None is passed."""
         main.JsonFormatter.converter(None)
         mock_gmtime.assert_called_once_with(None)
+
 
 if __name__ == "__main__":
     unittest.main()

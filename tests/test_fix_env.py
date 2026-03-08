@@ -80,6 +80,7 @@ def test_fix_env_creates_secure_file(tmp_path):
     finally:
         os.chdir(cwd)
 
+
 def test_fix_env_handles_existing_temp_file(tmp_path, monkeypatch):
     """
     Verify that fix_env handles an existing .env.tmp file correctly

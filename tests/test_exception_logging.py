@@ -156,7 +156,9 @@ class TestExceptionLogging(unittest.TestCase):
         # Mock time.sleep to avoid actual delays
         with patch("main.time.sleep"):
             # Action - this will try to call json(), catch exception, and log
-            ctx = main.SyncContext(profile_id=profile_id, client=client, existing_rules=set())
+            ctx = main.SyncContext(
+                profile_id=profile_id, client=client, existing_rules=set()
+            )
             action = main.RuleAction(do=1, status=1)
             result = main.create_folder(ctx, folder_name, action)
 
@@ -225,7 +227,6 @@ class TestExceptionLogging(unittest.TestCase):
                 "HIDDEN_KEY_999", logged_message, "Secret key leaked in logs!"
             )
 
-
     @patch("main.log")
     def test_root_rules_http_error_logs_debug(self, mock_log):
         """Test that an HTTPError during root-rules fetch emits a DEBUG log."""
@@ -241,10 +242,10 @@ class TestExceptionLogging(unittest.TestCase):
         self.assertTrue(mock_log.debug.called, "log.debug should have been called")
 
         debug_calls = mock_log.debug.call_args_list
-        found = any(
-            "root-level rules" in str(call) for call in debug_calls
+        found = any("root-level rules" in str(call) for call in debug_calls)
+        self.assertTrue(
+            found, "Expected debug message about root-level rules not found"
         )
-        self.assertTrue(found, "Expected debug message about root-level rules not found")
 
     @patch("main.log")
     def test_folder_rules_http_error_logs_debug(self, mock_log):
@@ -273,15 +274,13 @@ class TestExceptionLogging(unittest.TestCase):
         self.assertTrue(mock_log.debug.called, "log.debug should have been called")
         debug_calls = mock_log.debug.call_args_list
         # Verify the folder_id appears in the log call args (format string or args tuple)
-        found = any(
-            folder_id in str(call) for call in debug_calls
-        )
+        found = any(folder_id in str(call) for call in debug_calls)
         self.assertTrue(found, "Expected debug message mentioning folder_id not found")
         # Verify the sanitized error text is passed as an argument
-        found_error = any(
-            "timeout" in str(call) for call in debug_calls
+        found_error = any("timeout" in str(call) for call in debug_calls)
+        self.assertTrue(
+            found_error, "Expected sanitized error text in debug log not found"
         )
-        self.assertTrue(found_error, "Expected sanitized error text in debug log not found")
 
 
 if __name__ == "__main__":

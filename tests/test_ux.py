@@ -154,19 +154,31 @@ def test_print_success_message_no_colors(monkeypatch):
 class TestGetProgressBarWidth:
     def test_returns_int_within_bounds(self, monkeypatch):
         """Width is always between 15 and 50 for a normal terminal."""
-        monkeypatch.setattr(main.shutil, "get_terminal_size", lambda fallback=(80, 24): os.terminal_size((80, 24)))
+        monkeypatch.setattr(
+            main.shutil,
+            "get_terminal_size",
+            lambda fallback=(80, 24): os.terminal_size((80, 24)),
+        )
         result = main._get_progress_bar_width()
         assert isinstance(result, int)
         assert 15 <= result <= 50
 
     def test_narrow_terminal_clamps_to_minimum(self, monkeypatch):
         """Narrow terminal (e.g., 20 cols) yields the 15-char minimum."""
-        monkeypatch.setattr(main.shutil, "get_terminal_size", lambda fallback=(80, 24): os.terminal_size((20, 24)))
+        monkeypatch.setattr(
+            main.shutil,
+            "get_terminal_size",
+            lambda fallback=(80, 24): os.terminal_size((20, 24)),
+        )
         assert main._get_progress_bar_width() == 15
 
     def test_wide_terminal_clamps_to_maximum(self, monkeypatch):
         """Very wide terminal (e.g., 200 cols) yields the 50-char maximum."""
-        monkeypatch.setattr(main.shutil, "get_terminal_size", lambda fallback=(80, 24): os.terminal_size((200, 24)))
+        monkeypatch.setattr(
+            main.shutil,
+            "get_terminal_size",
+            lambda fallback=(80, 24): os.terminal_size((200, 24)),
+        )
         assert main._get_progress_bar_width() == 50
 
 
@@ -186,7 +198,11 @@ class TestRenderProgressBar:
     def test_writes_progress_bar_to_stderr(self, monkeypatch, capsys):
         """render_progress_bar writes a formatted bar to stderr when enabled."""
         monkeypatch.setattr(main, "USE_COLORS", True)
-        monkeypatch.setattr(main.shutil, "get_terminal_size", lambda fallback=(80, 24): os.terminal_size((80, 24)))
+        monkeypatch.setattr(
+            main.shutil,
+            "get_terminal_size",
+            lambda fallback=(80, 24): os.terminal_size((80, 24)),
+        )
         main.render_progress_bar(5, 10, "Loading")
         err = capsys.readouterr().err
         assert "Loading" in err
@@ -226,12 +242,6 @@ class TestMakeColSeparator:
         result = main.make_col_separator(
             left="L", mid="M", right="R", horiz="H", col_widths=[25, 10, 12, 10, 15]
         )
-        expected_parts = [
-            "H" * 27,
-            "H" * 12,
-            "H" * 14,
-            "H" * 12,
-            "H" * 17
-        ]
+        expected_parts = ["H" * 27, "H" * 12, "H" * 14, "H" * 12, "H" * 17]
         expected = "L" + "M".join(expected_parts) + "R"
         assert result == expected

@@ -17,10 +17,12 @@ import main
 # Maximum acceptable mean execution time (seconds) for hot-path operations.
 _MAX_MEAN_S = 0.001  # 1 ms
 
+
 def _check_benchmark_stats(benchmark):
     """Check benchmark stats and skip if running under xdist."""
     if not benchmark.stats:
         pytest.skip("Benchmark stats are not available, likely running under xdist.")
+
 
 class TestPerformanceRegression:
     """Performance regression tests with baseline thresholds."""

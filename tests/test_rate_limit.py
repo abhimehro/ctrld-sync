@@ -190,7 +190,9 @@ class TestRetryWithRateLimit:
 
         start_time = time.time()
         with caplog.at_level("WARNING"):
-            result = main.api_client._retry_request(request_func, max_retries=3, delay=1)
+            result = main.api_client._retry_request(
+                request_func, max_retries=3, delay=1
+            )
         elapsed = time.time() - start_time
 
         # Should have waited ~2 seconds (from Retry-After)

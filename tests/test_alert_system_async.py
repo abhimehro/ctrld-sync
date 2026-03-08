@@ -28,7 +28,9 @@ _LOGGER_NAME = "control-d-sync"
 
 
 @contextlib.contextmanager
-def _capture_records(logger_name: str = _LOGGER_NAME) -> Iterator[list[logging.LogRecord]]:
+def _capture_records(
+    logger_name: str = _LOGGER_NAME,
+) -> Iterator[list[logging.LogRecord]]:
     """Attach a list-collecting handler to *logger_name* for the duration of the block.
 
     Propagation is temporarily disabled so that captured records do not also
