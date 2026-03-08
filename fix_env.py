@@ -4,14 +4,15 @@ import stat
 import contextlib
 
 __all__ = ["fix_env", "clean_val", "escape_val"]
+
 # Helper to clean quotes (curly or straight)
 def clean_val(val):
     if not val:
         return ""
     # Remove surrounding quotes of any kind
     val = val.strip()
-    val = re.sub(r'^["\u201c\u201d\']|["\u201c\u201d\']$', '', val)
-    return val.strip()
+    return re.sub(r"^[\"\u201c\u201d\']|[\"\u201c\u201d\']$", "", val)
+
 # Helper to escape value for shell
 def escape_val(val):
     if not val:
