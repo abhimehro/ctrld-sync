@@ -201,6 +201,7 @@
 **Merged pull requests:**
 
 - 🛡️ Sentinel: \[HIGH\] Fix SSRF bypass by explicitly blocking private and CGNAT IPs [\#627](https://github.com/abhimehro/ctrld-sync/pull/627) ([abhimehro](https://github.com/abhimehro))
+- 🔒 Fix predictable temporary file name in fix\_env.py [\#626](https://github.com/abhimehro/ctrld-sync/pull/626) ([abhimehro](https://github.com/abhimehro))
 - 🧪 Refactor print\_line and print\_row helpers for testing coverage [\#625](https://github.com/abhimehro/ctrld-sync/pull/625) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: use dim colors for cli hints to reduce visual noise [\#624](https://github.com/abhimehro/ctrld-sync/pull/624) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Combine rule deduplication and validation loops [\#623](https://github.com/abhimehro/ctrld-sync/pull/623) ([abhimehro](https://github.com/abhimehro))
