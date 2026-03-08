@@ -192,3 +192,46 @@ class TestRenderProgressBar:
         assert "Loading" in err
         assert "█" in err
         assert "\r\033[K" in err
+
+
+class TestMakeColSeparator:
+    def test_basic_separator(self):
+        """Test with a simple set of column widths."""
+        result = main.make_col_separator(
+            left="<", mid="|", right=">", horiz="-", col_widths=[2, 3]
+        )
+        # column 0 width=2 -> horiz * (2+2) -> "----"
+        # column 1 width=3 -> horiz * (3+2) -> "-----"
+        # joined by mid "|" -> "----|-----"
+        # left "<", right ">" -> "<----|----->"
+        assert result == "<----|----->"
+
+    def test_empty_columns(self):
+        """Test with an empty list of column widths."""
+        result = main.make_col_separator(
+            left="[", mid="+", right="]", horiz="=", col_widths=[]
+        )
+        assert result == "[]"
+
+    def test_single_column(self):
+        """Test with a single column width."""
+        result = main.make_col_separator(
+            left="[", mid="+", right="]", horiz="*", col_widths=[5]
+        )
+        # horiz * (5+2) = "*******"
+        assert result == "[*******]"
+
+    def test_typical_layout(self):
+        """Test with typical lengths used in the script."""
+        result = main.make_col_separator(
+            left="L", mid="M", right="R", horiz="H", col_widths=[25, 10, 12, 10, 15]
+        )
+        expected_parts = [
+            "H" * 27,
+            "H" * 12,
+            "H" * 14,
+            "H" * 12,
+            "H" * 17
+        ]
+        expected = "L" + "M".join(expected_parts) + "R"
+        assert result == expected

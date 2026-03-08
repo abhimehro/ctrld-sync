@@ -1037,7 +1037,18 @@ def validate_hostname(hostname: str) -> bool:
 
     try:
         ip = ipaddress.ip_address(hostname)
-        if not ip.is_global or ip.is_multicast:
+        # SSRF Protection: Block private, multicast, loopback, link-local, unspecified, and CGNAT IPs.
+        # ip.is_global handles most of these, but we explicitly check others for safety.
+        # CGNAT (100.64.0.0/10) is not considered private by ipaddress in older Python versions.
+        if (
+            not ip.is_global
+            or ip.is_multicast
+            or ip.is_private
+            or ip.is_unspecified
+            or ip.is_loopback
+            or ip.is_link_local
+            or (ip.version == 4 and ip in ipaddress.ip_network("100.64.0.0/10"))
+        ):
             log.warning(f"Skipping unsafe IP: {sanitize_for_log(hostname)}")
             return False
         return True
@@ -1052,7 +1063,15 @@ def validate_hostname(hostname: str) -> bool:
                 # sockaddr is (address, port) for AF_INET/AF_INET6
                 ip_str = res[4][0]
                 ip = ipaddress.ip_address(ip_str)
-                if not ip.is_global or ip.is_multicast:
+                if (
+                    not ip.is_global
+                    or ip.is_multicast
+                    or ip.is_private
+                    or ip.is_unspecified
+                    or ip.is_loopback
+                    or ip.is_link_local
+                    or (ip.version == 4 and ip in ipaddress.ip_network("100.64.0.0/10"))
+                ):
                     log.warning(
                         f"Skipping unsafe hostname {sanitize_for_log(hostname)} (resolves to non-global/multicast IP {ip})"
                     )
@@ -2638,6 +2657,12 @@ def print_success_message(profile_ids: list[str]) -> None:
         )
 
 
+def make_col_separator(left: str, mid: str, right: str, horiz: str, col_widths: list[int]) -> str:
+    """Generates a table row separator with given box drawing characters and column widths."""
+    parts = [horiz * (w + 2) for w in col_widths]
+    return left + mid.join(parts) + right
+
+
 def parse_args() -> argparse.Namespace:
     """
     Parses command-line arguments for the Control D sync tool.
@@ -2912,18 +2937,10 @@ def main() -> None:
     w_duration = 10
     w_status = 15
 
-    def make_col_separator(left, mid, right, horiz):
-        parts = [
-            horiz * (w_profile + 2),
-            horiz * (w_folders + 2),
-            horiz * (w_rules + 2),
-            horiz * (w_duration + 2),
-            horiz * (w_status + 2),
-        ]
-        return left + mid.join(parts) + right
+    col_widths = [w_profile, w_folders, w_rules, w_duration, w_status]
 
     # Calculate table width using a dummy separator
-    dummy_sep = make_col_separator(Box.TL, Box.T, Box.TR, Box.H)
+    dummy_sep = make_col_separator(Box.TL, Box.T, Box.TR, Box.H, col_widths)
     table_width = len(dummy_sep)
 
     title_text = " DRY RUN SUMMARY " if args.dry_run else " SYNC SUMMARY "
@@ -2942,7 +2959,7 @@ def main() -> None:
     )
 
     # Separator between Title and Headers (introduces columns)
-    print(make_col_separator(Box.L, Box.T, Box.R, Box.H))
+    print(make_col_separator(Box.L, Box.T, Box.R, Box.H, col_widths))
 
     # Header Row
     print(
@@ -2954,7 +2971,7 @@ def main() -> None:
     )
 
     # Separator between Header and Body
-    print(make_col_separator(Box.L, Box.X, Box.R, Box.H))
+    print(make_col_separator(Box.L, Box.X, Box.R, Box.H, col_widths))
 
     # Rows
     total_folders = 0
@@ -2981,7 +2998,7 @@ def main() -> None:
         total_duration += res["duration"]
 
     # Separator between Body and Total
-    print(make_col_separator(Box.L, Box.X, Box.R, Box.H))
+    print(make_col_separator(Box.L, Box.X, Box.R, Box.H, col_widths))
 
     # Total Row
     total = len(profile_ids or ["dry-run-placeholder"])
@@ -3006,7 +3023,7 @@ def main() -> None:
         f"{Box.V} {total_status_color}{total_status_text:<{w_status}}{Colors.ENDC} {Box.V}"
     )
     # Bottom Border
-    print(make_col_separator(Box.BL, Box.B, Box.BR, Box.H))
+    print(make_col_separator(Box.BL, Box.B, Box.BR, Box.H, col_widths))
 
     # Success Delight
     if all_success and not args.dry_run:
