@@ -1066,10 +1066,8 @@ def validate_hostname(hostname: str) -> bool:
                 ip_str = res[4][0]
                 ip = ipaddress.ip_address(ip_str)
                 if not _is_safe_ip(ip):
-                    # Log a clear, accurate reason: _is_safe_ip blocks private, loopback,
-                    # link-local, unspecified, multicast, CGNAT, and other non-public IPs.
                     log.warning(
-                        f"Skipping unsafe hostname {sanitize_for_log(hostname)} (resolves to unsafe/non-public IP {ip})"
+                        f"Skipping unsafe hostname {sanitize_for_log(hostname)} (resolves to non-global/multicast IP {ip})"
                     )
                     return False
             return True
