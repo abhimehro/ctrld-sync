@@ -10,7 +10,8 @@ def clean_val(val):
         return ""
     # Remove surrounding quotes of any kind
     val = val.strip()
-    return re.sub(r"^[\"\u201c\u201d\']|[\"\u201c\u201d\']$", "", val)
+    val = re.sub(r'^["\u201c\u201d\']|["\u201c\u201d\']$', '', val)
+    return val.strip()
 # Helper to escape value for shell
 def escape_val(val):
     if not val:
