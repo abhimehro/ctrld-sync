@@ -2683,7 +2683,6 @@ def make_col_separator(left: str, mid: str, right: str, horiz: str, col_widths: 
     """Generates a table row separator with given box drawing characters and column widths."""
     parts = [horiz * (w + 2) for w in col_widths]
     return left + mid.join(parts) + right
-
 def main() -> None:
     """
     Main entry point for Control D Sync.
