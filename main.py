@@ -1024,18 +1024,15 @@ _cache_lock = threading.RLock()
 
 # _parse_rate_limit_headers imported from api_client above
 
+_CGNAT_NETWORK = ipaddress.IPv4Network("100.64.0.0/10")
 
 def _is_safe_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
-    """Explicit checks against private, multicast, unspecified, loopback, link-local, and CGNAT spaces."""
-    if ip.is_private or ip.is_multicast or ip.is_unspecified or ip.is_loopback or ip.is_link_local:
+    """Checks against CGNAT space, multicast, and relies on is_global for the rest."""
+    if ip.is_multicast:
         return False
-    if isinstance(ip, ipaddress.IPv4Address):
-        cgnat = ipaddress.IPv4Network("100.64.0.0/10")
-        if ip in cgnat:
-            return False
-    if not ip.is_global:
+    if isinstance(ip, ipaddress.IPv4Address) and ip in _CGNAT_NETWORK:
         return False
-    return True
+    return ip.is_global
 
 
 @lru_cache(maxsize=128)
