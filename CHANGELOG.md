@@ -200,6 +200,7 @@
 
 **Merged pull requests:**
 
+- 🧪 Refactor print\_line and print\_row helpers for testing coverage [\#625](https://github.com/abhimehro/ctrld-sync/pull/625) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: use dim colors for cli hints to reduce visual noise [\#624](https://github.com/abhimehro/ctrld-sync/pull/624) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Combine rule deduplication and validation loops [\#623](https://github.com/abhimehro/ctrld-sync/pull/623) ([abhimehro](https://github.com/abhimehro))
 - 🧪 Add unit tests for `escape_val` and `clean_val` in `fix_env.py` [\#622](https://github.com/abhimehro/ctrld-sync/pull/622) ([abhimehro](https://github.com/abhimehro))
