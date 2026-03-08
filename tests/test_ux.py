@@ -198,7 +198,6 @@ class TestMakeColSeparator:
     def test_basic_separator(self):
         """Test with a simple set of column widths."""
         result = main.make_col_separator(
-            left="<", mid="|", right=">", horiz="-", col_widths=[2, 3]
         )
         # column 0 width=2 -> horiz * (2+2) -> "----"
         # column 1 width=3 -> horiz * (3+2) -> "-----"
