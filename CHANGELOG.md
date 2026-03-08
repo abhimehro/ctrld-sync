@@ -200,8 +200,6 @@
 
 **Merged pull requests:**
 
-- 🧪 Add unit tests for is\_valid\_profile\_id\_format [\#621](https://github.com/abhimehro/ctrld-sync/pull/621) ([abhimehro](https://github.com/abhimehro))
-- 🛡️ Sentinel: \[HIGH\] Enhance SSRF protection to block CGNAT and unspecified IPs [\#620](https://github.com/abhimehro/ctrld-sync/pull/620) ([abhimehro](https://github.com/abhimehro))
 - 🧪 Extract and test make\_col\_separator [\#619](https://github.com/abhimehro/ctrld-sync/pull/619) ([abhimehro](https://github.com/abhimehro))
 - docs: document --no-delete, --plan-json, --clear-cache CLI flags in README [\#618](https://github.com/abhimehro/ctrld-sync/pull/618) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - ⚡ Optimize array validation using all\(\) [\#617](https://github.com/abhimehro/ctrld-sync/pull/617) ([abhimehro](https://github.com/abhimehro))

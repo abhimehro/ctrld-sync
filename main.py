@@ -35,7 +35,6 @@ import time
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, NotRequired, TypedDict, TypeGuard, cast
-import typing
 from collections.abc import Callable, Sequence
 from urllib.parse import urlparse
 
@@ -1037,18 +1036,7 @@ def validate_hostname(hostname: str) -> bool:
 
     try:
         ip = ipaddress.ip_address(hostname)
-        # SSRF Protection: Block private, multicast, loopback, link-local, unspecified, and CGNAT IPs.
-        # ip.is_global handles most of these, but we explicitly check others for safety.
-        # Explicitly block CGNAT (100.64.0.0/10) as defense-in-depth, even though modern ipaddress marks it non-global.
-        if (
-            not ip.is_global
-            or ip.is_multicast
-            or ip.is_private
-            or ip.is_unspecified
-            or ip.is_loopback
-            or ip.is_link_local
-            or (ip.version == 4 and ip in ipaddress.ip_network("100.64.0.0/10"))
-        ):
+        if not ip.is_global or ip.is_multicast:
             log.warning(f"Skipping unsafe IP: {sanitize_for_log(hostname)}")
             return False
         return True
@@ -1063,15 +1051,7 @@ def validate_hostname(hostname: str) -> bool:
                 # sockaddr is (address, port) for AF_INET/AF_INET6
                 ip_str = res[4][0]
                 ip = ipaddress.ip_address(ip_str)
-                if (
-                    not ip.is_global
-                    or ip.is_multicast
-                    or ip.is_private
-                    or ip.is_unspecified
-                    or ip.is_loopback
-                    or ip.is_link_local
-                    or (ip.version == 4 and ip in ipaddress.ip_network("100.64.0.0/10"))
-                ):
+                if not ip.is_global or ip.is_multicast:
                     log.warning(
                         f"Skipping unsafe hostname {sanitize_for_log(hostname)} (resolves to non-global/multicast IP {ip})"
                     )
@@ -2059,31 +2039,34 @@ def push_rules(
     # (which could be millions of items) for every folder processed.
     unique_hostnames_dict = dict.fromkeys(hostnames)
 
-    # We use a C-optimized list comprehension to filter out existing rules quickly,
-    # bypassing the Python loop overhead for the vast majority of items that are already synced.
-    # FAST-PATH: If existing_rules is empty (e.g., first sync), avoid the list allocation.
-    new_hostnames: typing.Iterable[str]
-    if not ctx.existing_rules:
-        new_hostnames = unique_hostnames_dict
-    else:
-        new_hostnames = [h for h in unique_hostnames_dict if h not in ctx.existing_rules]
-
+    # Optimization 2: Combine pre-filtering and validation into a single pass
+    # This avoids allocating an intermediate list for new_hostnames and reduces iteration overhead.
+    # Inline method references for hot loop performance.
+    match_rule = RULE_PATTERN.match
     filtered_hostnames: list[str] = []
+    append = filtered_hostnames.append
     skipped_unsafe = 0
 
-    # Optimization 2: Inline method references for hot loop performance
-    match_rule = RULE_PATTERN.match
-    append = filtered_hostnames.append
-
-    for h in new_hostnames:
-        if not match_rule(h):
-            log.warning(
-                f"Skipping unsafe rule in {sanitize_for_log(folder_name)}: {sanitize_for_log(h)}"
-            )
-            skipped_unsafe += 1
-            continue
-
-        append(h)
+    if not ctx.existing_rules:
+        for h in unique_hostnames_dict:
+            if not match_rule(h):
+                log.warning(
+                    f"Skipping unsafe rule in {sanitize_for_log(folder_name)}: {sanitize_for_log(h)}"
+                )
+                skipped_unsafe += 1
+                continue
+            append(h)
+    else:
+        for h in unique_hostnames_dict:
+            if h in ctx.existing_rules:
+                continue
+            if not match_rule(h):
+                log.warning(
+                    f"Skipping unsafe rule in {sanitize_for_log(folder_name)}: {sanitize_for_log(h)}"
+                )
+                skipped_unsafe += 1
+                continue
+            append(h)
 
     if skipped_unsafe > 0:
         log.warning(
