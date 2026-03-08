@@ -4,7 +4,6 @@ import stat
 import contextlib
 
 __all__ = ["fix_env", "clean_val", "escape_val"]
-
 # Helper to clean quotes (curly or straight)
 def clean_val(val):
     if not val:
