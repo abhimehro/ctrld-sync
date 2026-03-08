@@ -1039,7 +1039,7 @@ def validate_hostname(hostname: str) -> bool:
         ip = ipaddress.ip_address(hostname)
         # SSRF Protection: Block private, multicast, loopback, link-local, unspecified, and CGNAT IPs.
         # ip.is_global handles most of these, but we explicitly check others for safety.
-        # CGNAT (100.64.0.0/10) is not considered private by ipaddress in older Python versions.
+        # Explicitly block CGNAT (100.64.0.0/10) as defense-in-depth, even though modern ipaddress marks it non-global.
         if (
             not ip.is_global
             or ip.is_multicast
