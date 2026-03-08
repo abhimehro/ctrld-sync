@@ -200,6 +200,7 @@
 
 **Merged pull requests:**
 
+- 🧪 Extract and test make\_col\_separator [\#619](https://github.com/abhimehro/ctrld-sync/pull/619) ([abhimehro](https://github.com/abhimehro))
 - docs: document --no-delete, --plan-json, --clear-cache CLI flags in README [\#618](https://github.com/abhimehro/ctrld-sync/pull/618) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - ⚡ Optimize array validation using all\(\) [\#617](https://github.com/abhimehro/ctrld-sync/pull/617) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Add actionable hints to empty CLI inputs [\#616](https://github.com/abhimehro/ctrld-sync/pull/616) ([abhimehro](https://github.com/abhimehro))
