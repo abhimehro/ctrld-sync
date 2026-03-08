@@ -104,7 +104,7 @@ def fix_env():
     except OSError as e:
         print(f"Error writing .env: {e}")
         # Clean up temp file on error
-        if 'temp_file' in locals() and os.path.exists(temp_file):
+        if "temp_file" in locals() and os.path.exists(temp_file):
             with contextlib.suppress(OSError):
                 os.unlink(temp_file)
         return
