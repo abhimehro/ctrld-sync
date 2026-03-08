@@ -790,3 +790,21 @@ def test_validate_folder_data_structure(monkeypatch):
     valid_rg = valid_base.copy()
     valid_rg["rule_groups"] = [{"rules": [{"PK": "rule1"}]}]
     assert m.validate_folder_data(valid_rg, "url") is True
+def test_is_valid_profile_id_format(monkeypatch):
+    m = reload_main_with_env(monkeypatch)
+    # Valid IDs
+    assert m.is_valid_profile_id_format("12345abc") is True
+    assert m.is_valid_profile_id_format("my_profile-123") is True
+
+    # Invalid: Contains null byte
+    assert m.is_valid_profile_id_format("123\x00456") is False
+
+    # Invalid: Characters not in PROFILE_ID_PATTERN
+    assert m.is_valid_profile_id_format("profile.123") is False
+    assert m.is_valid_profile_id_format("profile/123") is False
+    assert m.is_valid_profile_id_format("profile space") is False
+    assert m.is_valid_profile_id_format("profile@123") is False
+
+    # Invalid: Exceeds MAX_PROFILE_ID_LENGTH (64)
+    long_id = "a" * 65
+    assert m.is_valid_profile_id_format(long_id) is False
