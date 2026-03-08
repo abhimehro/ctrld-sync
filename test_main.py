@@ -119,7 +119,9 @@ def test_push_rules_updates_existing_rules(monkeypatch):
     hostnames = ["h1", "h2"]
     existing_rules = set()
 
-    ctx = m.SyncContext(profile_id="p1", client=mock_client, existing_rules=existing_rules)
+    ctx = m.SyncContext(
+        profile_id="p1", client=mock_client, existing_rules=existing_rules
+    )
     action = m.RuleAction(do=1, status=1)
     m.push_rules(
         ctx=ctx,
@@ -142,7 +144,9 @@ def test_push_rules_logs_conditionally_use_colors(monkeypatch):
     monkeypatch.setattr(m_no_color, "log", mock_log)
 
     hostnames = ["h1"]
-    ctx = m_no_color.SyncContext(profile_id="p", client=MagicMock(), existing_rules=set())
+    ctx = m_no_color.SyncContext(
+        profile_id="p", client=MagicMock(), existing_rules=set()
+    )
     action = m_no_color.RuleAction(do=1, status=1)
     m_no_color.push_rules(ctx, "f", "fid", action, hostnames)
 
@@ -497,7 +501,10 @@ def test_get_validated_input_retry(monkeypatch, capsys):
     # Check output for error messages
     captured = capsys.readouterr()
     assert "Value cannot be empty" in captured.out
-    assert "💡 Hint: Please type a value and press Enter, or press Ctrl+C/Ctrl+D to cancel." in captured.out
+    assert (
+        "💡 Hint: Please type a value and press Enter, or press Ctrl+C/Ctrl+D to cancel."
+        in captured.out
+    )
     assert "Error message" in captured.out
 
 
@@ -518,7 +525,10 @@ def test_get_password(monkeypatch, capsys):
 
     captured = capsys.readouterr()
     assert "Value cannot be empty" in captured.out
-    assert "💡 Hint: Please type a value and press Enter, or press Ctrl+C/Ctrl+D to cancel." in captured.out
+    assert (
+        "💡 Hint: Please type a value and press Enter, or press Ctrl+C/Ctrl+D to cancel."
+        in captured.out
+    )
 
 
 # Case 13: render_progress_bar renders correctly

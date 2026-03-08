@@ -37,8 +37,8 @@ log = logging.getLogger("control-d-sync")
 
 __all__ = [
     "CACHE_TTL_SECONDS",
-    "_disk_cache",       # live reference kept by main.py
-    "_cache_stats",      # accessed by main.py for reporting
+    "_disk_cache",  # live reference kept by main.py
+    "_cache_stats",  # accessed by main.py for reporting
     "get_cache_dir",
     "load_disk_cache",
     "save_disk_cache",
@@ -175,7 +175,9 @@ def load_disk_cache() -> None:
         _disk_cache.clear()
         _disk_cache.update(sanitized_cache)
     except json.JSONDecodeError as e:
-        log.warning(f"Corrupted cache file (invalid JSON), starting fresh: {_sanitize_fn(e)}")
+        log.warning(
+            f"Corrupted cache file (invalid JSON), starting fresh: {_sanitize_fn(e)}"
+        )
         _cache_stats["errors"] += 1
     except PermissionError as e:
         log.warning(

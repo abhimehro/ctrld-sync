@@ -61,7 +61,9 @@ def test_push_rules_sanitizes_token_in_debug_logs(caplog):
 
     # Patch time.sleep to avoid waiting
     with patch("time.sleep"):
-        ctx = main.SyncContext(profile_id="p1", client=mock_client, existing_rules=set())
+        ctx = main.SyncContext(
+            profile_id="p1", client=mock_client, existing_rules=set()
+        )
         action = main.RuleAction(do=0, status=1)
         res = main.push_rules(
             ctx=ctx,

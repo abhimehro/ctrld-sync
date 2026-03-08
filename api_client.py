@@ -38,19 +38,19 @@ __all__ = [
     "RETRY_DELAY",
     "MAX_RETRY_DELAY",
     "retry_with_jitter",
-    "_TIMEOUT_HINT",      # imported by main.py for use outside _retry_request
+    "_TIMEOUT_HINT",  # imported by main.py for use outside _retry_request
     "_CONNECT_ERROR_HINT",  # exported for reuse outside _retry_request
-    "_SERVER_ERROR_HINT", # companion to _TIMEOUT_HINT; exported for use in main.py if needed
-    "_4XX_HINTS",         # per-status client-error hints; imported by main.py as single source of truth
-    "_api_stats",         # accessed by main.py for metrics reporting
+    "_SERVER_ERROR_HINT",  # companion to _TIMEOUT_HINT; exported for use in main.py if needed
+    "_4XX_HINTS",  # per-status client-error hints; imported by main.py as single source of truth
+    "_api_stats",  # accessed by main.py for metrics reporting
     "_api_stats_lock",
     "_rate_limit_info",
     "_rate_limit_lock",
-    "_sanitize_fn",       # injection point for token-aware sanitizer
-    "_api_get",           # HTTP wrapper used by main.py
-    "_api_delete",        # HTTP wrapper used by main.py
-    "_api_post",          # HTTP wrapper used by main.py
-    "_api_post_form",     # HTTP wrapper used by main.py
+    "_sanitize_fn",  # injection point for token-aware sanitizer
+    "_api_get",  # HTTP wrapper used by main.py
+    "_api_delete",  # HTTP wrapper used by main.py
+    "_api_post",  # HTTP wrapper used by main.py
+    "_api_post_form",  # HTTP wrapper used by main.py
 ]
 
 # --------------------------------------------------------------------------- #
@@ -92,9 +92,9 @@ _api_stats: dict[str, int] = {"control_d_api_calls": 0, "blocklist_fetches": 0}
 
 # Rate-limit information parsed from API response headers
 _rate_limit_info: dict[str, int | None] = {
-    "limit": None,      # Max requests allowed per window (X-RateLimit-Limit)
+    "limit": None,  # Max requests allowed per window (X-RateLimit-Limit)
     "remaining": None,  # Requests remaining in current window (X-RateLimit-Remaining)
-    "reset": None,      # Timestamp when limit resets (X-RateLimit-Reset)
+    "reset": None,  # Timestamp when limit resets (X-RateLimit-Reset)
 }
 
 # Locks that protect the dicts above from concurrent writes
@@ -109,6 +109,7 @@ _sanitize_fn: Callable[[Any], str] = str
 # --------------------------------------------------------------------------- #
 # Rate-limit header parsing
 # --------------------------------------------------------------------------- #
+
 
 def _parse_rate_limit_headers(response: httpx.Response) -> None:
     """
@@ -184,6 +185,7 @@ def _parse_rate_limit_headers(response: httpx.Response) -> None:
 # --------------------------------------------------------------------------- #
 # Retry helpers
 # --------------------------------------------------------------------------- #
+
 
 def retry_with_jitter(
     attempt: int, base_delay: float = 1.0, max_delay: float = MAX_RETRY_DELAY
@@ -279,9 +281,7 @@ def _retry_request(
                         and e.response is not None
                         and log.isEnabledFor(logging.DEBUG)
                     ):
-                        log.debug(
-                            f"Response content: {_sanitize_fn(e.response.text)}"
-                        )
+                        log.debug(f"Response content: {_sanitize_fn(e.response.text)}")
                     raise
 
             if attempt == max_retries - 1:
@@ -323,6 +323,7 @@ def _retry_request(
 # --------------------------------------------------------------------------- #
 # Thin API call wrappers (increment stats counter then delegate to _retry_request)
 # --------------------------------------------------------------------------- #
+
 
 def _api_get(client: httpx.Client, url: str) -> httpx.Response:
     with _api_stats_lock:

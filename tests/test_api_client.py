@@ -135,7 +135,8 @@ class TestRetryRequestFourXXWarnings:
 
         # The 4xx branch warning should NOT appear for 429
         four_xx_warnings = [
-            r for r in caplog.records
+            r
+            for r in caplog.records
             if r.levelname == "WARNING" and "API request failed with HTTP" in r.message
         ]
         assert not four_xx_warnings, "429 should not trigger the 4xx branch warning"
@@ -144,7 +145,9 @@ class TestRetryRequestFourXXWarnings:
         """The exception in the warning message passes through _sanitize_fn."""
         error = _make_http_error(401)
 
-        with patch.object(api_client, "_sanitize_fn", side_effect=lambda x: f"SANITIZED({str(x)})"):
+        with patch.object(
+            api_client, "_sanitize_fn", side_effect=lambda x: f"SANITIZED({str(x)})"
+        ):
             request_func = MagicMock(side_effect=error)
 
             with caplog.at_level(logging.WARNING, logger="api_client"):
@@ -203,7 +206,8 @@ class TestServerErrorHint:
                 api_client._retry_request(request_func, max_retries=2, delay=0.01)
 
         retry_warnings = [
-            r for r in caplog.records
+            r
+            for r in caplog.records
             if r.levelname == "WARNING" and "Retrying" in r.message
         ]
         assert retry_warnings, "Expected a retry WARNING for HTTP 500"
@@ -219,7 +223,8 @@ class TestServerErrorHint:
                 api_client._retry_request(request_func, max_retries=2, delay=0.01)
 
         retry_warnings = [
-            r for r in caplog.records
+            r
+            for r in caplog.records
             if r.levelname == "WARNING" and "Retrying" in r.message
         ]
         assert retry_warnings, "Expected a retry WARNING for HTTP 503"
@@ -235,7 +240,8 @@ class TestServerErrorHint:
                 api_client._retry_request(request_func, max_retries=2, delay=0.01)
 
         retry_warnings = [
-            r for r in caplog.records
+            r
+            for r in caplog.records
             if r.levelname == "WARNING" and "Retrying" in r.message
         ]
         assert retry_warnings
@@ -248,7 +254,9 @@ class TestRetryRequestGuards:
 
     def test_retry_request_zero_max_retries_raises(self):
         """_retry_request raises RuntimeError when max_retries=0 (empty range guard)."""
-        with pytest.raises(RuntimeError, match="_retry_request called with max_retries=0"):
+        with pytest.raises(
+            RuntimeError, match="_retry_request called with max_retries=0"
+        ):
             api_client._retry_request(lambda: None, max_retries=0)
 
     def test_retry_request_negative_max_retries_raises(self):

@@ -47,9 +47,7 @@ def test_push_rules_creates_executor_when_none(
     hostnames = [f"example{i}.com" for i in range(batch_size + 1)]  # 2 batches
 
     mock_executor_instance = MagicMock()
-    mock_tpe_cls.return_value.__enter__ = MagicMock(
-        return_value=mock_executor_instance
-    )
+    mock_tpe_cls.return_value.__enter__ = MagicMock(return_value=mock_executor_instance)
     mock_tpe_cls.return_value.__exit__ = MagicMock(return_value=False)
 
     # Use two distinct futures representing the two batches
@@ -78,4 +76,6 @@ def test_push_rules_creates_executor_when_none(
         )
 
     assert result is True
-    assert mock_tpe_cls.called, "ThreadPoolExecutor should be created when batch_executor is None"
+    assert mock_tpe_cls.called, (
+        "ThreadPoolExecutor should be created when batch_executor is None"
+    )

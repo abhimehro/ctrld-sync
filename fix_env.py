@@ -2,6 +2,7 @@ import os
 import re
 import stat
 import contextlib
+import tempfile
 
 __all__ = ["fix_env", "clean_val", "escape_val"]
 
@@ -84,21 +85,11 @@ def fix_env():
     # symlink attacks and ensure 0o600 permissions at creation time.
     # Use O_EXCL to prevent writing to an existing symlink or file.
     try:
-        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
         mode = stat.S_IRUSR | stat.S_IWUSR  # 0o600
 
-        # O_NOFOLLOW is not available on all platforms (like Windows)
-        if hasattr(os, "O_NOFOLLOW"):
-            flags |= os.O_NOFOLLOW
-
-        temp_file = ".env.tmp"
-        try:
-            fd = os.open(temp_file, flags, mode)
-        except FileExistsError:
-            # If the temp file exists from a previous aborted run, unlink and retry.
-            with contextlib.suppress(OSError):
-                os.unlink(temp_file)
-            fd = os.open(temp_file, flags, mode)
+        # tempfile.mkstemp securely creates a unique file with O_CREAT | O_EXCL and 0o600 permissions
+        # We specify dir="." to keep it on the same filesystem as .env for atomic os.replace
+        fd, temp_file = tempfile.mkstemp(prefix=".env.", suffix=".tmp", dir=".")
 
         with os.fdopen(fd, "w") as f:
             f.write(new_content)
@@ -112,9 +103,9 @@ def fix_env():
     except OSError as e:
         print(f"Error writing .env: {e}")
         # Clean up temp file on error
-        if os.path.exists(".env.tmp"):
+        if "temp_file" in locals() and os.path.exists(temp_file):
             with contextlib.suppress(OSError):
-                os.unlink(".env.tmp")
+                os.unlink(temp_file)
         return
 
     print("Fixed .env file: standardized quotes and corrected variable assignments.")

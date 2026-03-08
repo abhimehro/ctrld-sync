@@ -151,7 +151,9 @@ class TestRetryJitter:
         )
 
         with patch("time.sleep") as mock_sleep:
-            response = main.api_client._retry_request(request_func, max_retries=5, delay=1)
+            response = main.api_client._retry_request(
+                request_func, max_retries=5, delay=1
+            )
 
             # Should have made 3 requests total (2 failures + 1 success)
             assert request_func.call_count == 3
