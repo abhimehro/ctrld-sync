@@ -1023,6 +1023,21 @@ _cache_lock = threading.RLock()
 # _rate_limit_info, _rate_limit_lock imported from api_client above
 
 # _parse_rate_limit_headers imported from api_client above
+
+
+def _is_safe_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    """Explicit checks against private, multicast, unspecified, loopback, link-local, and CGNAT spaces."""
+    if ip.is_private or ip.is_multicast or ip.is_unspecified or ip.is_loopback or ip.is_link_local:
+        return False
+    if isinstance(ip, ipaddress.IPv4Address):
+        cgnat = ipaddress.IPv4Network("100.64.0.0/10")
+        if ip in cgnat:
+            return False
+    if not ip.is_global:
+        return False
+    return True
+
+
 @lru_cache(maxsize=128)
 def validate_hostname(hostname: str) -> bool:
     """
@@ -1038,7 +1053,7 @@ def validate_hostname(hostname: str) -> bool:
 
     try:
         ip = ipaddress.ip_address(hostname)
-        if not ip.is_global or ip.is_multicast:
+        if not _is_safe_ip(ip):
             log.warning(f"Skipping unsafe IP: {sanitize_for_log(hostname)}")
             return False
         return True
@@ -1053,7 +1068,7 @@ def validate_hostname(hostname: str) -> bool:
                 # sockaddr is (address, port) for AF_INET/AF_INET6
                 ip_str = res[4][0]
                 ip = ipaddress.ip_address(ip_str)
-                if not ip.is_global or ip.is_multicast:
+                if not _is_safe_ip(ip):
                     log.warning(
                         f"Skipping unsafe hostname {sanitize_for_log(hostname)} (resolves to non-global/multicast IP {ip})"
                     )
