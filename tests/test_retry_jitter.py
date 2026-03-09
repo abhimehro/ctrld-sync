@@ -21,6 +21,14 @@ import contextlib
 class TestRetryJitter:
     """Tests for jitter in exponential backoff retry logic."""
 
+
+    def test_retry_with_jitter_bounds_and_randomness(self):
+        """Verify retry_with_jitter bounds, exponential scaling, cap, and randomness."""
+        for attempt, max_val in [(0, 1.0), (2, 4.0), (10, main.api_client.MAX_RETRY_DELAY)]:
+            assert 0.0 <= main.api_client.retry_with_jitter(attempt) < max_val
+        delays = {main.api_client.retry_with_jitter(2) for _ in range(20)}
+        assert len(delays) > 1
+
     def test_jitter_adds_randomness_to_retry_delays(self):
         """Verify that retry delays include jitter and aren't identical."""
         request_func = Mock(side_effect=httpx.TimeoutException("Connection timeout"))
