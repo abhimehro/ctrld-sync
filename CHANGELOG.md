@@ -200,6 +200,7 @@
 
 **Merged pull requests:**
 
+- 🧪 \[testing improvement\] Add test for retry\_with\_jitter logic [\#628](https://github.com/abhimehro/ctrld-sync/pull/628) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[HIGH\] Fix SSRF bypass by explicitly blocking private and CGNAT IPs [\#627](https://github.com/abhimehro/ctrld-sync/pull/627) ([abhimehro](https://github.com/abhimehro))
 - 🔒 Fix predictable temporary file name in fix\_env.py [\#626](https://github.com/abhimehro/ctrld-sync/pull/626) ([abhimehro](https://github.com/abhimehro))
 - 🧪 Refactor print\_line and print\_row helpers for testing coverage [\#625](https://github.com/abhimehro/ctrld-sync/pull/625) ([abhimehro](https://github.com/abhimehro))
