@@ -2095,20 +2095,32 @@ def push_rules(
 
     # Optimization 3: Single-pass validation and filtering
     # Avoids an intermediate list allocation (new_hostnames) and multiple iterations
-    for h in unique_hostnames_dict:
-        # Fast path 1: Skip rules we've already synced
-        if h in existing_rules:
-            continue
+    # FAST-PATH: If existing_rules is empty (e.g., first sync), avoid the set lookup
+    if not existing_rules:
+        for h in unique_hostnames_dict:
+            # Fast path: strict regex check
+            if not match_rule(h):
+                log.warning(
+                    f"Skipping unsafe rule in {sanitize_for_log(folder_name)}: {sanitize_for_log(h)}"
+                )
+                skipped_unsafe += 1
+                continue
+            append(h)
+    else:
+        for h in unique_hostnames_dict:
+            # Fast path 1: Skip rules we've already synced
+            if h in existing_rules:
+                continue
 
-        # Fast path 2: strict regex check
-        if not match_rule(h):
-            log.warning(
-                f"Skipping unsafe rule in {sanitize_for_log(folder_name)}: {sanitize_for_log(h)}"
-            )
-            skipped_unsafe += 1
-            continue
+            # Fast path 2: strict regex check
+            if not match_rule(h):
+                log.warning(
+                    f"Skipping unsafe rule in {sanitize_for_log(folder_name)}: {sanitize_for_log(h)}"
+                )
+                skipped_unsafe += 1
+                continue
 
-        append(h)
+            append(h)
 
     if skipped_unsafe > 0:
         log.warning(
