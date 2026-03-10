@@ -31,10 +31,21 @@ class TestRetryJitter:
             (10, main.api_client.MAX_RETRY_DELAY),
         ]
         for attempt, max_val in test_cases:
+            # Basic bound check: whatever the jitter, the value must fall in [0, max_val)
             assert 0.0 <= main.api_client.retry_with_jitter(attempt) < max_val
-        delays = {main.api_client.retry_with_jitter(2) for _ in range(20)}
-        assert len(delays) > 1
 
+        # Deterministic randomness check: patch RNG to return two different values
+        # so we can assert that jitter actually affects the delay without flakiness.
+        with patch("main.api_client.random.random", side_effect=[0.1, 0.9]):
+            delay_1 = main.api_client.retry_with_jitter(2)
+            delay_2 = main.api_client.retry_with_jitter(2)
+
+        # The two delays should differ because the underlying random values differ.
+        assert delay_1 != delay_2
+
+        # Both jittered delays must still respect the same cap used above for attempt 2.
+        for delay in (delay_1, delay_2):
+            assert 0.0 <= delay < 4.0
     def test_jitter_adds_randomness_to_retry_delays(self):
         """Verify that retry delays include jitter and aren't identical."""
         request_func = Mock(side_effect=httpx.TimeoutException("Connection timeout"))
