@@ -2093,7 +2093,7 @@ def push_rules(
     append = filtered_hostnames.append
     existing_rules = ctx.existing_rules
 
-    # Optimization 3: Single-pass validation and filtering
+    # Single-pass validation and filtering
     # Avoids an intermediate list allocation (new_hostnames) and multiple iterations
     # FAST-PATH: If existing_rules is empty (e.g., first sync), avoid the set lookup
     if not existing_rules:
