@@ -21,7 +21,6 @@ import contextlib
 class TestRetryJitter:
     """Tests for jitter in exponential backoff retry logic."""
 
-
     def test_retry_with_jitter_bounds_and_randomness(self):
         """Verify retry_with_jitter bounds, exponential scaling, cap, and randomness."""
         test_cases = [
