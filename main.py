@@ -35,7 +35,6 @@ import time
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, NotRequired, TypedDict, TypeGuard, cast
-import typing
 from collections.abc import Callable, Sequence
 from urllib.parse import urlparse
 
@@ -2086,31 +2085,42 @@ def push_rules(
     # (which could be millions of items) for every folder processed.
     unique_hostnames_dict = dict.fromkeys(hostnames)
 
-    # We use a C-optimized list comprehension to filter out existing rules quickly,
-    # bypassing the Python loop overhead for the vast majority of items that are already synced.
-    # FAST-PATH: If existing_rules is empty (e.g., first sync), avoid the list allocation.
-    new_hostnames: typing.Iterable[str]
-    if not ctx.existing_rules:
-        new_hostnames = unique_hostnames_dict
-    else:
-        new_hostnames = [h for h in unique_hostnames_dict if h not in ctx.existing_rules]
-
     filtered_hostnames: list[str] = []
     skipped_unsafe = 0
 
     # Optimization 2: Inline method references for hot loop performance
     match_rule = RULE_PATTERN.match
     append = filtered_hostnames.append
+    existing_rules = ctx.existing_rules
 
-    for h in new_hostnames:
-        if not match_rule(h):
-            log.warning(
-                f"Skipping unsafe rule in {sanitize_for_log(folder_name)}: {sanitize_for_log(h)}"
-            )
-            skipped_unsafe += 1
-            continue
+    # Single-pass validation and filtering
+    # Avoids an intermediate list allocation (new_hostnames) and multiple iterations
+    # FAST-PATH: If existing_rules is empty (e.g., first sync), avoid the set lookup
+    if not existing_rules:
+        for h in unique_hostnames_dict:
+            # Fast path: strict regex check
+            if not match_rule(h):
+                log.warning(
+                    f"Skipping unsafe rule in {sanitize_for_log(folder_name)}: {sanitize_for_log(h)}"
+                )
+                skipped_unsafe += 1
+                continue
+            append(h)
+    else:
+        for h in unique_hostnames_dict:
+            # Fast path 1: Skip rules we've already synced
+            if h in existing_rules:
+                continue
 
-        append(h)
+            # Fast path 2: strict regex check
+            if not match_rule(h):
+                log.warning(
+                    f"Skipping unsafe rule in {sanitize_for_log(folder_name)}: {sanitize_for_log(h)}"
+                )
+                skipped_unsafe += 1
+                continue
+
+            append(h)
 
     if skipped_unsafe > 0:
         log.warning(
