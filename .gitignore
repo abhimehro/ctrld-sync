@@ -211,3 +211,9 @@ __marimo__/
 # Generated artifacts
 plan.json
 build-steps.log
+
+bench6.py
+test_data.json
+
+bench7.py
+test_data.json

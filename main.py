@@ -1254,14 +1254,6 @@ def validate_folder_data(data: dict[str, Any], url: str) -> TypeGuard[FolderData
     and action type, and ensures rules are valid. Logs specific validation errors.
     """
 
-    def _get_rule_error(rule: Any) -> str | None:
-        """Returns an error message string if the rule is invalid, otherwise None."""
-        if not isinstance(rule, dict):
-            return " must be an object."
-        if (pk := rule.get("PK")) is not None and not isinstance(pk, str):
-            return ".PK must be a string."
-        return None
-
     if not isinstance(data, dict):
         log.error(
             f"Invalid data from {sanitize_for_log(url)}: Root must be a JSON object."
@@ -1302,12 +1294,19 @@ def validate_folder_data(data: dict[str, Any], url: str) -> TypeGuard[FolderData
             )
             return False
 
-        if not all(_get_rule_error(r) is None for r in data["rules"]):
-            # Fallback to identify the exact error for logging
-            for j, rule in enumerate(data["rules"]):
-                if error_msg := _get_rule_error(rule):
+        # Optimization: Fast path inline type check avoids function call overhead per rule.
+        # Fallback identifies the exact error for logging.
+        rules_list = data["rules"]
+        if not all(type(r) is dict and ((pk := r.get("PK")) is None or type(pk) is str) for r in rules_list):
+            for j, rule in enumerate(rules_list):
+                if not isinstance(rule, dict):
                     log.error(
-                        f"Invalid data from {sanitize_for_log(url)}: rules[{j}]{error_msg}"
+                        f"Invalid data from {sanitize_for_log(url)}: rules[{j}] must be an object."
+                    )
+                    return False
+                if (pk := rule.get("PK")) is not None and not isinstance(pk, str):
+                    log.error(
+                        f"Invalid data from {sanitize_for_log(url)}: rules[{j}].PK must be a string."
                     )
                     return False
 
@@ -1333,11 +1332,19 @@ def validate_folder_data(data: dict[str, Any], url: str) -> TypeGuard[FolderData
 
                 # Ensure each rule within the group is an object (dict) and has a string PK,
                 # because later code treats each rule as a mapping (e.g., rule.get(...)).
-                if not all(_get_rule_error(r) is None for r in rg["rules"]):
-                    for j, rule in enumerate(rg["rules"]):
-                        if error_msg := _get_rule_error(rule):
+                rg_rules_list = rg["rules"]
+                # Optimization: Fast path inline type check avoids function call overhead per rule.
+                # Fallback identifies the exact error for logging.
+                if not all(type(r) is dict and ((pk := r.get("PK")) is None or type(pk) is str) for r in rg_rules_list):
+                    for j, rule in enumerate(rg_rules_list):
+                        if not isinstance(rule, dict):
                             log.error(
-                                f"Invalid data from {sanitize_for_log(url)}: rule_groups[{i}].rules[{j}]{error_msg}"
+                                f"Invalid data from {sanitize_for_log(url)}: rule_groups[{i}].rules[{j}] must be an object."
+                            )
+                            return False
+                        if (pk := rule.get("PK")) is not None and not isinstance(pk, str):
+                            log.error(
+                                f"Invalid data from {sanitize_for_log(url)}: rule_groups[{i}].rules[{j}].PK must be a string."
                             )
                             return False
 
