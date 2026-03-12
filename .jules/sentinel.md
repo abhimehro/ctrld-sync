@@ -73,6 +73,10 @@
 **Vulnerability:** The `_api_client` and `_gh` HTTP clients in `main.py` relied on a broad scalar timeout (`timeout=30`), opening the possibility for attackers to use Slowloris-style DoS attacks or slow network scenarios to exhaust connection pools or processing limits.
 **Learning:** Default or generic long timeouts are not enough; specifying an explicit connection timeout enforces that sockets resolve or fail promptly, separating wait time for establishing a connection from reading data.
 **Prevention:** Use explicit timeouts via `httpx.Timeout(default=read_timeout, connect=connect_timeout)` (e.g., `httpx.Timeout(default=10.0, connect=5.0)`) instead of simple scalar delays, forcing connections to be completed quickly and mitigating resource exhaustion vulnerabilities.
+## 2026-03-03 - SSRF Logic Duplication Removed
+**Vulnerability:** Duplicate inline validation for `ipaddress.ip_address` objects inside `validate_hostname` was missing the centralized helper method `_is_safe_ip(ip)`.
+**Learning:** Re-implementing security logic leads to drift and inconsistent protections. The helper method specifically handles the nuanced behavior of IPv4 CGNAT (100.64.0.0/10) missing from `is_global` in modern python `ipaddress` lib.
+**Prevention:** Rely entirely on modular security helper methods instead of inlining conditional logic where possible.
 ## 2024-03-11 - [CRITICAL] Predictable Temporary File Vulnerability in Cache
 **Vulnerability:** `save_disk_cache` used a predictable file name (`cache_file.with_suffix(".tmp")`) when creating temporary cache files. Despite using `O_EXCL`, the code would unlink existing files and retry if a collision occurred. This opened up a Time-Of-Check-To-Time-Of-Use (TOCTOU) vulnerability window where a malicious user could exploit a symlink attack to overwrite arbitrary system files or inject malicious cache data.
 **Learning:** Hardcoding or using predictable temporary file names is insecure, even when coupled with `O_EXCL` flags, if the error recovery logic creates race conditions (like unlinking and retrying).
