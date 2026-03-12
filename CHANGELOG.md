@@ -200,6 +200,8 @@
 
 **Merged pull requests:**
 
+- 🛡️ Sentinel: \[HIGH\] Fix predictable temporary file vulnerability in cache [\#632](https://github.com/abhimehro/ctrld-sync/pull/632) ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: \[performance improvement\] Optimize structural validation for folder data [\#631](https://github.com/abhimehro/ctrld-sync/pull/631) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[MEDIUM\] Refactor duplicate SSRF IP validation logic [\#630](https://github.com/abhimehro/ctrld-sync/pull/630) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Optimize `push_rules` loop for performance [\#629](https://github.com/abhimehro/ctrld-sync/pull/629) ([abhimehro](https://github.com/abhimehro))
 - 🧪 \[testing improvement\] Add test for retry\_with\_jitter logic [\#628](https://github.com/abhimehro/ctrld-sync/pull/628) ([abhimehro](https://github.com/abhimehro))
