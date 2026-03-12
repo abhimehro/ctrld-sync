@@ -77,3 +77,7 @@
 **Vulnerability:** Duplicate inline validation for `ipaddress.ip_address` objects inside `validate_hostname` was missing the centralized helper method `_is_safe_ip(ip)`.
 **Learning:** Re-implementing security logic leads to drift and inconsistent protections. The helper method specifically handles the nuanced behavior of IPv4 CGNAT (100.64.0.0/10) missing from `is_global` in modern python `ipaddress` lib.
 **Prevention:** Rely entirely on modular security helper methods instead of inlining conditional logic where possible.
+## 2024-03-11 - [CRITICAL] Predictable Temporary File Vulnerability in Cache
+**Vulnerability:** `save_disk_cache` used a predictable file name (`cache_file.with_suffix(".tmp")`) when creating temporary cache files. Despite using `O_EXCL`, the code would unlink existing files and retry if a collision occurred. This opened up a Time-Of-Check-To-Time-Of-Use (TOCTOU) vulnerability window where a malicious user could exploit a symlink attack to overwrite arbitrary system files or inject malicious cache data.
+**Learning:** Hardcoding or using predictable temporary file names is insecure, even when coupled with `O_EXCL` flags, if the error recovery logic creates race conditions (like unlinking and retrying).
+**Prevention:** Always use `tempfile.mkstemp(dir=...)` when creating temporary files, especially those containing sensitive or configuration data. Ensure the generated unique file is properly cleaned up within a `try...finally` block to avoid leaving artifacts if the process crashes or fails before the final atomic rename.
