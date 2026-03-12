@@ -1097,8 +1097,10 @@ def validate_folder_url(url: str) -> bool:
         return False
 
     try:
-        parsed = urlparse(url)
-        hostname = parsed.hostname
+        # Use httpx.URL to parse the hostname to prevent parser differentials
+        # between urllib.parse and the httpx client used to fetch the URL.
+        parsed = httpx.URL(url)
+        hostname = parsed.host
         if not hostname:
             return False
 

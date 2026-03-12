@@ -55,3 +55,6 @@ ignore = [
     "SIM115",
     "SIM117",
 ]
+
+[dependency-groups]
+dev = []
