@@ -36,7 +36,6 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, NotRequired, TypedDict, TypeGuard, cast
 from collections.abc import Callable, Sequence
-from urllib.parse import urlparse
 
 import httpx
 import yaml
@@ -1097,8 +1096,8 @@ def validate_folder_url(url: str) -> bool:
         return False
 
     try:
-        parsed = urlparse(url)
-        hostname = parsed.hostname
+        parsed = httpx.URL(url)
+        hostname = parsed.host
         if not hostname:
             return False
 
