@@ -467,7 +467,10 @@ PROFILE_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
 FOLDER_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_.-]+$")
 
 _ALLOWED_RULE_CHARS = frozenset(
-    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-_:*/@"
+    "abcdefghijklmnopqrstuvwxyz"
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    "0123456789"
+    ".-_:*/@"
 )
 
 # Parallel processing configuration
