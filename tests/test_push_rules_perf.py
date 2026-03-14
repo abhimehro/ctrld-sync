@@ -113,13 +113,13 @@ class TestPushRulesPerf(unittest.TestCase):
 
     def test_push_rules_skips_validation_for_existing(self):
         """
-        Test that RULE_PATTERN.match is NOT called for rules that are already in existing_rules.
+        Test that _RULE_ALLOWED_CHARS.issuperset is NOT called for rules that are already in existing_rules.
         """
-        # Patch RULE_PATTERN on the current main module
-        with patch.object(self.main, "RULE_PATTERN") as mock_rule_pattern:
-            # Configure the mock match method
-            mock_match = mock_rule_pattern.match
-            mock_match.return_value = True
+        # Patch _RULE_ALLOWED_CHARS on the current main module
+        with patch.object(self.main, "_RULE_ALLOWED_CHARS") as mock_rule_allowed_chars:
+            # Configure the mock issuperset method
+            mock_issuperset = mock_rule_allowed_chars.issuperset
+            mock_issuperset.return_value = True
 
             hostnames = ["h1", "h2"]
             # h1 is already known, h2 is new
@@ -142,8 +142,8 @@ class TestPushRulesPerf(unittest.TestCase):
 
             # h1 is in existing_rules, so we should skip validation for it.
             # h2 is NOT in existing_rules, so we should validate it.
-            # So match should be called EXACTLY once, with "h2".
-            mock_match.assert_called_once_with("h2")
+            # So issuperset should be called EXACTLY once, with "h2".
+            mock_issuperset.assert_called_once_with("h2")
 
     @patch("main.concurrent.futures.as_completed")
     def test_push_rules_uses_provided_executor(self, mock_as_completed):
