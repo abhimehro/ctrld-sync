@@ -201,6 +201,8 @@
 **Merged pull requests:**
 
 - 🛡️ Sentinel: \[MEDIUM\] Fix SSRF parser differentials [\#637](https://github.com/abhimehro/ctrld-sync/pull/637) ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: Optimize character validation in hot loop [\#635](https://github.com/abhimehro/ctrld-sync/pull/635) ([abhimehro](https://github.com/abhimehro))
+- 🎨 Palette: Use DIM formatting for secondary CLI hints to reduce visual noise [\#633](https://github.com/abhimehro/ctrld-sync/pull/633) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[HIGH\] Fix predictable temporary file vulnerability in cache [\#632](https://github.com/abhimehro/ctrld-sync/pull/632) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: \[performance improvement\] Optimize structural validation for folder data [\#631](https://github.com/abhimehro/ctrld-sync/pull/631) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[MEDIUM\] Refactor duplicate SSRF IP validation logic [\#630](https://github.com/abhimehro/ctrld-sync/pull/630) ([abhimehro](https://github.com/abhimehro))
