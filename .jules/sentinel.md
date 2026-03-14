@@ -1,3 +1,11 @@
+## 2026-11-22 - Information Disclosure / Insecure Symlink Follow in fix_env.py
+
+**Vulnerability:** The `fix_env.py` script read the `.env` file directly via `open(".env")` without checking if it was a symlink. If an attacker replaced `.env` with a symlink to a sensitive file (e.g., `/etc/shadow`), the script would read the sensitive file into memory and attempt to parse it. Furthermore, it would then replace the symlink with a regular file, effectively deleting the symlink itself. While the primary risk in this exact script is minor (it replaces the symlink instead of overwriting the target), reading arbitrary sensitive files via symlink following is an information disclosure risk.
+
+**Learning:** `open()` natively follows symlinks. You must always explicitly check for symlinks when opening sensitive or predictable file paths in security-focused tools, especially if those files are going to be parsed or rewritten.
+
+**Prevention:** Always use `os.path.islink()` to explicitly check if a file is a symlink before opening it for parsing or modification, and abort gracefully with a security warning if it is.
+
 ## 2026-02-09 - RTLO/Bidi Spoofing in Folder Names
 
 **Vulnerability:** Input validation for folder names allowed Unicode Bidi control characters (e.g., `\u202e`), enabling Homograph/Spoofing attacks (RTLO - Right-To-Left Override).
