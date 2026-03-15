@@ -2557,13 +2557,19 @@ def prompt_for_interactive_restart(profile_ids: list[str]) -> None:
 
     try:
         if USE_COLORS:
-            prompt = f"\n{Colors.BOLD}🚀 Ready to launch? {Colors.ENDC}Press [Enter] to run now (or Ctrl+C to cancel)..."
+            prompt = f"\n{Colors.BOLD}🚀 Ready to launch? {Colors.ENDC}Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
         else:
-            prompt = "\n🚀 Ready to launch? Press [Enter] to run now (or Ctrl+C to cancel)..."
+            prompt = "\n🚀 Ready to launch? Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
 
         # Flush stderr to ensure prompt is visible
         sys.stderr.flush()
-        input(prompt)
+        user_response = input(prompt).strip().lower()
+        if user_response in ("n", "no", "q", "quit", "exit", "cancel"):
+            if USE_COLORS:
+                print(f"\n{Colors.WARNING}⚠️  Cancelled.{Colors.ENDC}")
+            else:
+                print("\n⚠️  Cancelled.")
+            return
 
         # Prepare environment for the new process
         # Pass the current token to avoid re-prompting if it was entered interactively

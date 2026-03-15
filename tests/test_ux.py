@@ -324,3 +324,46 @@ def test_print_summary_table_ascii_fallback(monkeypatch, capsys):
     assert "DRY RUN SUMMARY" in captured.out
     assert "Profile_2" in captured.out
     assert "error" in captured.out
+
+class TestPromptForInteractiveRestart:
+    def test_skips_when_not_tty(self, monkeypatch):
+        """Should return immediately if sys.stdin is not a TTY."""
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: False)
+        # Should not raise exception or call execv
+        main.prompt_for_interactive_restart(["123"])
+
+    def test_handles_keyboard_interrupt(self, monkeypatch, capsys):
+        """Should handle Ctrl+C gracefully."""
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+
+        def mock_input(_):
+            raise KeyboardInterrupt()
+
+        monkeypatch.setattr("builtins.input", mock_input)
+        mock_execv = MagicMock()
+        monkeypatch.setattr(os, "execv", mock_execv)
+
+        main.prompt_for_interactive_restart(["123"])
+
+        mock_execv.assert_not_called()
+        captured = capsys.readouterr()
+        assert "Cancelled" in captured.out
+
+    def test_handles_text_cancellation(self, monkeypatch, capsys):
+        """Should handle typing 'n', 'no', 'quit' gracefully."""
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+
+        for cancel_input in ["n", "NO", "  quit  ", "Cancel"]:
+            # Local scope closure
+            def make_mock_input(val):
+                return lambda _: val
+
+            monkeypatch.setattr("builtins.input", make_mock_input(cancel_input))
+            mock_execv = MagicMock()
+            monkeypatch.setattr(os, "execv", mock_execv)
+
+            main.prompt_for_interactive_restart(["123"])
+
+            mock_execv.assert_not_called()
+            captured = capsys.readouterr()
+            assert "Cancelled" in captured.out
