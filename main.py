@@ -1826,7 +1826,7 @@ def get_all_existing_rules(
         try:
             data = _api_get(client, f"{API_BASE}/{profile_id}/rules/{folder_id}").json()
             folder_rules = data.get("body", {}).get("rules", [])
-            return [rule["PK"] for rule in folder_rules if rule.get("PK")]
+            return [pk for rule in folder_rules if (pk := rule.get("PK"))]
         except httpx.HTTPError as e:
             log.debug(
                 "Could not fetch rules for folder %s (will skip): %s",
@@ -2332,7 +2332,7 @@ def _process_single_folder(
                 do=action_data.get("do", 0),
                 status=action_data.get("status", 1),
             )
-            hostnames = [r["PK"] for r in rule_group.get("rules", []) if r.get("PK")]
+            hostnames = [pk for r in rule_group.get("rules", []) if (pk := r.get("PK"))]
             if not push_rules(
                 ctx,
                 name,
@@ -2342,7 +2342,7 @@ def _process_single_folder(
             ):
                 folder_success = False
     else:
-        hostnames = [r["PK"] for r in folder_data.get("rules", []) if r.get("PK")]
+        hostnames = [pk for r in folder_data.get("rules", []) if (pk := r.get("PK"))]
         if not push_rules(
             ctx,
             name,
