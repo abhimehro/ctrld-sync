@@ -178,7 +178,7 @@ if os.getenv("NO_COLOR"):
 else:
     USE_COLORS = sys.stderr.isatty() and sys.stdout.isatty()
 
-# Evaluate JSON_LOG immediately so USE_COLORS is finalized 
+# Evaluate JSON_LOG immediately so USE_COLORS is finalized
 # BEFORE the Colors and Box classes are defined.
 _use_json_log: bool = bool(os.getenv("JSON_LOG"))
 if _use_json_log:
