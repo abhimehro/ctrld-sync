@@ -28,7 +28,6 @@ import random
 import re
 import shutil
 import socket
-import string
 import stat
 import sys
 import threading
@@ -467,9 +466,6 @@ PROFILE_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
 # We whitelist to prevent path traversal and injection.
 FOLDER_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_.-]+$")
 RULE_PATTERN = re.compile(r"^[a-zA-Z0-9.\-_:*/@]+$")
-
-# Pre-combine allowed rule characters for fast O(N) validation via frozenset.issuperset
-_RULE_ALLOWED_CHARS = frozenset(string.ascii_letters + string.digits + ".-_:*/@")
 
 # Parallel processing configuration
 DELETE_WORKERS = 3  # Conservative for DELETE operations due to rate limits
@@ -1197,8 +1193,7 @@ def is_valid_rule(rule: str) -> bool:
         return False
 
     # Strict whitelist to prevent injection
-    # Optimization: frozenset.issuperset is faster than regex match for character validation
-    return bool(rule) and _RULE_ALLOWED_CHARS.issuperset(rule)
+    return bool(RULE_PATTERN.match(rule))
 
 
 def is_valid_folder_name(name: str) -> bool:
@@ -2082,7 +2077,7 @@ def push_rules(
     skipped_unsafe = 0
 
     # Optimization 2: Inline method references for hot loop performance
-    allowed_chars_issuperset = _RULE_ALLOWED_CHARS.issuperset
+    match_rule = RULE_PATTERN.match
     append = filtered_hostnames.append
     existing_rules = ctx.existing_rules
 
@@ -2091,8 +2086,8 @@ def push_rules(
     # FAST-PATH: If existing_rules is empty (e.g., first sync), avoid the set lookup
     if not existing_rules:
         for h in unique_hostnames_dict:
-            # Fast path: strict character check via frozenset
-            if not (h and allowed_chars_issuperset(h)):
+            # Fast path: strict regex check
+            if not match_rule(h):
                 log.warning(
                     f"Skipping unsafe rule in {sanitize_for_log(folder_name)}: {sanitize_for_log(h)}"
                 )
@@ -2105,8 +2100,8 @@ def push_rules(
             if h in existing_rules:
                 continue
 
-            # Fast path 2: strict character check via frozenset
-            if not (h and allowed_chars_issuperset(h)):
+            # Fast path 2: strict regex check
+            if not match_rule(h):
                 log.warning(
                     f"Skipping unsafe rule in {sanitize_for_log(folder_name)}: {sanitize_for_log(h)}"
                 )
