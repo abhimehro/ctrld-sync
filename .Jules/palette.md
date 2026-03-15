@@ -18,6 +18,6 @@
 **Learning:** Presenting a simple "Nothing to do" message when an operation is empty leaves the user without guidance.
 **Action:** When presenting empty states in the CLI (e.g., no items to process), always provide actionable hints or call-to-actions, such as suggesting relevant CLI flags or configuration edits.
 
-## 2025-03-12 - [Visual Hierarchy in CLI]
-**Learning:** Using bright colors (like CYAN) for both primary actions and secondary hints creates visual noise and makes it harder for users to focus on what matters.
-**Action:** Use DIM ANSI escape codes (\033[2m) for secondary or optional CLI text (like hints and follow-up instructions) to establish a clear visual hierarchy and reduce noise.
+## 2025-03-14 - [Visual Hierarchy in CLI]
+**Learning:** Using bright colors (like CYAN) for secondary or optional text (like hints) creates visual noise and competes with primary information.
+**Action:** Use DIM ANSI escape codes (`\033[2m`) for secondary text to establish a clear visual hierarchy and reduce noise.
