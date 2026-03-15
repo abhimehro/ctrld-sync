@@ -324,3 +324,63 @@ def test_print_summary_table_ascii_fallback(monkeypatch, capsys):
     assert "DRY RUN SUMMARY" in captured.out
     assert "Profile_2" in captured.out
     assert "error" in captured.out
+
+
+class _DummyStdin:
+    """Simple stdin stub with configurable TTY behavior for tests."""
+
+    def __init__(self, is_tty: bool):
+        # Store the desired TTY behavior so tests can control it explicitly.
+        self._is_tty = is_tty
+
+    def isatty(self) -> bool:
+        # Match the standard sys.stdin.isatty() interface.
+        return self._is_tty
+
+
+class TestPromptForInteractiveRestart:
+    def test_skips_when_not_tty(self, monkeypatch):
+        """Should return immediately if sys.stdin is not a TTY."""
+        # Patch sys.stdin itself to a stub object rather than mutating
+        # the isatty attribute on the real TextIOWrapper instance.
+        monkeypatch.setattr(sys, "stdin", _DummyStdin(is_tty=False))
+        # Should not raise exception or call execv
+        main.prompt_for_interactive_restart(["123"])
+
+    def test_handles_keyboard_interrupt(self, monkeypatch, capsys):
+        """Should handle Ctrl+C gracefully."""
+        # Simulate running in an interactive TTY.
+        monkeypatch.setattr(sys, "stdin", _DummyStdin(is_tty=True))
+
+        def mock_input(_):
+            raise KeyboardInterrupt()
+
+        monkeypatch.setattr("builtins.input", mock_input)
+        mock_execv = MagicMock()
+        monkeypatch.setattr(os, "execv", mock_execv)
+
+        main.prompt_for_interactive_restart(["123"])
+
+        mock_execv.assert_not_called()
+        captured = capsys.readouterr()
+        assert "Cancelled" in captured.out
+
+    def test_handles_text_cancellation(self, monkeypatch, capsys):
+        """Should handle typing 'n', 'no', 'quit' gracefully."""
+        # Simulate running in an interactive TTY.
+        monkeypatch.setattr(sys, "stdin", _DummyStdin(is_tty=True))
+
+        for cancel_input in ["n", "NO", "  quit  ", "Cancel"]:
+            # Local scope closure
+            def make_mock_input(val):
+                return lambda _: val
+
+            monkeypatch.setattr("builtins.input", make_mock_input(cancel_input))
+            mock_execv = MagicMock()
+            monkeypatch.setattr(os, "execv", mock_execv)
+
+            main.prompt_for_interactive_restart(["123"])
+
+            mock_execv.assert_not_called()
+            captured = capsys.readouterr()
+            assert "Cancelled" in captured.out

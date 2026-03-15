@@ -18,6 +18,10 @@
 **Learning:** Presenting a simple "Nothing to do" message when an operation is empty leaves the user without guidance.
 **Action:** When presenting empty states in the CLI (e.g., no items to process), always provide actionable hints or call-to-actions, such as suggesting relevant CLI flags or configuration edits.
 
-## 2025-03-14 - [Visual Hierarchy in CLI]
-**Learning:** Using bright colors (like CYAN) for secondary or optional text (like hints) creates visual noise and competes with primary information.
-**Action:** Use DIM ANSI escape codes (`\033[2m`) for secondary text to establish a clear visual hierarchy and reduce noise.
+## 2025-03-12 - [Visual Hierarchy in CLI]
+**Learning:** Using bright colors (like CYAN) for both primary actions and secondary hints creates visual noise and makes it harder for users to focus on what matters.
+**Action:** Use DIM ANSI escape codes (\033[2m) for secondary or optional CLI text (like hints and follow-up instructions) to establish a clear visual hierarchy and reduce noise.
+
+## 2025-03-12 - [Interactive Prompt Forgiveness]
+**Learning:** When prompting users to press Enter to continue or Ctrl+C to cancel, users will often instinctively type "n", "no", or "quit" and press Enter. Ignoring this input and proceeding anyway leads to accidental and potentially destructive actions. Furthermore, prompts without a trailing space cause user input to visually collide with the prompt text.
+**Action:** Always add a trailing space to input prompts, and gracefully intercept common cancellation strings (e.g., "n", "no", "quit") even if the explicit instruction only mentions Ctrl+C.
