@@ -180,62 +180,113 @@ else:
     USE_COLORS = sys.stderr.isatty() and sys.stdout.isatty()
 
 
-class Colors:
-    if USE_COLORS:
-        HEADER = "\033[95m"
-        BLUE = "\033[94m"
-        CYAN = "\033[96m"
-        GREEN = "\033[92m"
-        WARNING = "\033[93m"
-        FAIL = "\033[91m"
-        ENDC = "\033[0m"
-        BOLD = "\033[1m"
-        UNDERLINE = "\033[4m"
-        DIM = "\033[2m"
-    else:
-        HEADER = ""
-        BLUE = ""
-        CYAN = ""
-        GREEN = ""
-        WARNING = ""
-        FAIL = ""
-        ENDC = ""
-        BOLD = ""
-        UNDERLINE = ""
-        DIM = ""
+class _Colors:
+    """Dynamic color escape codes that respect the current USE_COLORS flag.
+
+    We use properties instead of class-level constants so that if USE_COLORS
+    is changed later (e.g., when JSON logging is enabled), all future uses of
+    Colors.* automatically reflect the new setting and stop emitting ANSI codes.
+    """
+
+    @property
+    def HEADER(self) -> str:
+        return "\033[95m" if USE_COLORS else ""
+
+    @property
+    def BLUE(self) -> str:
+        return "\033[94m" if USE_COLORS else ""
+
+    @property
+    def CYAN(self) -> str:
+        return "\033[96m" if USE_COLORS else ""
+
+    @property
+    def GREEN(self) -> str:
+        return "\033[92m" if USE_COLORS else ""
+
+    @property
+    def WARNING(self) -> str:
+        return "\033[93m" if USE_COLORS else ""
+
+    @property
+    def FAIL(self) -> str:
+        return "\033[91m" if USE_COLORS else ""
+
+    @property
+    def ENDC(self) -> str:
+        return "\033[0m" if USE_COLORS else ""
+
+    @property
+    def BOLD(self) -> str:
+        return "\033[1m" if USE_COLORS else ""
+
+    @property
+    def UNDERLINE(self) -> str:
+        return "\033[4m" if USE_COLORS else ""
+
+    @property
+    def DIM(self) -> str:
+        return "\033[2m" if USE_COLORS else ""
 
 
-class Box:
-    """Box drawing characters for pretty tables."""
+# Expose a singleton-style instance so existing code can keep using Colors.HEADER
+Colors = _Colors()
 
-    if USE_COLORS:
-        H, V, TL, TR, BL, BR, T, B, L, R, X = (
-            "─",
-            "│",
-            "┌",
-            "┐",
-            "└",
-            "┘",
-            "┬",
-            "┴",
-            "├",
-            "┤",
-            "┼",
-        )
-    else:
-        H, V, TL, TR, BL, BR, T, B, L, R, X = (
-            "-",
-            "|",
-            "+",
-            "+",
-            "+",
-            "+",
-            "+",
-            "+",
-            "+",
-            "+",
-            "+",
-        )
+
+class _Box:
+    """Box drawing characters for pretty tables.
+
+    Like Colors, this is implemented with properties so it always respects
+    the current USE_COLORS value (and by extension any JSON_LOG behavior).
+    """
+
+    @property
+    def H(self) -> str:
+        return "─" if USE_COLORS else "-"
+
+    @property
+    def V(self) -> str:
+        return "│" if USE_COLORS else "|"
+
+    @property
+    def TL(self) -> str:
+        return "┌" if USE_COLORS else "+"
+
+    @property
+    def TR(self) -> str:
+        return "┐" if USE_COLORS else "+"
+
+    @property
+    def BL(self) -> str:
+        return "└" if USE_COLORS else "+"
+
+    @property
+    def BR(self) -> str:
+        return "┘" if USE_COLORS else "+"
+
+    @property
+    def T(self) -> str:
+        return "┬" if USE_COLORS else "+"
+
+    @property
+    def B(self) -> str:
+        return "┴" if USE_COLORS else "+"
+
+    @property
+    def L(self) -> str:
+        return "├" if USE_COLORS else "+"
+
+    @property
+    def R(self) -> str:
+        return "┤" if USE_COLORS else "+"
+
+    @property
+    def X(self) -> str:
+        return "┼" if USE_COLORS else "+"
+
+
+# Expose a singleton-style instance so existing code can keep using Box.H, etc.
+Box = _Box()
 
 
 class ColoredFormatter(logging.Formatter):

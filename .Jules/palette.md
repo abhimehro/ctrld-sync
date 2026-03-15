@@ -20,4 +20,4 @@
 
 ## 2025-03-14 - [Visual Hierarchy in CLI]
 **Learning:** Using bright colors (like CYAN) for secondary or optional text (like hints) creates visual noise and competes with primary information.
-**Action:** Use DIM ANSI escape codes (\033[2m) for secondary text to establish a clear visual hierarchy and reduce noise.
+**Action:** Use DIM ANSI escape codes (`\033[2m`) for secondary text to establish a clear visual hierarchy and reduce noise.
