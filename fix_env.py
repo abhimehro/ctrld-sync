@@ -31,6 +31,12 @@ def fix_env():
 
     Prints a notice and returns early if `.env` is not found.
     """
+    # Security: Don't follow symlinks when fixing .env
+    # This prevents attacks where .env is symlinked to a system file
+    if os.path.islink(".env"):
+        print("Security Warning: .env is a symlink. Skipping to avoid damaging target file.")
+        return
+
     try:
         with open(".env") as f:
             content = f.read()
