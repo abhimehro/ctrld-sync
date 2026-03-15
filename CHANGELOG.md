@@ -200,6 +200,7 @@
 
 **Merged pull requests:**
 
+- 🎨 Palette: Improve interactive restart prompt UX [\#642](https://github.com/abhimehro/ctrld-sync/pull/642) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: \[performance improvement\] [\#641](https://github.com/abhimehro/ctrld-sync/pull/641) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[MEDIUM\] Fix insecure symlink follow in fix\_env.py [\#640](https://github.com/abhimehro/ctrld-sync/pull/640) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: \[Visual Hierarchy in CLI\] Use DIM colors for secondary text [\#639](https://github.com/abhimehro/ctrld-sync/pull/639) ([abhimehro](https://github.com/abhimehro))
