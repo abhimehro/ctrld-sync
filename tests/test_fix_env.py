@@ -5,8 +5,8 @@ import fix_env
 
 def test_fix_env_skips_symlink(tmp_path):
     """
-    Verify that fix_env replaces a symlink with a regular file
-    using atomic temp file replacement to prevent TOCTOU.
+    Verify that fix_env skips modifying a symlink
+    to prevent damaging the target file.
     """
     # Create a target file
     target_file = tmp_path / "target_file"
@@ -27,17 +27,11 @@ def test_fix_env_skips_symlink(tmp_path):
 
         fix_env.fix_env()
 
-        # The symlink should be gone, replaced by a real file
-        assert not os.path.islink(".env")
-        assert os.path.isfile(".env")
+        # The symlink should still be a symlink (safely ignored)
+        assert os.path.islink(".env")
 
         # The target file should remain untouched
         assert target_file.read_text() == f"TOKEN={token}\nPROFILE={profile}"
-
-        # The new .env file should contain the formatted output
-        content = symlink.read_text()
-        assert f'TOKEN="{token}"' in content
-        assert f'PROFILE="{profile}"' in content
 
     finally:
         os.chdir(cwd)

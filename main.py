@@ -36,7 +36,6 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, NotRequired, TypedDict, TypeGuard, cast
 from collections.abc import Callable, Sequence
-from urllib.parse import urlparse
 
 import httpx
 import yaml
@@ -518,7 +517,13 @@ PROFILE_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
 # Folder IDs (PK) are typically alphanumeric but can contain other safe chars.
 # We whitelist to prevent path traversal and injection.
 FOLDER_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_.-]+$")
-RULE_PATTERN = re.compile(r"^[a-zA-Z0-9.\-_:*/@]+$")
+
+_ALLOWED_RULE_CHARS = frozenset(
+    "abcdefghijklmnopqrstuvwxyz"
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    "0123456789"
+    ".-_:*/@"
+)
 
 # Parallel processing configuration
 DELETE_WORKERS = 3  # Conservative for DELETE operations due to rate limits
@@ -1150,8 +1155,8 @@ def validate_folder_url(url: str) -> bool:
         return False
 
     try:
-        parsed = urlparse(url)
-        hostname = parsed.hostname
+        parsed = httpx.URL(url)
+        hostname = parsed.host
         if not hostname:
             return False
 
@@ -1246,7 +1251,7 @@ def is_valid_rule(rule: str) -> bool:
         return False
 
     # Strict whitelist to prevent injection
-    return bool(RULE_PATTERN.match(rule))
+    return bool(rule) and _ALLOWED_RULE_CHARS.issuperset(rule)
 
 
 def is_valid_folder_name(name: str) -> bool:
@@ -2110,7 +2115,7 @@ def push_rules(
     """
     Pushes rules to a folder in batches, filtering duplicates and invalid rules.
 
-    Deduplicates input, validates rules against RULE_PATTERN, and sends batches
+    Deduplicates input, validates rules against _ALLOWED_RULE_CHARS, and sends batches
     in parallel for optimal performance. Updates ctx.existing_rules set with newly
     added rules. Returns True if all batches succeed.
     """
@@ -2130,7 +2135,7 @@ def push_rules(
     skipped_unsafe = 0
 
     # Optimization 2: Inline method references for hot loop performance
-    match_rule = RULE_PATTERN.match
+    is_safe = _ALLOWED_RULE_CHARS.issuperset
     append = filtered_hostnames.append
     existing_rules = ctx.existing_rules
 
@@ -2140,7 +2145,7 @@ def push_rules(
     if not existing_rules:
         for h in unique_hostnames_dict:
             # Fast path: strict regex check
-            if not match_rule(h):
+            if not (h and is_safe(h)):
                 log.warning(
                     f"Skipping unsafe rule in {sanitize_for_log(folder_name)}: {sanitize_for_log(h)}"
                 )
@@ -2154,7 +2159,7 @@ def push_rules(
                 continue
 
             # Fast path 2: strict regex check
-            if not match_rule(h):
+            if not (h and is_safe(h)):
                 log.warning(
                     f"Skipping unsafe rule in {sanitize_for_log(folder_name)}: {sanitize_for_log(h)}"
                 )
@@ -2888,7 +2893,7 @@ def main() -> None:
         if not profile_ids:
             print(f"{Colors.CYAN}ℹ Profile ID is missing.{Colors.ENDC}")
             print(
-                f"{Colors.CYAN}  You can find this in the URL of your profile in the Control D Dashboard (or just paste the URL).{Colors.ENDC}"
+                f"{Colors.DIM}  You can find this in the URL of your profile in the Control D Dashboard (or just paste the URL).{Colors.ENDC}"
             )
 
             def validate_profile_input(value: str) -> bool:
@@ -2910,7 +2915,7 @@ def main() -> None:
         if not TOKEN:
             print(f"{Colors.CYAN}ℹ API Token is missing.{Colors.ENDC}")
             print(
-                f"{Colors.CYAN}  You can generate one at: https://controld.com/account/manage-account{Colors.ENDC}"
+                f"{Colors.DIM}  You can generate one at: https://controld.com/account/manage-account{Colors.ENDC}"
             )
 
             t_input = get_password(

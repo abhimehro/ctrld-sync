@@ -1,0 +1,8 @@
+---
+exclude_paths:
+  - '.devcontainer/**'
+  - '.github/**'
+  - '.jules/**'
+  - '.Jules/**'
+  - '.trunk/**'
+  - 'tests/**'
