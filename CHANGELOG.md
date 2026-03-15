@@ -200,6 +200,7 @@
 
 **Merged pull requests:**
 
+- 🛡️ Sentinel: \[MEDIUM\] Fix insecure symlink follow in fix\_env.py [\#640](https://github.com/abhimehro/ctrld-sync/pull/640) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[MEDIUM\] Fix SSRF parser differentials [\#637](https://github.com/abhimehro/ctrld-sync/pull/637) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Optimize character validation in hot loop [\#635](https://github.com/abhimehro/ctrld-sync/pull/635) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Use DIM formatting for secondary CLI hints to reduce visual noise [\#633](https://github.com/abhimehro/ctrld-sync/pull/633) ([abhimehro](https://github.com/abhimehro))
