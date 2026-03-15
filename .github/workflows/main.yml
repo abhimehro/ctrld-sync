@@ -1,51 +1,37 @@
-name: Generate Changelog
+name: Clean Stale Branches
 
 on:
-  push:
-    branches:
-      - main
-
-permissions:
-  contents: write
+  schedule:
+    - cron: '0 2 * * 0' # Every Sunday at 2 AM
 
 jobs:
-  changelog:
+  cleanup:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - name: Set up Ruby 3.1
-        uses: ruby/setup-ruby@v1
+      - uses: actions/checkout@v4
         with:
-          ruby-version: 3.1
+          fetch-depth: 0
 
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Install github_changelog_generator
-        run: |
-          gem install github_changelog_generator --user-install
-          GEM_BIN_DIR="$(ruby -e 'puts Gem.user_dir')/bin"
-          echo "PATH=$GEM_BIN_DIR:$PATH" >> $GITHUB_ENV
-
-      - name: Generate changelog
+      - name: Delete stale merged branches
         env:
-          CHANGELOG_GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          github_changelog_generator --user "${GITHUB_REPOSITORY_OWNER}" --project "${GITHUB_REPOSITORY#*/}"
+          git checkout main && git pull
 
-      - name: Commit and Push Changes
-        env:
-          GH_PAT: ${{ secrets.GH_PAT }}
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add CHANGELOG.md
-          if ! git diff --cached --quiet; then
-            git commit -m "docs: update CHANGELOG [automated]"
-            git push https://x-access-token:${GH_PAT}@github.com/abhimehro/ctrld-sync.git
-          else
-            echo "No changes to commit."
-          fi
+          merged_branches=$(
+            git branch -r --merged main \
+              | grep -v 'main\|develop\|HEAD' \
+              | sed 's/origin\///'
+          )
 
-# This workflow will automatically generate or update CHANGELOG.md on every push to main or when manually triggered.
-# It uses github-changelog-generator to pull PRs, issues, and release notes from GitHub.
-# For more customization, see: https://github.com/github-changelog-generator/github-changelog-generator 
+          for branch in $merged_branches; do
+            last_commit_date=$(git log -1 --format=%ct "origin/$branch")
+            days_old=$(( ($(date +%s) - last_commit_date) / 86400 ))
+
+            if [ "$days_old" -gt 7 ]; then
+              echo "Deleting branch: $branch ($days_old days old)"
+              git push origin --delete "$branch" || true
+            fi
+          done
