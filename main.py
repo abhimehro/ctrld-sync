@@ -2358,16 +2358,12 @@ def sync_profile(
 
         if not folder_data_list:
             log.error("No valid folder data found")
+            hint_message = ("💡 Hint: Check your --folder-url flags or your config file "
+                            "(see --config, config.yaml, or config.yml) for typos or unreachable URLs")
             if USE_COLORS:
-                log.warning(
-                    f"{Colors.DIM}💡 Hint: Check your --folder-url flags or your config file "
-                    f"(see --config, config.yaml, or config.yml) for typos or unreachable URLs{Colors.ENDC}"
-                )
+                log.warning(f"{Colors.DIM}{hint_message}{Colors.ENDC}")
             else:
-                log.warning(
-                    "💡 Hint: Check your --folder-url flags or your config file "
-                    "(see --config, config.yaml, or config.yml) for typos or unreachable URLs"
-                )
+                log.warning(hint_message)
             return False
 
         # Build plan entries
