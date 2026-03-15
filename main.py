@@ -2561,7 +2561,8 @@ def prompt_for_interactive_restart(profile_ids: list[str]) -> None:
         else:
             prompt = "\n🚀 Ready to launch? Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
 
-        # Flush stderr to ensure prompt is visible
+        # Flush stdout (and stderr) so the prompt is visible even if output is buffered or redirected
+        sys.stdout.flush()
         sys.stderr.flush()
         user_response = input(prompt).strip().lower()
         if user_response in ("n", "no", "q", "quit", "exit", "cancel"):
