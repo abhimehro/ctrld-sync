@@ -75,6 +75,13 @@ class TestStatusHintsDict:
                 "update one dict — not both — to keep them in sync."
             )
 
+    def test_500_hint_is_single_source_of_truth(self):
+        """_STATUS_HINTS[500] must reference api_client._SERVER_ERROR_HINT (no drift)."""
+        assert main._STATUS_HINTS[500] is api_client._SERVER_ERROR_HINT, (
+            "_STATUS_HINTS[500] differs from api_client._SERVER_ERROR_HINT; "
+            "update api_client._SERVER_ERROR_HINT — not both — to keep them in sync."
+        )
+
 
 class TestFetchFolderDataHints:
     """Verify fetch_folder_data() surfaces actionable hints on HTTP errors."""
