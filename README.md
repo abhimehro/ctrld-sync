@@ -1,13 +1,17 @@
 # Control D Sync
 
-[![CodeScene general](https://codescene.io/images/analyzed-by-codescene-badge.svg)](https://codescene.io/projects/78057)
+[![CodeScene general](https://codescene.io/images/analyzed-by-codescene-badge.svg)](https://codescene.io/projects/78056)
 [![Tests](https://github.com/abhimehro/ctrld-sync/actions/workflows/test.yml/badge.svg)](https://github.com/abhimehro/ctrld-sync/actions/workflows/test.yml)
 [![Sync](https://github.com/abhimehro/ctrld-sync/actions/workflows/sync.yml/badge.svg)](https://github.com/abhimehro/ctrld-sync/actions/workflows/sync.yml)
 [![Bandit](https://github.com/abhimehro/ctrld-sync/actions/workflows/bandit.yml/badge.svg)](https://github.com/abhimehro/ctrld-sync/actions/workflows/bandit.yml)
 [![Changelog Status](https://github.com/abhimehro/ctrld-sync/actions/workflows/changelog.yml/badge.svg)](https://github.com/abhimehro/ctrld-sync/actions/workflows/changelog.yml)
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![CodeScene System Mastery](https://codescene.io/projects/78057/status-badges/system-mastery?component-name=Ctrld-sync)](https://codescene.io/projects/78057/)
+
+[![CodeScene Average Code Health](https://codescene.io/projects/78056/status-badges/average-code-health?component-name=Ctrld-sync)](https://codescene.io/projects/78056/architecture/biomarkers?component=Ctrld-sync)
+[![CodeScene Hotspot Code Health](https://codescene.io/projects/78056/status-badges/hotspot-code-health)](https://codescene.io/projects/78056)
+[![CodeScene Missed Goals](https://codescene.io/projects/78056/status-badges/missed-goals)](https://codescene.io/projects/78056)
+[![CodeScene System Mastery](https://codescene.io/projects/78056/status-badges/system-mastery?component-name=Ctrld-sync)](https://codescene.io/projects/78056/)
 
 A tiny Python script that keeps your Control D Folders in sync with a set of
 remote block-lists.
