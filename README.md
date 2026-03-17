@@ -6,9 +6,6 @@
 [![Changelog Status](https://github.com/abhimehro/ctrld-sync/actions/workflows/changelog.yml/badge.svg)](https://github.com/abhimehro/ctrld-sync/actions/workflows/changelog.yml)
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![CodeScene Average Code Health](https://codescene.io/projects/78057/status-badges/average-code-health)](https://codescene.io/projects/78057)
-[![CodeScene Hotspot Code Health](https://codescene.io/projects/78057/status-badges/hotspot-code-health)](https://codescene.io/projects/78057)
-[![CodeScene Missed Goals](https://codescene.io/projects/78057/status-badges/missed-goals)](https://codescene.io/projects/78057)
 [![CodeScene System Mastery](https://codescene.io/projects/78057/status-badges/system-mastery?component-name=Ctrld-sync)](https://codescene.io/projects/78057/)
 
 A tiny Python script that keeps your Control D Folders in sync with a set of
