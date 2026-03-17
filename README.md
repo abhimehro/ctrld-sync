@@ -7,6 +7,7 @@
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CodeScene System Mastery](https://codescene.io/projects/78057/status-badges/system-mastery?component-name=Ctrld-sync)](https://codescene.io/projects/78057/)
+[![CodeScene general](https://codescene.io/images/analyzed-by-codescene-badge.svg)](https://codescene.io/projects/78057)
 
 A tiny Python script that keeps your Control D Folders in sync with a set of
 remote block-lists.
