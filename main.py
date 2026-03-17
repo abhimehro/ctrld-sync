@@ -55,6 +55,7 @@ from api_client import (
     MAX_RETRIES,
     RETRY_DELAY,
     _CONNECT_ERROR_HINT,
+    _SERVER_ERROR_HINT,
     _TIMEOUT_HINT,
     _api_stats,
     _rate_limit_info,
@@ -823,7 +824,7 @@ MAX_RESPONSE_SIZE = 10 * 1024 * 1024  # 10MB limit
 _STATUS_HINTS: dict[int, str] = {
     **api_client._4XX_HINTS,  # single source of truth for 401, 403, 404
     429: "Rate limited — the sync will retry automatically with backoff.",
-    500: "Control D API error — try again later or check status.controld.com.",
+    500: _SERVER_ERROR_HINT,
 }
 
 # _TIMEOUT_HINT imported from api_client above
