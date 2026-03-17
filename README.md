@@ -9,7 +9,6 @@
 [![CodeScene Average Code Health](https://codescene.io/projects/78057/status-badges/average-code-health)](https://codescene.io/projects/78057)
 [![CodeScene Hotspot Code Health](https://codescene.io/projects/78057/status-badges/hotspot-code-health)](https://codescene.io/projects/78057)
 [![CodeScene Missed Goals](https://codescene.io/projects/78057/status-badges/missed-goals)](https://codescene.io/projects/78057)
-[![CodeScene Average Code Health](https://codescene.io/projects/78057/status-badges/average-code-health)](https://codescene.io/projects/78057)
 [![CodeScene System Mastery](https://codescene.io/projects/78057/status-badges/system-mastery?component-name=Ctrld-sync)](https://codescene.io/projects/78057/)
 
 A tiny Python script that keeps your Control D Folders in sync with a set of
