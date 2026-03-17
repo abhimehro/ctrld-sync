@@ -95,6 +95,48 @@ class TestAPITracking(unittest.TestCase):
         # Verify counter was incremented by 1
         self.assertEqual(main._api_stats["control_d_api_calls"], initial_count + 1)
 
+    @patch("main.httpx.Client")
+    def test_api_post_form_increments_counter(self, mock_client_class):
+        """Test that _api_post_form increments the API call counter."""
+        import main
+
+        # Record initial value
+        initial_count = main._api_stats["control_d_api_calls"]
+
+        # Mock the client and response
+        mock_client = MagicMock()
+        mock_response = MagicMock()
+        mock_response.raise_for_status = MagicMock()
+        mock_client.post.return_value = mock_response
+
+        # Call _api_post_form
+        main._api_post_form(mock_client, "http://test.url", {"key": "value"})
+
+        # Verify counter was incremented by 1
+        self.assertEqual(main._api_stats["control_d_api_calls"], initial_count + 1)
+
+    @patch("main.httpx.Client")
+    def test_api_post_form_uses_form_content_type(self, mock_client_class):
+        """Test that _api_post_form passes Content-Type: application/x-www-form-urlencoded.
+
+        This is the distinguishing behavior vs _api_post, which does not set that header.
+        """
+        import main
+
+        mock_client = MagicMock()
+        mock_response = MagicMock()
+        mock_response.raise_for_status = MagicMock()
+        mock_client.post.return_value = mock_response
+
+        main._api_post_form(mock_client, "http://test.url", {"key": "value"})
+
+        # Verify the post was made with the correct Content-Type header
+        mock_client.post.assert_called_once_with(
+            "http://test.url",
+            data={"key": "value"},
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+
     @patch("main._gh")
     def test_gh_get_increments_blocklist_counter(self, mock_gh_client):
         """Test that _gh_get increments the blocklist fetch counter"""
