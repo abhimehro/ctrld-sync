@@ -55,6 +55,7 @@
 - \[Code Quality\] Replace `try/except pass` with `contextlib.suppress` in `_parse_rate_limit_headers` [\#570](https://github.com/abhimehro/ctrld-sync/issues/570)
 - \[Code Quality\] Add unit tests for `render_progress_bar` and `_get_progress_bar_width` [\#569](https://github.com/abhimehro/ctrld-sync/issues/569)
 - \[Code Quality\] Add test for `_retry_request(max_retries=0)` raises RuntimeError [\#568](https://github.com/abhimehro/ctrld-sync/issues/568)
+- \[Code Quality\] Add \_sanitize\_fn to cache.\_\_all\_\_ to match api\_client.py injection pattern [\#564](https://github.com/abhimehro/ctrld-sync/issues/564)
 - \[Code Quality\] Add \_SERVER\_ERROR\_HINT for 5xx HTTP responses in api\_client.\_retry\_request\(\) [\#561](https://github.com/abhimehro/ctrld-sync/issues/561)
 - \[Code Quality\] Add \_CONNECT\_ERROR\_HINT for httpx.ConnectError in api\_client retry logic [\#557](https://github.com/abhimehro/ctrld-sync/issues/557)
 - \[Code Quality\] Introduce TypedDict types for folder and rule data structures in main.py [\#556](https://github.com/abhimehro/ctrld-sync/issues/556)
@@ -76,11 +77,13 @@
 - \[Code Quality\] Add CHANGELOG.md to track version history and structural changes [\#513](https://github.com/abhimehro/ctrld-sync/issues/513)
 - \[Code Quality\] Add `LOG_JSON` env var / `--log-json` flag for structured JSON log output [\#511](https://github.com/abhimehro/ctrld-sync/issues/511)
 - \[Code Quality\] Improve API error message quality and fix `_retry_request()` return type [\#510](https://github.com/abhimehro/ctrld-sync/issues/510)
+- \[Code Quality\] Extract input validation logic into `validation.py` module [\#509](https://github.com/abhimehro/ctrld-sync/issues/509)
 - \[Code Quality\] Extract disk cache logic into `cache.py` module [\#506](https://github.com/abhimehro/ctrld-sync/issues/506)
 - \[Code Quality\] Extract HTTP API client into `api_client.py` module [\#505](https://github.com/abhimehro/ctrld-sync/issues/505)
 - \[repo-status\] Daily Repo Status — March 2, 2026 🚀 [\#504](https://github.com/abhimehro/ctrld-sync/issues/504)
 - \[Code Quality\] Add CHANGELOG.md following Keep a Changelog format [\#499](https://github.com/abhimehro/ctrld-sync/issues/499)
 - \[Code Quality\] Improve API error messages with actionable HTTP status code hints [\#498](https://github.com/abhimehro/ctrld-sync/issues/498)
+- \[Code Quality\] Extract validation functions from main.py into validation.py module [\#497](https://github.com/abhimehro/ctrld-sync/issues/497)
 - \[Code Quality\] Fix SECURITY.md placeholder version table and reporting instructions [\#490](https://github.com/abhimehro/ctrld-sync/issues/490)
 - \[Code Quality\] Add performance regression benchmark suite with pytest-benchmark [\#489](https://github.com/abhimehro/ctrld-sync/issues/489)
 - \[Code Quality\] Add uv dependency caching to GitHub Actions CI workflows [\#488](https://github.com/abhimehro/ctrld-sync/issues/488)
@@ -200,6 +203,7 @@
 
 **Merged pull requests:**
 
+- Add `_sanitize_fn` to `cache.__all__` [\#643](https://github.com/abhimehro/ctrld-sync/pull/643) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - 🎨 Palette: Improve interactive restart prompt UX [\#642](https://github.com/abhimehro/ctrld-sync/pull/642) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: \[performance improvement\] [\#641](https://github.com/abhimehro/ctrld-sync/pull/641) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[MEDIUM\] Fix insecure symlink follow in fix\_env.py [\#640](https://github.com/abhimehro/ctrld-sync/pull/640) ([abhimehro](https://github.com/abhimehro))
