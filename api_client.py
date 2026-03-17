@@ -78,9 +78,11 @@ _SERVER_ERROR_HINT = (
 
 # Actionable guidance for 4xx client errors logged as warnings before re-raising
 _4XX_HINTS: dict[int, str] = {
+    400: "Bad request — check that all required fields and values are correct.",
     401: "Check that your TOKEN environment variable is set and valid.",
     403: "Check that your API token has the required permissions for this profile.",
     404: "Check that the PROFILE or folder ID exists in your Control D account.",
+    422: "Unprocessable request — the payload was well-formed but contains invalid data (e.g. duplicate rule, unsupported value).",
 }
 
 # --------------------------------------------------------------------------- #
