@@ -40,6 +40,7 @@ __all__ = [
     "CACHE_TTL_SECONDS",
     "_disk_cache",  # live reference kept by main.py
     "_cache_stats",  # accessed by main.py for reporting
+    "_sanitize_fn",  # injection point for token-aware sanitizer (see api_client.py)
     "get_cache_dir",
     "load_disk_cache",
     "save_disk_cache",
