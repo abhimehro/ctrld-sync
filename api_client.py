@@ -326,24 +326,28 @@ def _retry_request(
 
 
 def _api_get(client: httpx.Client, url: str) -> httpx.Response:
+    """Issue a GET request to *url*, tracking the call in _api_stats and retrying on transient errors."""
     with _api_stats_lock:
         _api_stats["control_d_api_calls"] += 1
     return _retry_request(lambda: client.get(url))
 
 
 def _api_delete(client: httpx.Client, url: str) -> httpx.Response:
+    """Issue a DELETE request to *url*, tracking the call in _api_stats and retrying on transient errors."""
     with _api_stats_lock:
         _api_stats["control_d_api_calls"] += 1
     return _retry_request(lambda: client.delete(url))
 
 
 def _api_post(client: httpx.Client, url: str, data: dict) -> httpx.Response:
+    """Issue a POST request with a JSON body to *url*, tracking the call in _api_stats and retrying on transient errors."""
     with _api_stats_lock:
         _api_stats["control_d_api_calls"] += 1
     return _retry_request(lambda: client.post(url, data=data))
 
 
 def _api_post_form(client: httpx.Client, url: str, data: dict) -> httpx.Response:
+    """Issue a POST request with a form-encoded body to *url*, tracking the call in _api_stats and retrying on transient errors."""
     with _api_stats_lock:
         _api_stats["control_d_api_calls"] += 1
     return _retry_request(
