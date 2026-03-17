@@ -41,6 +41,10 @@ class TestFourXXHintsDict:
         assert hasattr(api_client, "_4XX_HINTS")
         assert isinstance(api_client._4XX_HINTS, dict)
 
+    def test_hint_400_mentions_bad_request(self):
+        assert 400 in api_client._4XX_HINTS
+        assert "bad request" in api_client._4XX_HINTS[400].lower()
+
     def test_hint_401_mentions_token(self):
         assert 401 in api_client._4XX_HINTS
         assert "TOKEN" in api_client._4XX_HINTS[401]
@@ -52,6 +56,10 @@ class TestFourXXHintsDict:
     def test_hint_404_mentions_folder(self):
         assert 404 in api_client._4XX_HINTS
         assert "folder" in api_client._4XX_HINTS[404].lower()
+
+    def test_hint_422_mentions_invalid_data(self):
+        assert 422 in api_client._4XX_HINTS
+        assert "invalid" in api_client._4XX_HINTS[422].lower()
 
 
 class TestRetryRequestFourXXWarnings:
@@ -99,8 +107,7 @@ class TestRetryRequestFourXXWarnings:
         assert "404" in warning_text
         assert "folder" in warning_text.lower()
 
-    def test_other_4xx_warning_logged_without_hint(self, caplog):
-        """HTTP 400 should still log a warning but without a hint suffix."""
+    def test_400_warning_logged(self, caplog):
         error = _make_http_error(400)
         request_func = MagicMock(side_effect=error)
 
@@ -112,6 +119,35 @@ class TestRetryRequestFourXXWarnings:
         assert warnings, "Expected a WARNING log for HTTP 400"
         warning_text = warnings[0].message
         assert "400" in warning_text
+        assert "bad request" in warning_text.lower()
+
+    def test_422_warning_logged(self, caplog):
+        error = _make_http_error(422)
+        request_func = MagicMock(side_effect=error)
+
+        with caplog.at_level(logging.WARNING, logger="api_client"):
+            with pytest.raises(httpx.HTTPStatusError):
+                api_client._retry_request(request_func, max_retries=1, delay=0.01)
+
+        warnings = [r for r in caplog.records if r.levelname == "WARNING"]
+        assert warnings, "Expected a WARNING log for HTTP 422"
+        warning_text = warnings[0].message
+        assert "422" in warning_text
+        assert "invalid" in warning_text.lower()
+
+    def test_other_4xx_warning_logged_without_hint(self, caplog):
+        """HTTP 409 (not in _4XX_HINTS) should log a warning but without a hint suffix."""
+        error = _make_http_error(409)
+        request_func = MagicMock(side_effect=error)
+
+        with caplog.at_level(logging.WARNING, logger="api_client"):
+            with pytest.raises(httpx.HTTPStatusError):
+                api_client._retry_request(request_func, max_retries=1, delay=0.01)
+
+        warnings = [r for r in caplog.records if r.levelname == "WARNING"]
+        assert warnings, "Expected a WARNING log for HTTP 409"
+        warning_text = warnings[0].message
+        assert "409" in warning_text
         assert "hint:" not in warning_text
 
     def test_429_does_not_use_4xx_branch(self, caplog):
