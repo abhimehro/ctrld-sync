@@ -88,6 +88,7 @@ def gh_json(args: list[str], default=None):
     )
     if proc.returncode != 0:
         if default is not None:
+            print(f"Warning: `gh {' '.join(args)}` failed with exit code {proc.returncode}. Stderr: {proc.stderr.strip()}", file=sys.stderr)
             return default
         raise RuntimeError(proc.stderr.strip() or proc.stdout.strip())
     output = proc.stdout.strip()
