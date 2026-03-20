@@ -208,6 +208,7 @@
 
 **Merged pull requests:**
 
+- chore\(actions\): consolidate repository automation [\#649](https://github.com/abhimehro/ctrld-sync/pull/649) ([abhimehro](https://github.com/abhimehro))
 - Add 400 and 422 HTTP status hints to `_4XX_HINTS` [\#648](https://github.com/abhimehro/ctrld-sync/pull/648) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - Use `api_client._SERVER_ERROR_HINT` as single source of truth for `_STATUS_HINTS[500]` [\#647](https://github.com/abhimehro/ctrld-sync/pull/647) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - docs\(api\_client\): add docstrings to the four public HTTP wrapper functions [\#646](https://github.com/abhimehro/ctrld-sync/pull/646) ([Copilot](https://github.com/apps/copilot-swe-agent))
