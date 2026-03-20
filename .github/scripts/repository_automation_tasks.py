@@ -3,7 +3,6 @@ from __future__ import annotations
 import datetime as dt
 import json
 import re
-from pathlib import Path
 from typing import Any
 
 from repository_automation_common import (
@@ -20,6 +19,7 @@ from repository_automation_common import (
     latest_tag_for_action,
     matches_any,
     now_utc,
+    release_url,
     run_shell_command,
     safe_pr_body,
     target_ref,
@@ -32,11 +32,11 @@ IGNORED_DIRS = {".git", ".venv", "node_modules", "__pycache__"}
 
 
 def configured_commands(section: dict[str, Any]) -> list[tuple[str, dict[str, Any]]]:
-    buckets = []
-    for bucket_name, key in (("setup", "setup_commands"), ("command", "commands"), ("security", "security_commands")):
-        for item in section.get(key, []):
-            buckets.append((bucket_name, item))
-    return buckets
+    return [
+        (bucket_name, item)
+        for bucket_name, key in (("setup", "setup_commands"), ("command", "commands"), ("security", "security_commands"))
+        for item in section.get(key, [])
+    ]
 
 
 def execute_configured_commands(section: dict[str, Any]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
@@ -175,18 +175,16 @@ def workflow_file_plans() -> list[dict[str, Any]]:
 
 
 def flattened_updates(plans: list[dict[str, Any]]) -> list[dict[str, str]]:
-    updates = []
-    for plan in plans:
-        for item in plan["replacements"]:
-            updates.append(
-                {
-                    "file": item["file"],
-                    "action": item["action"],
-                    "current": item["current"],
-                    "target": item["target"],
-                }
-            )
-    return updates
+    return [
+        {
+            "file": item["file"],
+            "action": item["action"],
+            "current": item["current"],
+            "target": item["target"],
+        }
+        for plan in plans
+        for item in plan["replacements"]
+    ]
 
 
 def apply_workflow_updates(plans: list[dict[str, Any]]) -> None:
@@ -212,8 +210,9 @@ def render_update_table(updates: list[dict[str, str]]) -> list[str]:
         "| File | Action | Previous | Proposed |",
         "| --- | --- | --- | --- |",
     ]
-    for item in updates:
-        lines.append(f"| `{item['file']}` | `{item['action']}` | `{item['current']}` | `{item['target']}` |")
+    lines.extend(
+        [f"| `{item['file']}` | `{item['action']}` | `{item['current']}` | `{item['target']}` |" for item in updates]
+    )
     lines.append("")
     return lines
 
@@ -315,10 +314,12 @@ def render_issue_rows(issues: list[dict[str, Any]]) -> list[str]:
 
 def render_pr_rows(prs: list[dict[str, Any]]) -> list[str]:
     rows = ["", "## Open pull requests (oldest updated first)", "| PR | Last updated | Age (days) | Draft | Review | Merge state |", "| --- | --- | ---: | --- | --- | --- |"]
-    for item in prs:
-        rows.append(
+    rows.extend(
+        [
             f"| [#{item['number']}]({item['url']}) | {item['updatedAt'][:10]} | {age_days(item['updatedAt'])} | {item.get('isDraft')} | {item.get('reviewDecision') or '-'} | {item.get('mergeStateStatus') or '-'} |"
-        )
+            for item in prs
+        ]
+    )
     return rows
 
 
@@ -347,10 +348,18 @@ def run_backlog_manager(config: dict[str, Any]) -> dict[str, Any]:
     lines.extend(render_pr_rows(prs))
     if stale_issues or stale_prs:
         lines.extend(["", "## Human review candidates"])
-        for item in stale_issues:
-            lines.append(f"- Issue #{item['number']} has been quiet for {age_days(item['updatedAt'])} days: {item['title']}")
-        for item in stale_prs:
-            lines.append(f"- PR #{item['number']} has been quiet for {age_days(item['updatedAt'])} days: {item['title']}")
+        lines.extend(
+            [
+                f"- Issue #{item['number']} has been quiet for {age_days(item['updatedAt'])} days: {item['title']}"
+                for item in stale_issues
+            ]
+        )
+        lines.extend(
+            [
+                f"- PR #{item['number']} has been quiet for {age_days(item['updatedAt'])} days: {item['title']}"
+                for item in stale_prs
+            ]
+        )
     return write_result(
         "backlog-manager",
         status,
@@ -407,13 +416,15 @@ def daily_report_lines(config: dict[str, Any], results: list[dict[str, Any]]) ->
         "| Task | Status | Summary |",
         "| --- | --- | --- |",
     ]
-    for item in results:
-        lines.append(f"| `{item['task']}` | {status_icon(item['status'])} | {item['summary']} |")
+    lines.extend([f"| `{item['task']}` | {status_icon(item['status'])} | {item['summary']} |" for item in results])
     lines.extend(["", "## Recent releases"])
     if releases:
         for release in releases:
             name = release.get("name") or release.get("tagName") or "Unnamed release"
-            lines.append(f"- {name} published {release.get('publishedAt', '')[:10]}")
+            tag_name = release.get("tagName") or ""
+            url = release_url(tag_name)
+            rendered_name = f"[{name}]({url})" if url else name
+            lines.append(f"- {rendered_name} published {release.get('publishedAt', '')[:10]}")
     else:
         lines.append("- No recent releases returned by the API.")
     lines.extend(["", "## Recommendations"])
@@ -424,8 +435,7 @@ def daily_report_lines(config: dict[str, Any], results: list[dict[str, Any]]) ->
     if any(item.get("status") in {"failure", "needs_review"} for item in results):
         lines.append("- Human review is required for at least one task; no silent automation escalation was performed.")
     lines.extend(["", "<!-- repository-automation:task-status"])
-    for item in results:
-        lines.append(f"{item['task']}={item['status']}")
+    lines.extend([f"{item['task']}={item['status']}" for item in results])
     lines.extend(["-->", ""])
     return lines
 
@@ -456,9 +466,10 @@ def extract_status_markers(issue_body: str) -> dict[str, str]:
 def run_safe_adjustment_commands(section: dict[str, Any]) -> tuple[list[dict[str, Any]], str]:
     if not writes_allowed() or not section.get("auto_apply_safe_changes"):
         return [], ""
-    command_results = []
-    for item in section.get("safe_adjustment_commands", []):
-        command_results.append({"name": item["name"], **run_shell_command(item["run"], int(item.get("timeout_seconds", 1200)))})
+    command_results = [
+        {"name": item["name"], **run_shell_command(item["run"], int(item.get("timeout_seconds", 1200)))}
+        for item in section.get("safe_adjustment_commands", [])
+    ]
     changed = [line[3:] for line in git_output("status", "--porcelain").splitlines() if line]
     allowed_paths = section.get("allowed_paths", [".github/workflows/*.yml", ".github/workflows/*.yaml"])
     if not changed or not all(matches_any(path, allowed_paths) for path in changed):
@@ -515,8 +526,12 @@ def weekly_report_lines(config: dict[str, Any], runs: list[dict[str, Any]], mark
         "| Run | Created | Status | Conclusion |",
         "| --- | --- | --- | --- |",
     ]
-    for item in runs:
-        lines.append(f"| [#{item['number']}]({item['url']}) | {item['createdAt'][:10]} | {item.get('status') or '-'} | {item.get('conclusion') or '-'} |")
+    lines.extend(
+        [
+            f"| [#{item['number']}]({item['url']}) | {item['createdAt'][:10]} | {item.get('status') or '-'} | {item.get('conclusion') or '-'} |"
+            for item in runs
+        ]
+    )
     lines.extend(["", "## Recurring task patterns"])
     if markers:
         lines.append("| Task | Status counts |")
@@ -533,8 +548,7 @@ def weekly_report_lines(config: dict[str, Any], runs: list[dict[str, Any]], mark
         lines.append("- Review repeated warning or failure patterns before increasing automation scope.")
     if safe_changes:
         lines.extend(["", "## Safe adjustment command results"])
-        for entry in safe_changes:
-            lines.append(f"- `{entry['name']}` -> exit `{entry['exit_code']}`")
+        lines.extend([f"- `{entry['name']}` -> exit `{entry['exit_code']}`" for entry in safe_changes])
     if safe_pr_url:
         lines.extend(["", "## Safe auto-apply draft PR", f"- {safe_pr_url}"])
     return status, lines

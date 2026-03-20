@@ -30,7 +30,7 @@ def command_env() -> dict[str, str]:
 
 
 def now_utc() -> dt.datetime:
-    return dt.datetime.now(dt.timezone.utc)
+    return dt.datetime.now(dt.UTC)
 
 
 def iso_day(value: dt.datetime | None = None) -> str:
@@ -58,7 +58,7 @@ def run_process(
     command: list[str],
     *,
     input_text: str | None = None,
-    timeout: int | None = None,
+    timeout: int | None = 300,
     check: bool = False,
 ) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
@@ -196,10 +196,12 @@ def safe_pr_body(title: str, updates: list[dict[str, str]], notes: list[str]) ->
                 "| --- | --- | --- | --- |",
             ]
         )
-        for item in updates:
-            lines.append(
+        lines.extend(
+            [
                 f"| `{item['file']}` | `{item['action']}` | `{item['current']}` | `{item['target']}` |"
-            )
+                for item in updates
+            ]
+        )
     if notes:
         lines.extend(["", "### Guardrails"])
         lines.extend(f"- {note}" for note in notes)
@@ -286,6 +288,20 @@ def create_pr_for_current_changes(branch_prefix: str, commit_message: str, pr_ti
     run_checked([GIT_BIN, "commit", "-m", commit_message])
     run_checked([GIT_BIN, "push", "--set-upstream", "origin", branch_name])
     return gh_with_body(["pr", "create", "--draft", "--title", pr_title, "--body-file", "-"], pr_body)
+
+
+def repository_slug() -> str:
+    slug = os.environ.get("GITHUB_REPOSITORY", "")
+    if slug:
+        return slug
+    return gh_text(["repo", "view", "--json", "nameWithOwner", "--jq", ".nameWithOwner"], "")
+
+
+def release_url(tag_name: str) -> str:
+    slug = repository_slug()
+    if not slug or not tag_name:
+        return ""
+    return f"https://github.com/{slug}/releases/tag/{tag_name}"
 
 
 def latest_tag_for_action(repo_id: str) -> str:
