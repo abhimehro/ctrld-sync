@@ -231,14 +231,14 @@ def run_command_set(task_name: str, section: dict) -> tuple[str, str, dict]:
 
 def discover_hotspots(limit: int = 5) -> list[tuple[str, int]]:
     candidates = []
+    ignored_dirs = {".git", ".venv", "node_modules", "__pycache__"}
     for extension in ("*.py", "*.sh"):
         for path in ROOT.rglob(extension):
-            parts = set(path.parts)
-            if ".git" in parts or ".venv" in parts or "node_modules" in parts or "__pycache__" in parts:
+            if any(part in ignored_dirs for part in path.parts):
                 continue
             try:
                 line_count = path.read_text(encoding="utf-8").count("\n") + 1
-            except UnicodeDecodeError:
+            except (UnicodeDecodeError, OSError):
                 continue
             candidates.append((str(path.relative_to(ROOT)), line_count))
     return sorted(candidates, key=lambda item: item[1], reverse=True)[:limit]
