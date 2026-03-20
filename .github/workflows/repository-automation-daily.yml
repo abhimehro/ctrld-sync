@@ -15,7 +15,9 @@ name: Repository Automation - Daily
 #   * A daily GitHub Issue summarising what ran, what changed, and what needs review
 on:
   schedule:
-    - cron: "17 9 * * *"
+    # ctrld-sync slot: runs after the live sync job at 02:00 UTC and stays off the
+    # top-of-hour to reduce contention with common shared runner traffic.
+    - cron: "17 3 * * *"
   workflow_dispatch:
     inputs:
       allow_write_actions:
@@ -24,8 +26,7 @@ on:
         default: true
         type: boolean
 
-permissions:
-  contents: read
+permissions: {}
 
 concurrency:
   group: repository-automation-daily-${{ github.repository }}
