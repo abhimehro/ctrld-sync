@@ -106,6 +106,7 @@ def gh_text(args: list[str], default: str = "") -> str:
         env={**os.environ, "GH_PAGER": "cat"},
     )
     if proc.returncode != 0:
+        print(f"Warning: `gh {' '.join(args)}` failed with exit code {proc.returncode}. Stderr: {proc.stderr.strip()}", file=sys.stderr)
         return default
     return proc.stdout.strip()
 
