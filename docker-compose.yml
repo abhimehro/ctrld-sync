@@ -1,0 +1,33 @@
+services:
+  ctrld-sync:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ctrld-sync
+    
+    # Pass environment variables
+    environment:
+      TOKEN: ${TOKEN:-}
+      PROFILE: ${PROFILE:-}
+      NO_COLOR: ${NO_COLOR:-}
+      JSON_LOG: ${JSON_LOG:-}
+    
+    # Mount volumes for configuration and persistent data (optional)
+    volumes:
+      - ./cache:/app/.cache
+    
+    # Prevent auto-restart on errors (useful for CLI tools)
+    restart: "no"
+    
+    # Increase timeout for large sync operations
+    stop_grace_period: 30s
+    
+    # Resource limits (adjust based on your system)
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
