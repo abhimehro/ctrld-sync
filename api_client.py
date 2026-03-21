@@ -170,23 +170,21 @@ def _parse_rate_limit_headers(response: httpx.Response) -> None:
 
         # Log warnings when approaching rate limits
         # Only log if we have both limit and remaining values
-        if (
-            limit_snapshot is not None
-            and remaining_snapshot is not None
-            and limit_snapshot > 0
-            and remaining_snapshot / limit_snapshot < 0.2
-        ):
+        if limit_snapshot is not None and remaining_snapshot is not None:
+            approaching_limit = limit_snapshot > 0 and remaining_snapshot / limit_snapshot < 0.2
+
             # Warn at 20% remaining capacity
-            if reset_snapshot:
-                reset_time = time.strftime("%H:%M:%S", time.localtime(reset_snapshot))
-                log.warning(
-                    f"Approaching rate limit: {remaining_snapshot}/{limit_snapshot} requests remaining "
-                    f"(resets at {reset_time})"
-                )
-            else:
-                log.warning(
-                    f"Approaching rate limit: {remaining_snapshot}/{limit_snapshot} requests remaining"
-                )
+            if approaching_limit:
+                if reset_snapshot:
+                    reset_time = time.strftime("%H:%M:%S", time.localtime(reset_snapshot))
+                    log.warning(
+                        f"Approaching rate limit: {remaining_snapshot}/{limit_snapshot} requests remaining "
+                        f"(resets at {reset_time})"
+                    )
+                else:
+                    log.warning(
+                        f"Approaching rate limit: {remaining_snapshot}/{limit_snapshot} requests remaining"
+                    )
     except Exception as e:
         # Rate limit parsing failures should never crash the sync
         # Just log and continue
