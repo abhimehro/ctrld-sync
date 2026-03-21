@@ -208,6 +208,7 @@
 
 **Merged pull requests:**
 
+- fix\(actions\): restore automation workflow permissions and archive stale agentic artifacts [\#652](https://github.com/abhimehro/ctrld-sync/pull/652) ([abhimehro](https://github.com/abhimehro))
 - chore\(actions\): sync automation polish [\#650](https://github.com/abhimehro/ctrld-sync/pull/650) ([abhimehro](https://github.com/abhimehro))
 - chore\(actions\): consolidate repository automation [\#649](https://github.com/abhimehro/ctrld-sync/pull/649) ([abhimehro](https://github.com/abhimehro))
 - Add 400 and 422 HTTP status hints to `_4XX_HINTS` [\#648](https://github.com/abhimehro/ctrld-sync/pull/648) ([Copilot](https://github.com/apps/copilot-swe-agent))
