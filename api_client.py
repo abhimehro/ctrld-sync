@@ -136,47 +136,57 @@ def _parse_rate_limit_headers(response: httpx.Response) -> None:
     # Parse standard rate limit headers
     # These may not exist on all responses, so we check individually
     try:
+        new_limit = None
+        new_remaining = None
+        new_reset = None
+
+        if "X-RateLimit-Limit" in headers:
+            with contextlib.suppress(ValueError, TypeError):
+                new_limit = int(headers["X-RateLimit-Limit"])
+
+        if "X-RateLimit-Remaining" in headers:
+            with contextlib.suppress(ValueError, TypeError):
+                new_remaining = int(headers["X-RateLimit-Remaining"])
+
+        if "X-RateLimit-Reset" in headers:
+            with contextlib.suppress(ValueError, TypeError):
+                new_reset = int(headers["X-RateLimit-Reset"])
+
+        limit_snapshot = None
+        remaining_snapshot = None
+        reset_snapshot = None
+
         with _rate_limit_lock:
-            # X-RateLimit-Limit: Total requests allowed per window
-            if "X-RateLimit-Limit" in headers:
-                with contextlib.suppress(ValueError, TypeError):
-                    _rate_limit_info["limit"] = int(headers["X-RateLimit-Limit"])
+            if new_limit is not None:
+                _rate_limit_info["limit"] = new_limit
+            if new_remaining is not None:
+                _rate_limit_info["remaining"] = new_remaining
+            if new_reset is not None:
+                _rate_limit_info["reset"] = new_reset
 
-            # X-RateLimit-Remaining: Requests left in current window
-            if "X-RateLimit-Remaining" in headers:
-                with contextlib.suppress(ValueError, TypeError):
-                    _rate_limit_info["remaining"] = int(
-                        headers["X-RateLimit-Remaining"]
-                    )
+            limit_snapshot = _rate_limit_info["limit"]
+            remaining_snapshot = _rate_limit_info["remaining"]
+            reset_snapshot = _rate_limit_info["reset"]
 
-            # X-RateLimit-Reset: Unix timestamp when window resets
-            if "X-RateLimit-Reset" in headers:
-                with contextlib.suppress(ValueError, TypeError):
-                    _rate_limit_info["reset"] = int(headers["X-RateLimit-Reset"])
-
-            # Log warnings when approaching rate limits
-            # Only log if we have both limit and remaining values
-            if (
-                _rate_limit_info["limit"] is not None
-                and _rate_limit_info["remaining"] is not None
-            ):
-                limit = _rate_limit_info["limit"]
-                remaining = _rate_limit_info["remaining"]
-
-                # Warn at 20% remaining capacity
-                if limit > 0 and remaining / limit < 0.2:
-                    if _rate_limit_info["reset"]:
-                        reset_time = time.strftime(
-                            "%H:%M:%S", time.localtime(_rate_limit_info["reset"])
-                        )
-                        log.warning(
-                            f"Approaching rate limit: {remaining}/{limit} requests remaining "
-                            f"(resets at {reset_time})"
-                        )
-                    else:
-                        log.warning(
-                            f"Approaching rate limit: {remaining}/{limit} requests remaining"
-                        )
+        # Log warnings when approaching rate limits
+        # Only log if we have both limit and remaining values
+        if (
+            limit_snapshot is not None
+            and remaining_snapshot is not None
+            and limit_snapshot > 0
+            and remaining_snapshot / limit_snapshot < 0.2
+        ):
+            # Warn at 20% remaining capacity
+            if reset_snapshot:
+                reset_time = time.strftime("%H:%M:%S", time.localtime(reset_snapshot))
+                log.warning(
+                    f"Approaching rate limit: {remaining_snapshot}/{limit_snapshot} requests remaining "
+                    f"(resets at {reset_time})"
+                )
+            else:
+                log.warning(
+                    f"Approaching rate limit: {remaining_snapshot}/{limit_snapshot} requests remaining"
+                )
     except Exception as e:
         # Rate limit parsing failures should never crash the sync
         # Just log and continue

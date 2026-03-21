@@ -92,3 +92,7 @@
 ## 2026-03-15 - [Optimize Dict Key Extraction with Walrus Operator]
 **Learning:** In list comprehensions that filter and extract a specific key from a list of dictionaries (e.g., `[r["PK"] for r in dicts if r.get("PK")]`), Python performs two lookups per item. Using the walrus operator (`[pk for r in dicts if (pk := r.get("PK"))]`) avoids the redundant lookup and is significantly faster (~50% overhead reduction in hot loops).
 **Action:** When filtering and extracting a dictionary key in a comprehension, use `(val := dict.get("key"))` to perform both validation and extraction in a single operation.
+
+## 2024-05-25 - [Optimize Thread Synchronization with Snapshotting]
+**Learning:** During parallel I/O tasks where multiple threads share rate limit states, holding a lock (`with lock:`) while performing slow string formatting (like `time.strftime`) and I/O (`log.warning`) drastically increases thread contention and degrades overall sync performance.
+**Action:** Extract header values and perform type conversions *before* acquiring locks. Inside the lock, update the shared state and take a local snapshot (`limit_snapshot = dict['limit']`). Perform all subsequent formatting and logging *outside* the lock using the snapshot variables.
