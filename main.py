@@ -742,6 +742,8 @@ def get_validated_input(
 ) -> str:
     """Prompts for input until the validator returns True."""
     while True:
+        sys.stdout.flush()
+        sys.stderr.flush()
         try:
             value = input(prompt).strip()
         except (KeyboardInterrupt, EOFError):
@@ -757,6 +759,7 @@ def get_validated_input(
             return value
 
         print(f"{Colors.FAIL}❌ {error_msg}{Colors.ENDC}")
+        print(EMPTY_INPUT_HINT)
 
 
 def get_password(
@@ -766,6 +769,8 @@ def get_password(
 ) -> str:
     """Prompts for password input until the validator returns True."""
     while True:
+        sys.stdout.flush()
+        sys.stderr.flush()
         try:
             value = getpass.getpass(prompt).strip()
         except (KeyboardInterrupt, EOFError):
@@ -781,6 +786,7 @@ def get_password(
             return value
 
         print(f"{Colors.FAIL}❌ {error_msg}{Colors.ENDC}")
+        print(EMPTY_INPUT_HINT)
 
 
 TOKEN = _clean_env_kv(os.getenv("TOKEN"), "TOKEN")
