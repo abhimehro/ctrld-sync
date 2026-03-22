@@ -41,7 +41,6 @@
 
 **Closed issues:**
 
-- \[repo-automation\] Daily Status Report - 2026-03-21 [\#654](https://github.com/abhimehro/ctrld-sync/issues/654)
 - \[repo-status\] Daily Status Report — March 7, 2026 [\#611](https://github.com/abhimehro/ctrld-sync/issues/611)
 - \[Code Quality\] Add HTTP status code hint to `create_folder` error handler [\#610](https://github.com/abhimehro/ctrld-sync/issues/610)
 - \[Code Quality\] Add unit tests for `RuleAction` frozen immutability and `SyncContext` dataclass contracts [\#608](https://github.com/abhimehro/ctrld-sync/issues/608)
@@ -209,7 +208,6 @@
 
 **Merged pull requests:**
 
-- ⚡ Bolt: \[performance improvement\] Reduce thread contention in API rate limit parsing [\#655](https://github.com/abhimehro/ctrld-sync/pull/655) ([abhimehro](https://github.com/abhimehro))
 - fix\(actions\): restore automation workflow permissions and archive stale agentic artifacts [\#652](https://github.com/abhimehro/ctrld-sync/pull/652) ([abhimehro](https://github.com/abhimehro))
 - chore\(actions\): sync automation polish [\#650](https://github.com/abhimehro/ctrld-sync/pull/650) ([abhimehro](https://github.com/abhimehro))
 - chore\(actions\): consolidate repository automation [\#649](https://github.com/abhimehro/ctrld-sync/pull/649) ([abhimehro](https://github.com/abhimehro))
