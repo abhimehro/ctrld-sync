@@ -1334,9 +1334,9 @@ def _gh_get(url: str) -> dict:
     """
     # First check: Quick check without holding lock for long
     with _cache_lock:
-        if (cached := _cache.get(url)) is not None:
+        if url in _cache:
             _cache_stats["hits"] += 1
-            return cached
+            return _cache[url]
 
     # Track that we're about to make a blocklist fetch
     with _cache_lock:
@@ -1528,10 +1528,9 @@ def _gh_get(url: str) -> dict:
     # If another thread already cached it while we were fetching, use theirs
     # for consistency (return _cache[url] instead of data to ensure single source of truth)
     with _cache_lock:
-        if (cached := _cache.get(url)) is not None:
-            return cached
-        _cache[url] = data
-        return data
+        if url not in _cache:
+            _cache[url] = data
+        return _cache[url]
 
 
 def check_api_access(client: httpx.Client, profile_id: str) -> bool:
@@ -2317,8 +2316,8 @@ def sync_profile(
             # The content was validated at the time of fetch (warm_up_cache).
             # Read directly from cache to avoid calling fetch_folder_data while holding lock.
             with _cache_lock:
-                if (cached := _cache.get(url)) is not None:
-                    return cached
+                if url in _cache:
+                    return _cache[url]
 
             if validate_folder_url(url):
                 return fetch_folder_data(url)
@@ -2426,9 +2425,10 @@ def sync_profile(
             if not no_delete:
                 for folder_data in folder_data_list:
                     name = folder_data["group"]["group"].strip()
-                    if (folder_id := existing_folders.get(name)) is not None:
-                        folders_to_delete.append((name, folder_id))
-                        folders_to_scan.pop(name, None)
+                    if name in existing_folders:
+                        folders_to_delete.append((name, existing_folders[name]))
+                        if name in folders_to_scan:
+                            del folders_to_scan[name]
 
             # Start fetching rules from kept folders in background (parallel to deletions)
             existing_rules_future = shared_executor.submit(
