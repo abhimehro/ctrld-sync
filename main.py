@@ -18,7 +18,6 @@ from __future__ import annotations
 import argparse
 import concurrent.futures
 import contextlib
-from dataclasses import dataclass
 import getpass
 import ipaddress
 import json
@@ -32,14 +31,32 @@ import stat
 import sys
 import threading
 import time
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, NotRequired, TypedDict, TypeGuard, cast
-from collections.abc import Callable, Sequence
 
 import httpx
 import yaml
+from dotenv import load_dotenv
+
+import api_client
 import cache
+from api_client import (
+    _CONNECT_ERROR_HINT,
+    _SERVER_ERROR_HINT,
+    _TIMEOUT_HINT,
+    MAX_RETRIES,
+    RETRY_DELAY,
+    _api_delete,
+    _api_get,
+    _api_post,
+    _api_post_form,
+    _api_stats,
+    _rate_limit_info,
+    _rate_limit_lock,
+)
 from cache import (
     CACHE_TTL_SECONDS,
     _cache_stats,
@@ -47,23 +64,6 @@ from cache import (
     get_cache_dir,
     load_disk_cache,
     save_disk_cache,
-)
-from dotenv import load_dotenv
-
-import api_client
-from api_client import (
-    MAX_RETRIES,
-    RETRY_DELAY,
-    _CONNECT_ERROR_HINT,
-    _SERVER_ERROR_HINT,
-    _TIMEOUT_HINT,
-    _api_stats,
-    _rate_limit_info,
-    _rate_limit_lock,
-    _api_get,
-    _api_delete,
-    _api_post,
-    _api_post_form,
 )
 
 
@@ -185,6 +185,7 @@ _use_json_log: bool = bool(os.getenv("JSON_LOG"))
 if _use_json_log:
     USE_COLORS = False
 
+
 class Colors:
     if USE_COLORS:
         HEADER = "\033[95m"
@@ -209,15 +210,37 @@ class Colors:
         UNDERLINE = ""
         DIM = ""
 
+
 class Box:
     """Box drawing characters for pretty tables."""
+
     if USE_COLORS:
         H, V, TL, TR, BL, BR, T, B, L, R, X = (
-            "─", "│", "┌", "┐", "└", "┘", "┬", "┴", "├", "┤", "┼",
+            "─",
+            "│",
+            "┌",
+            "┐",
+            "└",
+            "┘",
+            "┬",
+            "┴",
+            "├",
+            "┤",
+            "┼",
         )
     else:
         H, V, TL, TR, BL, BR, T, B, L, R, X = (
-            "-", "|", "+", "+", "+", "+", "+", "+", "+", "+", "+",
+            "-",
+            "|",
+            "+",
+            "+",
+            "+",
+            "+",
+            "+",
+            "+",
+            "+",
+            "+",
+            "+",
         )
 
 
@@ -447,10 +470,7 @@ PROFILE_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
 FOLDER_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_.-]+$")
 
 _ALLOWED_RULE_CHARS = frozenset(
-    "abcdefghijklmnopqrstuvwxyz"
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    "0123456789"
-    ".-_:*/@"
+    "abcdefghijklmnopqrstuvwxyz" "ABCDEFGHIJKLMNOPQRSTUVWXYZ" "0123456789" ".-_:*/@"
 )
 
 # Parallel processing configuration
@@ -555,7 +575,9 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
     if not folders:
         if USE_COLORS:
             print(f"  {Colors.WARNING}No folders to sync.{Colors.ENDC}")
-            print(f"  {Colors.DIM}💡 Hint: Add folder URLs using --folder-url or in your config.yaml{Colors.ENDC}")
+            print(
+                f"  {Colors.DIM}💡 Hint: Add folder URLs using --folder-url or in your config.yaml{Colors.ENDC}"
+            )
         else:
             print("  No folders to sync.")
             print("  Hint: Add folder URLs using --folder-url or in your config.yaml")
@@ -1024,6 +1046,7 @@ _cache_lock = threading.RLock()
 
 _CGNAT_NETWORK = ipaddress.IPv4Network("100.64.0.0/10")
 
+
 def _is_safe_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
     """Checks against CGNAT space, multicast, and relies on is_global for the rest."""
     if ip.is_multicast:
@@ -1270,7 +1293,10 @@ def validate_folder_data(data: dict[str, Any], url: str) -> TypeGuard[FolderData
         # Optimization: Fast path inline type check avoids function call overhead per rule.
         # Fallback identifies the exact error for logging.
         rules_list = data["rules"]
-        if not all(type(r) is dict and ((pk := r.get("PK")) is None or type(pk) is str) for r in rules_list):
+        if not all(
+            type(r) is dict and ((pk := r.get("PK")) is None or type(pk) is str)
+            for r in rules_list
+        ):
             for j, rule in enumerate(rules_list):
                 if not isinstance(rule, dict):
                     log.error(
@@ -1308,14 +1334,19 @@ def validate_folder_data(data: dict[str, Any], url: str) -> TypeGuard[FolderData
                 rg_rules_list = rg["rules"]
                 # Optimization: Fast path inline type check avoids function call overhead per rule.
                 # Fallback identifies the exact error for logging.
-                if not all(type(r) is dict and ((pk := r.get("PK")) is None or type(pk) is str) for r in rg_rules_list):
+                if not all(
+                    type(r) is dict and ((pk := r.get("PK")) is None or type(pk) is str)
+                    for r in rg_rules_list
+                ):
                     for j, rule in enumerate(rg_rules_list):
                         if not isinstance(rule, dict):
                             log.error(
                                 f"Invalid data from {sanitize_for_log(url)}: rule_groups[{i}].rules[{j}] must be an object."
                             )
                             return False
-                        if (pk := rule.get("PK")) is not None and not isinstance(pk, str):
+                        if (pk := rule.get("PK")) is not None and not isinstance(
+                            pk, str
+                        ):
                             log.error(
                                 f"Invalid data from {sanitize_for_log(url)}: rule_groups[{i}].rules[{j}].PK must be a string."
                             )
@@ -2348,8 +2379,10 @@ def sync_profile(
 
         if not folder_data_list:
             log.error("No valid folder data found")
-            hint_message = ("💡 Hint: Check your --folder-url flags or your config file "
-                            "(see --config, config.yaml, or config.yml) for typos or unreachable URLs")
+            hint_message = (
+                "💡 Hint: Check your --folder-url flags or your config file "
+                "(see --config, config.yaml, or config.yml) for typos or unreachable URLs"
+            )
             if USE_COLORS:
                 log.warning(f"{Colors.DIM}{hint_message}{Colors.ENDC}")
             else:
@@ -2584,14 +2617,15 @@ def prompt_for_interactive_restart(profile_ids: list[str]) -> None:
         print(f"\n{Colors.WARNING}⚠️  Cancelled.{Colors.ENDC}")
 
 
-
 def print_line(left_char: str, mid_char: str, right_char: str, w: list[int]) -> str:
     """Format a horizontal table separator line."""
     return f"{Colors.BOLD}{left_char}{mid_char.join('─' * (x + 2) for x in w)}{right_char}{Colors.ENDC}"
 
+
 def print_row(cols: list[str], w: list[int]) -> str:
     """Format a row of table data."""
     return f"{Colors.BOLD}│{Colors.ENDC} {cols[0]:<{w[0]}} {Colors.BOLD}│{Colors.ENDC} {cols[1]:>{w[1]}} {Colors.BOLD}│{Colors.ENDC} {cols[2]:>{w[2]}} {Colors.BOLD}│{Colors.ENDC} {cols[3]:>{w[3]}} {Colors.BOLD}│{Colors.ENDC} {cols[4]:<{w[4]}} {Colors.BOLD}│{Colors.ENDC}"
+
 
 def print_summary_table(
     sync_results: list[SyncResult], success_count: int, total: int, dry_run: bool
@@ -2635,7 +2669,7 @@ def print_summary_table(
     print(
         f"{print_line('├', '┬', '┤', w)}\n{print_row([f'{Colors.HEADER}Profile ID{Colors.ENDC}', f'{Colors.HEADER}Folders{Colors.ENDC}', f'{Colors.HEADER}Rules{Colors.ENDC}', f'{Colors.HEADER}Duration{Colors.ENDC}', f'{Colors.HEADER}Status{Colors.ENDC}'], w)}"
     )
-    print(print_line('├', '┼', '┤', w))
+    print(print_line("├", "┼", "┤", w))
 
     for r in sync_results:
         sc = Colors.GREEN if r["success"] else Colors.FAIL
@@ -2647,7 +2681,8 @@ def print_summary_table(
                     f"{r['rules']:,}",
                     f"{r['duration']:.1f}s",
                     f"{sc}{r['status_label']}{Colors.ENDC}",
-                ], w
+                ],
+                w,
             )
         )
 
@@ -2778,7 +2813,9 @@ def main() -> None:
                 exit(1)
         else:
             print(f"{Colors.CYAN}ℹ No cache file found, nothing to clear{Colors.ENDC}")
-            print(f"{Colors.DIM}💡 Hint: The cache file will be created or updated after a successful sync run without --dry-run{Colors.ENDC}")
+            print(
+                f"{Colors.DIM}💡 Hint: The cache file will be created or updated after a successful sync run without --dry-run{Colors.ENDC}"
+            )
         _disk_cache.clear()
         exit(0)
     profiles_arg = (
