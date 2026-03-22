@@ -209,6 +209,7 @@
 
 **Merged pull requests:**
 
+- chore\(actions\): consolidate workflow automation [\#657](https://github.com/abhimehro/ctrld-sync/pull/657) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: \[performance improvement\] Reduce thread contention in API rate limit parsing [\#655](https://github.com/abhimehro/ctrld-sync/pull/655) ([abhimehro](https://github.com/abhimehro))
 - fix\(actions\): restore automation workflow permissions and archive stale agentic artifacts [\#652](https://github.com/abhimehro/ctrld-sync/pull/652) ([abhimehro](https://github.com/abhimehro))
 - chore\(actions\): sync automation polish [\#650](https://github.com/abhimehro/ctrld-sync/pull/650) ([abhimehro](https://github.com/abhimehro))
