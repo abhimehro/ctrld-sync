@@ -1,98 +1,126 @@
 # Bolt's Journal
 
 ## 2024-03-24 - [Reusing HTTP Clients]
+
 **Learning:** Instantiating `httpx.Client` (or `requests.Session`) inside a loop for API calls defeats the purpose of connection pooling and Keep-Alive. Reusing a single client instance across serial or parallel tasks significantly reduces TCP/SSL overhead.
 **Action:** Always check loop bodies for client/session instantiation. Lift the instantiation to the outer scope and pass the client down.
 
 ## 2024-05-23 - Initial Setup
+
 **Learning:** Initialized Bolt's journal.
 **Action:** Always check this journal for past learnings before starting.
 
 ## 2024-05-23 - Parallel IO for independent resources
+
 **Learning:** Python's `concurrent.futures.ThreadPoolExecutor` is a low-effort, high-reward optimization for independent IO operations (like fetching multiple URLs). Even with standard synchronous libraries like `httpx` (unless using its async version), threading can significantly reduce total execution time from sum(latency) to max(latency).
 **Action:** Always look for loops performing IO that don't depend on each other's results and parallelize them. Be mindful of thread safety if shared resources (like a cache) are modified.
 
 ## 2024-05-24 - Thread Safety in Parallel IO
+
 **Learning:** When parallelizing IO operations that update a shared collection (like a set of existing rules), always use a `threading.Lock` for the write operations. While Python's GIL makes some operations atomic, explicit locking ensures correctness and prevents race conditions during complex update logic (e.g. checks then writes).
 **Action:** Use `threading.Lock` when refactoring sequential loops into `ThreadPoolExecutor` if they modify shared state.
 
 ## 2024-05-24 - Avoid Copying Large Sets for Membership Checks
+
 **Learning:** Copying a large set (e.g. 100k items) to create a snapshot for read-only membership checks is expensive O(N) and unnecessary. Python's set membership testing is thread-safe.
 **Action:** When filtering data against a shared large set, iterate and check membership directly instead of snapshotting, unless strict transactional consistency across the entire iteration is required.
 
 ## 2024-05-24 - Deduplicate before API calls
+
 **Learning:** Sending duplicate items in API requests wastes bandwidth and processing time. If the input list might contain duplicates (common in aggregated blocklists), deduplicate it locally before sending.
 **Action:** Use `set` logic to filter duplicates from input lists before batching for API calls.
 
 ## 2024-05-24 - Parallelize independent batches
+
 **Learning:** When sending large amounts of data in batches to an API, processing batches sequentially blocks on network latency. Using a thread pool to send multiple batches concurrently can significantly speed up the process, provided the API rate limits are respected.
 **Action:** Refactor sequential batch processing loops to use `ThreadPoolExecutor` with a conservative number of workers (e.g., 3-5) for write operations.
 
 ## 2024-05-24 - Pass Local State to Avoid Redundant Reads
+
 **Learning:** When a process involves modifying remote state (e.g. deleting folders) and then querying it (e.g. getting rules from remaining folders), maintaining a local replica of the state avoids redundant API calls. If you know what you deleted, you don't need to ask the server "what's left?".
 **Action:** Identify sequences of "Read -> Modify -> Read" and optimize to "Read -> Modify (update local) -> Use local".
 
 ## 2024-05-24 - Parallelize DNS Validation
+
 **Learning:** DNS lookups (`socket.getaddrinfo`) are blocking I/O operations. Performing them sequentially in a list comprehension (e.g., to filter URLs) can be a major bottleneck. Parallelizing them alongside the fetch operation can significantly reduce startup time.
 **Action:** Move validation logic that involves network I/O into the parallel worker thread instead of pre-filtering sequentially.
 
 ## 2026-01-27 - Redundant Validation for Cached Data
-**Learning:** Re-validating resource properties (like DNS/IP) when using *cached content* is pure overhead. If the content is served from memory (proven safe at fetch time), checking the *current* state of the source is disconnected from the data being used.
+
+**Learning:** Re-validating resource properties (like DNS/IP) when using _cached content_ is pure overhead. If the content is served from memory (proven safe at fetch time), checking the _current_ state of the source is disconnected from the data being used.
 **Action:** When using a multi-stage pipeline (Warmup -> Process), ensure validation state persists alongside the data cache. Avoid clearing validation caches between stages if the data cache is not also cleared.
 
 ## 2024-05-22 - Ordered Deduplication Optimization
+
 **Learning:** `dict.fromkeys(list)` is significantly faster (~2x) than a Python loop with `seen = set()` for deduplicating large lists while preserving order. It also naturally deduplicates invalid items if validation happens after, which prevents log spam.
 **Action:** Use `dict.fromkeys()` for ordered deduplication of large inputs instead of manual loop with `seen` set.
 
 ## 2026-01-28 - [Avoid ThreadPoolExecutor Overhead]
+
 **Learning:** `ThreadPoolExecutor` context management and thread creation overhead is non-negligible for single-item or very small workloads. If a parallelizable task only has 1 unit of work (e.g., 1 batch), running it synchronously in the main thread is faster and uses less memory than spinning up a pool.
 **Action:** Check the size of the workload before creating a `ThreadPoolExecutor`. If `len(tasks) == 1`, bypass the executor and run directly.
 
 ## 2024-05-24 - [Skip Validation for Known Data]
+
 **Learning:** Performing expensive validation (e.g. regex) on data that is already known to be valid (e.g. exists in trusted remote state) is redundant. Checking existence in a local set (O(1)) before validation avoids CPU overhead for duplicates.
 **Action:** In filtering loops, check "is already processed/known" before "is valid", especially if "valid" implies "safe to process" and "known" implies "already processed".
 
 ## 2026-02-14 - [Hoist Invariants and Inline Methods in Hot Loops]
+
 **Learning:** In hot loops (e.g. processing 100k+ items), hoisting invariant computations (string conversions, regex sanitization) and inlining method lookups (e.g., `match_rule = RULE_PATTERN.match`) avoids repeated function call overhead. Benchmarks showed ~20% speedup for validation loops and ~2x for simple sanitization hoisting.
 **Action:** Identify calculations inside loops that don't depend on the loop variable and move them out. Use local variables for frequently accessed global/object methods.
 
 ## 2026-02-04 - [Optimize Buffer for Large Downloads]
+
 **Learning:** When downloading large files (e.g., blocklists), the default chunk size of HTTP libraries might be small, leading to excessive loop iterations and list operations. Increasing the buffer size (e.g., to 16KB) reduces CPU overhead during I/O-bound operations.
 **Action:** When using `iter_bytes()` or similar streaming methods for large resources, explicitly set a larger `chunk_size` (e.g., 16384) to improve throughput and reduce CPU usage.
 
 ## 2026-02-17 - [Cache DNS Lookups by Hostname]
+
 **Learning:** When validating multiple URLs from the same host (e.g., githubusercontent), caching based on the full URL still triggers redundant DNS lookups for each unique path. Extracting hostname validation into a separate `@lru_cache` function avoids repeated blocking `getaddrinfo` calls for the same domain.
 **Action:** Identify expensive validation steps (like DNS) that depend on a subset of the input (hostname vs full URL) and cache them independently.
+
 ## 2024-03-24 - [Avoid Regex on Simple Strings]
+
 **Learning:** Running complex regex substitutions on every log message (for sanitization) introduces measurable CPU overhead, especially when most strings don't contain sensitive patterns. Simple string checks (`in`) are orders of magnitude faster than regex execution.
 **Action:** Add early return checks (e.g., `if "://" in s:`) before invoking expensive regex operations in hot paths like logging or string sanitization.
+
 ## 2024-03-24 - Thread Pool Churn
+
 **Learning:** Python's `ThreadPoolExecutor` incurs measurable overhead (thread creation/shutdown) when created/destroyed repeatedly inside loops, even with small worker counts.
 **Action:** Lift `ThreadPoolExecutor` creation to the highest possible scope and pass it down as a dependency (using `contextlib.nullcontext` for flexible ownership).
 
 ## 2024-05-24 - Stop copying massive state sets inside loops
+
 **Learning:** In Python, tracking deduplication or "already seen" items by performing a shallow copy (`set.copy()`) of an existing global dataset is an anti-pattern when the global dataset grows large. Copying a set of millions of items per-folder iteration completely bottlenecks CPU and memory, rendering micro-optimizations inside the loop irrelevant.
 **Action:** When filtering a list of items against a massive "existing" set, use `dict.fromkeys(items)` to instantly deduplicate the incoming list while preserving order, then iterate over those keys with an `O(1)` membership check against the original massive set. This avoids copying the large set entirely and dramatically reduces overhead.
+
 ## 2024-05-25 - [Optimize rule counting memory usage]
+
 **Learning:** In the `sync_profile` function, when computing the length of the list of rules for generating dry run plan output, the previous approach created a list just to count the number of valid `PK` fields via `len([r["PK"] for r in folder_data.get("rules", []) if r.get("PK")])`. Using `sum(1 for r in folder_data.get("rules", []) if r.get("PK"))` prevents allocating that large intermediate list and reduces memory allocations.
 **Action:** Use a generator expression combined with `sum()` when only counting the length of an iterable that is filtered, instead of materializing a whole list.
 
 ## 2024-03-24 - [Avoid Python Loop Overhead for Set Differences]
+
 **Learning:** When iterating over a large list to filter out items that exist in a large set, performing the membership check inside a standard Python `for` loop introduces significant overhead per iteration. Using a C-optimized list comprehension (e.g., `[h for h in items if h not in existing_set]`) to perform the filtering before a subsequent processing loop bypasses this Python overhead for items that are already synced, yielding measurable speedups when the overlap is high (which is typical for blocklist syncing).
 **Action:** Use list comprehensions to pre-filter items against sets before entering more complex processing loops when a high match rate is expected.
 
 ## 2026-03-05 - [Fast String Character Validation]
+
 **Learning:** Checking a string for the presence of forbidden characters using `any(c in FORBIDDEN_CHARS for c in name)` executes a Python-level loop which is slow. Pre-combining the sets of forbidden characters and using `not ALL_FORBIDDEN.isdisjoint(name)` drops the check to a fast, C-optimized set operation, running in O(N) where N is the length of the string name.
 **Action:** When validating string inputs against large sets of forbidden characters, combine the sets at the module level and use `set.isdisjoint(string)` for maximum performance.
 
 ## 2024-05-24 - [Optimize JSON Object Validation]
+
 **Learning:** For hot loops processing structured data where strict type enforcement is desired (like validating API JSON responses where subclassing is generally not expected or allowed), using `type(x) is dict` inside a generator expression runs noticeably faster than `isinstance(x, dict)` in Python. Replacing an inner function call with this inline check in `all(...)` reduces Python frame overhead and yields ~25% speedup for large structural validations.
 **Action:** Replace `isinstance` with `type(x) is type` in critical, high-volume data validation loops, avoiding helper function calls. Use a fallback block to still identify exact errors for logging when the fast path fails.
 
 ## 2026-03-15 - [Optimize Dict Key Extraction with Walrus Operator]
+
 **Learning:** In list comprehensions that filter and extract a specific key from a list of dictionaries (e.g., `[r["PK"] for r in dicts if r.get("PK")]`), Python performs two lookups per item. Using the walrus operator (`[pk for r in dicts if (pk := r.get("PK"))]`) avoids the redundant lookup and is significantly faster (~50% overhead reduction in hot loops).
 **Action:** When filtering and extracting a dictionary key in a comprehension, use `(val := dict.get("key"))` to perform both validation and extraction in a single operation.
 
 ## 2024-05-25 - [Optimize Thread Synchronization with Snapshotting]
+
 **Learning:** During parallel I/O tasks where multiple threads share rate limit states, holding a lock (`with lock:`) while performing slow string formatting (like `time.strftime`) and I/O (`log.warning`) drastically increases thread contention and degrades overall sync performance.
-**Action:** Extract header values and perform type conversions *before* acquiring locks. Inside the lock, update the shared state and take a local snapshot (`limit_snapshot = dict['limit']`). Perform all subsequent formatting and logging *outside* the lock using the snapshot variables.
+**Action:** Extract header values and perform type conversions _before_ acquiring locks. Inside the lock, update the shared state and take a local snapshot (`limit_snapshot = dict['limit']`). Perform all subsequent formatting and logging _outside_ the lock using the snapshot variables.

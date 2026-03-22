@@ -21,15 +21,15 @@ the signature ``(Any) -> str`` is accepted.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import random
 import threading
 import time
-from typing import Any
 from collections.abc import Callable
+from typing import Any
 
 import httpx
-import contextlib
 
 log = logging.getLogger(__name__)
 
@@ -113,6 +113,29 @@ _sanitize_fn: Callable[[Any], str] = str
 # --------------------------------------------------------------------------- #
 
 
+def _extract_int_header(headers: httpx.Headers, key: str) -> int | None:
+    """Helper to extract and parse an integer header safely."""
+    if key in headers:
+        with contextlib.suppress(ValueError, TypeError):
+            return int(headers[key])
+    return None
+
+
+def _log_rate_limit_warning(limit: int, remaining: int, reset: int | None) -> None:
+    """Log a warning if we are approaching the rate limit (< 20% remaining)."""
+    if limit <= 0 or remaining / limit >= 0.2:
+        return
+
+    if reset:
+        reset_time = time.strftime("%H:%M:%S", time.localtime(reset))
+        log.warning(
+            f"Approaching rate limit: {remaining}/{limit} requests remaining "
+            f"(resets at {reset_time})"
+        )
+    else:
+        log.warning(f"Approaching rate limit: {remaining}/{limit} requests remaining")
+
+
 def _parse_rate_limit_headers(response: httpx.Response) -> None:
     """
     Parse rate limit headers from API response and update global tracking.
@@ -136,21 +159,9 @@ def _parse_rate_limit_headers(response: httpx.Response) -> None:
     # Parse standard rate limit headers
     # These may not exist on all responses, so we check individually
     try:
-        new_limit = None
-        new_remaining = None
-        new_reset = None
-
-        if "X-RateLimit-Limit" in headers:
-            with contextlib.suppress(ValueError, TypeError):
-                new_limit = int(headers["X-RateLimit-Limit"])
-
-        if "X-RateLimit-Remaining" in headers:
-            with contextlib.suppress(ValueError, TypeError):
-                new_remaining = int(headers["X-RateLimit-Remaining"])
-
-        if "X-RateLimit-Reset" in headers:
-            with contextlib.suppress(ValueError, TypeError):
-                new_reset = int(headers["X-RateLimit-Reset"])
+        new_limit = _extract_int_header(headers, "X-RateLimit-Limit")
+        new_remaining = _extract_int_header(headers, "X-RateLimit-Remaining")
+        new_reset = _extract_int_header(headers, "X-RateLimit-Reset")
 
         limit_snapshot = None
         remaining_snapshot = None
@@ -169,22 +180,9 @@ def _parse_rate_limit_headers(response: httpx.Response) -> None:
             reset_snapshot = _rate_limit_info["reset"]
 
         # Log warnings when approaching rate limits
-        # Only log if we have both limit and remaining values
         if limit_snapshot is not None and remaining_snapshot is not None:
-            approaching_limit = limit_snapshot > 0 and remaining_snapshot / limit_snapshot < 0.2
+            _log_rate_limit_warning(limit_snapshot, remaining_snapshot, reset_snapshot)
 
-            # Warn at 20% remaining capacity
-            if approaching_limit:
-                if reset_snapshot:
-                    reset_time = time.strftime("%H:%M:%S", time.localtime(reset_snapshot))
-                    log.warning(
-                        f"Approaching rate limit: {remaining_snapshot}/{limit_snapshot} requests remaining "
-                        f"(resets at {reset_time})"
-                    )
-                else:
-                    log.warning(
-                        f"Approaching rate limit: {remaining_snapshot}/{limit_snapshot} requests remaining"
-                    )
     except Exception as e:
         # Rate limit parsing failures should never crash the sync
         # Just log and continue
