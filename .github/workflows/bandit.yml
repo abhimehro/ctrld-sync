@@ -27,14 +27,14 @@ jobs:
 
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       # PERFORMANCE: Cache pip dependencies so that any packages installed by the
       # bandit scan action (or future pip-install steps) are served from cache.
       # Key covers both requirements.txt and pyproject.toml so any dep change
       # automatically busts the cache.
       - name: Cache pip dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt', 'pyproject.toml') }}
