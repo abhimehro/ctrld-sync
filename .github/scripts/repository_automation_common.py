@@ -373,7 +373,7 @@ def latest_tag_for_action(repo_id: str) -> str:
             "api",
             f"repos/{repo_id}/releases",
             "--jq",
-            "[.[] | select(.prerelease == false)] | .[0].tag_name",
+            "[.[] | select(.prerelease == false) | .tag_name] | .[0]",
         ],
         default=None,
     )
