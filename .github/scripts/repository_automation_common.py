@@ -88,7 +88,9 @@ def run_checked(command: list[str]) -> subprocess.CompletedProcess[str]:
     return run_process(command, check=True)
 
 
-def warn_on_default(tool: str, args: list[str], proc: subprocess.CompletedProcess[str]) -> None:
+def warn_on_default(
+    tool: str, args: list[str], proc: subprocess.CompletedProcess[str]
+) -> None:
     error_text = proc.stderr.strip() or proc.stdout.strip()
     print(
         f"Warning: `{tool} {' '.join(args)}` failed with exit code {proc.returncode}. {error_text}",
@@ -130,7 +132,9 @@ def normalise_status(status: str) -> str:
     return status if status in ALLOWED_STATUSES else "warning"
 
 
-def build_result(task: str, status: str, summary: str, extra: dict[str, Any] | None = None) -> dict[str, Any]:
+def build_result(
+    task: str, status: str, summary: str, extra: dict[str, Any] | None = None
+) -> dict[str, Any]:
     result = {
         "task": task,
         "status": normalise_status(status),
@@ -142,11 +146,15 @@ def build_result(task: str, status: str, summary: str, extra: dict[str, Any] | N
     return result
 
 
-def write_result(task: str, status: str, summary: str, body: str, extra: dict[str, Any] | None = None) -> dict[str, Any]:
+def write_result(
+    task: str, status: str, summary: str, body: str, extra: dict[str, Any] | None = None
+) -> dict[str, Any]:
     result = build_result(task, status, summary, extra)
     directory = task_dir(task)
     (directory / "report.md").write_text(body.rstrip() + "\n")
-    (directory / "result.json").write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
+    (directory / "result.json").write_text(
+        json.dumps(result, indent=2, sort_keys=True) + "\n"
+    )
     print(body)
     summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
     if summary_path:
@@ -205,7 +213,15 @@ def safe_pr_body(title: str, updates: list[dict[str, str]], notes: list[str]) ->
     if notes:
         lines.extend(["", "### Guardrails"])
         lines.extend(f"- {note}" for note in notes)
-    lines.extend(["", "### Safety notes", "- Draft PR only", "- No force-pushes", "- No automatic merges"])
+    lines.extend(
+        [
+            "",
+            "### Safety notes",
+            "- Draft PR only",
+            "- No force-pushes",
+            "- No automatic merges",
+        ]
+    )
     return "\n".join(lines) + "\n"
 
 
@@ -245,7 +261,9 @@ def filter_existing_labels(labels: list[Any]) -> list[str]:
     specs = normalize_label_specs(labels)
     if not specs:
         return []
-    label_rows = gh_json(["label", "list", "--limit", "100", "--json", "name"], default=[])
+    label_rows = gh_json(
+        ["label", "list", "--limit", "100", "--json", "name"], default=[]
+    )
     known = {row.get("name") for row in label_rows}
     for spec in specs:
         ensure_label_exists(spec, known)
@@ -260,7 +278,19 @@ def gh_with_body(args: list[str], body: str) -> str:
 
 
 def create_or_update_issue(title: str, body: str, labels: list[Any]) -> str:
-    search = gh_json(["issue", "list", "--state", "all", "--limit", "100", "--json", "number,title,url"], default=[])
+    search = gh_json(
+        [
+            "issue",
+            "list",
+            "--state",
+            "all",
+            "--limit",
+            "100",
+            "--json",
+            "number,title,url",
+        ],
+        default=[],
+    )
     existing = next((item for item in search if item.get("title") == title), None)
     existing_labels = filter_existing_labels(labels)
     if existing:
@@ -275,26 +305,43 @@ def create_or_update_issue(title: str, body: str, labels: list[Any]) -> str:
     return gh_with_body(create_command, body)
 
 
-def create_pr_for_current_changes(branch_prefix: str, commit_message: str, pr_title: str, pr_body: str) -> str:
-    existing = gh_json(["pr", "list", "--state", "open", "--json", "title,url"], default=[])
-    existing_match = next((item for item in existing if item.get("title") == pr_title), None)
+def create_pr_for_current_changes(
+    branch_prefix: str, commit_message: str, pr_title: str, pr_body: str
+) -> str:
+    existing = gh_json(
+        ["pr", "list", "--state", "open", "--json", "title,url"], default=[]
+    )
+    existing_match = next(
+        (item for item in existing if item.get("title") == pr_title), None
+    )
     if existing_match:
         return existing_match["url"]
     branch_name = f"{branch_prefix.replace('/', '-')}-{now_utc().strftime('%Y%m%d')}-{os.environ.get('GITHUB_RUN_ATTEMPT', '1')}"
     run_checked([GIT_BIN, "config", "user.name", "repository-automation[bot]"])
-    run_checked([GIT_BIN, "config", "user.email", "repository-automation[bot]@users.noreply.github.com"])
+    run_checked(
+        [
+            GIT_BIN,
+            "config",
+            "user.email",
+            "repository-automation[bot]@users.noreply.github.com",
+        ]
+    )
     run_checked([GIT_BIN, "checkout", "-b", branch_name])
     run_checked([GIT_BIN, "add", "-A"])
     run_checked([GIT_BIN, "commit", "-m", commit_message])
     run_checked([GIT_BIN, "push", "--set-upstream", "origin", branch_name])
-    return gh_with_body(["pr", "create", "--draft", "--title", pr_title, "--body-file", "-"], pr_body)
+    return gh_with_body(
+        ["pr", "create", "--draft", "--title", pr_title, "--body-file", "-"], pr_body
+    )
 
 
 def repository_slug() -> str:
     slug = os.environ.get("GITHUB_REPOSITORY", "")
     if slug:
         return slug
-    return gh_text(["repo", "view", "--json", "nameWithOwner", "--jq", ".nameWithOwner"], "")
+    return gh_text(
+        ["repo", "view", "--json", "nameWithOwner", "--jq", ".nameWithOwner"], ""
+    )
 
 
 def release_url(tag_name: str) -> str:
@@ -305,10 +352,48 @@ def release_url(tag_name: str) -> str:
 
 
 def latest_tag_for_action(repo_id: str) -> str:
-    latest = gh_text(["api", f"repos/{repo_id}/releases/latest", "--jq", ".tag_name"])
+    # Get the latest stable release (prerelease=false in GitHub API)
+    # The API actually returns a 404 for /releases/latest if there are no stable releases
+    # But occasionally it might return a pre-release if it was explicitly marked "latest" via API misuse.
+    # So we filter explicitly.
+    latest = gh_text(
+        [
+            "api",
+            f"repos/{repo_id}/releases/latest",
+            "--jq",
+            "select(.prerelease == false) | .tag_name",
+        ]
+    )
     if latest:
         return latest
+
+    # Fallback 1: List all releases, get the first non-prerelease
+    releases = gh_json(
+        [
+            "api",
+            f"repos/{repo_id}/releases",
+            "--jq",
+            "[.[] | select(.prerelease == false)] | .[0].tag_name",
+        ],
+        default=None,
+    )
+    if releases and isinstance(releases, str):
+        return releases
+
+    # Fallback 2: Get the most recent tag (which may not be associated with a release object)
     return gh_text(["api", f"repos/{repo_id}/tags?per_page=1", "--jq", ".[0].name"])
+
+
+def ref_exists(repo_id: str, ref: str) -> bool:
+    """Check if a specific ref (tag or branch) exists in the repository."""
+    # First check tags
+    tag_result = run_process([GH_BIN, "api", f"repos/{repo_id}/git/refs/tags/{ref}"])
+    if tag_result.returncode == 0:
+        return True
+
+    # Then check branches (heads)
+    head_result = run_process([GH_BIN, "api", f"repos/{repo_id}/git/refs/heads/{ref}"])
+    return head_result.returncode == 0
 
 
 def numeric_version(text: str) -> tuple[int, int, int] | None:

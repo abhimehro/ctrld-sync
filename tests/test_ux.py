@@ -246,6 +246,7 @@ class TestMakeColSeparator:
         expected = "L" + "M".join(expected_parts) + "R"
         assert result == expected
 
+
 def test_print_line():
     """Verify print_line produces correct unicode table borders."""
     w = [2, 3]
@@ -255,6 +256,7 @@ def test_print_line():
     inner = result.replace(main.Colors.BOLD, "").replace(main.Colors.ENDC, "")
     assert inner == "[────*─────]"
 
+
 def test_print_row():
     """Verify print_row produces correctly padded columns with bold separators."""
     w = [2, 3, 4, 5, 6]
@@ -263,6 +265,7 @@ def test_print_row():
     expected_inner = "│ A  │   B │    C │     D │ E      │"
     clean_result = result.replace(main.Colors.BOLD, "").replace(main.Colors.ENDC, "")
     assert clean_result == expected_inner
+
 
 def test_print_summary_table_unicode_print_line(monkeypatch, capsys):
     """
@@ -296,6 +299,7 @@ def test_print_summary_table_unicode_print_line(monkeypatch, capsys):
     assert "Profile_1" in captured.out
     assert "1,500" in captured.out
     assert "2.5s" in captured.out
+
 
 def test_print_summary_table_ascii_fallback(monkeypatch, capsys):
     """

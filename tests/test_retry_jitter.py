@@ -46,6 +46,7 @@ class TestRetryJitter:
         # Both jittered delays must still respect the same cap used above for attempt 2.
         for delay in (delay_1, delay_2):
             assert 0.0 <= delay < 4.0
+
     def test_jitter_adds_randomness_to_retry_delays(self):
         """Verify that retry delays include jitter and aren't identical."""
         request_func = Mock(side_effect=httpx.TimeoutException("Connection timeout"))

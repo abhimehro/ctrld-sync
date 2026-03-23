@@ -19,6 +19,8 @@ from repository_automation_common import (
     latest_tag_for_action,
     matches_any,
     now_utc,
+    numeric_version,
+    ref_exists,
     release_url,
     run_shell_command,
     safe_pr_body,
@@ -34,12 +36,18 @@ IGNORED_DIRS = {".git", ".venv", "node_modules", "__pycache__"}
 def configured_commands(section: dict[str, Any]) -> list[tuple[str, dict[str, Any]]]:
     return [
         (bucket_name, item)
-        for bucket_name, key in (("setup", "setup_commands"), ("command", "commands"), ("security", "security_commands"))
+        for bucket_name, key in (
+            ("setup", "setup_commands"),
+            ("command", "commands"),
+            ("security", "security_commands"),
+        )
         for item in section.get(key, [])
     ]
 
 
-def execute_configured_commands(section: dict[str, Any]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+def execute_configured_commands(
+    section: dict[str, Any],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     setup_entries = []
     command_entries = []
     for bucket_name, item in configured_commands(section):
@@ -56,7 +64,9 @@ def execute_configured_commands(section: dict[str, Any]) -> tuple[list[dict[str,
     return setup_entries, command_entries
 
 
-def classify_entries(entries: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+def classify_entries(
+    entries: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     failures = []
     warnings = []
     for entry in entries:
@@ -78,7 +88,9 @@ def render_entry_section(title: str, entries: list[dict[str, Any]]) -> list[str]
     return lines
 
 
-def render_review_section(title: str, entries: list[dict[str, Any]], template: str) -> list[str]:
+def render_review_section(
+    title: str, entries: list[dict[str, Any]], template: str
+) -> list[str]:
     if not entries:
         return []
     lines = [title]
@@ -87,7 +99,9 @@ def render_review_section(title: str, entries: list[dict[str, Any]], template: s
     return lines
 
 
-def run_command_set(task_name: str, section: dict[str, Any]) -> tuple[str, str, dict[str, Any]]:
+def run_command_set(
+    task_name: str, section: dict[str, Any]
+) -> tuple[str, str, dict[str, Any]]:
     setup_entries, command_entries = execute_configured_commands(section)
     failures, warnings = classify_entries(setup_entries + command_entries)
     status = "failure" if failures else "warning" if warnings else "success"
@@ -116,11 +130,15 @@ def run_command_set(task_name: str, section: dict[str, Any]) -> tuple[str, str, 
                 "- `{name}` failed but is configured as optional.",
             )
         )
-    return status, summary, {
-        "setup_results": setup_entries,
-        "command_results": command_entries,
-        "body": "\n".join(body_parts).strip() + "\n",
-    }
+    return (
+        status,
+        summary,
+        {
+            "setup_results": setup_entries,
+            "command_results": command_entries,
+            "body": "\n".join(body_parts).strip() + "\n",
+        },
+    )
 
 
 def discover_hotspots(limit: int = 5) -> list[tuple[str, int]]:
@@ -159,6 +177,21 @@ def workflow_file_plans() -> list[dict[str, Any]]:
             proposed = target_ref(current, latest)
             if not proposed or proposed == current:
                 continue
+
+            # Ensure the proposed target ref actually exists (could be a branch or tag)
+            if not ref_exists(repo_id, proposed):
+                print(
+                    f"Warning: Proposed ref '{proposed}' does not exist for {repo_id}. Skipping update."
+                )
+                continue
+
+            # Detect major bumps for compatibility notes
+            is_major_bump = False
+            current_v = numeric_version(current)
+            proposed_v = numeric_version(proposed)
+            if current_v and proposed_v and proposed_v[0] > current_v[0]:
+                is_major_bump = True
+
             replacements.append(
                 {
                     "old": match.group(0),
@@ -167,20 +200,24 @@ def workflow_file_plans() -> list[dict[str, Any]]:
                     "action": action_ref,
                     "current": current,
                     "target": proposed,
+                    "is_major_bump": is_major_bump,
                 }
             )
         if replacements:
-            plans.append({"path": file_path, "text": text, "replacements": replacements})
+            plans.append(
+                {"path": file_path, "text": text, "replacements": replacements}
+            )
     return plans
 
 
-def flattened_updates(plans: list[dict[str, Any]]) -> list[dict[str, str]]:
+def flattened_updates(plans: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [
         {
             "file": item["file"],
             "action": item["action"],
             "current": item["current"],
             "target": item["target"],
+            "is_major_bump": item["is_major_bump"],
         }
         for plan in plans
         for item in plan["replacements"]
@@ -200,7 +237,9 @@ def restore_workflow_updates(plans: list[dict[str, Any]]) -> None:
         plan["path"].write_text(plan["text"])
 
 
-def allowed_workflow_updates(updates: list[dict[str, str]], patterns: list[str]) -> bool:
+def allowed_workflow_updates(
+    updates: list[dict[str, str]], patterns: list[str]
+) -> bool:
     return all(matches_any(item["file"], patterns) for item in updates)
 
 
@@ -211,7 +250,10 @@ def render_update_table(updates: list[dict[str, str]]) -> list[str]:
         "| --- | --- | --- | --- |",
     ]
     lines.extend(
-        [f"| `{item['file']}` | `{item['action']}` | `{item['current']}` | `{item['target']}` |" for item in updates]
+        [
+            f"| `{item['file']}` | `{item['action']}` | `{item['current']}` | `{item['target']}` |"
+            for item in updates
+        ]
     )
     lines.append("")
     return lines
@@ -223,58 +265,131 @@ def run_workflow_updater(config: dict[str, Any]) -> dict[str, Any]:
     updates = flattened_updates(plans)
     if not updates:
         body = "# Workflow updater\n\n- Status: **success**\n- Summary: No GitHub Action updates were detected.\n"
-        return write_result("workflow-updater", "success", "No GitHub Action updates were detected.", body, {"updates": []})
+        return write_result(
+            "workflow-updater",
+            "success",
+            "No GitHub Action updates were detected.",
+            body,
+            {"updates": []},
+        )
 
     status = "warning"
     summary = f"Detected {len(updates)} workflow action updates."
-    body_parts = ["# Workflow updater", "", f"- Status: **{status}**", f"- Summary: {summary}", ""]
+    body_parts = [
+        "# Workflow updater",
+        "",
+        f"- Status: **{status}**",
+        f"- Summary: {summary}",
+        "",
+    ]
     body_parts.extend(render_update_table(updates))
 
-    can_write = writes_allowed() and ensure_gh_token() and section.get("create_draft_pr", False)
+    can_write = (
+        writes_allowed() and ensure_gh_token() and section.get("create_draft_pr", False)
+    )
     if not can_write:
-        body_parts.extend(["## Write gate", "- Draft PR creation is disabled or writes are not allowed for this run.", ""])
-        return write_result("workflow-updater", status, summary, "\n".join(body_parts), {"updates": updates, "pull_request_url": ""})
+        body_parts.extend(
+            [
+                "## Write gate",
+                "- Draft PR creation is disabled or writes are not allowed for this run.",
+                "",
+            ]
+        )
+        return write_result(
+            "workflow-updater",
+            status,
+            summary,
+            "\n".join(body_parts),
+            {"updates": updates, "pull_request_url": ""},
+        )
 
-    allowed_paths = section.get("allowed_paths", [".github/workflows/*.yml", ".github/workflows/*.yaml"])
+    allowed_paths = section.get(
+        "allowed_paths", [".github/workflows/*.yml", ".github/workflows/*.yaml"]
+    )
     if not allowed_workflow_updates(updates, allowed_paths):
-        body_parts.extend(["## Human review required", "- Refusing to write because one or more files are outside the allow-list.", ""])
-        return write_result("workflow-updater", "needs_review", summary, "\n".join(body_parts), {"updates": updates, "pull_request_url": ""})
+        body_parts.extend(
+            [
+                "## Human review required",
+                "- Refusing to write because one or more files are outside the allow-list.",
+                "",
+            ]
+        )
+        return write_result(
+            "workflow-updater",
+            "needs_review",
+            summary,
+            "\n".join(body_parts),
+            {"updates": updates, "pull_request_url": ""},
+        )
 
     pr_url = ""
     try:
         apply_workflow_updates(plans)
+
+        # Check for major bumps that need human review
+        major_bumps = {}
+        for item in updates:
+            if item["is_major_bump"]:
+                major_bumps[item["action"]] = (item["current"], item["target"])
+
+        notes = [
+            "Security gate limited changes to allow-listed workflow paths.",
+            "No force-push or merge is performed by this automation.",
+        ]
+
         pr_body = safe_pr_body(
             section.get("pr_title", "Workflow update"),
             updates,
-            [
-                "Security gate limited changes to allow-listed workflow paths.",
-                "No force-push or merge is performed by this automation.",
-            ],
+            notes,
         )
+
+        if major_bumps:
+            pr_body += "\n### Compatibility review required\n"
+            for action, (current, target) in major_bumps.items():
+                pr_body += f"- `{action}` major bump ({current} -> {target}): review inputs and syntax for breaking changes before merging\n"
+
         pr_url = create_pr_for_current_changes(
             section.get("branch_prefix", "automation/workflow-updates"),
-            section.get("commit_message", "chore(actions): update workflow dependencies"),
+            section.get(
+                "commit_message", "chore(actions): update workflow dependencies"
+            ),
             section.get("pr_title", "chore(actions): update workflow dependencies"),
             pr_body,
         )
         status = "success"
-        summary = f"Detected {len(updates)} workflow action updates and prepared a draft PR."
+        summary = (
+            f"Detected {len(updates)} workflow action updates and prepared a draft PR."
+        )
         body_parts.extend(["## Draft PR", f"- {pr_url}", ""])
     except Exception as exc:  # pragma: no cover - runtime integration
         restore_workflow_updates(plans)
         status = "failure"
         body_parts.extend(["## Draft PR failure", f"- {exc}", ""])
-    return write_result("workflow-updater", status, summary, "\n".join(body_parts), {"updates": updates, "pull_request_url": pr_url})
+    return write_result(
+        "workflow-updater",
+        status,
+        summary,
+        "\n".join(body_parts),
+        {"updates": updates, "pull_request_url": pr_url},
+    )
 
 
 def run_performance_optimizer(config: dict[str, Any]) -> dict[str, Any]:
     section = config.get("performance_optimizer", {})
-    status, summary, details = run_command_set("performance-optimizer", {
-        "setup_commands": section.get("setup_commands", []),
-        "commands": section.get("commands", []),
-    })
+    status, summary, details = run_command_set(
+        "performance-optimizer",
+        {
+            "setup_commands": section.get("setup_commands", []),
+            "commands": section.get("commands", []),
+        },
+    )
     hotspots = discover_hotspots()
-    lines = [details["body"].rstrip(), "## Static hotspots", "| File | Approximate lines |", "| --- | ---: |"]
+    lines = [
+        details["body"].rstrip(),
+        "## Static hotspots",
+        "| File | Approximate lines |",
+        "| --- | ---: |",
+    ]
     for file_name, count in hotspots:
         lines.append(f"| `{file_name}` | {count} |")
     suggestions = section.get("suggestions", [])
@@ -293,7 +408,13 @@ def run_performance_optimizer(config: dict[str, Any]) -> dict[str, Any]:
 def run_quality_assurance(config: dict[str, Any]) -> dict[str, Any]:
     section = config.get("quality_assurance", {})
     status, summary, details = run_command_set("quality-assurance", section)
-    return write_result("quality-assurance", status, summary, details["body"], {"command_results": details["command_results"]})
+    return write_result(
+        "quality-assurance",
+        status,
+        summary,
+        details["body"],
+        {"command_results": details["command_results"]},
+    )
 
 
 def parse_timestamp(value: str) -> dt.datetime:
@@ -305,15 +426,26 @@ def age_days(timestamp: str) -> int:
 
 
 def render_issue_rows(issues: list[dict[str, Any]]) -> list[str]:
-    rows = ["## Open issues (oldest updated first)", "| Issue | Last updated | Age (days) | Labels |", "| --- | --- | ---: | --- |"]
+    rows = [
+        "## Open issues (oldest updated first)",
+        "| Issue | Last updated | Age (days) | Labels |",
+        "| --- | --- | ---: | --- |",
+    ]
     for item in issues:
         labels = ", ".join(label["name"] for label in item.get("labels", []))
-        rows.append(f"| [#{item['number']}]({item['url']}) | {item['updatedAt'][:10]} | {age_days(item['updatedAt'])} | {labels or '-'} |")
+        rows.append(
+            f"| [#{item['number']}]({item['url']}) | {item['updatedAt'][:10]} | {age_days(item['updatedAt'])} | {labels or '-'} |"
+        )
     return rows
 
 
 def render_pr_rows(prs: list[dict[str, Any]]) -> list[str]:
-    rows = ["", "## Open pull requests (oldest updated first)", "| PR | Last updated | Age (days) | Draft | Review | Merge state |", "| --- | --- | ---: | --- | --- | --- |"]
+    rows = [
+        "",
+        "## Open pull requests (oldest updated first)",
+        "| PR | Last updated | Age (days) | Draft | Review | Merge state |",
+        "| --- | --- | ---: | --- | --- | --- |",
+    ]
     rows.extend(
         [
             f"| [#{item['number']}]({item['url']}) | {item['updatedAt'][:10]} | {age_days(item['updatedAt'])} | {item.get('isDraft')} | {item.get('reviewDecision') or '-'} | {item.get('mergeStateStatus') or '-'} |"
@@ -327,12 +459,38 @@ def run_backlog_manager(config: dict[str, Any]) -> dict[str, Any]:
     section = config.get("backlog_manager", {})
     max_issues = int(section.get("max_issues", 10))
     max_prs = int(section.get("max_pull_requests", 10))
-    issues = gh_json(["issue", "list", "--state", "open", "--limit", str(max_issues), "--json", "number,title,updatedAt,url,labels"], default=[])
-    prs = gh_json(["pr", "list", "--state", "open", "--limit", str(max_prs), "--json", "number,title,updatedAt,url,isDraft,reviewDecision,mergeStateStatus"], default=[])
+    issues = gh_json(
+        [
+            "issue",
+            "list",
+            "--state",
+            "open",
+            "--limit",
+            str(max_issues),
+            "--json",
+            "number,title,updatedAt,url,labels",
+        ],
+        default=[],
+    )
+    prs = gh_json(
+        [
+            "pr",
+            "list",
+            "--state",
+            "open",
+            "--limit",
+            str(max_prs),
+            "--json",
+            "number,title,updatedAt,url,isDraft,reviewDecision,mergeStateStatus",
+        ],
+        default=[],
+    )
     issues = sorted(issues, key=lambda item: item.get("updatedAt", ""))
     prs = sorted(prs, key=lambda item: item.get("updatedAt", ""))
     stale_days = int(section.get("stale_days", 14))
-    stale_issues = [item for item in issues if age_days(item["updatedAt"]) >= stale_days]
+    stale_issues = [
+        item for item in issues if age_days(item["updatedAt"]) >= stale_days
+    ]
     stale_prs = [item for item in prs if age_days(item["updatedAt"]) >= stale_days]
     status = "warning" if stale_issues or stale_prs else "success"
     summary = f"Backlog scan found {len(issues)} open issues and {len(prs)} open PRs in the sampled set."
@@ -365,7 +523,12 @@ def run_backlog_manager(config: dict[str, Any]) -> dict[str, Any]:
         status,
         summary,
         "\n".join(lines) + "\n",
-        {"issues": issues, "pull_requests": prs, "stale_issues": stale_issues, "stale_pull_requests": stale_prs},
+        {
+            "issues": issues,
+            "pull_requests": prs,
+            "stale_issues": stale_issues,
+            "stale_pull_requests": stale_prs,
+        },
     )
 
 
@@ -400,10 +563,21 @@ def status_icon(status: str) -> str:
     }.get(status, status.upper())
 
 
-def daily_report_lines(config: dict[str, Any], results: list[dict[str, Any]]) -> list[str]:
-    open_issues = gh_json(["issue", "list", "--state", "open", "--limit", "200", "--json", "number"], default=[])
-    open_prs = gh_json(["pr", "list", "--state", "open", "--limit", "200", "--json", "number"], default=[])
-    releases = gh_json(["release", "list", "--limit", "5", "--json", "name,publishedAt,tagName"], default=[])
+def daily_report_lines(
+    config: dict[str, Any], results: list[dict[str, Any]]
+) -> list[str]:
+    open_issues = gh_json(
+        ["issue", "list", "--state", "open", "--limit", "200", "--json", "number"],
+        default=[],
+    )
+    open_prs = gh_json(
+        ["pr", "list", "--state", "open", "--limit", "200", "--json", "number"],
+        default=[],
+    )
+    releases = gh_json(
+        ["release", "list", "--limit", "5", "--json", "name,publishedAt,tagName"],
+        default=[],
+    )
     overall = overall_status(results)
     lines = [
         f"# Daily Repository Automation Report - {iso_day()}",
@@ -416,7 +590,12 @@ def daily_report_lines(config: dict[str, Any], results: list[dict[str, Any]]) ->
         "| Task | Status | Summary |",
         "| --- | --- | --- |",
     ]
-    lines.extend([f"| `{item['task']}` | {status_icon(item['status'])} | {item['summary']} |" for item in results])
+    lines.extend(
+        [
+            f"| `{item['task']}` | {status_icon(item['status'])} | {item['summary']} |"
+            for item in results
+        ]
+    )
     lines.extend(["", "## Recent releases"])
     if releases:
         for release in releases:
@@ -424,16 +603,24 @@ def daily_report_lines(config: dict[str, Any], results: list[dict[str, Any]]) ->
             tag_name = release.get("tagName") or ""
             url = release_url(tag_name)
             rendered_name = f"[{name}]({url})" if url else name
-            lines.append(f"- {rendered_name} published {release.get('publishedAt', '')[:10]}")
+            lines.append(
+                f"- {rendered_name} published {release.get('publishedAt', '')[:10]}"
+            )
     else:
         lines.append("- No recent releases returned by the API.")
     lines.extend(["", "## Recommendations"])
     if overall == "success":
-        lines.append("- No blocking findings. Review the status report issue and any workflow-updater draft PR before merging.")
+        lines.append(
+            "- No blocking findings. Review the status report issue and any workflow-updater draft PR before merging."
+        )
     else:
-        lines.append("- Review the failing or warning tasks before trusting any generated changes.")
+        lines.append(
+            "- Review the failing or warning tasks before trusting any generated changes."
+        )
     if any(item.get("status") in {"failure", "needs_review"} for item in results):
-        lines.append("- Human review is required for at least one task; no silent automation escalation was performed.")
+        lines.append(
+            "- Human review is required for at least one task; no silent automation escalation was performed."
+        )
     lines.extend(["", "<!-- repository-automation:task-status"])
     lines.extend([f"{item['task']}={item['status']}" for item in results])
     lines.extend(["-->", ""])
@@ -442,17 +629,29 @@ def daily_report_lines(config: dict[str, Any], results: list[dict[str, Any]]) ->
 
 def run_daily_status_report(config: dict[str, Any]) -> dict[str, Any]:
     results = load_task_results()
-    summary = f"Daily automation completed with overall status {overall_status(results)}."
+    summary = (
+        f"Daily automation completed with overall status {overall_status(results)}."
+    )
     section = config.get("status_report", {})
     title = f"{config.get('reporting', {}).get('daily_issue_prefix', '[repo-automation] Daily Status Report')} - {iso_day()}"
     body = "\n".join(daily_report_lines(config, results))
-    body, issue_url, error = append_publication_result(body, title=title, labels=section.get("labels", []), noun="daily issue")
+    body, issue_url, error = append_publication_result(
+        body, title=title, labels=section.get("labels", []), noun="daily issue"
+    )
     status = "failure" if error else overall_status(results)
-    return write_result("daily-status-report", status, summary, body, {"issue_url": issue_url, "task_results": results})
+    return write_result(
+        "daily-status-report",
+        status,
+        summary,
+        body,
+        {"issue_url": issue_url, "task_results": results},
+    )
 
 
 def extract_status_markers(issue_body: str) -> dict[str, str]:
-    match = re.search(r"<!-- repository-automation:task-status\n(.*?)\n-->", issue_body, re.S)
+    match = re.search(
+        r"<!-- repository-automation:task-status\n(.*?)\n-->", issue_body, re.S
+    )
     if not match:
         return {}
     markers = {}
@@ -463,15 +662,24 @@ def extract_status_markers(issue_body: str) -> dict[str, str]:
     return markers
 
 
-def run_safe_adjustment_commands(section: dict[str, Any]) -> tuple[list[dict[str, Any]], str]:
+def run_safe_adjustment_commands(
+    section: dict[str, Any],
+) -> tuple[list[dict[str, Any]], str]:
     if not writes_allowed() or not section.get("auto_apply_safe_changes"):
         return [], ""
     command_results = [
-        {"name": item["name"], **run_shell_command(item["run"], int(item.get("timeout_seconds", 1200)))}
+        {
+            "name": item["name"],
+            **run_shell_command(item["run"], int(item.get("timeout_seconds", 1200))),
+        }
         for item in section.get("safe_adjustment_commands", [])
     ]
-    changed = [line[3:] for line in git_output("status", "--porcelain").splitlines() if line]
-    allowed_paths = section.get("allowed_paths", [".github/workflows/*.yml", ".github/workflows/*.yaml"])
+    changed = [
+        line[3:] for line in git_output("status", "--porcelain").splitlines() if line
+    ]
+    allowed_paths = section.get(
+        "allowed_paths", [".github/workflows/*.yml", ".github/workflows/*.yaml"]
+    )
     if not changed or not all(matches_any(path, allowed_paths) for path in changed):
         return command_results, ""
     body = safe_pr_body(
@@ -484,7 +692,9 @@ def run_safe_adjustment_commands(section: dict[str, Any]) -> tuple[list[dict[str
     )
     url = create_pr_for_current_changes(
         section.get("branch_prefix", "automation/weekly-workflow-tuning"),
-        section.get("commit_message", "chore(actions): apply safe weekly automation tuning"),
+        section.get(
+            "commit_message", "chore(actions): apply safe weekly automation tuning"
+        ),
         "chore(actions): weekly automation tuning",
         body,
     )
@@ -493,13 +703,37 @@ def run_safe_adjustment_commands(section: dict[str, Any]) -> tuple[list[dict[str
 
 def recent_daily_runs() -> list[dict[str, Any]]:
     cutoff = now_utc() - dt.timedelta(days=7)
-    runs = gh_json(["run", "list", "--workflow", DAILY_WORKFLOW_NAME, "--limit", "20", "--json", "number,createdAt,status,conclusion,url"], default=[])
+    runs = gh_json(
+        [
+            "run",
+            "list",
+            "--workflow",
+            DAILY_WORKFLOW_NAME,
+            "--limit",
+            "20",
+            "--json",
+            "number,createdAt,status,conclusion,url",
+        ],
+        default=[],
+    )
     return [item for item in runs if parse_timestamp(item["createdAt"]) >= cutoff]
 
 
 def weekly_markers(prefix: str) -> dict[str, dict[str, int]]:
     cutoff = now_utc() - dt.timedelta(days=7)
-    issues = gh_json(["issue", "list", "--state", "all", "--limit", "100", "--json", "title,createdAt,body"], default=[])
+    issues = gh_json(
+        [
+            "issue",
+            "list",
+            "--state",
+            "all",
+            "--limit",
+            "100",
+            "--json",
+            "title,createdAt,body",
+        ],
+        default=[],
+    )
     markers: dict[str, dict[str, int]] = {}
     for issue in issues:
         if not issue.get("title", "").startswith(prefix):
@@ -512,7 +746,13 @@ def weekly_markers(prefix: str) -> dict[str, dict[str, int]]:
     return markers
 
 
-def weekly_report_lines(config: dict[str, Any], runs: list[dict[str, Any]], markers: dict[str, dict[str, int]], safe_changes: list[dict[str, Any]], safe_pr_url: str) -> tuple[str, list[str]]:
+def weekly_report_lines(
+    config: dict[str, Any],
+    runs: list[dict[str, Any]],
+    markers: dict[str, dict[str, int]],
+    safe_changes: list[dict[str, Any]],
+    safe_pr_url: str,
+) -> tuple[str, list[str]]:
     status = "success"
     if any(item.get("conclusion") not in {"success", "skipped", None} for item in runs):
         status = "warning"
@@ -537,18 +777,31 @@ def weekly_report_lines(config: dict[str, Any], runs: list[dict[str, Any]], mark
         lines.append("| Task | Status counts |")
         lines.append("| --- | --- |")
         for task_name, counts in sorted(markers.items()):
-            rendered = ", ".join(f"{name}: {count}" for name, count in sorted(counts.items()))
+            rendered = ", ".join(
+                f"{name}: {count}" for name, count in sorted(counts.items())
+            )
             lines.append(f"| `{task_name}` | {rendered} |")
     else:
-        lines.append("- No machine-readable task markers were found in the last week's daily status issues.")
+        lines.append(
+            "- No machine-readable task markers were found in the last week's daily status issues."
+        )
     lines.extend(["", "## Recommendations"])
     if status == "success":
-        lines.append("- The consolidated automation was stable this week. Keep manual review on for writes that touch protected areas.")
+        lines.append(
+            "- The consolidated automation was stable this week. Keep manual review on for writes that touch protected areas."
+        )
     else:
-        lines.append("- Review repeated warning or failure patterns before increasing automation scope.")
+        lines.append(
+            "- Review repeated warning or failure patterns before increasing automation scope."
+        )
     if safe_changes:
         lines.extend(["", "## Safe adjustment command results"])
-        lines.extend([f"- `{entry['name']}` -> exit `{entry['exit_code']}`" for entry in safe_changes])
+        lines.extend(
+            [
+                f"- `{entry['name']}` -> exit `{entry['exit_code']}`"
+                for entry in safe_changes
+            ]
+        )
     if safe_pr_url:
         lines.extend(["", "## Safe auto-apply draft PR", f"- {safe_pr_url}"])
     return status, lines
@@ -557,19 +810,40 @@ def weekly_report_lines(config: dict[str, Any], runs: list[dict[str, Any]], mark
 def run_weekly_retrospective(config: dict[str, Any]) -> dict[str, Any]:
     section = config.get("weekly_retrospective", {})
     runs = recent_daily_runs()
-    markers = weekly_markers(config.get('reporting', {}).get('daily_issue_prefix', '[repo-automation] Daily Status Report'))
+    markers = weekly_markers(
+        config.get("reporting", {}).get(
+            "daily_issue_prefix", "[repo-automation] Daily Status Report"
+        )
+    )
     safe_changes = []
     safe_pr_url = ""
     if ensure_gh_token():
         try:
             safe_changes, safe_pr_url = run_safe_adjustment_commands(section)
         except Exception as exc:  # pragma: no cover - runtime integration
-            safe_changes = [{"name": "safe-adjustment-commands", "exit_code": 1, "stdout": "", "stderr": str(exc)}]
-    status, lines = weekly_report_lines(config, runs, markers, safe_changes, safe_pr_url)
+            safe_changes = [
+                {
+                    "name": "safe-adjustment-commands",
+                    "exit_code": 1,
+                    "stdout": "",
+                    "stderr": str(exc),
+                }
+            ]
+    status, lines = weekly_report_lines(
+        config, runs, markers, safe_changes, safe_pr_url
+    )
     summary = f"Reviewed {len(runs)} daily workflow runs from the last 7 days."
     title = f"{config.get('reporting', {}).get('weekly_issue_prefix', '[repo-automation] Weekly Retrospective')} - {iso_day()}"
     body = "\n".join(lines) + "\n"
-    body, issue_url, error = append_publication_result(body, title=title, labels=section.get("labels", []), noun="weekly issue")
+    body, issue_url, error = append_publication_result(
+        body, title=title, labels=section.get("labels", []), noun="weekly issue"
+    )
     if error:
         status = "failure"
-    return write_result("weekly-retrospective", status, summary, body, {"issue_url": issue_url, "runs": runs, "safe_pr_url": safe_pr_url})
+    return write_result(
+        "weekly-retrospective",
+        status,
+        summary,
+        body,
+        {"issue_url": issue_url, "runs": runs, "safe_pr_url": safe_pr_url},
+    )
