@@ -41,6 +41,8 @@
 
 **Closed issues:**
 
+- \[repo-automation\] Weekly Retrospective - 2026-03-22 [\#659](https://github.com/abhimehro/ctrld-sync/issues/659)
+- \[repo-automation\] Daily Status Report - 2026-03-22 [\#658](https://github.com/abhimehro/ctrld-sync/issues/658)
 - \[repo-automation\] Daily Status Report - 2026-03-21 [\#654](https://github.com/abhimehro/ctrld-sync/issues/654)
 - \[repo-status\] Daily Status Report — March 7, 2026 [\#611](https://github.com/abhimehro/ctrld-sync/issues/611)
 - \[Code Quality\] Add HTTP status code hint to `create_folder` error handler [\#610](https://github.com/abhimehro/ctrld-sync/issues/610)
@@ -209,6 +211,7 @@
 
 **Merged pull requests:**
 
+- chore\(actions\): consolidate workflow automation [\#661](https://github.com/abhimehro/ctrld-sync/pull/661) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Optimize dictionary lookups with walrus operator [\#660](https://github.com/abhimehro/ctrld-sync/pull/660) ([abhimehro](https://github.com/abhimehro))
 - chore\(actions\): consolidate workflow automation [\#657](https://github.com/abhimehro/ctrld-sync/pull/657) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: \[performance improvement\] Reduce thread contention in API rate limit parsing [\#655](https://github.com/abhimehro/ctrld-sync/pull/655) ([abhimehro](https://github.com/abhimehro))
