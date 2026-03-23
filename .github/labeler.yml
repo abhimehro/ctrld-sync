@@ -2,21 +2,16 @@
 
 documentation:
   - changed-files:
-    - any-glob-to-any-file: '**/*.md'
+    - any-glob-to-any-file: ['**/*.md']
 
 configuration:
   - changed-files:
-    - any-glob-to-any-file: '**/*.yml'
-    - any-glob-to-any-file: '**/*.yaml'
-    - any-glob-to-any-file: '.github/**/*'
+    - any-glob-to-any-file: ['**/*.yml', '**/*.yaml', '.github/**/*']
 
 scripts:
   - changed-files:
-    - any-glob-to-any-file: '**/*.sh'
-    - any-glob-to-any-file: '**/*.bash'
+    - any-glob-to-any-file: ['**/*.sh', '**/*.bash']
 
 python:
   - changed-files:
-    - any-glob-to-any-file: '**/*.py'
-    - any-glob-to-any-file: 'pyproject.toml'
-    - any-glob-to-any-file: 'uv.lock'
+    - any-glob-to-any-file: ['**/*.py', 'pyproject.toml', 'uv.lock']

@@ -475,45 +475,51 @@ def render_pr_rows(prs: list[dict[str, Any]]) -> list[str]:
     return rows
 
 
+def fetch_sorted_items(item_type: str, limit: int, fields: str) -> list[dict[str, Any]]:
+    items = gh_json(
+        [
+            item_type,
+            "list",
+            "--state",
+            "open",
+            "--limit",
+            str(limit),
+            "--json",
+            fields,
+        ],
+        default=[],
+    )
+    return sorted(items, key=lambda item: item.get("updatedAt", ""))
+
+
+def render_stale_candidates(stale_items: list[dict[str, Any]], noun: str) -> list[str]:
+    return [
+        f"- {noun} #{item['number']} has been quiet for {age_days(item['updatedAt'])} days: {item['title']}"
+        for item in stale_items
+    ]
+
+
 def run_backlog_manager(config: dict[str, Any]) -> dict[str, Any]:
     section = config.get("backlog_manager", {})
-    max_issues = int(section.get("max_issues", 10))
-    max_prs = int(section.get("max_pull_requests", 10))
-    issues = gh_json(
-        [
-            "issue",
-            "list",
-            "--state",
-            "open",
-            "--limit",
-            str(max_issues),
-            "--json",
-            "number,title,updatedAt,url,labels",
-        ],
-        default=[],
-    )
-    prs = gh_json(
-        [
-            "pr",
-            "list",
-            "--state",
-            "open",
-            "--limit",
-            str(max_prs),
-            "--json",
-            "number,title,updatedAt,url,isDraft,reviewDecision,mergeStateStatus",
-        ],
-        default=[],
-    )
-    issues = sorted(issues, key=lambda item: item.get("updatedAt", ""))
-    prs = sorted(prs, key=lambda item: item.get("updatedAt", ""))
     stale_days = int(section.get("stale_days", 14))
+
+    issues = fetch_sorted_items(
+        "issue", int(section.get("max_issues", 10)), "number,title,updatedAt,url,labels"
+    )
+    prs = fetch_sorted_items(
+        "pr",
+        int(section.get("max_pull_requests", 10)),
+        "number,title,updatedAt,url,isDraft,reviewDecision,mergeStateStatus",
+    )
+
     stale_issues = [
         item for item in issues if age_days(item["updatedAt"]) >= stale_days
     ]
     stale_prs = [item for item in prs if age_days(item["updatedAt"]) >= stale_days]
+
     status = "warning" if stale_issues or stale_prs else "success"
     summary = f"Backlog scan found {len(issues)} open issues and {len(prs)} open PRs in the sampled set."
+
     lines = [
         "# Backlog manager",
         "",
@@ -524,20 +530,12 @@ def run_backlog_manager(config: dict[str, Any]) -> dict[str, Any]:
     ]
     lines.extend(render_issue_rows(issues))
     lines.extend(render_pr_rows(prs))
+
     if stale_issues or stale_prs:
         lines.extend(["", "## Human review candidates"])
-        lines.extend(
-            [
-                f"- Issue #{item['number']} has been quiet for {age_days(item['updatedAt'])} days: {item['title']}"
-                for item in stale_issues
-            ]
-        )
-        lines.extend(
-            [
-                f"- PR #{item['number']} has been quiet for {age_days(item['updatedAt'])} days: {item['title']}"
-                for item in stale_prs
-            ]
-        )
+        lines.extend(render_stale_candidates(stale_issues, "Issue"))
+        lines.extend(render_stale_candidates(stale_prs, "PR"))
+
     return write_result(
         "backlog-manager",
         status,
@@ -583,6 +581,42 @@ def status_icon(status: str) -> str:
     }.get(status, status.upper())
 
 
+def render_daily_releases(releases: list[dict[str, Any]]) -> list[str]:
+    lines = ["", "## Recent releases"]
+    if releases:
+        for release in releases:
+            name = release.get("name") or release.get("tagName") or "Unnamed release"
+            tag_name = release.get("tagName") or ""
+            url = release_url(tag_name)
+            rendered_name = f"[{name}]({url})" if url else name
+            lines.append(
+                f"- {rendered_name} published {release.get('publishedAt', '')[:10]}"
+            )
+    else:
+        lines.append("- No recent releases returned by the API.")
+    return lines
+
+
+def render_daily_recommendations(
+    overall: str, results: list[dict[str, Any]]
+) -> list[str]:
+    lines = ["", "## Recommendations"]
+    if overall == "success":
+        lines.append(
+            "- No blocking findings. Review the status report issue and any workflow-updater draft PR before merging."
+        )
+    else:
+        lines.append(
+            "- Review the failing or warning tasks before trusting any generated changes."
+        )
+
+    if any(item.get("status") in {"failure", "needs_review"} for item in results):
+        lines.append(
+            "- Human review is required for at least one task; no silent automation escalation was performed."
+        )
+    return lines
+
+
 def daily_report_lines(
     config: dict[str, Any], results: list[dict[str, Any]]
 ) -> list[str]:
@@ -598,7 +632,9 @@ def daily_report_lines(
         ["release", "list", "--limit", "5", "--json", "name,publishedAt,tagName"],
         default=[],
     )
+
     overall = overall_status(results)
+
     lines = [
         f"# Daily Repository Automation Report - {iso_day()}",
         "",
@@ -616,34 +652,14 @@ def daily_report_lines(
             for item in results
         ]
     )
-    lines.extend(["", "## Recent releases"])
-    if releases:
-        for release in releases:
-            name = release.get("name") or release.get("tagName") or "Unnamed release"
-            tag_name = release.get("tagName") or ""
-            url = release_url(tag_name)
-            rendered_name = f"[{name}]({url})" if url else name
-            lines.append(
-                f"- {rendered_name} published {release.get('publishedAt', '')[:10]}"
-            )
-    else:
-        lines.append("- No recent releases returned by the API.")
-    lines.extend(["", "## Recommendations"])
-    if overall == "success":
-        lines.append(
-            "- No blocking findings. Review the status report issue and any workflow-updater draft PR before merging."
-        )
-    else:
-        lines.append(
-            "- Review the failing or warning tasks before trusting any generated changes."
-        )
-    if any(item.get("status") in {"failure", "needs_review"} for item in results):
-        lines.append(
-            "- Human review is required for at least one task; no silent automation escalation was performed."
-        )
+
+    lines.extend(render_daily_releases(releases))
+    lines.extend(render_daily_recommendations(overall, results))
+
     lines.extend(["", "<!-- repository-automation:task-status"])
     lines.extend([f"{item['task']}={item['status']}" for item in results])
     lines.extend(["-->", ""])
+
     return lines
 
 
