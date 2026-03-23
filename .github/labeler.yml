@@ -1,22 +1,22 @@
 # Label PRs based on changed file paths
 
 documentation:
-  - any:
-    - '**/*.md'
+  - changed-files:
+    - any-glob-to-any-file: '**/*.md'
 
 configuration:
-  - any:
-    - '**/*.yml'
-    - '**/*.yaml'
-    - '.github/**/*'
+  - changed-files:
+    - any-glob-to-any-file: '**/*.yml'
+    - any-glob-to-any-file: '**/*.yaml'
+    - any-glob-to-any-file: '.github/**/*'
 
 scripts:
-  - any:
-    - '**/*.sh'
-    - '**/*.bash'
+  - changed-files:
+    - any-glob-to-any-file: '**/*.sh'
+    - any-glob-to-any-file: '**/*.bash'
 
 python:
-  - any:
-    - '**/*.py'
-    - 'pyproject.toml'
-    - 'uv.lock'
+  - changed-files:
+    - any-glob-to-any-file: '**/*.py'
+    - any-glob-to-any-file: 'pyproject.toml'
+    - any-glob-to-any-file: 'uv.lock'
