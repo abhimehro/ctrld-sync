@@ -5,6 +5,8 @@ import json
 import re
 from typing import Any
 
+from pathlib import Path
+
 from repository_automation_common import (
     DAILY_WORKFLOW_NAME,
     OUTPUT_ROOT,
@@ -155,6 +157,50 @@ def discover_hotspots(limit: int = 5) -> list[tuple[str, int]]:
     return sorted(candidates, key=lambda item: item[1], reverse=True)[:limit]
 
 
+def is_major_bump(current: str, proposed: str) -> bool:
+    current_v = numeric_version(current)
+    proposed_v = numeric_version(proposed)
+    return bool(current_v and proposed_v and proposed_v[0] > current_v[0])
+
+
+def process_workflow_match(
+    match: re.Match[str], file_path: Path, latest_cache: dict[str, str]
+) -> dict[str, Any] | None:
+    action_ref = match.group(2)
+    current = match.group(3)
+    if action_ref.startswith("./") or action_ref.startswith("docker://"):
+        return None
+    parts = action_ref.split("/")
+    if len(parts) < 2:
+        return None
+    repo_id = "/".join(parts[:2])
+
+    if repo_id not in latest_cache:
+        latest_cache[repo_id] = latest_tag_for_action(repo_id)
+    latest = latest_cache[repo_id]
+
+    proposed = target_ref(current, latest)
+    if not proposed or proposed == current:
+        return None
+
+    # Ensure the proposed target ref actually exists (could be a branch or tag)
+    if not ref_exists(repo_id, proposed):
+        print(
+            f"Warning: Proposed ref '{proposed}' does not exist for {repo_id}. Skipping update."
+        )
+        return None
+
+    return {
+        "old": match.group(0),
+        "new": f"{match.group(1)}{action_ref}@{proposed}",
+        "file": str(file_path.relative_to(ROOT)),
+        "action": action_ref,
+        "current": current,
+        "target": proposed,
+        "is_major_bump": is_major_bump(current, proposed),
+    }
+
+
 def workflow_file_plans() -> list[dict[str, Any]]:
     latest_cache: dict[str, str] = {}
     plans = []
@@ -162,47 +208,9 @@ def workflow_file_plans() -> list[dict[str, Any]]:
         text = file_path.read_text()
         replacements = []
         for match in WORKFLOW_PATTERN.finditer(text):
-            action_ref = match.group(2)
-            current = match.group(3)
-            if action_ref.startswith("./") or action_ref.startswith("docker://"):
-                continue
-            parts = action_ref.split("/")
-            if len(parts) < 2:
-                continue
-            repo_id = "/".join(parts[:2])
-            latest = latest_cache.get(repo_id)
-            if latest is None:
-                latest = latest_tag_for_action(repo_id)
-                latest_cache[repo_id] = latest
-            proposed = target_ref(current, latest)
-            if not proposed or proposed == current:
-                continue
-
-            # Ensure the proposed target ref actually exists (could be a branch or tag)
-            if not ref_exists(repo_id, proposed):
-                print(
-                    f"Warning: Proposed ref '{proposed}' does not exist for {repo_id}. Skipping update."
-                )
-                continue
-
-            # Detect major bumps for compatibility notes
-            is_major_bump = False
-            current_v = numeric_version(current)
-            proposed_v = numeric_version(proposed)
-            if current_v and proposed_v and proposed_v[0] > current_v[0]:
-                is_major_bump = True
-
-            replacements.append(
-                {
-                    "old": match.group(0),
-                    "new": f"{match.group(1)}{action_ref}@{proposed}",
-                    "file": str(file_path.relative_to(ROOT)),
-                    "action": action_ref,
-                    "current": current,
-                    "target": proposed,
-                    "is_major_bump": is_major_bump,
-                }
-            )
+            replacement = process_workflow_match(match, file_path, latest_cache)
+            if replacement:
+                replacements.append(replacement)
         if replacements:
             plans.append(
                 {"path": file_path, "text": text, "replacements": replacements}
@@ -259,10 +267,52 @@ def render_update_table(updates: list[dict[str, str]]) -> list[str]:
     return lines
 
 
+def extract_major_bumps(updates: list[dict[str, Any]]) -> dict[str, tuple[str, str]]:
+    major_bumps = {}
+    for item in updates:
+        if item["is_major_bump"]:
+            major_bumps[item["action"]] = (item["current"], item["target"])
+    return major_bumps
+
+
+def build_pr_body(section: dict[str, Any], updates: list[dict[str, Any]]) -> str:
+    major_bumps = extract_major_bumps(updates)
+    notes = [
+        "Security gate limited changes to allow-listed workflow paths.",
+        "No force-push or merge is performed by this automation.",
+    ]
+    pr_body = safe_pr_body(
+        section.get("pr_title", "Workflow update"),
+        updates,
+        notes,
+    )
+
+    if major_bumps:
+        pr_body += "\n### Compatibility review required\n"
+        for action, (current, target) in major_bumps.items():
+            pr_body += f"- `{action}` major bump ({current} -> {target}): review inputs and syntax for breaking changes before merging\n"
+
+    return pr_body
+
+
+def apply_updates_and_create_pr(
+    section: dict[str, Any], plans: list[dict[str, Any]], updates: list[dict[str, Any]]
+) -> str:
+    apply_workflow_updates(plans)
+    pr_body = build_pr_body(section, updates)
+    return create_pr_for_current_changes(
+        section.get("branch_prefix", "automation/workflow-updates"),
+        section.get("commit_message", "chore(actions): update workflow dependencies"),
+        section.get("pr_title", "chore(actions): update workflow dependencies"),
+        pr_body,
+    )
+
+
 def run_workflow_updater(config: dict[str, Any]) -> dict[str, Any]:
     section = config.get("workflow_updater", {})
     plans = workflow_file_plans()
     updates = flattened_updates(plans)
+
     if not updates:
         body = "# Workflow updater\n\n- Status: **success**\n- Summary: No GitHub Action updates were detected.\n"
         return write_result(
@@ -324,38 +374,7 @@ def run_workflow_updater(config: dict[str, Any]) -> dict[str, Any]:
 
     pr_url = ""
     try:
-        apply_workflow_updates(plans)
-
-        # Check for major bumps that need human review
-        major_bumps = {}
-        for item in updates:
-            if item["is_major_bump"]:
-                major_bumps[item["action"]] = (item["current"], item["target"])
-
-        notes = [
-            "Security gate limited changes to allow-listed workflow paths.",
-            "No force-push or merge is performed by this automation.",
-        ]
-
-        pr_body = safe_pr_body(
-            section.get("pr_title", "Workflow update"),
-            updates,
-            notes,
-        )
-
-        if major_bumps:
-            pr_body += "\n### Compatibility review required\n"
-            for action, (current, target) in major_bumps.items():
-                pr_body += f"- `{action}` major bump ({current} -> {target}): review inputs and syntax for breaking changes before merging\n"
-
-        pr_url = create_pr_for_current_changes(
-            section.get("branch_prefix", "automation/workflow-updates"),
-            section.get(
-                "commit_message", "chore(actions): update workflow dependencies"
-            ),
-            section.get("pr_title", "chore(actions): update workflow dependencies"),
-            pr_body,
-        )
+        pr_url = apply_updates_and_create_pr(section, plans, updates)
         status = "success"
         summary = (
             f"Detected {len(updates)} workflow action updates and prepared a draft PR."
@@ -365,6 +384,7 @@ def run_workflow_updater(config: dict[str, Any]) -> dict[str, Any]:
         restore_workflow_updates(plans)
         status = "failure"
         body_parts.extend(["## Draft PR failure", f"- {exc}", ""])
+
     return write_result(
         "workflow-updater",
         status,
