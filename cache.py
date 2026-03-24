@@ -215,7 +215,9 @@ def save_disk_cache() -> None:
         # Security: use tempfile.mkstemp to securely create a unique temporary file
         # with O_CREAT | O_EXCL and 0o600 permissions, preventing predictable
         # temporary file vulnerabilities and TOCTOU races.
-        fd, temp_file_path_str = tempfile.mkstemp(prefix="blocklists.", suffix=".tmp", dir=str(cache_dir))
+        fd, temp_file_path_str = tempfile.mkstemp(
+            prefix="blocklists.", suffix=".tmp", dir=str(cache_dir)
+        )
         temp_path = Path(temp_file_path_str)
 
         try:

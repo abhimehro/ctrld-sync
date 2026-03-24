@@ -790,6 +790,8 @@ def test_validate_folder_data_structure(monkeypatch):
     valid_rg = valid_base.copy()
     valid_rg["rule_groups"] = [{"rules": [{"PK": "rule1"}]}]
     assert m.validate_folder_data(valid_rg, "url") is True
+
+
 def test_is_valid_profile_id_format(monkeypatch):
     m = reload_main_with_env(monkeypatch)
     # Valid IDs

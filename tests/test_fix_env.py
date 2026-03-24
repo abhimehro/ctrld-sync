@@ -117,6 +117,7 @@ def test_fix_env_handles_existing_temp_file(tmp_path, monkeypatch):
     finally:
         os.chdir(cwd)
 
+
 def test_clean_val():
     """
     Verify clean_val correctly removes surrounding quotes and strips whitespace.
@@ -131,6 +132,7 @@ def test_clean_val():
     assert fix_env.clean_val("\u201cvalue\u201d") == "value"  # curly quotes
     assert fix_env.clean_val('""value""') == '"value"'  # only removes outermost
 
+
 def test_escape_val():
     """
     Verify escape_val correctly escapes backslashes and double quotes.
@@ -139,5 +141,5 @@ def test_escape_val():
     assert fix_env.escape_val("") == ""
     assert fix_env.escape_val("value") == "value"
     assert fix_env.escape_val('val"ue') == 'val\\"ue'
-    assert fix_env.escape_val('val\\ue') == 'val\\\\ue'
+    assert fix_env.escape_val("val\\ue") == "val\\\\ue"
     assert fix_env.escape_val('val\\"ue') == 'val\\\\\\"ue'

@@ -6,6 +6,7 @@ import tempfile
 
 __all__ = ["fix_env", "clean_val", "escape_val"]
 
+
 # Helper to clean quotes (curly or straight)
 def clean_val(val):
     if not val:
@@ -14,12 +15,14 @@ def clean_val(val):
     val = val.strip()
     return re.sub(r"^[\"\u201c\u201d\']|[\"\u201c\u201d\']$", "", val)
 
+
 # Helper to escape value for shell
 def escape_val(val):
     if not val:
         return ""
     # Escape backslashes first, then double quotes
     return val.replace("\\", "\\\\").replace('"', '\\"')
+
 
 def fix_env():
     """Read `.env`, correct swapped TOKEN/PROFILE assignments, and rewrite securely.
@@ -34,7 +37,9 @@ def fix_env():
     # Security: Don't follow symlinks when fixing .env
     # This prevents attacks where .env is symlinked to a system file
     if os.path.islink(".env"):
-        print("Security Warning: .env is a symlink. Skipping to avoid damaging target file.")
+        print(
+            "Security Warning: .env is a symlink. Skipping to avoid damaging target file."
+        )
         return
 
     try:
@@ -116,6 +121,7 @@ def fix_env():
 
     print("Fixed .env file: standardized quotes and corrected variable assignments.")
     print("Security: .env permissions set to 600 (read/write only by owner).")
+
 
 if __name__ == "__main__":
     fix_env()
