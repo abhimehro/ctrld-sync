@@ -1,5 +1,4 @@
-# Label PRs based on changed file paths
-
+# Label PRs based on changed file paths (actions/labeler@v6 format)
 documentation:
   - changed-files:
     - any-glob-to-any-file: ['**/*.md']
