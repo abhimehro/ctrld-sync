@@ -373,7 +373,7 @@ def latest_tag_for_action(repo_id: str) -> str:
             "api",
             f"repos/{repo_id}/releases",
             "--jq",
-            "[.[] | select(.prerelease == false) | .tag_name] | .[0]",
+            "[.[] | select(.prerelease == false)] | .[0].tag_name",
         ],
         default=None,
     )
@@ -381,7 +381,7 @@ def latest_tag_for_action(repo_id: str) -> str:
         return releases
 
     # Fallback 2: Get the most recent tag (which may not be associated with a release object)
-    return gh_text(["api", f"repos/{repo_id}/tags?per_page=1", "--jq", "[.[] | .name] | .[0]"])
+    return gh_text(["api", f"repos/{repo_id}/tags?per_page=1", "--jq", ".[0].name"])
 
 
 def ref_exists(repo_id: str, ref: str) -> bool:
