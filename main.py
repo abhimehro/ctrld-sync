@@ -486,6 +486,7 @@ _DANGEROUS_FOLDER_CHARS.update(["/", "\\"])
 MAX_FOLDER_NAME_LENGTH = 64
 MAX_RULE_LENGTH = 255
 MAX_PROFILE_ID_LENGTH = 64
+MAX_URL_LENGTH = 2048
 # In constants section
 DEFAULT_HTTP_TIMEOUT = httpx.Timeout(10.0, connect=5.0)
 # Security: Unicode Bidi control characters (prevent RTLO/homograph attacks)
@@ -1099,6 +1100,15 @@ def validate_folder_url(url: str) -> bool:
     Validates a folder URL.
     Cached to avoid repeated URL parsing for the same URL.
     """
+    if not url:
+        return False
+
+    if len(url) > MAX_URL_LENGTH:
+        log.warning(
+            f"Skipping URL that exceeds maximum length of {MAX_URL_LENGTH} characters"
+        )
+        return False
+
     if not url.startswith("https://"):
         log.warning(
             f"Skipping unsafe or invalid URL (must be https): {sanitize_for_log(url)}"

@@ -89,3 +89,8 @@
 **Vulnerability:** `save_disk_cache` used a predictable file name (`cache_file.with_suffix(".tmp")`) when creating temporary cache files. Despite using `O_EXCL`, the code would unlink existing files and retry if a collision occurred. This opened up a Time-Of-Check-To-Time-Of-Use (TOCTOU) vulnerability window where a malicious user could exploit a symlink attack to overwrite arbitrary system files or inject malicious cache data.
 **Learning:** Hardcoding or using predictable temporary file names is insecure, even when coupled with `O_EXCL` flags, if the error recovery logic creates race conditions (like unlinking and retrying).
 **Prevention:** Always use `tempfile.mkstemp(dir=...)` when creating temporary files, especially those containing sensitive or configuration data. Ensure the generated unique file is properly cleaned up within a `try...finally` block to avoid leaving artifacts if the process crashes or fails before the final atomic rename.
+
+## 2024-03-11 - Unbounded URL Input (DoS Risk)
+**Vulnerability:** `validate_folder_url` accepted URLs of unlimited length. An attacker or misconfigured system providing extremely long URLs could trigger algorithmic complexity attacks in downstream URL parsing libraries (`httpx.URL`), leading to high CPU usage or resource exhaustion (Denial of Service).
+**Learning:** Parsing extremely long, malformed strings with complex regex or URL parsing logic is a common vector for DoS. Input length validation must occur *before* structural parsing.
+**Prevention:** Enforce strict maximum length limits (e.g., `MAX_URL_LENGTH = 2048`) on user-provided strings like URLs prior to parsing or regex matching.
