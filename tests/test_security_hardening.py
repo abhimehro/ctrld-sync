@@ -1,7 +1,9 @@
 import logging
-import pytest
 from unittest.mock import MagicMock, patch
+
 import httpx
+import pytest
+
 import main
 
 

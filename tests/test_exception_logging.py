@@ -6,7 +6,9 @@ exception messages are properly redacted before being written to logs.
 
 import unittest
 from unittest.mock import MagicMock, patch
+
 import httpx
+
 import main
 
 

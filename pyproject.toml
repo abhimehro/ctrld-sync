@@ -4,23 +4,19 @@ version = "0.1.0"
 description = "Simple script which syncs defined Control D folders"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = [
-    "httpx>=0.28.1",
-    "python-dotenv>=1.1.1",
-    "pyyaml>=6.0",
-]
+dependencies = ["httpx>=0.28.1", "python-dotenv>=1.1.1", "pyyaml>=6.0"]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=7.0.0",
-    "pytest-mock>=3.10.0",
-    "pytest-xdist>=3.0.0",
-    "pytest-benchmark>=4.0.0",
-    "pytest-cov>=4.0.0",
-    "pre-commit>=3.0.0",
-    "mypy>=1.9",
-    "types-PyYAML>=6.0",
-    "ruff>=0.9.0",
+  "pytest>=7.0.0",
+  "pytest-mock>=3.10.0",
+  "pytest-xdist>=3.0.0",
+  "pytest-benchmark>=4.0.0",
+  "pytest-cov>=4.0.0",
+  "pre-commit>=3.0.0",
+  "mypy>=1.9",
+  "types-PyYAML>=6.0",
+  "ruff>=0.9.0",
 ]
 
 [tool.coverage.run]
@@ -40,22 +36,8 @@ warn_return_any = true
 warn_unused_ignores = true
 
 [tool.ruff.lint]
-select = [
-    "E",
-    "W",
-    "F",
-    "N",
-    "PERF",
-    "RET",
-    "SIM",
-    "UP",
-]
-ignore = [
-    "E501",
-    "SIM105",
-    "SIM115",
-    "SIM117",
-]
+select = ["E", "W", "F", "N", "PERF", "RET", "SIM", "UP"]
+ignore = ["E501", "SIM105", "SIM115", "SIM117"]
 
 [tool.pytest.ini_options]
 addopts = "-p no:cacheprovider"

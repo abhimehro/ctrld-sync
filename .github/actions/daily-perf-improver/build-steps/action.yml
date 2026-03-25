@@ -1,8 +1,8 @@
-name: 'Build Steps for Performance Testing'
-description: 'Sets up the environment and validates build for performance testing'
+name: "Build Steps for Performance Testing"
+description: "Sets up the environment and validates build for performance testing"
 
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
     - name: Install uv
       uses: astral-sh/setup-uv@v4
@@ -13,7 +13,7 @@ runs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.13'
+        python-version: "3.13"
 
     - name: Install dependencies
       shell: bash

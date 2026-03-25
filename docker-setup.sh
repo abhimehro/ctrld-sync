@@ -7,9 +7,9 @@ echo "🐳 Control D Sync - Docker Setup"
 echo "================================"
 
 # Check if Docker is installed
-if ! command -v docker &> /dev/null; then
-    echo "❌ Docker is not installed. Please install it first."
-    exit 1
+if ! command -v docker &>/dev/null; then
+	echo "❌ Docker is not installed. Please install it first."
+	exit 1
 fi
 
 # Build the image

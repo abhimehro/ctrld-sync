@@ -18,7 +18,6 @@ from __future__ import annotations
 import argparse
 import concurrent.futures
 import contextlib
-from dataclasses import dataclass
 import getpass
 import ipaddress
 import json
@@ -32,14 +31,32 @@ import stat
 import sys
 import threading
 import time
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, NotRequired, TypedDict, TypeGuard, cast
-from collections.abc import Callable, Sequence
 
 import httpx
 import yaml
+from dotenv import load_dotenv
+
+import api_client
 import cache
+from api_client import (
+    _CONNECT_ERROR_HINT,
+    _SERVER_ERROR_HINT,
+    _TIMEOUT_HINT,
+    MAX_RETRIES,
+    RETRY_DELAY,
+    _api_delete,
+    _api_get,
+    _api_post,
+    _api_post_form,
+    _api_stats,
+    _rate_limit_info,
+    _rate_limit_lock,
+)
 from cache import (
     CACHE_TTL_SECONDS,
     _cache_stats,
@@ -47,23 +64,6 @@ from cache import (
     get_cache_dir,
     load_disk_cache,
     save_disk_cache,
-)
-from dotenv import load_dotenv
-
-import api_client
-from api_client import (
-    MAX_RETRIES,
-    RETRY_DELAY,
-    _CONNECT_ERROR_HINT,
-    _SERVER_ERROR_HINT,
-    _TIMEOUT_HINT,
-    _api_stats,
-    _rate_limit_info,
-    _rate_limit_lock,
-    _api_get,
-    _api_delete,
-    _api_post,
-    _api_post_form,
 )
 
 

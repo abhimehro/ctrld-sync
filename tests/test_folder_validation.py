@@ -1,6 +1,5 @@
 from unittest.mock import MagicMock
 
-
 import main
 
 
@@ -71,9 +70,7 @@ def test_folder_name_security():
                 assert (
                     main.validate_folder_data(bidi_data, f"http://bidi-{ord(char)}.com")
                     is False
-                ), (
-                    f"Bidi character {description} (U+{ord(char):04X}) should be blocked in '{test_name}'"
-                )
+                ), f"Bidi character {description} (U+{ord(char):04X}) should be blocked in '{test_name}'"
 
         # Case 8: Path Traversal (Security Hardening)
         # Block '.' and '..' which could be used for path traversal

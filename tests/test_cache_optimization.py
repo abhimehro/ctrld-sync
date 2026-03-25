@@ -7,11 +7,11 @@ This module verifies that:
 3. Cache operations are thread-safe
 """
 
+import os
+import sys
 import threading
 import unittest
-from unittest.mock import patch, MagicMock
-import sys
-import os
+from unittest.mock import MagicMock, patch
 
 # Add root to path to import main
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

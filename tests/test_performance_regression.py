@@ -5,8 +5,8 @@ These benchmarks guard against unintentional slowdowns on hot paths.
 Run with: uv run pytest tests/test_performance_regression.py --benchmark-only
 """
 
-import sys
 import os
+import sys
 
 import httpx
 import pytest

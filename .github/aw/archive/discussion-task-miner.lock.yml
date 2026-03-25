@@ -197,12 +197,12 @@ jobs:
           GH_AW_GITHUB_REPOSITORY: ${{ github.repository }}
           GH_AW_GITHUB_RUN_ID: ${{ github.run_id }}
           GH_AW_GITHUB_WORKSPACE: ${{ github.workspace }}
-          GH_AW_MEMORY_BRANCH_NAME: 'memory/discussion-task-miner'
+          GH_AW_MEMORY_BRANCH_NAME: "memory/discussion-task-miner"
           GH_AW_MEMORY_CONSTRAINTS: "\n\n**Constraints:**\n- **Allowed Files**: Only files matching patterns: memory/discussion-task-miner/*.json, memory/discussion-task-miner/*.md\n- **Max File Size**: 102400 bytes (0.10 MB) per file\n- **Max File Count**: 100 files per commit\n- **Max Patch Size**: 10240 bytes (10 KB) total per push (max: 100 KB)\n"
-          GH_AW_MEMORY_DESCRIPTION: ' Track processed discussions and extracted tasks'
-          GH_AW_MEMORY_DIR: '/tmp/gh-aw/repo-memory/default/'
-          GH_AW_MEMORY_TARGET_REPO: ' of the current repository'
-          GH_AW_WIKI_NOTE: ''
+          GH_AW_MEMORY_DESCRIPTION: " Track processed discussions and extracted tasks"
+          GH_AW_MEMORY_DIR: "/tmp/gh-aw/repo-memory/default/"
+          GH_AW_MEMORY_TARGET_REPO: " of the current repository"
+          GH_AW_WIKI_NOTE: ""
         with:
           script: |
             const { setupGlobals } = require('/opt/gh-aw/actions/setup_globals.cjs');
@@ -667,7 +667,7 @@ jobs:
       - name: Start Safe Outputs MCP HTTP Server
         id: safe-outputs-start
         env:
-          DEBUG: '*'
+          DEBUG: "*"
           GH_AW_SAFE_OUTPUTS_PORT: ${{ steps.safe-outputs-config.outputs.safe_outputs_port }}
           GH_AW_SAFE_OUTPUTS_API_KEY: ${{ steps.safe-outputs-config.outputs.safe_outputs_api_key }}
           GH_AW_SAFE_OUTPUTS_TOOLS_PATH: /opt/gh-aw/safeoutputs/tools.json
@@ -845,7 +845,7 @@ jobs:
             const { main } = require('/opt/gh-aw/actions/redact_secrets.cjs');
             await main();
         env:
-          GH_AW_SECRET_NAMES: 'COPILOT_GITHUB_TOKEN,GH_AW_GITHUB_MCP_SERVER_TOKEN,GH_AW_GITHUB_TOKEN,GITHUB_TOKEN'
+          GH_AW_SECRET_NAMES: "COPILOT_GITHUB_TOKEN,GH_AW_GITHUB_MCP_SERVER_TOKEN,GH_AW_GITHUB_TOKEN,GITHUB_TOKEN"
           SECRET_COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
           SECRET_GH_AW_GITHUB_MCP_SERVER_TOKEN: ${{ secrets.GH_AW_GITHUB_MCP_SERVER_TOKEN }}
           SECRET_GH_AW_GITHUB_TOKEN: ${{ secrets.GH_AW_GITHUB_TOKEN }}
@@ -1240,7 +1240,7 @@ jobs:
           MAX_FILE_SIZE: 102400
           MAX_FILE_COUNT: 100
           MAX_PATCH_SIZE: 10240
-          ALLOWED_EXTENSIONS: '[]'
+          ALLOWED_EXTENSIONS: "[]"
           FILE_GLOB_FILTER: "memory/discussion-task-miner/*.json memory/discussion-task-miner/*.md"
         with:
           script: |
@@ -1305,7 +1305,7 @@ jobs:
           GH_AW_ALLOWED_DOMAINS: "api.business.githubcopilot.com,api.enterprise.githubcopilot.com,api.github.com,api.githubcopilot.com,api.individual.githubcopilot.com,api.snapcraft.io,archive.ubuntu.com,azure.archive.ubuntu.com,crl.geotrust.com,crl.globalsign.com,crl.identrust.com,crl.sectigo.com,crl.thawte.com,crl.usertrust.com,crl.verisign.com,crl3.digicert.com,crl4.digicert.com,crls.ssl.com,github.com,host.docker.internal,json-schema.org,json.schemastore.org,keyserver.ubuntu.com,ocsp.digicert.com,ocsp.geotrust.com,ocsp.globalsign.com,ocsp.identrust.com,ocsp.sectigo.com,ocsp.ssl.com,ocsp.thawte.com,ocsp.usertrust.com,ocsp.verisign.com,packagecloud.io,packages.cloud.google.com,packages.microsoft.com,ppa.launchpad.net,raw.githubusercontent.com,registry.npmjs.org,s.symcb.com,s.symcd.com,security.ubuntu.com,telemetry.enterprise.githubcopilot.com,ts-crl.ws.symantec.com,ts-ocsp.ws.symantec.com"
           GITHUB_SERVER_URL: ${{ github.server_url }}
           GITHUB_API_URL: ${{ github.api_url }}
-          GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\"add_comment\":{\"max\":3},\"create_issue\":{\"expires\":24,\"group\":true,\"labels\":[\"code-quality\",\"automation\",\"task-mining\",\"cookie\"],\"max\":5,\"title_prefix\":\"[Code Quality] \"},\"missing_data\":{},\"missing_tool\":{}}"
+          GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: '{"add_comment":{"max":3},"create_issue":{"expires":24,"group":true,"labels":["code-quality","automation","task-mining","cookie"],"max":5,"title_prefix":"[Code Quality] "},"missing_data":{},"missing_tool":{}}'
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |

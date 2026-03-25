@@ -19,6 +19,6 @@ jobs:
           cache-dependency-glob: uv.lock
       - uses: actions/setup-python@v6
         with:
-          python-version: '3.13'
+          python-version: "3.13"
       - run: uv sync --all-extras
       - run: uv run mypy main.py

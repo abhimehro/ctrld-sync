@@ -4,7 +4,6 @@ import importlib
 import os
 from unittest.mock import patch
 
-
 # NOTE: Avoid importing `main` at module import time.
 # Some tests delete `sys.modules["main"]` to force a clean import under different env/TTY
 # settings; holding a stale module reference can cause patches to target the wrong module.

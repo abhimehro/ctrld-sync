@@ -3,9 +3,8 @@ from __future__ import annotations
 import datetime as dt
 import json
 import re
-from typing import Any
-
 from pathlib import Path
+from typing import Any
 
 from repository_automation_common import (
     DAILY_WORKFLOW_NAME,

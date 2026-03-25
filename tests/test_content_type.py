@@ -1,13 +1,14 @@
-import unittest
-from unittest.mock import patch, MagicMock
-import sys
 import os
+import sys
+import unittest
+from unittest.mock import MagicMock, patch
 
 # Add root to path to import main
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import main
 import httpx
+
+import main
 
 
 class TestContentTypeValidation(unittest.TestCase):

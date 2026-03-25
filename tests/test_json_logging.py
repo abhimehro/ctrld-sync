@@ -4,8 +4,8 @@ import json
 import logging
 import sys
 import time
-from unittest import mock
 import unittest
+from unittest import mock
 
 import main
 

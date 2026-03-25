@@ -12,12 +12,12 @@ This module verifies:
 
 import json
 import os
+import sys
 import tempfile
 import time
 import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
-import sys
 
 # Add root to path to import main
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

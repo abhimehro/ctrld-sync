@@ -3,10 +3,9 @@ import os
 import sys
 from unittest.mock import MagicMock, patch
 
+import dotenv
 import httpx
 import pytest
-
-import dotenv
 
 dotenv.load_dotenv = lambda **kwargs: None
 import main  # noqa: E402

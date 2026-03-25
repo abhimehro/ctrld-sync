@@ -1,8 +1,8 @@
-import unittest
-from unittest.mock import patch
-import sys
 import os
 import socket
+import sys
+import unittest
+from unittest.mock import patch
 
 # Add root to path to import main
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
