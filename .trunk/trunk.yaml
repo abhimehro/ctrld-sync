@@ -18,15 +18,18 @@ runtimes:
 # This is the section where you manage your linters. (https://docs.trunk.io/check/configuration)
 lint:
   enabled:
+    - hadolint@2.14.0
+    - mypy@1.19.1
+    - osv-scanner@2.2.4
     - actionlint@1.7.11
-    - bandit@1.9.3
-    - black@26.1.0
-    - checkov@3.2.501
+    - bandit@1.9.4
+    - black@26.3.1
+    - checkov@3.2.510
     - git-diff-check
-    - isort@7.0.0
-    - markdownlint@0.47.0
+    - isort@8.0.1
+    - markdownlint@0.48.0
     - prettier@3.8.1
-    - ruff@0.15.1
+    - ruff@0.15.7
     - shellcheck@0.11.0
     - shfmt@3.6.0
     - taplo@0.10.0
