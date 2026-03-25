@@ -1,4 +1,6 @@
 import main
+import socket
+from unittest.mock import patch
 
 
 def test_is_valid_folder_name_length_limit():
@@ -82,8 +84,6 @@ def test_validate_folder_url_acceptable_length():
     # To isolate the length check, we can use unittest.mock or just check it doesn't fail fast on length.
     # Actually, the test_ssrf.py shows we mock socket.getaddrinfo.
     # Let's mock it here.
-    import socket
-    from unittest.mock import patch
 
     with patch("socket.getaddrinfo") as mock_getaddrinfo:
         # Simulate resolving to 8.8.8.8
