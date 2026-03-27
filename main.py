@@ -487,6 +487,8 @@ MAX_FOLDER_NAME_LENGTH = 64
 MAX_RULE_LENGTH = 255
 MAX_PROFILE_ID_LENGTH = 64
 MAX_URL_LENGTH = 2048
+MAX_FOLDER_ID_LENGTH = 128
+MAX_HOSTNAME_LENGTH = 253
 # In constants section
 DEFAULT_HTTP_TIMEOUT = httpx.Timeout(10.0, connect=5.0)
 # Security: Unicode Bidi control characters (prevent RTLO/homograph attacks)
@@ -1057,6 +1059,12 @@ def validate_hostname(hostname: str) -> bool:
     Validates a hostname (DNS resolution and IP checks).
     Cached to prevent redundant DNS lookups for the same host across different URLs.
     """
+    if len(hostname) > MAX_HOSTNAME_LENGTH:
+        log.warning(
+            f"Skipping hostname exceeding maximum length ({MAX_HOSTNAME_LENGTH}): {sanitize_for_log(hostname[:100])}..."
+        )
+        return False
+
     # Check for potentially malicious hostnames
     if hostname.lower() in ("localhost", "127.0.0.1", "::1"):
         log.warning(
@@ -1135,6 +1143,9 @@ def extract_profile_id(text: str) -> str:
     if not text:
         return ""
     text = text.strip()
+    if len(text) > MAX_URL_LENGTH:
+        return text
+
     # Pattern for Control D Dashboard URLs
     # e.g. https://controld.com/dashboard/profiles/12345abc/filters
     match = re.search(r"controld\.com/dashboard/profiles/([^/?#\s]+)", text)
@@ -1149,12 +1160,13 @@ def is_valid_profile_id_format(profile_id: str) -> bool:
 
     Validates against PROFILE_ID_PATTERN and enforces maximum length of 64 characters.
     """
+    if len(profile_id) > MAX_PROFILE_ID_LENGTH:
+        return False
+
     if "\x00" in profile_id:
         return False
 
-    if not PROFILE_ID_PATTERN.match(profile_id):
-        return False
-    return not len(profile_id) > MAX_PROFILE_ID_LENGTH
+    return bool(PROFILE_ID_PATTERN.match(profile_id))
 
 
 def validate_profile_id(profile_id: str, log_errors: bool = True) -> bool:
@@ -1179,6 +1191,11 @@ def validate_profile_id(profile_id: str, log_errors: bool = True) -> bool:
 def validate_folder_id(folder_id: str, log_errors: bool = True) -> bool:
     """Validates folder ID (PK) format to prevent path traversal."""
     if not folder_id:
+        return False
+
+    if len(folder_id) > MAX_FOLDER_ID_LENGTH:
+        if log_errors:
+            log.error(f"Invalid folder ID length (max {MAX_FOLDER_ID_LENGTH} chars)")
         return False
 
     if "\x00" in folder_id:
