@@ -1144,7 +1144,7 @@ def extract_profile_id(text: str) -> str:
         return ""
     text = text.strip()
     if len(text) > MAX_URL_LENGTH:
-        return ""
+        return text
 
     # Pattern for Control D Dashboard URLs
     # e.g. https://controld.com/dashboard/profiles/12345abc/filters
@@ -1199,7 +1199,9 @@ def validate_folder_id(folder_id: str, log_errors: bool = True) -> bool:
     if len(folder_id) > MAX_FOLDER_ID_LENGTH:
         error_msg = f"Invalid folder ID length (max {MAX_FOLDER_ID_LENGTH} chars)"
     elif "\x00" in folder_id:
-        error_msg = f"Invalid folder ID format (null byte): {sanitize_for_log(folder_id)}"
+        error_msg = (
+            f"Invalid folder ID format (null byte): {sanitize_for_log(folder_id)}"
+        )
     elif is_traversal or not FOLDER_ID_PATTERN.match(folder_id):
         error_msg = f"Invalid folder ID format: {sanitize_for_log(folder_id)}"
 
