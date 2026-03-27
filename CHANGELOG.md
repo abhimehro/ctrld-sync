@@ -215,6 +215,7 @@
 
 **Merged pull requests:**
 
+- 🛡️ Sentinel: \[MEDIUM\] Fix DoS risk by adding URL length limit [\#672](https://github.com/abhimehro/ctrld-sync/pull/672) ([abhimehro](https://github.com/abhimehro))
 - fix\(automation\): validate action ref existence and add major bump warnings [\#663](https://github.com/abhimehro/ctrld-sync/pull/663) ([abhimehro](https://github.com/abhimehro))
 - chore\(actions\): consolidate workflow automation [\#661](https://github.com/abhimehro/ctrld-sync/pull/661) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Optimize dictionary lookups with walrus operator [\#660](https://github.com/abhimehro/ctrld-sync/pull/660) ([abhimehro](https://github.com/abhimehro))
