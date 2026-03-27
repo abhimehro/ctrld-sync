@@ -1193,21 +1193,19 @@ def validate_folder_id(folder_id: str, log_errors: bool = True) -> bool:
     if not folder_id:
         return False
 
+    error_msg = ""
+    is_traversal = folder_id in (".", "..")
+
     if len(folder_id) > MAX_FOLDER_ID_LENGTH:
-        if log_errors:
-            log.error(f"Invalid folder ID length (max {MAX_FOLDER_ID_LENGTH} chars)")
-        return False
+        error_msg = f"Invalid folder ID length (max {MAX_FOLDER_ID_LENGTH} chars)"
+    elif "\x00" in folder_id:
+        error_msg = f"Invalid folder ID format (null byte): {sanitize_for_log(folder_id)}"
+    elif is_traversal or not FOLDER_ID_PATTERN.match(folder_id):
+        error_msg = f"Invalid folder ID format: {sanitize_for_log(folder_id)}"
 
-    if "\x00" in folder_id:
+    if error_msg:
         if log_errors:
-            log.error(
-                f"Invalid folder ID format (null byte): {sanitize_for_log(folder_id)}"
-            )
-        return False
-
-    if folder_id in (".", "..") or not FOLDER_ID_PATTERN.match(folder_id):
-        if log_errors:
-            log.error(f"Invalid folder ID format: {sanitize_for_log(folder_id)}")
+            log.error(error_msg)
         return False
 
     return True
