@@ -1144,7 +1144,7 @@ def extract_profile_id(text: str) -> str:
         return ""
     text = text.strip()
     if len(text) > MAX_URL_LENGTH:
-        return text
+        return ""
 
     # Pattern for Control D Dashboard URLs
     # e.g. https://controld.com/dashboard/profiles/12345abc/filters
