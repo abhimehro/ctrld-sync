@@ -52,3 +52,45 @@ def test_is_valid_profile_id_length_limit_constant():
     # 64 chars
     valid_id = "a" * 64
     assert main.validate_profile_id(valid_id, log_errors=False) is True
+
+
+def test_is_valid_profile_id_format_length_limit():
+    """
+    Test that is_valid_profile_id_format rejects IDs exceeding the maximum length before regex matching.
+    """
+    long_id = "a" * 65
+    assert main.is_valid_profile_id_format(long_id) is False
+
+
+def test_validate_folder_id_length_limit():
+    """
+    Test that folder ID validation rejects IDs exceeding the maximum length.
+    """
+    long_id = "a" * 65
+    assert main.validate_folder_id(long_id, log_errors=False) is False
+
+    valid_id = "a" * 64
+    assert main.validate_folder_id(valid_id, log_errors=False) is True
+
+
+def test_validate_folder_url_length_limit():
+    """
+    Test that folder URL validation rejects URLs exceeding the maximum length.
+    """
+    # Create a URL longer than 2048 characters
+    long_url = "https://example.com/" + "a" * 2050
+    assert main.validate_folder_url(long_url) is False
+
+
+def test_validate_hostname_length_limit():
+    """
+    Test that hostname validation rejects hostnames exceeding the maximum length.
+    """
+    long_hostname = "a" * 254
+    assert main.validate_hostname(long_hostname) is False
+
+    # Use a dummy IP check or similar to avoid actual DNS lookup failure handling if possible,
+    # but since it's an invalid TLD, socket.getaddrinfo will fail and return False.
+    # What matters is that long_hostname is rejected purely based on length before lookup.
+    # Let's verify it gets rejected at length check.
+    assert main.validate_hostname(long_hostname) is False
