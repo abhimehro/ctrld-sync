@@ -2460,8 +2460,8 @@ def sync_profile(
                     name = folder_data["group"]["group"].strip()
                     if name in existing_folders:
                         folders_to_delete.append((name, existing_folders[name]))
-                        if name in folders_to_scan:
-                            del folders_to_scan[name]
+                        # OPTIMIZATION: Use dict.pop() to avoid a redundant dictionary lookup.
+                        folders_to_scan.pop(name, None)
 
             # Start fetching rules from kept folders in background (parallel to deletions)
             existing_rules_future = shared_executor.submit(
