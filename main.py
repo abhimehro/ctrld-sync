@@ -486,6 +486,9 @@ _DANGEROUS_FOLDER_CHARS.update(["/", "\\"])
 MAX_FOLDER_NAME_LENGTH = 64
 MAX_RULE_LENGTH = 255
 MAX_PROFILE_ID_LENGTH = 64
+MAX_FOLDER_ID_LENGTH = 64
+MAX_URL_LENGTH = 2048
+MAX_HOSTNAME_LENGTH = 253
 # In constants section
 DEFAULT_HTTP_TIMEOUT = httpx.Timeout(10.0, connect=5.0)
 # Security: Unicode Bidi control characters (prevent RTLO/homograph attacks)
@@ -1056,6 +1059,12 @@ def validate_hostname(hostname: str) -> bool:
     Validates a hostname (DNS resolution and IP checks).
     Cached to prevent redundant DNS lookups for the same host across different URLs.
     """
+    if len(hostname) > MAX_HOSTNAME_LENGTH:
+        log.warning(
+            f"Skipping unsafe hostname (exceeds {MAX_HOSTNAME_LENGTH} chars): {sanitize_for_log(hostname)}"
+        )
+        return False
+
     # Check for potentially malicious hostnames
     if hostname.lower() in ("localhost", "127.0.0.1", "::1"):
         log.warning(
@@ -1099,6 +1108,12 @@ def validate_folder_url(url: str) -> bool:
     Validates a folder URL.
     Cached to avoid repeated URL parsing for the same URL.
     """
+    if len(url) > MAX_URL_LENGTH:
+        log.warning(
+            f"Skipping unsafe URL (exceeds {MAX_URL_LENGTH} chars): {sanitize_for_log(url)}"
+        )
+        return False
+
     if not url.startswith("https://"):
         log.warning(
             f"Skipping unsafe or invalid URL (must be https): {sanitize_for_log(url)}"
@@ -1145,9 +1160,10 @@ def is_valid_profile_id_format(profile_id: str) -> bool:
     if "\x00" in profile_id:
         return False
 
-    if not PROFILE_ID_PATTERN.match(profile_id):
+    if len(profile_id) > MAX_PROFILE_ID_LENGTH:
         return False
-    return not len(profile_id) > MAX_PROFILE_ID_LENGTH
+
+    return bool(PROFILE_ID_PATTERN.match(profile_id))
 
 
 def validate_profile_id(profile_id: str, log_errors: bool = True) -> bool:
@@ -1169,22 +1185,32 @@ def validate_profile_id(profile_id: str, log_errors: bool = True) -> bool:
     return True
 
 
+def _log_validation_error(msg: str, log_errors: bool) -> bool:
+    """Helper to conditionally log validation errors and return False."""
+    if log_errors:
+        log.error(msg)
+    return False
+
+
 def validate_folder_id(folder_id: str, log_errors: bool = True) -> bool:
     """Validates folder ID (PK) format to prevent path traversal."""
     if not folder_id:
         return False
 
-    if "\x00" in folder_id:
-        if log_errors:
-            log.error(
-                f"Invalid folder ID format (null byte): {sanitize_for_log(folder_id)}"
-            )
-        return False
+    if len(folder_id) > MAX_FOLDER_ID_LENGTH:
+        msg = f"Invalid folder ID length (max {MAX_FOLDER_ID_LENGTH} chars): {sanitize_for_log(folder_id)}"
+        return _log_validation_error(msg, log_errors)
 
-    if folder_id in (".", "..") or not FOLDER_ID_PATTERN.match(folder_id):
-        if log_errors:
-            log.error(f"Invalid folder ID format: {sanitize_for_log(folder_id)}")
-        return False
+    if "\x00" in folder_id:
+        msg = f"Invalid folder ID format (null byte): {sanitize_for_log(folder_id)}"
+        return _log_validation_error(msg, log_errors)
+
+    is_path_traversal = folder_id in (".", "..")
+    is_invalid_format = not FOLDER_ID_PATTERN.match(folder_id)
+
+    if is_path_traversal or is_invalid_format:
+        msg = f"Invalid folder ID format: {sanitize_for_log(folder_id)}"
+        return _log_validation_error(msg, log_errors)
 
     return True
 

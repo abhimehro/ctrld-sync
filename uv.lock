@@ -151,6 +151,9 @@ requires-dist = [
 ]
 provides-extras = ["dev"]
 
+[package.metadata.requires-dev]
+dev = []
+
 [[package]]
 name = "distlib"
 version = "0.4.0"

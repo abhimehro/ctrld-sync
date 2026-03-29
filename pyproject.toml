@@ -42,3 +42,6 @@ ignore = ["E501", "SIM105", "SIM115", "SIM117"]
 [tool.pytest.ini_options]
 addopts = "-p no:cacheprovider"
 testpaths = ["tests", "test_main.py"]
+
+[dependency-groups]
+dev = []
