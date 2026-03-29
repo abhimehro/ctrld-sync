@@ -58,24 +58,35 @@ def test_validate_folder_url_length_limit():
     """
     Test that folder URLs exceeding the maximum length are rejected.
     """
-    # Create a URL with length > MAX_URL_LENGTH (2048)
-    long_url = "https://" + "a" * 2045
+    # Create a URL with length > MAX_URL_LENGTH, dynamically calculated
+    base_url = "https://"
+    long_url = base_url + "a" * (main.MAX_URL_LENGTH - len(base_url) + 1)
+    assert len(long_url) == main.MAX_URL_LENGTH + 1
 
     # Should be rejected
     assert main.validate_folder_url(long_url) is False
 
 
 def test_validate_folder_url_acceptable_length():
-    """Test that folder URLs within limit are accepted."""
-    # Create a URL within the limit
-    url = "https://example.com/folder.json"
+    """Test that folder URLs within limit are accepted, including at the boundary."""
+    # Create a short URL well within the limit
+    short_url = "https://example.com/folder.json"
 
-    # We clear the cache to ensure the method runs fully, but we don't care about the HTTP request
+    # Create a URL exactly at the length limit to test the boundary
+    host = "example.com"
+    base_url = "https://"
+    path = "/" + "a" * (main.MAX_URL_LENGTH - len(base_url) - len(host))
+    boundary_url = f"{base_url}{host}{path}"
+    assert len(boundary_url) == main.MAX_URL_LENGTH
+
+    urls_to_test = [short_url, boundary_url]
+
+    # We clear the cache to ensure the method runs fully for each case
     main.validate_folder_url.cache_clear()
 
     # If the domain doesn't resolve in the test env, it might still return False due to validate_hostname
-    # But it won't fail the length check
-    # We'll just verify it doesn't fail fast via length check if possible, or mock validate_hostname
+    # But it won't fail the length check. We mock validate_hostname to isolate the length check.
     from unittest.mock import patch
     with patch('main.validate_hostname', return_value=True):
-        assert main.validate_folder_url(url) is True
+        for url in urls_to_test:
+            assert main.validate_folder_url(url) is True, f"URL failed validation: {url}"
