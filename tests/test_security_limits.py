@@ -88,9 +88,3 @@ def test_validate_hostname_length_limit():
     """
     long_hostname = "a" * 254
     assert main.validate_hostname(long_hostname) is False
-
-    # Use a dummy IP check or similar to avoid actual DNS lookup failure handling if possible,
-    # but since it's an invalid TLD, socket.getaddrinfo will fail and return False.
-    # What matters is that long_hostname is rejected purely based on length before lookup.
-    # Let's verify it gets rejected at length check.
-    assert main.validate_hostname(long_hostname) is False

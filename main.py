@@ -1185,29 +1185,32 @@ def validate_profile_id(profile_id: str, log_errors: bool = True) -> bool:
     return True
 
 
+def _log_validation_error(msg: str, log_errors: bool) -> bool:
+    """Helper to conditionally log validation errors and return False."""
+    if log_errors:
+        log.error(msg)
+    return False
+
+
 def validate_folder_id(folder_id: str, log_errors: bool = True) -> bool:
     """Validates folder ID (PK) format to prevent path traversal."""
     if not folder_id:
         return False
 
     if len(folder_id) > MAX_FOLDER_ID_LENGTH:
-        if log_errors:
-            log.error(
-                f"Invalid folder ID length (max {MAX_FOLDER_ID_LENGTH} chars): {sanitize_for_log(folder_id)}"
-            )
-        return False
+        msg = f"Invalid folder ID length (max {MAX_FOLDER_ID_LENGTH} chars): {sanitize_for_log(folder_id)}"
+        return _log_validation_error(msg, log_errors)
 
     if "\x00" in folder_id:
-        if log_errors:
-            log.error(
-                f"Invalid folder ID format (null byte): {sanitize_for_log(folder_id)}"
-            )
-        return False
+        msg = f"Invalid folder ID format (null byte): {sanitize_for_log(folder_id)}"
+        return _log_validation_error(msg, log_errors)
 
-    if folder_id in (".", "..") or not FOLDER_ID_PATTERN.match(folder_id):
-        if log_errors:
-            log.error(f"Invalid folder ID format: {sanitize_for_log(folder_id)}")
-        return False
+    is_path_traversal = folder_id in (".", "..")
+    is_invalid_format = not FOLDER_ID_PATTERN.match(folder_id)
+
+    if is_path_traversal or is_invalid_format:
+        msg = f"Invalid folder ID format: {sanitize_for_log(folder_id)}"
+        return _log_validation_error(msg, log_errors)
 
     return True
 
