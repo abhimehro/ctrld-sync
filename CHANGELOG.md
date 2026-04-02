@@ -41,6 +41,9 @@
 
 **Closed issues:**
 
+- \[repo-automation\] Daily Status Report - 2026-04-01 [\#690](https://github.com/abhimehro/ctrld-sync/issues/690)
+- \[repo-automation\] Daily Status Report - 2026-03-31 [\#689](https://github.com/abhimehro/ctrld-sync/issues/689)
+- \[repo-automation\] Daily Status Report - 2026-03-30 [\#688](https://github.com/abhimehro/ctrld-sync/issues/688)
 - \[repo-automation\] Weekly Retrospective - 2026-03-29 [\#684](https://github.com/abhimehro/ctrld-sync/issues/684)
 - \[repo-automation\] Daily Status Report - 2026-03-29 [\#683](https://github.com/abhimehro/ctrld-sync/issues/683)
 - Daily QA Check - 2026-03-28 [\#681](https://github.com/abhimehro/ctrld-sync/issues/681)
@@ -213,6 +216,7 @@
 - \[Code Quality\] Enable parallel pytest execution with pytest-xdist [\#238](https://github.com/abhimehro/ctrld-sync/issues/238)
 - \[Code Quality\] Fix README reference to non-existent ci.yml workflow [\#236](https://github.com/abhimehro/ctrld-sync/issues/236)
 - \[Code Quality\] Add CI dependency caching to speed up GitHub Actions workflows [\#235](https://github.com/abhimehro/ctrld-sync/issues/235)
+- Daily Perf ImproverResearch and Plan [\#228](https://github.com/abhimehro/ctrld-sync/issues/228)
 - \[agentics\] No-Op Runs [\#225](https://github.com/abhimehro/ctrld-sync/issues/225)
 - \[repo-status\] Daily Repository Status - February 14, 2026 ✨ [\#223](https://github.com/abhimehro/ctrld-sync/issues/223)
 - \[agentics\] Daily Workflow Updater failed [\#216](https://github.com/abhimehro/ctrld-sync/issues/216)
