@@ -16,15 +16,18 @@ Thank you for your interest in contributing! This guide covers everything you ne
 ## Development Setup
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/abhimehro/ctrld-sync.git
    cd ctrld-sync
    ```
 
 2. **Install all dependencies** (runtime + dev extras)
+
    ```bash
    uv sync --all-extras
    ```
+
    This creates a `.venv` in the project root and installs everything declared in `pyproject.toml`.
 
 3. **Configure secrets** — copy the example env file and fill in your values:
@@ -41,11 +44,13 @@ uv run pytest tests/ -v
 ```
 
 Run a specific test file:
+
 ```bash
 uv run pytest tests/test_fix_env.py -v
 ```
 
 Run tests matching a pattern:
+
 ```bash
 uv run pytest tests/ -k "test_validation" -v
 ```
@@ -60,6 +65,7 @@ ruff check .
 ```
 
 Or run through uv without a global install:
+
 ```bash
 uv tool run ruff check .
 ```
@@ -67,11 +73,13 @@ uv tool run ruff check .
 ## Running Pre-commit Hooks
 
 Install the hooks once:
+
 ```bash
 uv run pre-commit install
 ```
 
 Run against all files manually:
+
 ```bash
 uv run pre-commit run --all-files
 ```
@@ -81,6 +89,7 @@ The pre-commit configuration (`.pre-commit-config.yaml`) runs ruff (lint + forma
 ## Dry-run Mode
 
 Verify your changes without making any live API calls:
+
 ```bash
 uv run python main.py --dry-run
 ```

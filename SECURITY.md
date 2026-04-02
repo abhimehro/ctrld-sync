@@ -35,6 +35,7 @@ We take security vulnerabilities seriously. If you discover a security issue, pl
 ### Security Best Practices
 
 When using this tool:
+
 - Store your Control D API token securely (use `.env` file, never commit it)
 - Keep your Python environment and dependencies up to date
 - Review the code before running, especially when syncing to production profiles

@@ -33,6 +33,7 @@ tools:
 
 source: githubnext/agentics/workflows/daily-qa.md@69b5e3ae5fa7f35fa555b0a22aee14c36ab57ebb
 ---
+
 # Daily QA
 
 ## Job Description

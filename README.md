@@ -19,6 +19,7 @@ remote block-lists.
 See [CHANGELOG.md](CHANGELOG.md) for a full list of changes between versions.
 
 ## What it does
+
 1. Downloads the current JSON block-lists.
 2. Deletes any existing folders with the same names.
 3. Re-creates the folders and pushes all rules in batches.
@@ -37,6 +38,7 @@ See [CHANGELOG.md](CHANGELOG.md) for a full list of changes between versions.
 1. Log in to your Control D account.
 2. Open the Profile you want to sync.
 3. Copy the profile ID from the URL.
+
 ```
 https://controld.com/dashboard/profiles/741861frakbm/filters
                                         ^^^^^^^^^^^^
@@ -45,6 +47,7 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
 ### Configure the script
 
 1. **Clone & install**
+
    ```bash
    git clone https://github.com/your-username/ctrld-sync.git
    cd ctrld-sync
@@ -60,10 +63,12 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
 
 3. **Configure secrets**
    Create a `.env` file (or set GitHub secrets) with:
+
    ```py
    TOKEN=your_control_d_api_token
    PROFILE=your_profile_id  # or comma-separated list of profile ids (e.g. your_id_1,your_id_2)
    ```
+
    For GitHub Actions, set `TOKEN` and `PROFILE` secrets to the raw values (not the full `TOKEN=...` / `PROFILE=...` lines).
 
 4. **Configure Folders**
@@ -82,7 +87,8 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
    4. Built-in defaults (the `DEFAULT_FOLDER_URLS` list in `main.py`)
 
    **Example `config.yaml`:**
-   ```yaml
+
+   ````yaml
    folders:
      - name: "Native Tracker – Amazon"
        url: "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/controld/native-tracker-amazon-folder.json"
@@ -95,9 +101,10 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
    Alternatively, you can still pass folder URLs directly on the command line (these override any config file):
    ```bash
    python main.py --folder-url https://example.com/my-blocklist.json
-   ```
+   ````
 
    Or point to a specific config file:
+
    ```bash
    python main.py --config /path/to/my-config.yaml
    ```
@@ -112,6 +119,7 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
 > Either "Block" or "Allow" actions are supported.
 
 5. **Run locally**
+
    ```bash
    python main.py --dry-run                          # plan only, no API calls
    python main.py --dry-run --plan-json plan.json    # machine-readable dry-run output
@@ -132,31 +140,38 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
 
 ## CLI Flags
 
-| Flag | Description |
-|------|-------------|
-| `--dry-run` | Plan only — preview changes without making API calls |
-| `--profiles ID[,ID]` | Comma-separated profile IDs (overrides `PROFILE` env var) |
-| `--folder-url URL` | Folder JSON URL (repeatable; overrides config file) |
-| `--config FILE` / `-c FILE` | Path to YAML config file |
-| `--no-delete` | Do not delete/recreate existing folders that match the source list; update them in place |
-| `--plan-json FILE` | Write the plan as JSON to FILE (recommended with `--dry-run` for CI diffing) |
-| `--clear-cache` | Purge the persistent blocklist cache and exit |
+| Flag                        | Description                                                                              |
+| --------------------------- | ---------------------------------------------------------------------------------------- |
+| `--dry-run`                 | Plan only — preview changes without making API calls                                     |
+| `--profiles ID[,ID]`        | Comma-separated profile IDs (overrides `PROFILE` env var)                                |
+| `--folder-url URL`          | Folder JSON URL (repeatable; overrides config file)                                      |
+| `--config FILE` / `-c FILE` | Path to YAML config file                                                                 |
+| `--no-delete`               | Do not delete/recreate existing folders that match the source list; update them in place |
+| `--plan-json FILE`          | Write the plan as JSON to FILE (recommended with `--dry-run` for CI diffing)             |
+| `--clear-cache`             | Purge the persistent blocklist cache and exit                                            |
 
 ## Environment Variables
 
-| Variable   | Description                                                                 |
-|------------|-----------------------------------------------------------------------------|
-| `TOKEN`    | Control D API token (required for live runs)                                |
-| `PROFILE`  | Control D profile ID(s), comma-separated (required for live runs)           |
-| `NO_COLOR` | Set to any non-empty value to disable ANSI colour output (https://no-color.org/) |
+| Variable   | Description                                                                                                                                                                                                                |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `TOKEN`    | Control D API token (required for live runs)                                                                                                                                                                               |
+| `PROFILE`  | Control D profile ID(s), comma-separated (required for live runs)                                                                                                                                                          |
+| `NO_COLOR` | Set to any non-empty value to disable ANSI colour output (https://no-color.org/)                                                                                                                                           |
 | `JSON_LOG` | Set to `1` (or any non-empty value) to emit structured JSON log lines instead of human-readable coloured text. Useful for observability pipelines (Datadog, CloudWatch, Loki, etc.). Automatically disables colour output. |
 
 **JSON log example:**
+
 ```json
-{"time": "2026-03-03T13:00:00Z", "level": "INFO", "logger": "control-d-sync", "message": "Syncing folder dns-block-list"}
+{
+  "time": "2026-03-03T13:00:00Z",
+  "level": "INFO",
+  "logger": "control-d-sync",
+  "message": "Syncing folder dns-block-list"
+}
 ```
 
 ## Requirements
+
 - Python 3.13+
 - Runtime dependencies (install with `uv sync --all-extras`):
   - `httpx` – HTTP client
@@ -170,6 +185,7 @@ This project includes a comprehensive test suite to ensure code quality and corr
 ### Running Tests
 
 **Basic test execution:**
+
 ```bash
 # Install dev dependencies first
 uv sync --all-extras
@@ -179,6 +195,7 @@ uv run pytest tests/
 ```
 
 **Parallel test execution (recommended):**
+
 ```bash
 # Run tests in parallel using all available CPU cores
 uv run pytest tests/ -n auto
@@ -188,6 +205,7 @@ uv run pytest tests/ -n 4
 ```
 
 **Note on parallel execution:** The test suite is currently small (~78 tests, <1s execution time), so parallel execution overhead may result in longer wall-clock time compared to sequential execution. However, pytest-xdist is included for:
+
 - **Test isolation verification** - Ensures tests don't share state
 - **Future scalability** - As the test suite grows, parallel execution will provide significant speedups
 - **CI optimization** - May benefit from parallelization in CI environments with different characteristics
@@ -195,6 +213,7 @@ uv run pytest tests/ -n 4
 ### Development Workflow
 
 For active development with frequent test runs:
+
 ```bash
 # Run tests sequentially (faster for small test suites)
 uv run pytest tests/ -v
@@ -211,6 +230,7 @@ uv run pytest tests/ -k "test_validation" -v
 This project uses manual releases via GitHub Releases. To create a new release:
 
 1. **Ensure all changes are tested and merged to `main`**
+
    ```bash
    # Verify tests pass
    uv run pytest tests/
@@ -220,12 +240,14 @@ This project uses manual releases via GitHub Releases. To create a new release:
    ```
 
 2. **Update version in `pyproject.toml`**
+
    ```toml
    [project]
    version = "0.2.0"  # Increment appropriately
    ```
 
 3. **Create and push a version tag**
+
    ```bash
    git tag -a v0.2.0 -m "Release v0.2.0: Description of changes"
    git push origin v0.2.0
@@ -243,6 +265,7 @@ This project uses manual releases via GitHub Releases. To create a new release:
    - Publish the release
 
 **Release Checklist:**
+
 - [ ] All tests passing
 - [ ] Security scans clean (Bandit, Codacy)
 - [ ] Version updated in `pyproject.toml`
@@ -254,11 +277,11 @@ This project uses manual releases via GitHub Releases. To create a new release:
 
 ### CI/CD Workflows
 
-| Workflow | File | Trigger | Purpose |
-|---|---|---|---|
-| **Sync** | `sync.yml` | Daily at 02:00 UTC, manual dispatch | Main synchronization workflow — runs `main.py` to keep Control D folders in sync |
-| **Bandit** | `bandit.yml` | Push/PR to `main`, weekly schedule | Security vulnerability scanning for Python code |
-| **Codacy** | `codacy.yml` | Push/PR to `main`, weekly schedule | Code quality analysis and SARIF upload to GitHub Security tab |
+| Workflow   | File         | Trigger                             | Purpose                                                                          |
+| ---------- | ------------ | ----------------------------------- | -------------------------------------------------------------------------------- |
+| **Sync**   | `sync.yml`   | Daily at 02:00 UTC, manual dispatch | Main synchronization workflow — runs `main.py` to keep Control D folders in sync |
+| **Bandit** | `bandit.yml` | Push/PR to `main`, weekly schedule  | Security vulnerability scanning for Python code                                  |
+| **Codacy** | `codacy.yml` | Push/PR to `main`, weekly schedule  | Code quality analysis and SARIF upload to GitHub Security tab                    |
 
 ### How Caching Works
 
@@ -281,6 +304,7 @@ The GitHub Actions workflows use automatic dependency caching to speed up CI run
 When updating dependencies:
 
 1. **Update `pyproject.toml`**
+
    ```toml
    [project]
    dependencies = [
@@ -290,6 +314,7 @@ When updating dependencies:
    ```
 
 2. **Regenerate the lockfile**
+
    ```bash
    uv lock
    ```
@@ -305,6 +330,7 @@ When updating dependencies:
 If you suspect cache issues:
 
 1. **Check cache hit/miss** in workflow logs:
+
    ```
    Run astral-sh/setup-uv@v4
    Cache restored successfully: true

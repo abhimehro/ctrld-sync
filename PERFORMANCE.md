@@ -9,6 +9,7 @@ This guide documents performance measurement, optimization strategies, and known
 ## Current Performance Characteristics
 
 ### Architecture
+
 - **Thread-based parallelization** with `ThreadPoolExecutor`:
   - Folder URL fetching (concurrent)
   - Folder deletion (3 workers)
@@ -22,9 +23,11 @@ This guide documents performance measurement, optimization strategies, and known
   - Ordered deduplication using `dict.fromkeys()`
 
 ### Known Constraints
+
 **CRITICAL:** Thread pool sizing (3-5 workers) is constrained by Control D API rate limits, NOT throughput optimization. Increasing worker counts risks 429 (Too Many Requests) errors. Always profile API call patterns before tuning concurrency.
 
 ### Typical Performance
+
 - **Small workloads** (10-20 folders, <10k rules): ~30-60 seconds
 - **Large workloads** (50+ folders, 50k+ rules): ~2-5 minutes
 - **Bottleneck:** Network I/O to Control D API (not CPU)
@@ -56,6 +59,7 @@ def timed(func):
 ```
 
 Usage:
+
 ```python
 from typing import Any, Dict
 @timed
@@ -141,6 +145,7 @@ log.info(api_tracker.summary())
 ## Performance Testing
 
 ### Existing Tests
+
 - `tests/test_push_rules_perf.py`: Validates ThreadPoolExecutor optimization for single vs. multi-batch
 
 ### Adding Performance Benchmarks
@@ -225,12 +230,14 @@ Keep it simple. Add to `.github/workflows/sync.yml`:
 ### Profiling Commands
 
 CPU profiling:
+
 ```bash
 python -m cProfile -o profile.stats main.py
 python -c "import pstats; p = pstats.Stats('profile.stats'); p.sort_stats('cumulative').print_stats(20)"
 ```
 
 Memory profiling (for 50k+ rule scenarios):
+
 ```bash
 python -m memory_profiler main.py
 ```
@@ -251,11 +258,13 @@ python -m memory_profiler main.py
 ## Success Metrics
 
 ### Primary Metrics
+
 - **End-to-end sync time** (wall clock): Establish baseline, then target meaningful reductions (e.g., 20%+) for typical workloads
 - **API calls per sync**: Track and minimize
 - **Memory footprint**: Maintain or reduce (especially for 50k+ rules)
 
 ### Secondary Metrics
+
 - **Rules processed per second**: Throughput indicator
 - **Thread pool efficiency**: CPU utilization during parallel stages
 - **Cache hit rates**: Validation and DNS caching effectiveness
@@ -263,6 +272,7 @@ python -m memory_profiler main.py
 ### Performance Baseline Checklist
 
 Before claiming an improvement, establish:
+
 - [ ] Baseline timing for 10k, 20k, 50k rule sets
 - [ ] API call count for each scenario
 - [ ] Memory usage at peak (use `memory_profiler`)
@@ -273,6 +283,7 @@ Before claiming an improvement, establish:
 ## Quick Reference
 
 ### Measure Performance
+
 ```bash
 # Time a sync
 time python main.py
@@ -285,6 +296,7 @@ python -m memory_profiler main.py
 ```
 
 ### Run Performance Tests
+
 ```bash
 # Existing optimization tests
 pytest tests/test_push_rules_perf.py -v
@@ -294,7 +306,9 @@ pytest tests/test_benchmarks.py -v -m benchmark
 ```
 
 ### Check for Regressions
+
 Compare timing logs before/after changes. Look for:
+
 - Increased total sync time (>10% = investigate)
 - Increased API call count (any increase = investigate)
 - Increased memory usage (for large rule sets)

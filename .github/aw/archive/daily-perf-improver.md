@@ -57,6 +57,7 @@ steps:
 
 source: githubnext/agentics/workflows/daily-perf-improver.md@69b5e3ae5fa7f35fa555b0a22aee14c36ab57ebb
 ---
+
 # Daily Perf Improver
 
 ## Job Description
@@ -78,7 +79,6 @@ To decide which phase to perform:
 ## Phase 1 - Performance research
 
 1. Research performance landscape in this repo:
-
    - Current performance testing practices and tooling
    - User-facing performance concerns (load times, responsiveness, throughput)
    - System performance bottlenecks (compute, memory, I/O, network)
@@ -87,7 +87,6 @@ To decide which phase to perform:
    - Existing performance documentation and measurement approaches
 
    **Identify optimization targets:**
-
    - User experience bottlenecks (slow page loads, UI lag, high resource usage)
    - System inefficiencies (algorithms, data structures, resource utilization)
    - Development workflow pain points affecting performance engineering (build times, test execution, CI duration)
@@ -124,7 +123,6 @@ To decide which phase to perform:
 3. Create `.github/actions/daily-perf-improver/build-steps/action.yml` with validated build steps. Each step must log output to `build-steps.log` in repo root. Cross-check against existing CI/devcontainer configs.
 
 4. Create 1-5 performance engineering guides in `.github/copilot/instructions/` covering relevant areas (e.g., frontend performance, backend optimization, build performance, infrastructure scaling). Each guide should be maximum 500 words and should succinctly document practical, non-obvious, repo-specific details regarding:
-
    - Performance measurement strategies and tooling
    - Common bottlenecks and optimization techniques
    - Success metrics and testing approaches

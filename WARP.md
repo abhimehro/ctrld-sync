@@ -3,7 +3,9 @@
 This file provides guidance to WARP (warp.dev) when working with code in this repository.
 
 ## Project Overview
+
 Control D Sync is a single-file Python tool (`main.py`) that keeps one or more Control D profiles' Folders in sync with a set of remote JSON blocklists (primarily from hagezi/dns-blocklists plus a small number of curated extras). For each profile it:
+
 1. Downloads and validates the configured JSON folder definitions.
 2. Plans the changes (including rule counts per folder) and optionally writes a `plan.json` file.
 3. Optionally deletes any existing folders with matching names.
@@ -49,22 +51,26 @@ TOKEN=your_api_token PROFILE=your_profile_id \
 ```
 
 Notes:
+
 - `--dry-run` never hits the Control D API; it only fetches and validates the remote JSON and builds the plan/summary.
 - When run in a TTY without `TOKEN` / `PROFILE`, `main()` will interactively prompt for missing values (unless `--dry-run` is set).
 
 ## Configuration & Environment
 
 Secrets can be provided via a `.env` file (loaded automatically by `python-dotenv`) or through real environment variables:
+
 - `TOKEN` – Control D API token (from the "Preferences > API" page).
 - `PROFILE` – Single profile ID or a comma-separated list of profile IDs.
 
 `_clean_env_kv()` allows both raw values and `KEY=value` style strings. This means `PROFILE` or `TOKEN` may accidentally be set as `PROFILE=abc123`; the helper strips the `KEY=` prefix so both forms work. This is especially relevant for GitHub Actions and `.env` files.
 
 Folder sources are controlled by:
+
 - `DEFAULT_FOLDER_URLS` – The built-in list of HTTPS JSON folder definitions (primarily Hagezi Control D folders plus a few curated extras).
 - `--folder-url` – One or more CLI overrides; when provided, these replace `DEFAULT_FOLDER_URLS` for that run.
 
 Safety/validation helpers:
+
 - `validate_folder_url()` – Enforces HTTPS, rejects localhost/private IPs, and ensures URLs are structurally sound before fetching.
 - `validate_folder_data()` – Ensures each JSON payload has a `group.group` folder name and basic structure before it is used.
 - `validate_profile_id()` – Guards against obviously malformed or dangerous profile IDs.
@@ -137,6 +143,7 @@ There is currently no dedicated test suite or linter configuration in this repos
 ## Control D API Surface
 
 All Control D interactions are scoped under `API_BASE = "https://api.controld.com/profiles"` with bearer-token authentication. The tool uses these endpoints:
+
 - `GET /{profile_id}/groups` – List folders for a profile.
 - `DELETE /{profile_id}/groups/{folder_id}` – Delete a specific folder.
 - `POST /{profile_id}/groups` – Create a folder.
@@ -146,16 +153,19 @@ All Control D interactions are scoped under `API_BASE = "https://api.controld.co
 ## Adding or Changing Blocklists
 
 Folder definitions are expected to be JSON documents with at least:
+
 - `group.group` – The folder name as it will appear in Control D.
 - Either a flat `rules` array (`rules[].PK` hostnames) or a `rule_groups` array, where each group contains its own `rules` and optional `action`/`status`.
 
 To change what gets synced:
+
 - Edit `DEFAULT_FOLDER_URLS` in `main.py` to adjust the built-in set of remote JSON definitions; or
 - Pass one or more `--folder-url` arguments on the CLI for ad-hoc runs without modifying the code.
 
 ## CI/CD
 
 GitHub Actions workflow: `.github/workflows/sync.yml`
+
 - Triggers:
   - Scheduled run daily at `02:00 UTC`.
   - Manual run via `workflow_dispatch`.
