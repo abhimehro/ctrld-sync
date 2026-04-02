@@ -462,6 +462,7 @@ API_BASE = "https://api.controld.com/profiles"
 USER_AGENT = "Control-D-Sync/0.1.0"
 
 EMPTY_INPUT_HINT = f"   {Colors.DIM}💡 Hint: Please type a value and press Enter, or press Ctrl+C/Ctrl+D to cancel.{Colors.ENDC}"
+INVALID_INPUT_HINT = f"   {Colors.DIM}💡 Hint: Please check your input and try again, or press Ctrl+C/Ctrl+D to cancel.{Colors.ENDC}"
 
 # Pre-compiled regex patterns for hot-path validation (>2x speedup on 10k+ items)
 PROFILE_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
@@ -583,7 +584,7 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
             )
         else:
             print("  No folders to sync.")
-            print("  Hint: Add folder URLs using --folder-url or in your config.yaml")
+            print("  💡 Hint: Add folder URLs using --folder-url or in your config.yaml")
         return
 
     # Calculate max width for alignment
@@ -768,6 +769,8 @@ def get_validated_input(
     """Prompts for input until the validator returns True."""
     while True:
         try:
+            sys.stdout.flush()
+            sys.stderr.flush()
             value = input(prompt).strip()
         except (KeyboardInterrupt, EOFError):
             print(f"\n{Colors.WARNING}⚠️  Input cancelled.{Colors.ENDC}")
@@ -782,6 +785,7 @@ def get_validated_input(
             return value
 
         print(f"{Colors.FAIL}❌ {error_msg}{Colors.ENDC}")
+        print(INVALID_INPUT_HINT)
 
 
 def get_password(
@@ -792,6 +796,8 @@ def get_password(
     """Prompts for password input until the validator returns True."""
     while True:
         try:
+            sys.stdout.flush()
+            sys.stderr.flush()
             value = getpass.getpass(prompt).strip()
         except (KeyboardInterrupt, EOFError):
             print(f"\n{Colors.WARNING}⚠️  Input cancelled.{Colors.ENDC}")
@@ -806,6 +812,7 @@ def get_password(
             return value
 
         print(f"{Colors.FAIL}❌ {error_msg}{Colors.ENDC}")
+        print(INVALID_INPUT_HINT)
 
 
 TOKEN = _clean_env_kv(os.getenv("TOKEN"), "TOKEN")
