@@ -229,6 +229,8 @@
 
 **Merged pull requests:**
 
+- Revert "chore\(actions\): consolidate workflow automation" [\#693](https://github.com/abhimehro/ctrld-sync/pull/693) ([abhimehro](https://github.com/abhimehro))
+- chore\(actions\): consolidate workflow automation [\#691](https://github.com/abhimehro/ctrld-sync/pull/691) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[MEDIUM\] Add input length limits prior to expensive operations [\#686](https://github.com/abhimehro/ctrld-sync/pull/686) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: \[performance improvement\] Optimize dictionary key removal [\#685](https://github.com/abhimehro/ctrld-sync/pull/685) ([abhimehro](https://github.com/abhimehro))
 - fix\(automation\): validate action ref existence and add major bump warnings [\#663](https://github.com/abhimehro/ctrld-sync/pull/663) ([abhimehro](https://github.com/abhimehro))
