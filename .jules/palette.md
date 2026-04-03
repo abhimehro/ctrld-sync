@@ -1,3 +1,0 @@
-## 2024-05-24 - Interactive CLI Prompts UX
-**Learning:** Python's `input()` and `getpass()` can suffer from delayed rendering due to stream buffering, leading to a poor UX where the prompt isn't visible until after the user starts typing. Additionally, differentiating between empty input errors and invalid input errors reduces user confusion. Finally, semantic emojis should be retained even in no-color mode to maintain visual hierarchy.
-**Action:** Always call `sys.stdout.flush()` and `sys.stderr.flush()` immediately before interactive prompts. Define distinct error hints for empty versus invalid inputs. Ensure emojis are part of the uncolored fallback strings.
