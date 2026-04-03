@@ -33,6 +33,14 @@ lint:
     - yamllint@1.38.0
 actions:
   disabled:
+    - trunk-check-pre-push
+    - trunk-fmt-pre-commit
+    - git-lfs
+    - npm-check
+    - poetry-install
+    - submodule-init-update
+    - trunk-check-pre-commit
+    - trunk-check-pre-push-always
     - npm-check-pre-push
     - trufflehog-pre-commit
     - uv-check
@@ -44,15 +52,7 @@ actions:
     - poetry-check
   enabled:
     - git-blame-ignore-revs
-    - npm-check
-    - poetry-install
-    - submodule-init-update
     - trunk-announce
-    - trunk-check-pre-commit
-    - trunk-check-pre-push
-    - trunk-check-pre-push-always
-    - trunk-fmt-pre-commit
-    - git-lfs
     - trunk-upgrade-available
 plugins:
   sources:
