@@ -226,6 +226,7 @@
 - \[agentics\] Daily QA failed [\#211](https://github.com/abhimehro/ctrld-sync/issues/211)
 - \[agentics\] Daily Perf Improver failed [\#209](https://github.com/abhimehro/ctrld-sync/issues/209)
 - \[agentics\] Daily Backlog Burner failed [\#207](https://github.com/abhimehro/ctrld-sync/issues/207)
+- \[agentics\] Failed runs [\#206](https://github.com/abhimehro/ctrld-sync/issues/206)
 - \[repo-status\] Daily Repository Status - February 13, 2026 🚀 [\#201](https://github.com/abhimehro/ctrld-sync/issues/201)
 
 **Merged pull requests:**
