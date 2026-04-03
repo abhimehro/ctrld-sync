@@ -767,6 +767,9 @@ def get_validated_input(
     error_msg: str,
 ) -> str:
     """Prompts for input until the validator returns True."""
+    if not prompt.endswith(" "):
+        prompt += " "
+
     while True:
         try:
             sys.stdout.flush()
@@ -794,6 +797,9 @@ def get_password(
     error_msg: str,
 ) -> str:
     """Prompts for password input until the validator returns True."""
+    if not prompt.endswith(" "):
+        prompt += " "
+
     while True:
         try:
             sys.stdout.flush()
