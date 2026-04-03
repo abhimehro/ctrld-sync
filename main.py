@@ -1061,6 +1061,8 @@ def _is_safe_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
     """Checks against CGNAT space, multicast, and relies on is_global for the rest."""
     if ip.is_multicast:
         return False
+    if ip.is_unspecified:
+        return False
     if isinstance(ip, ipaddress.IPv4Address) and ip in _CGNAT_NETWORK:
         return False
     return ip.is_global
