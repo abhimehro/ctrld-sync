@@ -33,6 +33,7 @@ lint:
     - yamllint@1.38.0
 actions:
   disabled:
+    - npm-check-pre-push
     - trufflehog-pre-commit
     - uv-check
     - uv-lock
@@ -44,7 +45,6 @@ actions:
   enabled:
     - git-blame-ignore-revs
     - npm-check
-    - npm-check-pre-push
     - poetry-install
     - submodule-init-update
     - trunk-announce
