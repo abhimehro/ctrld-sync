@@ -32,3 +32,13 @@
 
 **Learning:** When prompting users to press Enter to continue or Ctrl+C to cancel, users will often instinctively type "n", "no", or "quit" and press Enter. Ignoring this input and proceeding anyway leads to accidental and potentially destructive actions. Furthermore, prompts without a trailing space cause user input to visually collide with the prompt text.
 **Action:** Always add a trailing space to input prompts, and gracefully intercept common cancellation strings (e.g., "n", "no", "quit") even if the explicit instruction only mentions Ctrl+C.
+
+## 2025-03-24 - [Input Prompt Collision]
+
+**Learning:** When prompting users for input via generic wrappers (e.g., `input()` or `getpass()`), if the prompt string lacks a trailing space, the user's typed input will visually collide with the prompt text, creating a poor aesthetic and confusing UX.
+**Action:** Always append a trailing space automatically to prompt strings in generic input handler functions if one is not provided by the caller.
+
+## 2025-03-24 - [Generic Input Cancellation Safety]
+
+**Learning:** While intercepting strings like "n" or "no" for cancellation in interactive boolean prompts (e.g., "Ready to launch?") is good UX, applying this same interception logic universally to *generic* input functions (like `get_validated_input` or `get_password`) introduces severe functional and security regressions. A user whose valid answer is "no" or whose password happens to match a cancellation string will be unexpectedly booted from the application.
+**Action:** Confine string-based cancellation interception to specific, appropriate contexts (like interactive confirmations). For generic input and password fields, rely solely on standard interrupt signals (Ctrl+C / Ctrl+D).
