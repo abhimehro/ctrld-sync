@@ -231,6 +231,8 @@
 
 **Merged pull requests:**
 
+- 🎨 Palette: Add trailing space to generic input prompts [\#698](https://github.com/abhimehro/ctrld-sync/pull/698) ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: Optimize dictionary lookups in cache and headers [\#696](https://github.com/abhimehro/ctrld-sync/pull/696) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Enhance CLI UX with input buffering fixes and distinct error hints [\#695](https://github.com/abhimehro/ctrld-sync/pull/695) ([abhimehro](https://github.com/abhimehro))
 - Revert "chore\(actions\): consolidate workflow automation" [\#693](https://github.com/abhimehro/ctrld-sync/pull/693) ([abhimehro](https://github.com/abhimehro))
 - chore\(actions\): consolidate workflow automation [\#691](https://github.com/abhimehro/ctrld-sync/pull/691) ([abhimehro](https://github.com/abhimehro))
