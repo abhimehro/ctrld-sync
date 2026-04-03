@@ -115,9 +115,9 @@ _sanitize_fn: Callable[[Any], str] = str
 
 def _extract_int_header(headers: httpx.Headers, key: str) -> int | None:
     """Helper to extract and parse an integer header safely."""
-    if key in headers:
+    if (val := headers.get(key)) is not None:
         with contextlib.suppress(ValueError, TypeError):
-            return int(headers[key])
+            return int(val)
     return None
 
 

@@ -1398,9 +1398,9 @@ def _gh_get(url: str) -> dict:
     """
     # First check: Quick check without holding lock for long
     with _cache_lock:
-        if url in _cache:
+        if (cached := _cache.get(url)) is not None:
             _cache_stats["hits"] += 1
-            return _cache[url]
+            return cached
 
     # Track that we're about to make a blocklist fetch
     with _cache_lock:
@@ -1592,9 +1592,7 @@ def _gh_get(url: str) -> dict:
     # If another thread already cached it while we were fetching, use theirs
     # for consistency (return _cache[url] instead of data to ensure single source of truth)
     with _cache_lock:
-        if url not in _cache:
-            _cache[url] = data
-        return _cache[url]
+        return _cache.setdefault(url, data)
 
 
 def check_api_access(client: httpx.Client, profile_id: str) -> bool:
@@ -2380,8 +2378,8 @@ def sync_profile(
             # The content was validated at the time of fetch (warm_up_cache).
             # Read directly from cache to avoid calling fetch_folder_data while holding lock.
             with _cache_lock:
-                if url in _cache:
-                    return _cache[url]
+                if (cached := _cache.get(url)) is not None:
+                    return cached
 
             if validate_folder_url(url):
                 return fetch_folder_data(url)
