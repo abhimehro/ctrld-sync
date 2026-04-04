@@ -574,16 +574,16 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
     if USE_COLORS:
         print(f"\n{Colors.HEADER}📝 Plan Details for {profile}:{Colors.ENDC}")
     else:
-        print(f"\nPlan Details for {profile}:")
+        print(f"\n📝 Plan Details for {profile}:")
 
     if not folders:
         if USE_COLORS:
-            print(f"  {Colors.WARNING}No folders to sync.{Colors.ENDC}")
+            print(f"  {Colors.WARNING}⚠️  No folders to sync.{Colors.ENDC}")
             print(
                 f"  {Colors.DIM}💡 Hint: Add folder URLs using --folder-url or in your config.yaml{Colors.ENDC}"
             )
         else:
-            print("  No folders to sync.")
+            print("  ⚠️  No folders to sync.")
             print("  💡 Hint: Add folder URLs using --folder-url or in your config.yaml")
         return
 
@@ -614,7 +614,7 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
                 action_text = (
                     f"({action_color}⚠️  {action_label}{Colors.ENDC})"
                     if USE_COLORS
-                    else f"[{action_label}]"
+                    else f"[⚠️  {action_label}]"
                 )
             else:
                 # All groups have same action
@@ -625,7 +625,7 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
                     action_text = (
                         f"({action_color}⛔ {action_label}{Colors.ENDC})"
                         if USE_COLORS
-                        else f"[{action_label}]"
+                        else f"[⛔ {action_label}]"
                     )
                 elif action_val == 1:
                     action_label = "Allow"
@@ -633,7 +633,7 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
                     action_text = (
                         f"({action_color}✅ {action_label}{Colors.ENDC})"
                         if USE_COLORS
-                        else f"[{action_label}]"
+                        else f"[✅ {action_label}]"
                     )
 
         # Fallback to single action if not set
@@ -645,7 +645,7 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
                 action_text = (
                     f"({action_color}⛔ {action_label}{Colors.ENDC})"
                     if USE_COLORS
-                    else f"[{action_label}]"
+                    else f"[⛔ {action_label}]"
                 )
             elif action_val == 1:
                 action_label = "Allow"
@@ -653,7 +653,7 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
                 action_text = (
                     f"({action_color}✅ {action_label}{Colors.ENDC})"
                     if USE_COLORS
-                    else f"[{action_label}]"
+                    else f"[✅ {action_label}]"
                 )
 
         # If action is still completely missing/unknown, default to Block (Default) for clearer UX
@@ -663,16 +663,17 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
             action_text = (
                 f"({action_color}⛔ {action_label}{Colors.ENDC})"
                 if USE_COLORS
-                else f"[{action_label}]"
+                else f"[⛔ {action_label}]"
             )
 
+        bullet = "•" if USE_COLORS else "-"
         if USE_COLORS:
             print(
-                f"  • {Colors.BOLD}{name:<{max_name_len}}{Colors.ENDC} : {formatted_rules:>{max_rules_len}} rules {action_text}"
+                f"  {bullet} {Colors.BOLD}{name:<{max_name_len}}{Colors.ENDC} : {formatted_rules:>{max_rules_len}} rules {action_text}"
             )
         else:
             print(
-                f"  - {name:<{max_name_len}} : {formatted_rules:>{max_rules_len}} rules {action_text}"
+                f"  {bullet} {name:<{max_name_len}} : {formatted_rules:>{max_rules_len}} rules {action_text}"
             )
 
     print("")
@@ -2729,9 +2730,6 @@ def print_summary_table(
 
 def print_success_message(profile_ids: list[str]) -> None:
     """Prints a random success message and a link to the Control D dashboard."""
-    if not USE_COLORS:
-        return
-
     success_msgs = [
         "✨ All synced!",
         "🚀 Ready for liftoff!",
@@ -2739,7 +2737,10 @@ def print_success_message(profile_ids: list[str]) -> None:
         "💎 Smooth operation!",
         "🌈 Perfect harmony!",
     ]
-    print(f"\n{Colors.GREEN}{random.choice(success_msgs)}{Colors.ENDC}")
+    if USE_COLORS:
+        print(f"\n{Colors.GREEN}{random.choice(success_msgs)}{Colors.ENDC}")
+    else:
+        print(f"\n{random.choice(success_msgs)}")
 
     # Construct dashboard URL
     if (
@@ -2750,14 +2751,20 @@ def print_success_message(profile_ids: list[str]) -> None:
         dashboard_url = (
             f"https://controld.com/dashboard/profiles/{profile_ids[0]}/filters"
         )
-        print(
-            f"{Colors.CYAN}👀 View your changes: {Colors.UNDERLINE}{dashboard_url}{Colors.ENDC}"
-        )
+        if USE_COLORS:
+            print(
+                f"{Colors.CYAN}👀 View your changes: {Colors.UNDERLINE}{dashboard_url}{Colors.ENDC}"
+            )
+        else:
+            print(f"👀 View your changes: {dashboard_url}")
     elif len(profile_ids) > 1:
         dashboard_url = "https://controld.com/dashboard/profiles"
-        print(
-            f"{Colors.CYAN}👀 View your changes: {Colors.UNDERLINE}{dashboard_url}{Colors.ENDC}"
-        )
+        if USE_COLORS:
+            print(
+                f"{Colors.CYAN}👀 View your changes: {Colors.UNDERLINE}{dashboard_url}{Colors.ENDC}"
+            )
+        else:
+            print(f"👀 View your changes: {dashboard_url}")
 
 
 def parse_args() -> argparse.Namespace:
