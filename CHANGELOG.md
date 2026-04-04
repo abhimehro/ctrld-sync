@@ -91,6 +91,7 @@
 - \[Code Quality\] Add exception info to JsonFormatter for error-level log records [\#541](https://github.com/abhimehro/ctrld-sync/issues/541)
 - \[Code Quality\] Align `cache.py` sanitization with `api_client.py` injection pattern for consistent token redaction [\#536](https://github.com/abhimehro/ctrld-sync/issues/536)
 - \[Code Quality\] Add `__all__` exports to `api_client.py` and `cache.py` to define explicit public APIs [\#535](https://github.com/abhimehro/ctrld-sync/issues/535)
+- \[Code Quality\] Raise pytest coverage threshold from 55% to 70% to reflect actual test depth [\#529](https://github.com/abhimehro/ctrld-sync/issues/529)
 - \[Code Quality\] Configure ruff lint rules in pyproject.toml to catch dead code and return-path bugs [\#528](https://github.com/abhimehro/ctrld-sync/issues/528)
 - \[Code Quality\] Add pre-flight verification to QA/task-mining workflows to prevent stale issues [\#523](https://github.com/abhimehro/ctrld-sync/issues/523)
 - \[Code Quality\] Add mypy static type-checking to CI to enforce annotations [\#522](https://github.com/abhimehro/ctrld-sync/issues/522)
@@ -231,6 +232,7 @@
 
 **Merged pull requests:**
 
+- 🛡️ Sentinel: \[HIGH\] Fix SSRF bypass via unspecified IPs [\#699](https://github.com/abhimehro/ctrld-sync/pull/699) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Add trailing space to generic input prompts [\#698](https://github.com/abhimehro/ctrld-sync/pull/698) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Optimize dictionary lookups in cache and headers [\#696](https://github.com/abhimehro/ctrld-sync/pull/696) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Enhance CLI UX with input buffering fixes and distinct error hints [\#695](https://github.com/abhimehro/ctrld-sync/pull/695) ([abhimehro](https://github.com/abhimehro))
