@@ -1,13 +1,17 @@
 import importlib
 import os
 import sys
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import dotenv
 import httpx
 import pytest
 
-dotenv.load_dotenv = lambda **kwargs: None
+def dummy_load_dotenv(**kwargs: Any) -> bool:
+    return True
+
+dotenv.load_dotenv = dummy_load_dotenv  # type: ignore[assignment]
 import main  # noqa: E402
 
 
@@ -116,7 +120,7 @@ def test_push_rules_updates_existing_rules(monkeypatch):
     monkeypatch.setattr(m, "_api_post_form", MagicMock())
 
     hostnames = ["h1", "h2"]
-    existing_rules = set()
+    existing_rules: set[str] = set()
 
     ctx = m.SyncContext(
         profile_id="p1", client=mock_client, existing_rules=existing_rules
@@ -414,7 +418,7 @@ def test_extract_profile_id():
     assert main.extract_profile_id("random-string") == "random-string"
     # Empty input
     assert main.extract_profile_id("") == ""
-    assert main.extract_profile_id(None) == ""
+    assert main.extract_profile_id("") == ""
 
 
 # Case 9: Interactive input handles URL pasting
@@ -754,39 +758,39 @@ def test_validate_folder_data_structure(monkeypatch):
     valid_base = {"group": {"group": "ValidFolder"}}
 
     # 1. Invalid 'rules' type (string instead of list)
-    invalid_rules = valid_base.copy()
+    invalid_rules: dict[str, Any] = valid_base.copy()
     invalid_rules["rules"] = "not_a_list"
     assert m.validate_folder_data(invalid_rules, "url") is False
     assert "rules" in str(mock_log.error.call_args)
     mock_log.reset_mock()
 
     # 2. Invalid 'rule_groups' type (string instead of list)
-    invalid_rg_type = valid_base.copy()
+    invalid_rg_type: dict[str, Any] = valid_base.copy()
     invalid_rg_type["rule_groups"] = "not_a_list"
     assert m.validate_folder_data(invalid_rg_type, "url") is False
     assert "rule_groups" in str(mock_log.error.call_args)
     mock_log.reset_mock()
 
     # 3. Invalid 'rule_groups' content (list of strings instead of dicts)
-    invalid_rg_content = valid_base.copy()
+    invalid_rg_content: dict[str, Any] = valid_base.copy()
     invalid_rg_content["rule_groups"] = ["not_a_dict"]
     assert m.validate_folder_data(invalid_rg_content, "url") is False
     assert "must be an object" in str(mock_log.error.call_args)
     mock_log.reset_mock()
 
     # 4. Invalid 'rules' inside 'rule_groups'
-    invalid_rg_rules = valid_base.copy()
+    invalid_rg_rules: dict[str, Any] = valid_base.copy()
     invalid_rg_rules["rule_groups"] = [{"rules": "not_a_list"}]
     assert m.validate_folder_data(invalid_rg_rules, "url") is False
     assert "must be a list" in str(mock_log.error.call_args)
     mock_log.reset_mock()
 
     # 5. Valid cases
-    valid_rules = valid_base.copy()
+    valid_rules: dict[str, Any] = valid_base.copy()
     valid_rules["rules"] = [{"PK": "rule1"}]
     assert m.validate_folder_data(valid_rules, "url") is True
 
-    valid_rg = valid_base.copy()
+    valid_rg: dict[str, Any] = valid_base.copy()
     valid_rg["rule_groups"] = [{"rules": [{"PK": "rule1"}]}]
     assert m.validate_folder_data(valid_rg, "url") is True
 

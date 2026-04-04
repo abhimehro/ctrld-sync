@@ -850,7 +850,7 @@ def run_weekly_retrospective(config: dict[str, Any]) -> dict[str, Any]:
             "daily_issue_prefix", "[repo-automation] Daily Status Report"
         )
     )
-    safe_changes = []
+    safe_changes: list[dict[str, str]] = []
     safe_pr_url = ""
     if ensure_gh_token():
         try:
@@ -859,7 +859,7 @@ def run_weekly_retrospective(config: dict[str, Any]) -> dict[str, Any]:
             safe_changes = [
                 {
                     "name": "safe-adjustment-commands",
-                    "exit_code": 1,
+                    "exit_code": "1",
                     "stdout": "",
                     "stderr": str(exc),
                 }

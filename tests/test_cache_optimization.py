@@ -184,7 +184,7 @@ class TestCacheOptimization(unittest.TestCase):
                 # Simulate the logic in _fetch_if_valid
                 with main._cache_lock:
                     if test_url in main._cache:
-                        result = main._cache[test_url]
+                        result: main.FolderData | None = main._cache[test_url]  # type: ignore[assignment]
                     else:
                         if main.validate_folder_url(test_url):
                             result = main.fetch_folder_data(test_url)

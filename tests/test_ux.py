@@ -274,7 +274,7 @@ def test_print_summary_table_unicode_print_line(monkeypatch, capsys):
     when USE_COLORS is True (unicode table mode).
     """
     monkeypatch.setattr(main, "USE_COLORS", True)
-    sync_results = [
+    sync_results: list[main.SyncResult] = [
         {
             "profile": "Profile_1",
             "folders": 3,
@@ -308,7 +308,7 @@ def test_print_summary_table_ascii_fallback(monkeypatch, capsys):
     when USE_COLORS is False.
     """
     monkeypatch.setattr(main, "USE_COLORS", False)
-    sync_results = [
+    sync_results: list[main.SyncResult] = [
         {
             "profile": "Profile_2",
             "folders": 1,

@@ -14,7 +14,7 @@ def test_print_plan_details_no_colors(capsys):
     import main as m
 
     with patch.object(m, "USE_COLORS", False):
-        plan_entry = {
+        plan_entry: m.PlanEntry = {
             "profile": "test_profile",
             "folders": [
                 {"name": "Folder B", "rules": 5, "action": 0},
@@ -22,7 +22,10 @@ def test_print_plan_details_no_colors(capsys):
                 {
                     "name": "Folder C",
                     "rules": 3,
-                    "rule_groups": [{"action": 0}, {"action": 1}],
+                    "rule_groups": [
+                        {"action": 0, "rules": 1, "status": 1},
+                        {"action": 1, "rules": 2, "status": 1},
+                    ],
                 },
             ],
         }
@@ -46,7 +49,7 @@ def test_print_plan_details_empty_folders(capsys):
     import main as m
 
     with patch.object(m, "USE_COLORS", False):
-        plan_entry = {"profile": "test_profile", "folders": []}
+        plan_entry: m.PlanEntry = {"profile": "test_profile", "folders": []}
         m.print_plan_details(plan_entry)
 
     captured = capsys.readouterr()
@@ -71,7 +74,7 @@ def test_print_plan_details_with_colors(capsys):
 
             m = importlib.reload(m)
 
-            plan_entry = {
+            plan_entry: m.PlanEntry = {
                 "profile": "test_profile",
                 "folders": [{"name": "Folder A", "rules": 10, "action": 1}],
             }
