@@ -2743,28 +2743,28 @@ def print_success_message(profile_ids: list[str]) -> None:
         print(f"\n{random.choice(success_msgs)}")
 
     # Construct dashboard URL
-    if (
-        profile_ids
+    is_single_profile = (
+        bool(profile_ids)
         and len(profile_ids) == 1
         and profile_ids[0] != "dry-run-placeholder"
-    ):
+    )
+    is_multi_profile = len(profile_ids) > 1
+
+    if is_single_profile:
         dashboard_url = (
             f"https://controld.com/dashboard/profiles/{profile_ids[0]}/filters"
         )
-        if USE_COLORS:
-            print(
-                f"{Colors.CYAN}👀 View your changes: {Colors.UNDERLINE}{dashboard_url}{Colors.ENDC}"
-            )
-        else:
-            print(f"👀 View your changes: {dashboard_url}")
-    elif len(profile_ids) > 1:
+    elif is_multi_profile:
         dashboard_url = "https://controld.com/dashboard/profiles"
-        if USE_COLORS:
-            print(
-                f"{Colors.CYAN}👀 View your changes: {Colors.UNDERLINE}{dashboard_url}{Colors.ENDC}"
-            )
-        else:
-            print(f"👀 View your changes: {dashboard_url}")
+    else:
+        return
+
+    if USE_COLORS:
+        print(
+            f"{Colors.CYAN}👀 View your changes: {Colors.UNDERLINE}{dashboard_url}{Colors.ENDC}"
+        )
+    else:
+        print(f"👀 View your changes: {dashboard_url}")
 
 
 def parse_args() -> argparse.Namespace:
