@@ -1058,7 +1058,7 @@ _CGNAT_NETWORK = ipaddress.IPv4Network("100.64.0.0/10")
 
 
 def _is_safe_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
-    """Checks against CGNAT space, multicast, and relies on is_global for the rest."""
+    """Rejects multicast, unspecified, and IPv4 CGNAT addresses; otherwise requires a global IP."""
     if ip.is_multicast:
         return False
     if ip.is_unspecified:
