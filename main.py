@@ -466,6 +466,7 @@ INVALID_INPUT_HINT = f"   {Colors.DIM}💡 Hint: Please check your input and try
 
 # Pre-compiled regex patterns for hot-path validation (>2x speedup on 10k+ items)
 PROFILE_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
+_PROFILE_URL_PATTERN = re.compile(r"controld\.com/dashboard/profiles/([^/?#\s]+)")
 # Folder IDs (PK) are typically alphanumeric but can contain other safe chars.
 # We whitelist to prevent path traversal and injection.
 FOLDER_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_.-]+$")
@@ -1162,7 +1163,7 @@ def extract_profile_id(text: str) -> str:
     text = text.strip()
     # Pattern for Control D Dashboard URLs
     # e.g. https://controld.com/dashboard/profiles/12345abc/filters
-    match = re.search(r"controld\.com/dashboard/profiles/([^/?#\s]+)", text)
+    match = _PROFILE_URL_PATTERN.search(text)
     if match:
         return match.group(1)
     return text
