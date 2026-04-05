@@ -41,6 +41,7 @@
 
 **Closed issues:**
 
+- \[repo-automation\] Weekly Retrospective - 2026-04-05 [\#704](https://github.com/abhimehro/ctrld-sync/issues/704)
 - \[repo-automation\] Daily Status Report - 2026-04-02 [\#692](https://github.com/abhimehro/ctrld-sync/issues/692)
 - \[repo-automation\] Daily Status Report - 2026-04-01 [\#690](https://github.com/abhimehro/ctrld-sync/issues/690)
 - \[repo-automation\] Daily Status Report - 2026-03-31 [\#689](https://github.com/abhimehro/ctrld-sync/issues/689)
@@ -85,9 +86,12 @@
 - \[Code Quality\] Introduce TypedDict types for folder and rule data structures in main.py [\#556](https://github.com/abhimehro/ctrld-sync/issues/556)
 - \[Code Quality\] Add pep8-naming \(N\) rules to ruff lint config to enforce naming conventions [\#553](https://github.com/abhimehro/ctrld-sync/issues/553)
 - \[Code Quality\] Add 400 and 422 HTTP status hints to \_4XX\_HINTS in api\_client.py [\#552](https://github.com/abhimehro/ctrld-sync/issues/552)
+- \[Code Quality\] Extract terminal display/UI utilities into display.py [\#551](https://github.com/abhimehro/ctrld-sync/issues/551)
 - \[repo-status\] Daily Repo Status — March 4, 2026 🚀 [\#548](https://github.com/abhimehro/ctrld-sync/issues/548)
 - \[Code Quality\] Add actionable warning logs for 4xx auth/client errors in api\_client.py retry paths [\#547](https://github.com/abhimehro/ctrld-sync/issues/547)
 - \[Code Quality\] Add ruff `PERF` \(perflint\) rules to catch performance anti-patterns [\#546](https://github.com/abhimehro/ctrld-sync/issues/546)
+- \[Code Quality\] Fix stdlib import ordering in api\_client.py and enforce with ruff `I` rules [\#545](https://github.com/abhimehro/ctrld-sync/issues/545)
+- \[Code Quality\] Add flake8-bugbear \(B\) rules to ruff lint config [\#543](https://github.com/abhimehro/ctrld-sync/issues/543)
 - \[Code Quality\] Add exception info to JsonFormatter for error-level log records [\#541](https://github.com/abhimehro/ctrld-sync/issues/541)
 - \[Code Quality\] Align `cache.py` sanitization with `api_client.py` injection pattern for consistent token redaction [\#536](https://github.com/abhimehro/ctrld-sync/issues/536)
 - \[Code Quality\] Add `__all__` exports to `api_client.py` and `cache.py` to define explicit public APIs [\#535](https://github.com/abhimehro/ctrld-sync/issues/535)
@@ -232,6 +236,7 @@
 
 **Merged pull requests:**
 
+- ⚡ Bolt: Optimize `validate_folder_data` by removing generator expressions [\#705](https://github.com/abhimehro/ctrld-sync/pull/705) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[HIGH\] Fix SSRF bypass via unspecified IPs [\#699](https://github.com/abhimehro/ctrld-sync/pull/699) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Add trailing space to generic input prompts [\#698](https://github.com/abhimehro/ctrld-sync/pull/698) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Optimize dictionary lookups in cache and headers [\#696](https://github.com/abhimehro/ctrld-sync/pull/696) ([abhimehro](https://github.com/abhimehro))
