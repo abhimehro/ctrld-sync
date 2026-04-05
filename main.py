@@ -2749,28 +2749,22 @@ def print_success_message(profile_ids: list[str]) -> None:
         print(f"\n{chosen_msg}")
 
     # Construct dashboard URL
-    if (
-        profile_ids
-        and len(profile_ids) == 1
-        and profile_ids[0] != "dry-run-placeholder"
-    ):
-        dashboard_url = (
-            f"https://controld.com/dashboard/profiles/{profile_ids[0]}/filters"
-        )
-        if USE_COLORS:
-            print(
-                f"{Colors.CYAN}👀 View your changes: {Colors.UNDERLINE}{dashboard_url}{Colors.ENDC}"
-            )
-        else:
-            print(f"👀 View your changes: {dashboard_url}")
-    elif len(profile_ids) > 1:
-        dashboard_url = "https://controld.com/dashboard/profiles"
-        if USE_COLORS:
-            print(
-                f"{Colors.CYAN}👀 View your changes: {Colors.UNDERLINE}{dashboard_url}{Colors.ENDC}"
-            )
-        else:
-            print(f"👀 View your changes: {dashboard_url}")
+    is_single_profile = profile_ids and len(profile_ids) == 1 and profile_ids[0] != "dry-run-placeholder"
+    is_multi_profile = len(profile_ids) > 1
+
+    if not is_single_profile and not is_multi_profile:
+        return
+
+    dashboard_url = (
+        f"https://controld.com/dashboard/profiles/{profile_ids[0]}/filters"
+        if is_single_profile
+        else "https://controld.com/dashboard/profiles"
+    )
+
+    if USE_COLORS:
+        print(f"{Colors.CYAN}👀 View your changes: {Colors.UNDERLINE}{dashboard_url}{Colors.ENDC}")
+    else:
+        print(f"👀 View your changes: {dashboard_url}")
 
 
 def parse_args() -> argparse.Namespace:
