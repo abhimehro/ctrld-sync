@@ -1279,6 +1279,16 @@ def is_valid_folder_name(name: str) -> bool:
     return not clean_name.startswith("-")
 
 
+def _is_valid_rule_list(rules_list: Any) -> bool:
+    """Helper to quickly validate a list of rules without generator overhead."""
+    if not isinstance(rules_list, list):
+        return False
+    for r in rules_list:
+        if type(r) is not dict or ((pk := r.get("PK")) is not None and type(pk) is not str):
+            return False
+    return True
+
+
 def validate_folder_data(data: dict[str, Any], url: str) -> TypeGuard[FolderData]:
     """
     Validates folder JSON data structure and content.
@@ -1330,13 +1340,7 @@ def validate_folder_data(data: dict[str, Any], url: str) -> TypeGuard[FolderData
         # Optimization: Fast path inline type check avoids function call overhead per rule.
         # Fallback identifies the exact error for logging.
         rules_list = data["rules"]
-        is_valid = True
-        for r in rules_list:
-            if type(r) is not dict or ((pk := r.get("PK")) is not None and type(pk) is not str):
-                is_valid = False
-                break
-
-        if not is_valid:
+        if not _is_valid_rule_list(rules_list):
             for j, rule in enumerate(rules_list):
                 if not isinstance(rule, dict):
                     log.error(
@@ -1374,13 +1378,7 @@ def validate_folder_data(data: dict[str, Any], url: str) -> TypeGuard[FolderData
                 rg_rules_list = rg["rules"]
                 # Optimization: Fast path inline type check avoids function call overhead per rule.
                 # Fallback identifies the exact error for logging.
-                is_valid = True
-                for r in rg_rules_list:
-                    if type(r) is not dict or ((pk := r.get("PK")) is not None and type(pk) is not str):
-                        is_valid = False
-                        break
-
-                if not is_valid:
+                if not _is_valid_rule_list(rg_rules_list):
                     for j, rule in enumerate(rg_rules_list):
                         if not isinstance(rule, dict):
                             log.error(
