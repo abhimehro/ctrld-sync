@@ -45,4 +45,4 @@
 
 ## 2026-04-04 - [NO_COLOR Delight Fallbacks]
 **Learning:** Completely suppressing output in NO_COLOR environments hides actionable hints and URLs, breaking the fundamental UX of CLI success/failure messages.
-**Action:** In NO_COLOR settings, print explicit uncolored message strings and avoid early returns that suppress semantic content like hints and URLs.
+**Action:** Rely on ANSI strip-safe empty string resolution in NO_COLOR settings to preserve semantic content, instead of outright condition-blocking UI blocks.

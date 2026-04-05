@@ -625,9 +625,7 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
                 f"  {Colors.DIM}💡 Hint: Add folder URLs using --folder-url or in your config.yaml{Colors.ENDC}"
             )
         else:
-            # Keep the no-color message text stable because tests and plain-text
-            # consumers may rely on this exact output.
-            print("  No folders to sync.")
+            print("  ⚠️  No folders to sync.")
             print("  💡 Hint: Add folder URLs using --folder-url or in your config.yaml")
         return
 
