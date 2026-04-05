@@ -2734,9 +2734,6 @@ def print_summary_table(
 
 def print_success_message(profile_ids: list[str]) -> None:
     """Prints a random success message and a link to the Control D dashboard."""
-    if not USE_COLORS:
-        return
-
     success_msgs = [
         "✨ All synced!",
         "🚀 Ready for liftoff!",
@@ -2744,7 +2741,12 @@ def print_success_message(profile_ids: list[str]) -> None:
         "💎 Smooth operation!",
         "🌈 Perfect harmony!",
     ]
-    print(f"\n{Colors.GREEN}{random.choice(success_msgs)}{Colors.ENDC}")
+    chosen_msg = random.choice(success_msgs)
+
+    if USE_COLORS:
+        print(f"\n{Colors.GREEN}{chosen_msg}{Colors.ENDC}")
+    else:
+        print(f"\n{chosen_msg}")
 
     # Construct dashboard URL
     if (
@@ -2755,14 +2757,20 @@ def print_success_message(profile_ids: list[str]) -> None:
         dashboard_url = (
             f"https://controld.com/dashboard/profiles/{profile_ids[0]}/filters"
         )
-        print(
-            f"{Colors.CYAN}👀 View your changes: {Colors.UNDERLINE}{dashboard_url}{Colors.ENDC}"
-        )
+        if USE_COLORS:
+            print(
+                f"{Colors.CYAN}👀 View your changes: {Colors.UNDERLINE}{dashboard_url}{Colors.ENDC}"
+            )
+        else:
+            print(f"👀 View your changes: {dashboard_url}")
     elif len(profile_ids) > 1:
         dashboard_url = "https://controld.com/dashboard/profiles"
-        print(
-            f"{Colors.CYAN}👀 View your changes: {Colors.UNDERLINE}{dashboard_url}{Colors.ENDC}"
-        )
+        if USE_COLORS:
+            print(
+                f"{Colors.CYAN}👀 View your changes: {Colors.UNDERLINE}{dashboard_url}{Colors.ENDC}"
+            )
+        else:
+            print(f"👀 View your changes: {dashboard_url}")
 
 
 def parse_args() -> argparse.Namespace:

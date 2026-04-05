@@ -142,14 +142,21 @@ def test_print_success_message_multiple_profiles(monkeypatch):
 
 
 def test_print_success_message_no_colors(monkeypatch):
-    """Verify nothing is printed if colors are disabled."""
+    """Verify uncolored text is printed if colors are disabled."""
     monkeypatch.setattr(main, "USE_COLORS", False)
     mock_stdout = MagicMock()
     monkeypatch.setattr(sys, "stdout", mock_stdout)
 
     main.print_success_message(["123"])
 
-    mock_stdout.write.assert_not_called()
+    assert mock_stdout.write.call_count > 0
+    writes = [args[0] for args, _ in mock_stdout.write.call_args_list]
+    combined_output = "".join(writes)
+
+    # Check for emojis and links but no ANSI codes
+    assert "View your changes" in combined_output
+    assert "https://controld.com/dashboard/profiles/123/filters" in combined_output
+    assert "\033" not in combined_output
 
 
 class TestGetProgressBarWidth:
