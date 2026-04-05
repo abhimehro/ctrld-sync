@@ -1330,10 +1330,13 @@ def validate_folder_data(data: dict[str, Any], url: str) -> TypeGuard[FolderData
         # Optimization: Fast path inline type check avoids function call overhead per rule.
         # Fallback identifies the exact error for logging.
         rules_list = data["rules"]
-        if not all(
-            type(r) is dict and ((pk := r.get("PK")) is None or type(pk) is str)
-            for r in rules_list
-        ):
+        is_valid = True
+        for r in rules_list:
+            if type(r) is not dict or ((pk := r.get("PK")) is not None and type(pk) is not str):
+                is_valid = False
+                break
+
+        if not is_valid:
             for j, rule in enumerate(rules_list):
                 if not isinstance(rule, dict):
                     log.error(
@@ -1371,10 +1374,13 @@ def validate_folder_data(data: dict[str, Any], url: str) -> TypeGuard[FolderData
                 rg_rules_list = rg["rules"]
                 # Optimization: Fast path inline type check avoids function call overhead per rule.
                 # Fallback identifies the exact error for logging.
-                if not all(
-                    type(r) is dict and ((pk := r.get("PK")) is None or type(pk) is str)
-                    for r in rg_rules_list
-                ):
+                is_valid = True
+                for r in rg_rules_list:
+                    if type(r) is not dict or ((pk := r.get("PK")) is not None and type(pk) is not str):
+                        is_valid = False
+                        break
+
+                if not is_valid:
                     for j, rule in enumerate(rg_rules_list):
                         if not isinstance(rule, dict):
                             log.error(
