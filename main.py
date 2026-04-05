@@ -511,6 +511,7 @@ _BIDI_CONTROL_CHARS = {
 
 # Pre-combine forbidden character sets for fast O(N) validation in is_valid_folder_name
 _ALL_FORBIDDEN_FOLDER_CHARS = frozenset(_DANGEROUS_FOLDER_CHARS | _BIDI_CONTROL_CHARS)
+_UNSAFE_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
 
 # Pre-compiled patterns for log sanitization
 _BASIC_AUTH_PATTERN = re.compile(r"://[^/@]+@")
@@ -1083,7 +1084,7 @@ def validate_hostname(hostname: str) -> bool:
         return False
 
     # Check for potentially malicious hostnames
-    if hostname.lower() in ("localhost", "127.0.0.1", "::1"):
+    if hostname.lower() in _UNSAFE_HOSTS:
         log.warning(
             f"Skipping unsafe hostname (localhost detected): {sanitize_for_log(hostname)}"
         )
@@ -1279,6 +1280,16 @@ def is_valid_folder_name(name: str) -> bool:
     return not clean_name.startswith("-")
 
 
+def _is_valid_rule_list(rules_list: Any) -> bool:
+    """Helper to quickly validate a list of rules without generator overhead."""
+    if not isinstance(rules_list, list):
+        return False
+    for r in rules_list:
+        if type(r) is not dict or ((pk := r.get("PK")) is not None and type(pk) is not str):
+            return False
+    return True
+
+
 def validate_folder_data(data: dict[str, Any], url: str) -> TypeGuard[FolderData]:
     """
     Validates folder JSON data structure and content.
@@ -1330,10 +1341,7 @@ def validate_folder_data(data: dict[str, Any], url: str) -> TypeGuard[FolderData
         # Optimization: Fast path inline type check avoids function call overhead per rule.
         # Fallback identifies the exact error for logging.
         rules_list = data["rules"]
-        if not all(
-            type(r) is dict and ((pk := r.get("PK")) is None or type(pk) is str)
-            for r in rules_list
-        ):
+        if not _is_valid_rule_list(rules_list):
             for j, rule in enumerate(rules_list):
                 if not isinstance(rule, dict):
                     log.error(
@@ -1371,10 +1379,7 @@ def validate_folder_data(data: dict[str, Any], url: str) -> TypeGuard[FolderData
                 rg_rules_list = rg["rules"]
                 # Optimization: Fast path inline type check avoids function call overhead per rule.
                 # Fallback identifies the exact error for logging.
-                if not all(
-                    type(r) is dict and ((pk := r.get("PK")) is None or type(pk) is str)
-                    for r in rg_rules_list
-                ):
+                if not _is_valid_rule_list(rg_rules_list):
                     for j, rule in enumerate(rg_rules_list):
                         if not isinstance(rule, dict):
                             log.error(
