@@ -511,6 +511,7 @@ _BIDI_CONTROL_CHARS = {
 
 # Pre-combine forbidden character sets for fast O(N) validation in is_valid_folder_name
 _ALL_FORBIDDEN_FOLDER_CHARS = frozenset(_DANGEROUS_FOLDER_CHARS | _BIDI_CONTROL_CHARS)
+_UNSAFE_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
 
 # Pre-compiled patterns for log sanitization
 _BASIC_AUTH_PATTERN = re.compile(r"://[^/@]+@")
@@ -1083,7 +1084,7 @@ def validate_hostname(hostname: str) -> bool:
         return False
 
     # Check for potentially malicious hostnames
-    if hostname.lower() in ("localhost", "127.0.0.1", "::1"):
+    if hostname.lower() in _UNSAFE_HOSTS:
         log.warning(
             f"Skipping unsafe hostname (localhost detected): {sanitize_for_log(hostname)}"
         )
