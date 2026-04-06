@@ -31,11 +31,11 @@ def test_print_plan_details_no_colors(capsys):
     captured = capsys.readouterr()
     output = captured.out
 
-    assert "Plan Details for test_profile:" in output
+    assert "📝 Plan Details for test_profile:" in output
     # Match exact output including alignment spaces
-    assert "  - Folder A : 10 rules [Allow]" in output
-    assert "  - Folder B :  5 rules [Block]" in output
-    assert "  - Folder C :  3 rules [Mixed]" in output
+    assert "  - Folder A : 10 rules [✅ Allow]" in output
+    assert "  - Folder B :  5 rules [⛔ Block]" in output
+    assert "  - Folder C :  3 rules [⚠️  Mixed]" in output
     # Verify alphabetical ordering (A before B before C)
     assert output.index("Folder A") < output.index("Folder B")
     assert output.index("Folder B") < output.index("Folder C")
@@ -52,8 +52,8 @@ def test_print_plan_details_empty_folders(capsys):
     captured = capsys.readouterr()
     output = captured.out
 
-    assert "Plan Details for test_profile:" in output
-    assert "No folders to sync." in output
+    assert "📝 Plan Details for test_profile:" in output
+    assert "  ⚠️  No folders to sync." in output
     assert "Hint: Add folder URLs using --folder-url or in your config.yaml" in output
 
 
