@@ -241,8 +241,11 @@
 
 **Merged pull requests:**
 
+- UX: Retain success message and links in no-color mode [\#707](https://github.com/abhimehro/ctrld-sync/pull/707) ([abhimehro](https://github.com/abhimehro))
+- chore: update ruff config to use lint section [\#706](https://github.com/abhimehro/ctrld-sync/pull/706) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Optimize `validate_folder_data` by removing generator expressions [\#705](https://github.com/abhimehro/ctrld-sync/pull/705) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[HIGH\] Fix SSRF by blocking private IPs [\#703](https://github.com/abhimehro/ctrld-sync/pull/703) ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: \[performance improvement\] Pre-compile regex for profile URL extraction [\#700](https://github.com/abhimehro/ctrld-sync/pull/700) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[HIGH\] Fix SSRF bypass via unspecified IPs [\#699](https://github.com/abhimehro/ctrld-sync/pull/699) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Add trailing space to generic input prompts [\#698](https://github.com/abhimehro/ctrld-sync/pull/698) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Optimize dictionary lookups in cache and headers [\#696](https://github.com/abhimehro/ctrld-sync/pull/696) ([abhimehro](https://github.com/abhimehro))
@@ -387,6 +390,7 @@
 - feat: pin CI cache keys to dependency file hashes [\#401](https://github.com/abhimehro/ctrld-sync/pull/401) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - feat: broaden pip cache keys to cover pyproject.toml and add caching to bandit workflow [\#400](https://github.com/abhimehro/ctrld-sync/pull/400) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - docs: fix README CI/CD workflow documentation and test commands [\#398](https://github.com/abhimehro/ctrld-sync/pull/398) ([Copilot](https://github.com/apps/copilot-swe-agent))
+- Remove dead code and unnecessary global declarations [\#396](https://github.com/abhimehro/ctrld-sync/pull/396) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - Add dedicated test.yml workflow for PR validation [\#395](https://github.com/abhimehro/ctrld-sync/pull/395) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - Fix SECURITY.md: replace placeholder versions and clarify pre-1.0 compatibility policy [\#393](https://github.com/abhimehro/ctrld-sync/pull/393) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - Fix inaccurate sync.yml description in README [\#392](https://github.com/abhimehro/ctrld-sync/pull/392) ([Copilot](https://github.com/apps/copilot-swe-agent))
