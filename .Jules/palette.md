@@ -42,3 +42,7 @@
 
 **Learning:** While intercepting strings like "n" or "no" for cancellation in interactive boolean prompts (e.g., "Ready to launch?") is good UX, applying this same interception logic universally to *generic* input functions (like `get_validated_input` or `get_password`) introduces severe functional and security regressions. A user whose valid answer is "no" or whose password happens to match a cancellation string will be unexpectedly booted from the application.
 **Action:** Confine string-based cancellation interception to specific, appropriate contexts (like interactive confirmations). For generic input and password fields, rely solely on standard interrupt signals (Ctrl+C / Ctrl+D).
+
+## 2025-04-05 - [No-Color Fallbacks for Delight]
+**Learning:** Returning early or suppressing entire blocks of UI (like success messages or actionable URLs) simply because color is disabled deprives users of helpful information in CI environments or accessibility setups.
+**Action:** When falling back to no-color modes for CLI output, retain semantic emojis (like 💡 or ✨) and actionable URLs in the uncolored fallback strings. Do not completely suppress functional output blocks simply because colors are disabled.
