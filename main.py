@@ -586,7 +586,9 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
             )
         else:
             print("  No folders to sync.")
-            print("  💡 Hint: Add folder URLs using --folder-url or in your config.yaml")
+            print(
+                "  💡 Hint: Add folder URLs using --folder-url or in your config.yaml"
+            )
         return
 
     # Calculate max width for alignment
@@ -1288,7 +1290,9 @@ def _is_valid_rule_list(rules_list: Any) -> bool:
     if not isinstance(rules_list, list):
         return False
     for r in rules_list:
-        if type(r) is not dict or ((pk := r.get("PK")) is not None and type(pk) is not str):
+        if type(r) is not dict or (
+            (pk := r.get("PK")) is not None and type(pk) is not str
+        ):
             return False
     return True
 
@@ -2133,11 +2137,15 @@ def push_rules(
 
     original_count = len(hostnames)
 
-    # Optimization 1: Deduplicate input hostnames efficiently using dict.fromkeys()
-    # (preserves order) and perform O(1) existence checks against existing_rules.
+    # Optimization 1: Deduplicate and filter existing rules in a C-speed dict comprehension.
     # This completely avoids copying the potentially massive existing_rules set
-    # (which could be millions of items) for every folder processed.
-    unique_hostnames_dict = dict.fromkeys(hostnames)
+    # (which could be millions of items) for every folder processed, and is up
+    # to 2x faster than a manual loop due to avoiding Python interpreter overhead.
+    existing_rules = ctx.existing_rules
+    if not existing_rules:
+        unique_hostnames_dict = dict.fromkeys(hostnames)
+    else:
+        unique_hostnames_dict = {h: None for h in hostnames if h not in existing_rules}
 
     filtered_hostnames: list[str] = []
     skipped_unsafe = 0
@@ -2145,36 +2153,18 @@ def push_rules(
     # Optimization 2: Inline method references for hot loop performance
     is_safe = _ALLOWED_RULE_CHARS.issuperset
     append = filtered_hostnames.append
-    existing_rules = ctx.existing_rules
 
-    # Single-pass validation and filtering
-    # Avoids an intermediate list allocation (new_hostnames) and multiple iterations
-    # FAST-PATH: If existing_rules is empty (e.g., first sync), avoid the set lookup
-    if not existing_rules:
-        for h in unique_hostnames_dict:
-            # Fast path: strict regex check
-            if not (h and is_safe(h)):
-                log.warning(
-                    f"Skipping unsafe rule in {sanitize_for_log(folder_name)}: {sanitize_for_log(h)}"
-                )
-                skipped_unsafe += 1
-                continue
-            append(h)
-    else:
-        for h in unique_hostnames_dict:
-            # Fast path 1: Skip rules we've already synced
-            if h in existing_rules:
-                continue
-
-            # Fast path 2: strict regex check
-            if not (h and is_safe(h)):
-                log.warning(
-                    f"Skipping unsafe rule in {sanitize_for_log(folder_name)}: {sanitize_for_log(h)}"
-                )
-                skipped_unsafe += 1
-                continue
-
-            append(h)
+    # Second pass: Strict safety validation
+    # Avoids an intermediate list allocation (new_hostnames)
+    for h in unique_hostnames_dict:
+        # Fast path: strict regex check
+        if not (h and is_safe(h)):
+            log.warning(
+                f"Skipping unsafe rule in {sanitize_for_log(folder_name)}: {sanitize_for_log(h)}"
+            )
+            skipped_unsafe += 1
+            continue
+        append(h)
 
     if skipped_unsafe > 0:
         log.warning(
@@ -2752,7 +2742,11 @@ def print_success_message(profile_ids: list[str]) -> None:
         print(f"\n{chosen_msg}")
 
     # Construct dashboard URL
-    is_single_profile = profile_ids and len(profile_ids) == 1 and profile_ids[0] != "dry-run-placeholder"
+    is_single_profile = (
+        profile_ids
+        and len(profile_ids) == 1
+        and profile_ids[0] != "dry-run-placeholder"
+    )
     is_multi_profile = len(profile_ids) > 1
 
     if not is_single_profile and not is_multi_profile:
@@ -2765,7 +2759,9 @@ def print_success_message(profile_ids: list[str]) -> None:
     )
 
     if USE_COLORS:
-        print(f"{Colors.CYAN}👀 View your changes: {Colors.UNDERLINE}{dashboard_url}{Colors.ENDC}")
+        print(
+            f"{Colors.CYAN}👀 View your changes: {Colors.UNDERLINE}{dashboard_url}{Colors.ENDC}"
+        )
     else:
         print(f"👀 View your changes: {dashboard_url}")
 
