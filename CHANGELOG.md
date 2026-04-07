@@ -66,12 +66,14 @@
 - \[repo-status\] Daily Status Report — March 7, 2026 [\#611](https://github.com/abhimehro/ctrld-sync/issues/611)
 - \[Code Quality\] Add HTTP status code hint to `create_folder` error handler [\#610](https://github.com/abhimehro/ctrld-sync/issues/610)
 - \[Code Quality\] Add unit tests for `RuleAction` frozen immutability and `SyncContext` dataclass contracts [\#608](https://github.com/abhimehro/ctrld-sync/issues/608)
+- \[Code Quality\] Add debug log to silent `httpx.HTTPError` in `_fetch_folder_rules` nested helper [\#595](https://github.com/abhimehro/ctrld-sync/issues/595)
 - \[Code Quality\] Replace hardcoded `_STATUS_HINTS[500]` with `api_client._SERVER_ERROR_HINT` [\#594](https://github.com/abhimehro/ctrld-sync/issues/594)
 - \[Code Quality\] Use `_CONNECT_ERROR_HINT` in `main.py` network error handlers [\#593](https://github.com/abhimehro/ctrld-sync/issues/593)
 - \[repo-status\] Daily Status Report — March 6, 2026 [\#592](https://github.com/abhimehro/ctrld-sync/issues/592)
 - \[Code Quality\] Add debug log to silent `except httpx.HTTPError: pass` in `get_all_existing_rules()` root fetch [\#589](https://github.com/abhimehro/ctrld-sync/issues/589)
 - \[Code Quality\] Replace `except ValueError: pass` with `contextlib.suppress` in `_retry_request` 429 handler [\#588](https://github.com/abhimehro/ctrld-sync/issues/588)
 - \[Code Quality\] Deduplicate hint messages between main.\_STATUS\_HINTS and api\_client.\_4XX\_HINTS [\#584](https://github.com/abhimehro/ctrld-sync/issues/584)
+- \[Code Quality\] Add integration test for JSON\_LOG env var enabling JsonFormatter in main.py [\#583](https://github.com/abhimehro/ctrld-sync/issues/583)
 - \[Code Quality\] Document undocumented CLI flags \(--no-delete, --plan-json, --clear-cache\) in README [\#582](https://github.com/abhimehro/ctrld-sync/issues/582)
 - \[Code Quality\] Document `fix_env.py` public interface: add docstring to `fix_env()` and `__all__` [\#573](https://github.com/abhimehro/ctrld-sync/issues/573)
 - \[repo-status\] Daily Repo Status — March 5, 2026 🚀 [\#571](https://github.com/abhimehro/ctrld-sync/issues/571)
@@ -241,6 +243,7 @@
 
 **Merged pull requests:**
 
+- ⚡ Bolt: Use dict comprehension for hostname filtering [\#710](https://github.com/abhimehro/ctrld-sync/pull/710) ([abhimehro](https://github.com/abhimehro))
 - chore: complete Jules Daily QA & Agentic Review [\#708](https://github.com/abhimehro/ctrld-sync/pull/708) ([abhimehro](https://github.com/abhimehro))
 - UX: Retain success message and links in no-color mode [\#707](https://github.com/abhimehro/ctrld-sync/pull/707) ([abhimehro](https://github.com/abhimehro))
 - chore: update ruff config to use lint section [\#706](https://github.com/abhimehro/ctrld-sync/pull/706) ([abhimehro](https://github.com/abhimehro))
@@ -388,7 +391,6 @@
 - 🛡️ Sentinel: \[MEDIUM\] Fix missing input validation on external JSON data [\#409](https://github.com/abhimehro/ctrld-sync/pull/409) ([abhimehro](https://github.com/abhimehro))
 - Add YAML configuration file support for folder URL definitions [\#404](https://github.com/abhimehro/ctrld-sync/pull/404) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - chore: standardize Python version to 3.13 across all workflows [\#403](https://github.com/abhimehro/ctrld-sync/pull/403) ([Copilot](https://github.com/apps/copilot-swe-agent))
-- feat: pin CI cache keys to dependency file hashes [\#401](https://github.com/abhimehro/ctrld-sync/pull/401) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - feat: broaden pip cache keys to cover pyproject.toml and add caching to bandit workflow [\#400](https://github.com/abhimehro/ctrld-sync/pull/400) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - docs: fix README CI/CD workflow documentation and test commands [\#398](https://github.com/abhimehro/ctrld-sync/pull/398) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - Remove dead code and unnecessary global declarations [\#396](https://github.com/abhimehro/ctrld-sync/pull/396) ([Copilot](https://github.com/apps/copilot-swe-agent))
