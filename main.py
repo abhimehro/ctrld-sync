@@ -580,12 +580,12 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
 
     if not folders:
         if USE_COLORS:
-            print(f"  {Colors.WARNING}No folders to sync.{Colors.ENDC}")
+            print(f"  {Colors.WARNING}⚠️  No folders to sync.{Colors.ENDC}")
             print(
                 f"  {Colors.DIM}💡 Hint: Add folder URLs using --folder-url or in your config.yaml{Colors.ENDC}"
             )
         else:
-            print("  No folders to sync.")
+            print("  ⚠️  No folders to sync.")
             print(
                 "  💡 Hint: Add folder URLs using --folder-url or in your config.yaml"
             )
@@ -618,7 +618,7 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
                 action_text = (
                     f"({action_color}⚠️  {action_label}{Colors.ENDC})"
                     if USE_COLORS
-                    else f"[{action_label}]"
+                    else f"(⚠️  {action_label})"
                 )
             else:
                 # All groups have same action
@@ -629,7 +629,7 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
                     action_text = (
                         f"({action_color}⛔ {action_label}{Colors.ENDC})"
                         if USE_COLORS
-                        else f"[{action_label}]"
+                        else f"(⛔ {action_label})"
                     )
                 elif action_val == 1:
                     action_label = "Allow"
@@ -637,7 +637,7 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
                     action_text = (
                         f"({action_color}✅ {action_label}{Colors.ENDC})"
                         if USE_COLORS
-                        else f"[{action_label}]"
+                        else f"(✅ {action_label})"
                     )
 
         # Fallback to single action if not set
@@ -649,7 +649,7 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
                 action_text = (
                     f"({action_color}⛔ {action_label}{Colors.ENDC})"
                     if USE_COLORS
-                    else f"[{action_label}]"
+                    else f"(⛔ {action_label})"
                 )
             elif action_val == 1:
                 action_label = "Allow"
@@ -657,7 +657,7 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
                 action_text = (
                     f"({action_color}✅ {action_label}{Colors.ENDC})"
                     if USE_COLORS
-                    else f"[{action_label}]"
+                    else f"(✅ {action_label})"
                 )
 
         # If action is still completely missing/unknown, default to Block (Default) for clearer UX
@@ -667,7 +667,7 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
             action_text = (
                 f"({action_color}⛔ {action_label}{Colors.ENDC})"
                 if USE_COLORS
-                else f"[{action_label}]"
+                else f"(⛔ {action_label})"
             )
 
         if USE_COLORS:
@@ -709,9 +709,11 @@ def countdown_timer(seconds: int, message: str = "Waiting") -> None:
 
                 sleep_time = min(step, remaining)
                 time.sleep(sleep_time)
+            log.info(f"✅ {sanitize_for_log(message)}: Done!")
             return
 
         time.sleep(seconds)
+        log.info(f"✅ {sanitize_for_log(message)}: Done!")
         return
 
     width = _get_progress_bar_width()
@@ -1983,6 +1985,8 @@ def warm_up_cache(urls: Sequence[str]) -> None:
             f"\r\033[K{Colors.GREEN}✅ Warming up cache: Done!{Colors.ENDC}\n"
         )
         sys.stderr.flush()
+    else:
+        log.info("✅ Warming up cache: Done!")
 
 
 def delete_folder(
@@ -2291,7 +2295,7 @@ def push_rules(
             sys.stderr.flush()
         else:
             log.info(
-                f"Folder {sanitize_for_log(folder_name)} – finished ({len(filtered_hostnames):,} new rules added)"
+                f"✅ Folder {sanitize_for_log(folder_name)}: Finished ({len(filtered_hostnames):,} new rules added)"
             )
         return True
     if USE_COLORS:
@@ -2641,13 +2645,19 @@ def prompt_for_interactive_restart(profile_ids: list[str]) -> None:
         if "--profiles" not in sys.argv and profile_ids:
             new_argv.extend(["--profiles", ",".join(profile_ids)])
 
-        print(f"\n{Colors.GREEN}🔄 Restarting in live mode...{Colors.ENDC}")
+        if USE_COLORS:
+            print(f"\n{Colors.GREEN}🔄 Restarting in live mode...{Colors.ENDC}")
+        else:
+            print("\n🔄 Restarting in live mode...")
         # Security: The input to execv is derived from trusted sys.argv and validated profile_ids.
         # It restarts the same script with the same python interpreter.
         os.execv(sys.executable, new_argv)  # nosec B606
 
     except (KeyboardInterrupt, EOFError):
-        print(f"\n{Colors.WARNING}⚠️  Cancelled.{Colors.ENDC}")
+        if USE_COLORS:
+            print(f"\n{Colors.WARNING}⚠️  Cancelled.{Colors.ENDC}")
+        else:
+            print("\n⚠️  Cancelled.")
 
 
 def print_line(left_char: str, mid_char: str, right_char: str, w: list[int]) -> str:

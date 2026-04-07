@@ -48,8 +48,8 @@ def test_countdown_timer_no_colors_short(monkeypatch):
 
     main.countdown_timer(10, "Test")
 
-    # Should not log
-    mock_log.info.assert_not_called()
+    # Should log completion
+    mock_log.info.assert_called_once_with("✅ Test: Done!")
     # Should call sleep exactly once with full seconds
     mock_sleep.assert_called_once_with(10)
     # Should not write anything to stderr for short, no-color countdowns
@@ -77,14 +77,16 @@ def test_countdown_timer_no_colors_long(monkeypatch):
     # Expected log calls:
     # 1. "LongWait: 15s remaining..." (after first sleep/loop iteration)
     # 2. "LongWait: 5s remaining..." (after second sleep/loop iteration)
+    # 3. "✅ LongWait: Done!" (at the end)
 
     assert mock_sleep.call_count == 3
     mock_sleep.assert_any_call(10)
     mock_sleep.assert_any_call(5)
 
-    assert mock_log.info.call_count == 2
+    assert mock_log.info.call_count == 3
     mock_log.info.assert_any_call("LongWait: 15s remaining...")
     mock_log.info.assert_any_call("LongWait: 5s remaining...")
+    mock_log.info.assert_any_call("✅ LongWait: Done!")
 
 
 def test_print_success_message_single_profile(monkeypatch):
