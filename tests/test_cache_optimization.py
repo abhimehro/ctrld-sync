@@ -71,10 +71,9 @@ class TestCacheOptimization(unittest.TestCase):
                     url_in_cache = test_url in main._cache
 
                 result = None
-                if not url_in_cache:
-                    # For non-cached URLs, validate first
-                    if main.validate_folder_url(test_url):
-                        result = main.fetch_folder_data(test_url)
+                # For non-cached URLs, validate first
+                if not url_in_cache and main.validate_folder_url(test_url):
+                    result = main.fetch_folder_data(test_url)
 
                 # Verify validation WAS called for non-cached URL
                 mock_validate.assert_called_once_with(test_url)
@@ -188,9 +187,8 @@ class TestCacheOptimization(unittest.TestCase):
                 with main._cache_lock:
                     if test_url in main._cache:
                         result = main._cache[test_url]
-                    else:
-                        if main.validate_folder_url(test_url):
-                            result = main.fetch_folder_data(test_url)
+                    elif main.validate_folder_url(test_url):
+                        result = main.fetch_folder_data(test_url)
 
                 # Verify validation was NOT called because URL was cached
                 mock_validate.assert_not_called()

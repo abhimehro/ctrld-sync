@@ -7,17 +7,9 @@ import dotenv
 import httpx
 import pytest
 
-from os import PathLike
-from typing import IO
+from typing import Any
 
-def mock_load_dotenv(
-    dotenv_path: str | PathLike[str] | None = None,
-    stream: IO[str] | None = None,
-    verbose: bool = False,
-    override: bool = False,
-    interpolate: bool = True,
-    encoding: str | None = "utf-8",
-) -> bool:
+def mock_load_dotenv(*args: Any, **kwargs: Any) -> bool:
     return True
 
 dotenv.load_dotenv = mock_load_dotenv
