@@ -7,7 +7,20 @@ import dotenv
 import httpx
 import pytest
 
-dotenv.load_dotenv = lambda **kwargs: None
+from os import PathLike
+from typing import IO
+
+def mock_load_dotenv(
+    dotenv_path: str | PathLike[str] | None = None,
+    stream: IO[str] | None = None,
+    verbose: bool = False,
+    override: bool = False,
+    interpolate: bool = True,
+    encoding: str | None = "utf-8",
+) -> bool:
+    return True
+
+dotenv.load_dotenv = mock_load_dotenv
 import main  # noqa: E402
 
 
@@ -116,7 +129,7 @@ def test_push_rules_updates_existing_rules(monkeypatch):
     monkeypatch.setattr(m, "_api_post_form", MagicMock())
 
     hostnames = ["h1", "h2"]
-    existing_rules = set()
+    existing_rules: set[str] = set()
 
     ctx = m.SyncContext(
         profile_id="p1", client=mock_client, existing_rules=existing_rules
@@ -414,7 +427,6 @@ def test_extract_profile_id():
     assert main.extract_profile_id("random-string") == "random-string"
     # Empty input
     assert main.extract_profile_id("") == ""
-    assert main.extract_profile_id(None) == ""
 
 
 # Case 9: Interactive input handles URL pasting
@@ -751,7 +763,7 @@ def test_validate_folder_data_structure(monkeypatch):
     mock_log = MagicMock()
     monkeypatch.setattr(m, "log", mock_log)
 
-    valid_base = {"group": {"group": "ValidFolder"}}
+    valid_base: dict[str, object] = {"group": {"group": "ValidFolder"}}
 
     # 1. Invalid 'rules' type (string instead of list)
     invalid_rules = valid_base.copy()

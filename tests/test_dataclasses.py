@@ -23,7 +23,7 @@ def test_rule_action_is_immutable(main_module):
     """RuleAction is frozen=True – mutating any field must raise FrozenInstanceError."""
     action = main_module.RuleAction(do=1, status=1)
     with pytest.raises(dataclasses.FrozenInstanceError):
-        action.do = 99  # type: ignore[misc]
+        action.do = 99
 
 
 def test_sync_context_batch_executor_defaults_to_none(main_module):
