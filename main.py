@@ -1067,6 +1067,8 @@ def _is_safe_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
         return False
     if ip.is_unspecified:
         return False
+    if ip.is_loopback:
+        return False
     if ip.is_private:
         return False
     if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
