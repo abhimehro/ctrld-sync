@@ -1,0 +1,6 @@
+{
+  "title": "🛡️ Sentinel: [HIGH] Fix SSRF loopback bypass",
+  "head": "jules-2847833434788904308-422ff337",
+  "base": "main",
+  "body": "🚨 Severity: HIGH\n💡 Vulnerability: SSRF loopback and link-local IP bypass\n🎯 Impact: An attacker could bypass the SSRF filter to access internal services via domains resolving to loopback or link-local IPs\n🔧 Fix: Explicitly check for and block loopback and link-local IPs using `ip.is_loopback` and `ip.is_link_local` in `_is_safe_ip`\n✅ Verification: Verify by running `pytest tests/test_ssrf_enhanced.py`"
+}
