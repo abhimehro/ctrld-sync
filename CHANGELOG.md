@@ -248,6 +248,7 @@
 
 **Merged pull requests:**
 
+- 🛡️ Sentinel: \[HIGH\] Fix SSRF bypass via loopback interface [\#714](https://github.com/abhimehro/ctrld-sync/pull/714) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: Add explicit loopback IP check to prevent SSRF bypass [\#712](https://github.com/abhimehro/ctrld-sync/pull/712) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Use dict comprehension for hostname filtering [\#710](https://github.com/abhimehro/ctrld-sync/pull/710) ([abhimehro](https://github.com/abhimehro))
 - chore: complete Jules Daily QA & Agentic Review [\#708](https://github.com/abhimehro/ctrld-sync/pull/708) ([abhimehro](https://github.com/abhimehro))
@@ -397,6 +398,7 @@
 - 🛡️ Sentinel: \[MEDIUM\] Fix missing input validation on external JSON data [\#409](https://github.com/abhimehro/ctrld-sync/pull/409) ([abhimehro](https://github.com/abhimehro))
 - Add YAML configuration file support for folder URL definitions [\#404](https://github.com/abhimehro/ctrld-sync/pull/404) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - chore: standardize Python version to 3.13 across all workflows [\#403](https://github.com/abhimehro/ctrld-sync/pull/403) ([Copilot](https://github.com/apps/copilot-swe-agent))
+- feat: pin CI cache keys to dependency file hashes [\#401](https://github.com/abhimehro/ctrld-sync/pull/401) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - feat: broaden pip cache keys to cover pyproject.toml and add caching to bandit workflow [\#400](https://github.com/abhimehro/ctrld-sync/pull/400) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - docs: fix README CI/CD workflow documentation and test commands [\#398](https://github.com/abhimehro/ctrld-sync/pull/398) ([Copilot](https://github.com/apps/copilot-swe-agent))
 - Remove dead code and unnecessary global declarations [\#396](https://github.com/abhimehro/ctrld-sync/pull/396) ([Copilot](https://github.com/apps/copilot-swe-agent))
