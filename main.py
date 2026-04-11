@@ -576,7 +576,7 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
     if USE_COLORS:
         print(f"\n{Colors.HEADER}📝 Plan Details for {profile}:{Colors.ENDC}")
     else:
-        print(f"\nPlan Details for {profile}:")
+        print(f"\n📝 Plan Details for {profile}:")
 
     if not folders:
         if USE_COLORS:
@@ -585,7 +585,7 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
                 f"  {Colors.DIM}💡 Hint: Add folder URLs using --folder-url or in your config.yaml{Colors.ENDC}"
             )
         else:
-            print("  No folders to sync.")
+            print("  ⚠️  No folders to sync.")
             print(
                 "  💡 Hint: Add folder URLs using --folder-url or in your config.yaml"
             )
@@ -618,7 +618,7 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
                 action_text = (
                     f"({action_color}⚠️  {action_label}{Colors.ENDC})"
                     if USE_COLORS
-                    else f"[{action_label}]"
+                    else f"[⚠️  {action_label}]"
                 )
             else:
                 # All groups have same action
@@ -629,7 +629,7 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
                     action_text = (
                         f"({action_color}⛔ {action_label}{Colors.ENDC})"
                         if USE_COLORS
-                        else f"[{action_label}]"
+                        else f"[⛔ {action_label}]"
                     )
                 elif action_val == 1:
                     action_label = "Allow"
@@ -637,7 +637,7 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
                     action_text = (
                         f"({action_color}✅ {action_label}{Colors.ENDC})"
                         if USE_COLORS
-                        else f"[{action_label}]"
+                        else f"[✅ {action_label}]"
                     )
 
         # Fallback to single action if not set
@@ -649,7 +649,7 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
                 action_text = (
                     f"({action_color}⛔ {action_label}{Colors.ENDC})"
                     if USE_COLORS
-                    else f"[{action_label}]"
+                    else f"[⛔ {action_label}]"
                 )
             elif action_val == 1:
                 action_label = "Allow"
@@ -657,7 +657,7 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
                 action_text = (
                     f"({action_color}✅ {action_label}{Colors.ENDC})"
                     if USE_COLORS
-                    else f"[{action_label}]"
+                    else f"[✅ {action_label}]"
                 )
 
         # If action is still completely missing/unknown, default to Block (Default) for clearer UX
@@ -667,7 +667,7 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
             action_text = (
                 f"({action_color}⛔ {action_label}{Colors.ENDC})"
                 if USE_COLORS
-                else f"[{action_label}]"
+                else f"[⛔ {action_label}]"
             )
 
         if USE_COLORS:
@@ -709,9 +709,11 @@ def countdown_timer(seconds: int, message: str = "Waiting") -> None:
 
                 sleep_time = min(step, remaining)
                 time.sleep(sleep_time)
+            log.info(f"✅ {sanitize_for_log(message)}: Done!")
             return
 
         time.sleep(seconds)
+        log.info(f"✅ {sanitize_for_log(message)}: Done!")
         return
 
     width = _get_progress_bar_width()
@@ -1062,12 +1064,16 @@ _CGNAT_NETWORK = ipaddress.IPv4Network("100.64.0.0/10")
 
 
 def _is_safe_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
-    """Rejects multicast, unspecified, and IPv4 CGNAT addresses; otherwise requires a global IP."""
+    """Rejects multicast, unspecified, loopback, and IPv4 CGNAT addresses; otherwise requires a global IP."""
     if ip.is_multicast:
         return False
     if ip.is_unspecified:
         return False
+    if ip.is_loopback:
+        return False
     if ip.is_private:
+        return False
+    if ip.is_loopback:
         return False
     if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
         return _is_safe_ip(ip.ipv4_mapped)
@@ -1983,6 +1989,8 @@ def warm_up_cache(urls: Sequence[str]) -> None:
             f"\r\033[K{Colors.GREEN}✅ Warming up cache: Done!{Colors.ENDC}\n"
         )
         sys.stderr.flush()
+    else:
+        log.info("✅ Warming up cache: Done!")
 
 
 def delete_folder(
