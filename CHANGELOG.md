@@ -250,6 +250,7 @@
 
 - 🎨 Palette: Improve CLI no-color fallbacks and add completion feedback [\#716](https://github.com/abhimehro/ctrld-sync/pull/716) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[HIGH\] Fix SSRF bypass via loopback interface [\#714](https://github.com/abhimehro/ctrld-sync/pull/714) ([abhimehro](https://github.com/abhimehro))
+- chore: fix mypy type-checking violations across the test suite [\#713](https://github.com/abhimehro/ctrld-sync/pull/713) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: Add explicit loopback IP check to prevent SSRF bypass [\#712](https://github.com/abhimehro/ctrld-sync/pull/712) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Use dict comprehension for hostname filtering [\#710](https://github.com/abhimehro/ctrld-sync/pull/710) ([abhimehro](https://github.com/abhimehro))
 - chore: complete Jules Daily QA & Agentic Review [\#708](https://github.com/abhimehro/ctrld-sync/pull/708) ([abhimehro](https://github.com/abhimehro))
