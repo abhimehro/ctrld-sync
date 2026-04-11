@@ -248,6 +248,7 @@
 
 **Merged pull requests:**
 
+- 🎨 Palette: Improve CLI no-color fallbacks and add completion feedback [\#716](https://github.com/abhimehro/ctrld-sync/pull/716) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[HIGH\] Fix SSRF bypass via loopback interface [\#714](https://github.com/abhimehro/ctrld-sync/pull/714) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: Add explicit loopback IP check to prevent SSRF bypass [\#712](https://github.com/abhimehro/ctrld-sync/pull/712) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Use dict comprehension for hostname filtering [\#710](https://github.com/abhimehro/ctrld-sync/pull/710) ([abhimehro](https://github.com/abhimehro))
