@@ -103,7 +103,8 @@ class TestAlertSystemAsync(unittest.TestCase):
         # exc_info is a (type, value, traceback) tuple; confirm the exception
         # instance is preserved so formatters can render the correct traceback.
         self.assertIsNotNone(record.exc_info, "exc_info must be set on the LogRecord")
-        self.assertIs(record.exc_info[1], task_exc)
+        if record.exc_info is not None:
+            self.assertIs(record.exc_info[1], task_exc)
 
     # ------------------------------------------------------------------
     # Branch C: future.exception() itself raises – the core regression test
@@ -139,8 +140,9 @@ class TestAlertSystemAsync(unittest.TestCase):
         # exc_info is populated by the stdlib from sys.exc_info() inside the
         # except block; confirm it carries the right exception.
         self.assertIsNotNone(record.exc_info, "exc_info must be set on the LogRecord")
-        self.assertIsInstance(record.exc_info[1], RuntimeError)
-        self.assertEqual(str(record.exc_info[1]), "internal error")
+        if record.exc_info is not None:
+            self.assertIsInstance(record.exc_info[1], RuntimeError)
+            self.assertEqual(str(record.exc_info[1]), "internal error")
 
     # ------------------------------------------------------------------
     # Verify default logger is set on construction (no injection)

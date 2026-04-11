@@ -58,7 +58,8 @@ class TestCacheOptimization(unittest.TestCase):
         is required for non-cached URLs.
         """
         test_url = "https://example.com/test.json"
-        test_data = {"group": {"group": "Test Folder"}, "domains": ["example.com"]}
+        from main import FolderData
+        test_data: FolderData = {"group": {"group": "Test Folder"}, "rules": [{"PK": "example.com"}]}
 
         # Ensure URL is NOT in cache
         self.assertNotIn(test_url, main._cache)
@@ -69,12 +70,10 @@ class TestCacheOptimization(unittest.TestCase):
                 with main._cache_lock:
                     url_in_cache = test_url in main._cache
 
-                if not url_in_cache:
-                    # For non-cached URLs, validate first
-                    if main.validate_folder_url(test_url):
-                        result = main.fetch_folder_data(test_url)
-                    else:
-                        result = None
+                result = None
+                # For non-cached URLs, validate first
+                if not url_in_cache and main.validate_folder_url(test_url):
+                    result = main.fetch_folder_data(test_url)
 
                 # Verify validation WAS called for non-cached URL
                 mock_validate.assert_called_once_with(test_url)
@@ -172,24 +171,24 @@ class TestCacheOptimization(unittest.TestCase):
         without needing to invoke the entire sync_profile function.
         """
         test_url = "https://example.com/test.json"
-        test_data = {"group": {"group": "Test Folder"}, "domains": ["example.com"]}
+        from main import FolderData
+        test_data: FolderData = {"group": {"group": "Test Folder"}, "rules": [{"PK": "example.com"}]}
 
         # Pre-populate cache to simulate warm_up_cache
         with main._cache_lock:
-            main._cache[test_url] = test_data
+            main._cache[test_url] = test_data  # type: ignore[assignment]
 
         # Mock validate_folder_url to track if it's called
         with patch("main.validate_folder_url") as mock_validate:
             with patch("main._gh_get", return_value=test_data):
+                from typing import Any
                 # Simulate the logic in _fetch_if_valid
+                result: FolderData | dict[Any, Any] | None = None
                 with main._cache_lock:
                     if test_url in main._cache:
                         result = main._cache[test_url]
-                    else:
-                        if main.validate_folder_url(test_url):
-                            result = main.fetch_folder_data(test_url)
-                        else:
-                            result = None
+                    elif main.validate_folder_url(test_url):
+                        result = main.fetch_folder_data(test_url)
 
                 # Verify validation was NOT called because URL was cached
                 mock_validate.assert_not_called()

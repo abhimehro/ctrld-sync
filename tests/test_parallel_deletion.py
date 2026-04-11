@@ -73,11 +73,11 @@ def test_parallel_deletion_uses_threadpool(mock_env, monkeypatch):
     monkeypatch.setattr(main, "fetch_folder_data", mock_fetch)
 
     # Track ThreadPoolExecutor calls
-    executor_calls = []
-    original_executor = concurrent.futures.ThreadPoolExecutor
+    executor_calls: list[dict[str, object]] = []
 
-    class TrackedExecutor(original_executor):
-        def __init__(self, *args, **kwargs):
+    from typing import Any
+    class TrackedExecutor(concurrent.futures.ThreadPoolExecutor):
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
             executor_calls.append(kwargs)
             super().__init__(*args, **kwargs)
 

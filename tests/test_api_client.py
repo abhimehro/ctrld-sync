@@ -293,9 +293,11 @@ class TestRetryRequestGuards:
         with pytest.raises(
             RuntimeError, match="_retry_request called with max_retries=0"
         ):
-            api_client._retry_request(lambda: None, max_retries=0)
+            mock_response = httpx.Response(200)
+            api_client._retry_request(lambda: mock_response, max_retries=0)
 
     def test_retry_request_negative_max_retries_raises(self):
         """Negative max_retries also produces an empty range, triggering the RuntimeError."""
         with pytest.raises(RuntimeError, match="_retry_request called"):
-            api_client._retry_request(lambda: None, max_retries=-1)
+            mock_response = httpx.Response(200)
+            api_client._retry_request(lambda: mock_response, max_retries=-1)

@@ -282,15 +282,16 @@ def test_print_summary_table_unicode_print_line(monkeypatch, capsys):
     when USE_COLORS is True (unicode table mode).
     """
     monkeypatch.setattr(main, "USE_COLORS", True)
+    from main import SyncResult
     sync_results = [
-        {
-            "profile": "Profile_1",
-            "folders": 3,
-            "rules": 1500,
-            "duration": 2.5,
-            "status_label": "ok",
-            "success": True,
-        }
+        SyncResult(
+            profile="Profile_1",
+            folders=3,
+            rules=1500,
+            duration=2.5,
+            status_label="ok",
+            success=True,
+        )
     ]
     main.print_summary_table(
         sync_results=sync_results, success_count=1, total=1, dry_run=False
@@ -316,15 +317,16 @@ def test_print_summary_table_ascii_fallback(monkeypatch, capsys):
     when USE_COLORS is False.
     """
     monkeypatch.setattr(main, "USE_COLORS", False)
+    from main import SyncResult
     sync_results = [
-        {
-            "profile": "Profile_2",
-            "folders": 1,
-            "rules": 250,
-            "duration": 1.1,
-            "status_label": "error",
-            "success": False,
-        }
+        SyncResult(
+            profile="Profile_2",
+            folders=1,
+            rules=250,
+            duration=1.1,
+            status_label="error",
+            success=False,
+        )
     ]
     main.print_summary_table(
         sync_results=sync_results, success_count=0, total=1, dry_run=True
