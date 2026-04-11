@@ -1064,16 +1064,16 @@ _CGNAT_NETWORK = ipaddress.IPv4Network("100.64.0.0/10")
 
 
 def _is_safe_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
-    """Rejects multicast, unspecified, loopback, and IPv4 CGNAT addresses; otherwise requires a global IP."""
+    """Rejects multicast, unspecified, loopback, link-local, and IPv4 CGNAT addresses; otherwise requires a global IP."""
     if ip.is_multicast:
         return False
     if ip.is_unspecified:
         return False
     if ip.is_loopback:
         return False
-    if ip.is_private:
+    if ip.is_link_local:
         return False
-    if ip.is_loopback:
+    if ip.is_private:
         return False
     if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
         return _is_safe_ip(ip.ipv4_mapped)
