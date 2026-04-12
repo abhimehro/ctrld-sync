@@ -42,3 +42,7 @@
 
 **Learning:** While intercepting strings like "n" or "no" for cancellation in interactive boolean prompts (e.g., "Ready to launch?") is good UX, applying this same interception logic universally to *generic* input functions (like `get_validated_input` or `get_password`) introduces severe functional and security regressions. A user whose valid answer is "no" or whose password happens to match a cancellation string will be unexpectedly booted from the application.
 **Action:** Confine string-based cancellation interception to specific, appropriate contexts (like interactive confirmations). For generic input and password fields, rely solely on standard interrupt signals (Ctrl+C / Ctrl+D).
+
+## 2025-04-12 - [Semantic Color Fallback Validation]
+**Learning:** When conditionalizing color output (`USE_COLORS`) for accessibility and text-only UI environments, applying fallback UI to input functions requires explicit `if/else` checks rather than concatenating empty ANSI constants dynamically.
+**Action:** Use pure fallback string constants stripped of any embedded color codes, to prevent visually "swallowing" emojis or breaking fallback display formatting.
