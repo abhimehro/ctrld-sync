@@ -46,3 +46,7 @@
 ## 2025-04-12 - [Semantic Color Fallback Validation]
 **Learning:** When conditionalizing color output (`USE_COLORS`) for accessibility and text-only UI environments, applying fallback UI to input functions requires explicit `if/else` checks rather than concatenating empty ANSI constants dynamically.
 **Action:** Use pure fallback string constants stripped of any embedded color codes, to prevent visually "swallowing" emojis or breaking fallback display formatting.
+
+## 2025-04-12 - [Code Health in UI Handlers]
+**Learning:** Adding explicit conditional blocks (`if USE_COLORS`) directly inside generic input/output handler functions quickly inflates cyclomatic complexity, triggering Code Health violations (like CodeScene's "Bumpy Road Ahead" or "Complex Method" warnings).
+**Action:** Always extract conditionally-formatted CLI output logic into dedicated module-level helper functions (e.g., `_print_error_with_hint`) to preserve clean code health while enabling accessible fallbacks.
