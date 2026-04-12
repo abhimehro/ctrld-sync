@@ -248,6 +248,7 @@
 
 **Merged pull requests:**
 
+- chore\(qa\): daily QA review \(all green\) [\#719](https://github.com/abhimehro/ctrld-sync/pull/719) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Improve CLI no-color fallbacks and add completion feedback [\#716](https://github.com/abhimehro/ctrld-sync/pull/716) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[HIGH\] Fix SSRF bypass via loopback interface [\#714](https://github.com/abhimehro/ctrld-sync/pull/714) ([abhimehro](https://github.com/abhimehro))
 - chore: fix mypy type-checking violations across the test suite [\#713](https://github.com/abhimehro/ctrld-sync/pull/713) ([abhimehro](https://github.com/abhimehro))
