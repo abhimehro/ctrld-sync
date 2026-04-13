@@ -8,7 +8,7 @@ dependencies = ["httpx>=0.28.1", "python-dotenv>=1.1.1", "pyyaml>=6.0"]
 
 [project.optional-dependencies]
 dev = [
-  "pytest>=7.0.0",
+  "pytest>=9.0.3",
   "pytest-mock>=3.10.0",
   "pytest-xdist>=3.0.0",
   "pytest-benchmark>=4.0.0",
