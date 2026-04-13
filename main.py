@@ -769,6 +769,16 @@ def _clean_env_kv(value: str | None, key: str) -> str | None:
     return v
 
 
+def _print_input_error(error_msg: str, hint: str) -> None:
+    """Helper to conditionally format and print input error messages and hints."""
+    if USE_COLORS:
+        print(f"{Colors.FAIL}❌ {error_msg}{Colors.ENDC}")
+        print(f"{Colors.DIM}{hint}{Colors.ENDC}")
+    else:
+        print(f"❌ {error_msg}")
+        print(hint)
+
+
 def get_validated_input(
     prompt: str,
     validator: Callable[[str], bool],
@@ -788,23 +798,13 @@ def get_validated_input(
             sys.exit(130)
 
         if not value:
-            if USE_COLORS:
-                print(f"{Colors.FAIL}❌ Value cannot be empty{Colors.ENDC}")
-                print(f"{Colors.DIM}{EMPTY_INPUT_HINT}{Colors.ENDC}")
-            else:
-                print("❌ Value cannot be empty")
-                print(EMPTY_INPUT_HINT)
+            _print_input_error("Value cannot be empty", EMPTY_INPUT_HINT)
             continue
 
         if validator(value):
             return value
 
-        if USE_COLORS:
-            print(f"{Colors.FAIL}❌ {error_msg}{Colors.ENDC}")
-            print(f"{Colors.DIM}{INVALID_INPUT_HINT}{Colors.ENDC}")
-        else:
-            print(f"❌ {error_msg}")
-            print(INVALID_INPUT_HINT)
+        _print_input_error(error_msg, INVALID_INPUT_HINT)
 
 
 def get_password(
@@ -826,23 +826,13 @@ def get_password(
             sys.exit(130)
 
         if not value:
-            if USE_COLORS:
-                print(f"{Colors.FAIL}❌ Value cannot be empty{Colors.ENDC}")
-                print(f"{Colors.DIM}{EMPTY_INPUT_HINT}{Colors.ENDC}")
-            else:
-                print("❌ Value cannot be empty")
-                print(EMPTY_INPUT_HINT)
+            _print_input_error("Value cannot be empty", EMPTY_INPUT_HINT)
             continue
 
         if validator(value):
             return value
 
-        if USE_COLORS:
-            print(f"{Colors.FAIL}❌ {error_msg}{Colors.ENDC}")
-            print(f"{Colors.DIM}{INVALID_INPUT_HINT}{Colors.ENDC}")
-        else:
-            print(f"❌ {error_msg}")
-            print(INVALID_INPUT_HINT)
+        _print_input_error(error_msg, INVALID_INPUT_HINT)
 
 
 TOKEN = _clean_env_kv(os.getenv("TOKEN"), "TOKEN")
