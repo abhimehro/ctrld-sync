@@ -1073,7 +1073,7 @@ def _is_safe_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
         return False
     if ip.is_private:
         return False
-    if ip.is_loopback:
+    if ip.is_link_local:
         return False
     if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
         return _is_safe_ip(ip.ipv4_mapped)
