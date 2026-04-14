@@ -41,6 +41,7 @@
 
 **Closed issues:**
 
+- \[repo-automation\] Weekly Retrospective - 2026-04-12 [\#718](https://github.com/abhimehro/ctrld-sync/issues/718)
 - \[repo-automation\] Weekly Retrospective - 2026-04-05 [\#704](https://github.com/abhimehro/ctrld-sync/issues/704)
 - \[repo-automation\] Daily Status Report - 2026-04-02 [\#692](https://github.com/abhimehro/ctrld-sync/issues/692)
 - \[repo-automation\] Daily Status Report - 2026-04-01 [\#690](https://github.com/abhimehro/ctrld-sync/issues/690)
@@ -248,6 +249,9 @@
 
 **Merged pull requests:**
 
+- 🎨 Palette: Decouple color formatting from input hints [\#725](https://github.com/abhimehro/ctrld-sync/pull/725) ([abhimehro](https://github.com/abhimehro))
+- 🛡️ Sentinel: \[CRITICAL\] Fix SSRF Vulnerability via Link-Local IPs [\#724](https://github.com/abhimehro/ctrld-sync/pull/724) ([abhimehro](https://github.com/abhimehro))
+- chore\(deps-dev\): bump pytest from 9.0.2 to 9.0.3 in the uv group across 1 directory [\#723](https://github.com/abhimehro/ctrld-sync/pull/723) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(qa\): daily QA review \(all green\) [\#719](https://github.com/abhimehro/ctrld-sync/pull/719) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Improve CLI no-color fallbacks and add completion feedback [\#716](https://github.com/abhimehro/ctrld-sync/pull/716) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[HIGH\] Fix SSRF bypass via loopback interface [\#714](https://github.com/abhimehro/ctrld-sync/pull/714) ([abhimehro](https://github.com/abhimehro))
