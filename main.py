@@ -767,6 +767,14 @@ def _clean_env_kv(value: str | None, key: str) -> str | None:
     return v
 
 
+def _print_hint(hint: str) -> None:
+    """Helper to cleanly print input hints while respecting USE_COLORS to reduce cyclomatic complexity."""
+    if USE_COLORS:
+        print(f"{Colors.DIM}{hint}{Colors.ENDC}")
+    else:
+        print(hint)
+
+
 def get_validated_input(
     prompt: str,
     validator: Callable[[str], bool],
@@ -787,20 +795,14 @@ def get_validated_input(
 
         if not value:
             print(f"{Colors.FAIL}❌ Value cannot be empty{Colors.ENDC}")
-            if USE_COLORS:
-                print(f"{Colors.DIM}{EMPTY_INPUT_HINT}{Colors.ENDC}")
-            else:
-                print(EMPTY_INPUT_HINT)
+            _print_hint(EMPTY_INPUT_HINT)
             continue
 
         if validator(value):
             return value
 
         print(f"{Colors.FAIL}❌ {error_msg}{Colors.ENDC}")
-        if USE_COLORS:
-            print(f"{Colors.DIM}{INVALID_INPUT_HINT}{Colors.ENDC}")
-        else:
-            print(INVALID_INPUT_HINT)
+        _print_hint(INVALID_INPUT_HINT)
 
 
 def get_password(
@@ -823,20 +825,14 @@ def get_password(
 
         if not value:
             print(f"{Colors.FAIL}❌ Value cannot be empty{Colors.ENDC}")
-            if USE_COLORS:
-                print(f"{Colors.DIM}{EMPTY_INPUT_HINT}{Colors.ENDC}")
-            else:
-                print(EMPTY_INPUT_HINT)
+            _print_hint(EMPTY_INPUT_HINT)
             continue
 
         if validator(value):
             return value
 
         print(f"{Colors.FAIL}❌ {error_msg}{Colors.ENDC}")
-        if USE_COLORS:
-            print(f"{Colors.DIM}{INVALID_INPUT_HINT}{Colors.ENDC}")
-        else:
-            print(INVALID_INPUT_HINT)
+        _print_hint(INVALID_INPUT_HINT)
 
 
 TOKEN = _clean_env_kv(os.getenv("TOKEN"), "TOKEN")
