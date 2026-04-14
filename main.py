@@ -461,8 +461,8 @@ log = logging.getLogger("control-d-sync")
 API_BASE = "https://api.controld.com/profiles"
 USER_AGENT = "Control-D-Sync/0.1.0"
 
-EMPTY_INPUT_HINT = f"   {Colors.DIM}💡 Hint: Please type a value and press Enter, or press Ctrl+C/Ctrl+D to cancel.{Colors.ENDC}"
-INVALID_INPUT_HINT = f"   {Colors.DIM}💡 Hint: Please check your input and try again, or press Ctrl+C/Ctrl+D to cancel.{Colors.ENDC}"
+EMPTY_INPUT_HINT = "   💡 Hint: Please type a value and press Enter, or press Ctrl+C/Ctrl+D to cancel."
+INVALID_INPUT_HINT = "   💡 Hint: Please check your input and try again, or press Ctrl+C/Ctrl+D to cancel."
 
 # Pre-compiled regex patterns for hot-path validation (>2x speedup on 10k+ items)
 PROFILE_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
@@ -767,6 +767,14 @@ def _clean_env_kv(value: str | None, key: str) -> str | None:
     return v
 
 
+def _print_hint(hint: str) -> None:
+    """Helper to cleanly print input hints while respecting USE_COLORS to reduce cyclomatic complexity."""
+    if USE_COLORS:
+        print(f"{Colors.DIM}{hint}{Colors.ENDC}")
+    else:
+        print(hint)
+
+
 def get_validated_input(
     prompt: str,
     validator: Callable[[str], bool],
@@ -787,14 +795,14 @@ def get_validated_input(
 
         if not value:
             print(f"{Colors.FAIL}❌ Value cannot be empty{Colors.ENDC}")
-            print(EMPTY_INPUT_HINT)
+            _print_hint(EMPTY_INPUT_HINT)
             continue
 
         if validator(value):
             return value
 
         print(f"{Colors.FAIL}❌ {error_msg}{Colors.ENDC}")
-        print(INVALID_INPUT_HINT)
+        _print_hint(INVALID_INPUT_HINT)
 
 
 def get_password(
@@ -817,14 +825,14 @@ def get_password(
 
         if not value:
             print(f"{Colors.FAIL}❌ Value cannot be empty{Colors.ENDC}")
-            print(EMPTY_INPUT_HINT)
+            _print_hint(EMPTY_INPUT_HINT)
             continue
 
         if validator(value):
             return value
 
         print(f"{Colors.FAIL}❌ {error_msg}{Colors.ENDC}")
-        print(INVALID_INPUT_HINT)
+        _print_hint(INVALID_INPUT_HINT)
 
 
 TOKEN = _clean_env_kv(os.getenv("TOKEN"), "TOKEN")

@@ -399,3 +399,58 @@ class TestPromptForInteractiveRestart:
             mock_execv.assert_not_called()
             captured = capsys.readouterr()
             assert "Cancelled" in captured.out
+
+class TestGetValidatedInput:
+    def test_get_validated_input_no_colors(self, monkeypatch, capsys):
+        """Verify uncolored hints are printed if colors are disabled."""
+        monkeypatch.setattr(main, "USE_COLORS", False)
+
+        # First input empty, second input invalid, third input valid
+        inputs = iter(["", "invalid", "valid"])
+        def mock_input(prompt):
+            return next(inputs)
+
+        monkeypatch.setattr("builtins.input", mock_input)
+
+        def validator(value):
+            return value == "valid"
+
+        result = main.get_validated_input("Enter:", validator, "Invalid input")
+
+        assert result == "valid"
+
+        captured = capsys.readouterr()
+
+        # Check that we emitted the uncolored strings for hints
+        assert main.EMPTY_INPUT_HINT in captured.out
+        assert main.INVALID_INPUT_HINT in captured.out
+        assert "\033[2m" not in captured.out  # Colors.DIM should not be there
+
+    def test_get_validated_input_colors(self, monkeypatch, capsys):
+        """Verify colored hints are printed if colors are enabled."""
+        monkeypatch.setattr(main, "USE_COLORS", True)
+
+        # Mock colors for reliable testing
+        monkeypatch.setattr(main.Colors, "DIM", "\033[2m")
+        monkeypatch.setattr(main.Colors, "ENDC", "\033[0m")
+        monkeypatch.setattr(main.Colors, "FAIL", "\033[91m")
+
+        # First input empty, second input invalid, third input valid
+        inputs = iter(["", "invalid", "valid"])
+        def mock_input(prompt):
+            return next(inputs)
+
+        monkeypatch.setattr("builtins.input", mock_input)
+
+        def validator(value):
+            return value == "valid"
+
+        result = main.get_validated_input("Enter:", validator, "Invalid input")
+
+        assert result == "valid"
+
+        captured = capsys.readouterr()
+
+        # Check that we emitted the colored strings for hints
+        assert f"\033[2m{main.EMPTY_INPUT_HINT}\033[0m" in captured.out
+        assert f"\033[2m{main.INVALID_INPUT_HINT}\033[0m" in captured.out
