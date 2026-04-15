@@ -580,7 +580,7 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
 
     if not folders:
         if USE_COLORS:
-            print(f"  {Colors.WARNING}No folders to sync.{Colors.ENDC}")
+            print(f"  {Colors.WARNING}⚠️  No folders to sync.{Colors.ENDC}")
             print(
                 f"  {Colors.DIM}💡 Hint: Add folder URLs using --folder-url or in your config.yaml{Colors.ENDC}"
             )
@@ -618,7 +618,7 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
                 action_text = (
                     f"({action_color}⚠️  {action_label}{Colors.ENDC})"
                     if USE_COLORS
-                    else f"[⚠️  {action_label}]"
+                    else f"(⚠️  {action_label})"
                 )
             else:
                 # All groups have same action
@@ -629,7 +629,7 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
                     action_text = (
                         f"({action_color}⛔ {action_label}{Colors.ENDC})"
                         if USE_COLORS
-                        else f"[⛔ {action_label}]"
+                        else f"(⛔ {action_label})"
                     )
                 elif action_val == 1:
                     action_label = "Allow"
@@ -637,7 +637,7 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
                     action_text = (
                         f"({action_color}✅ {action_label}{Colors.ENDC})"
                         if USE_COLORS
-                        else f"[✅ {action_label}]"
+                        else f"(✅ {action_label})"
                     )
 
         # Fallback to single action if not set
@@ -649,7 +649,7 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
                 action_text = (
                     f"({action_color}⛔ {action_label}{Colors.ENDC})"
                     if USE_COLORS
-                    else f"[⛔ {action_label}]"
+                    else f"(⛔ {action_label})"
                 )
             elif action_val == 1:
                 action_label = "Allow"
@@ -657,7 +657,7 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
                 action_text = (
                     f"({action_color}✅ {action_label}{Colors.ENDC})"
                     if USE_COLORS
-                    else f"[✅ {action_label}]"
+                    else f"(✅ {action_label})"
                 )
 
         # If action is still completely missing/unknown, default to Block (Default) for clearer UX
@@ -667,7 +667,7 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
             action_text = (
                 f"({action_color}⛔ {action_label}{Colors.ENDC})"
                 if USE_COLORS
-                else f"[⛔ {action_label}]"
+                else f"(⛔ {action_label})"
             )
 
         if USE_COLORS:

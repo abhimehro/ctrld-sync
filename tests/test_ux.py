@@ -454,3 +454,25 @@ class TestGetValidatedInput:
         # Check that we emitted the colored strings for hints
         assert f"\033[2m{main.EMPTY_INPUT_HINT}\033[0m" in captured.out
         assert f"\033[2m{main.INVALID_INPUT_HINT}\033[0m" in captured.out
+
+def test_print_plan_details_retains_emojis_in_no_color(monkeypatch, capsys):
+    """
+    Test that print_plan_details correctly retains semantic emojis in
+    the action_text when USE_COLORS is False.
+    """
+    monkeypatch.setattr(main, "USE_COLORS", False)
+    plan_entry = {
+        "profile_id": "test",
+        "folders": [
+            {"name": "Folder 1", "rules": 10, "action": 0},
+            {"name": "Folder 2", "rules": 20, "rule_groups": [{"action": 1}, {"action": 1}]},
+            {"name": "Folder 3", "rules": 30, "rule_groups": [{"action": 0}, {"action": 1}]},
+        ]
+    }
+    main.print_plan_details(plan_entry)
+    captured = capsys.readouterr()
+
+    # Check that emojis are present despite no color
+    assert "⛔ Block" in captured.out
+    assert "✅ Allow" in captured.out
+    assert "⚠️  Mixed" in captured.out
