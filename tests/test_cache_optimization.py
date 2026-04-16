@@ -59,7 +59,11 @@ class TestCacheOptimization(unittest.TestCase):
         """
         test_url = "https://example.com/test.json"
         from main import FolderData
-        test_data: FolderData = {"group": {"group": "Test Folder"}, "rules": [{"PK": "example.com"}]}
+
+        test_data: FolderData = {
+            "group": {"group": "Test Folder"},
+            "rules": [{"PK": "example.com"}],
+        }
 
         # Ensure URL is NOT in cache
         self.assertNotIn(test_url, main._cache)
@@ -172,7 +176,11 @@ class TestCacheOptimization(unittest.TestCase):
         """
         test_url = "https://example.com/test.json"
         from main import FolderData
-        test_data: FolderData = {"group": {"group": "Test Folder"}, "rules": [{"PK": "example.com"}]}
+
+        test_data: FolderData = {
+            "group": {"group": "Test Folder"},
+            "rules": [{"PK": "example.com"}],
+        }
 
         # Pre-populate cache to simulate warm_up_cache
         with main._cache_lock:
@@ -182,6 +190,7 @@ class TestCacheOptimization(unittest.TestCase):
         with patch("main.validate_folder_url") as mock_validate:
             with patch("main._gh_get", return_value=test_data):
                 from typing import Any
+
                 # Simulate the logic in _fetch_if_valid
                 result: FolderData | dict[Any, Any] | None = None
                 with main._cache_lock:

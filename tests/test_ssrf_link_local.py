@@ -27,5 +27,6 @@ class TestSSRFLinkLocal(unittest.TestCase):
             result = main.validate_folder_url(url)
             self.assertFalse(result, "Should block domain resolving to link-local IP")
 
+
 if __name__ == "__main__":
     unittest.main()

@@ -9,6 +9,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import main
 
+
 class TestSSRFLoopback(unittest.TestCase):
     def test_domain_resolving_to_loopback_ip(self):
         """
@@ -23,6 +24,7 @@ class TestSSRFLoopback(unittest.TestCase):
             url = "https://loopback.example.com/config.json"
             result = main.validate_folder_url(url)
             self.assertFalse(result, "Should block domain resolving to loopback IP")
+
 
 if __name__ == "__main__":
     unittest.main()

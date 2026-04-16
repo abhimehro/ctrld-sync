@@ -9,8 +9,10 @@ import pytest
 
 from typing import Any
 
+
 def mock_load_dotenv(*args: Any, **kwargs: Any) -> bool:
     return True
+
 
 dotenv.load_dotenv = mock_load_dotenv
 import main  # noqa: E402
