@@ -283,6 +283,7 @@ def test_print_summary_table_unicode_print_line(monkeypatch, capsys):
     """
     monkeypatch.setattr(main, "USE_COLORS", True)
     from main import SyncResult
+
     sync_results = [
         SyncResult(
             profile="Profile_1",
@@ -318,6 +319,7 @@ def test_print_summary_table_ascii_fallback(monkeypatch, capsys):
     """
     monkeypatch.setattr(main, "USE_COLORS", False)
     from main import SyncResult
+
     sync_results = [
         SyncResult(
             profile="Profile_2",
@@ -400,6 +402,7 @@ class TestPromptForInteractiveRestart:
             captured = capsys.readouterr()
             assert "Cancelled" in captured.out
 
+
 class TestGetValidatedInput:
     def test_get_validated_input_no_colors(self, monkeypatch, capsys):
         """Verify uncolored hints are printed if colors are disabled."""
@@ -407,6 +410,7 @@ class TestGetValidatedInput:
 
         # First input empty, second input invalid, third input valid
         inputs = iter(["", "invalid", "valid"])
+
         def mock_input(prompt):
             return next(inputs)
 
@@ -437,6 +441,7 @@ class TestGetValidatedInput:
 
         # First input empty, second input invalid, third input valid
         inputs = iter(["", "invalid", "valid"])
+
         def mock_input(prompt):
             return next(inputs)
 
