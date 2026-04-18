@@ -461,7 +461,9 @@ log = logging.getLogger("control-d-sync")
 API_BASE = "https://api.controld.com/profiles"
 USER_AGENT = "Control-D-Sync/0.1.0"
 
-EMPTY_INPUT_HINT = "   💡 Hint: Please type a value and press Enter, or press Ctrl+C/Ctrl+D to cancel."
+EMPTY_INPUT_HINT = (
+    "   💡 Hint: Please type a value and press Enter, or press Ctrl+C/Ctrl+D to cancel."
+)
 INVALID_INPUT_HINT = "   💡 Hint: Please check your input and try again, or press Ctrl+C/Ctrl+D to cancel."
 
 # Pre-compiled regex patterns for hot-path validation (>2x speedup on 10k+ items)

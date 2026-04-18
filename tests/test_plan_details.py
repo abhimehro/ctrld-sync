@@ -22,7 +22,10 @@ def test_print_plan_details_no_colors(capsys):
                 m.PlanFolderEntry(
                     name="Folder C",
                     rules=3,
-                    rule_groups=[{"action": 0, "rules": 0, "status": 0}, {"action": 1, "rules": 0, "status": 1}],
+                    rule_groups=[
+                        {"action": 0, "rules": 0, "status": 0},
+                        {"action": 1, "rules": 0, "status": 1},
+                    ],
                 ),
             ],
         )
