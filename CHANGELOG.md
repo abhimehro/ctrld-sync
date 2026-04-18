@@ -251,6 +251,8 @@
 
 **Merged pull requests:**
 
+- chore\(format\): Apply pre-commit formatting fixes [\#728](https://github.com/abhimehro/ctrld-sync/pull/728) ([abhimehro](https://github.com/abhimehro))
+- 🎨 Palette: Retain semantic emojis in no-color fallbacks [\#726](https://github.com/abhimehro/ctrld-sync/pull/726) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Decouple color formatting from input hints [\#725](https://github.com/abhimehro/ctrld-sync/pull/725) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[CRITICAL\] Fix SSRF Vulnerability via Link-Local IPs [\#724](https://github.com/abhimehro/ctrld-sync/pull/724) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps-dev\): bump pytest from 9.0.2 to 9.0.3 in the uv group across 1 directory [\#723](https://github.com/abhimehro/ctrld-sync/pull/723) ([dependabot[bot]](https://github.com/apps/dependabot))
