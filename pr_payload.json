@@ -1,6 +1,6 @@
 {
-  "title": "chore(format): Apply pre-commit formatting fixes",
-  "head": "jules-14316295321389777203-c357541d",
-  "base": "main",
-  "body": "**Severity**: None\n**Vulnerability**: None\n**Impact**: Improves code consistency and readability\n**Fix**: Applied `pre-commit` fixes for `ruff-format` and `end-of-file-fixer`\n**Verification**: Ran `pytest` locally and all 349 tests passed."
+  "title": "fix(tests): resolve mypy typing issues in test_ux.py",
+  "body": "**Severity:** Low\n**Vulnerability:** None\n**Impact:** Fixes mypy typing failures in CI/CD pipeline.\n**Fix:** Corrected mocked `PlanEntry` dictionaries in `tests/test_ux.py` to match the expected TypedDict schema.\n**Verification:** Ran `uv run mypy .` and `uv run pytest`.",
+  "head": "fix-test-ux-typing",
+  "base": "main"
 }
