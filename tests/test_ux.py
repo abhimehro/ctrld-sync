@@ -478,7 +478,7 @@ def test_print_hint_helper_usage(monkeypatch, capsys):
 
     main._print_hint("💡 Hint: Just a test")
     captured = capsys.readouterr()
-    assert f"\033[2m💡 Hint: Just a test\033[0m" in captured.out
+    assert "\033[2m💡 Hint: Just a test\033[0m" in captured.out
 
 
 def test_print_plan_details_retains_emojis_in_no_color(monkeypatch, capsys):
