@@ -583,14 +583,11 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
     if not folders:
         if USE_COLORS:
             print(f"  {Colors.WARNING}⚠️  No folders to sync.{Colors.ENDC}")
-            print(
-                f"  {Colors.DIM}💡 Hint: Add folder URLs using --folder-url or in your config.yaml{Colors.ENDC}"
-            )
         else:
             print("  ⚠️  No folders to sync.")
-            print(
-                "  💡 Hint: Add folder URLs using --folder-url or in your config.yaml"
-            )
+        _print_hint(
+            "  💡 Hint: Add folder URLs using --folder-url or in your config.yaml"
+        )
         return
 
     # Calculate max width for alignment
@@ -2872,8 +2869,8 @@ def main() -> None:
                 exit(1)
         else:
             print(f"{Colors.CYAN}ℹ No cache file found, nothing to clear{Colors.ENDC}")
-            print(
-                f"{Colors.DIM}💡 Hint: The cache file will be created or updated after a successful sync run without --dry-run{Colors.ENDC}"
+            _print_hint(
+                "💡 Hint: The cache file will be created or updated after a successful sync run without --dry-run"
             )
         _disk_cache.clear()
         exit(0)
@@ -2929,8 +2926,8 @@ def main() -> None:
     if not args.dry_run and sys.stdin.isatty():
         if not profile_ids:
             print(f"{Colors.CYAN}ℹ Profile ID is missing.{Colors.ENDC}")
-            print(
-                f"{Colors.DIM}  You can find this in the URL of your profile in the Control D Dashboard (or just paste the URL).{Colors.ENDC}"
+            _print_hint(
+                "  You can find this in the URL of your profile in the Control D Dashboard (or just paste the URL)."
             )
 
             def validate_profile_input(value: str) -> bool:
@@ -2951,8 +2948,8 @@ def main() -> None:
 
         if not TOKEN:
             print(f"{Colors.CYAN}ℹ API Token is missing.{Colors.ENDC}")
-            print(
-                f"{Colors.DIM}  You can generate one at: https://controld.com/account/manage-account{Colors.ENDC}"
+            _print_hint(
+                "  You can generate one at: https://controld.com/account/manage-account"
             )
 
             t_input = get_password(

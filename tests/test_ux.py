@@ -460,20 +460,46 @@ class TestGetValidatedInput:
         assert f"\033[2m{main.EMPTY_INPUT_HINT}\033[0m" in captured.out
         assert f"\033[2m{main.INVALID_INPUT_HINT}\033[0m" in captured.out
 
+def test_print_hint_helper_usage(monkeypatch, capsys):
+    """Verify that _print_hint appropriately styles text and retains emojis."""
+
+    # Test NO_COLOR (False)
+    monkeypatch.setattr(main, "USE_COLORS", False)
+    main._print_hint("💡 Hint: Just a test")
+    captured = capsys.readouterr()
+    assert "\033[2m" not in captured.out
+    assert "💡 Hint: Just a test" in captured.out
+
+    # Test with colors (True)
+    monkeypatch.setattr(main, "USE_COLORS", True)
+    # Mock Colors.DIM
+    monkeypatch.setattr(main.Colors, "DIM", "\033[2m")
+    monkeypatch.setattr(main.Colors, "ENDC", "\033[0m")
+
+    main._print_hint("💡 Hint: Just a test")
+    captured = capsys.readouterr()
+    assert f"\033[2m💡 Hint: Just a test\033[0m" in captured.out
+
+
 def test_print_plan_details_retains_emojis_in_no_color(monkeypatch, capsys):
     """
     Test that print_plan_details correctly retains semantic emojis in
     the action_text when USE_COLORS is False.
     """
     monkeypatch.setattr(main, "USE_COLORS", False)
-    plan_entry = {
-        "profile_id": "test",
-        "folders": [
+
+    from typing import cast
+    from main import PlanEntry, PlanFolderEntry, PlanRuleGroup
+
+    # Create the PlanEntry correctly so it matches the TypedDict type signature
+    plan_entry = cast(PlanEntry, {
+        "profile": "test",
+        "folders": cast(list[PlanFolderEntry], [
             {"name": "Folder 1", "rules": 10, "action": 0},
-            {"name": "Folder 2", "rules": 20, "rule_groups": [{"action": 1}, {"action": 1}]},
-            {"name": "Folder 3", "rules": 30, "rule_groups": [{"action": 0}, {"action": 1}]},
-        ]
-    }
+            {"name": "Folder 2", "rules": 20, "rule_groups": cast(list[PlanRuleGroup], [{"rules": 0, "action": 1, "status": 1}, {"rules": 0, "action": 1, "status": 1}])},
+            {"name": "Folder 3", "rules": 30, "rule_groups": cast(list[PlanRuleGroup], [{"rules": 0, "action": 0, "status": 1}, {"rules": 0, "action": 1, "status": 1}])},
+        ])
+    })
     main.print_plan_details(plan_entry)
     captured = capsys.readouterr()
 
