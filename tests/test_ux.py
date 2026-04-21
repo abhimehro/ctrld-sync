@@ -466,14 +466,14 @@ def test_print_plan_details_retains_emojis_in_no_color(monkeypatch, capsys):
     the action_text when USE_COLORS is False.
     """
     monkeypatch.setattr(main, "USE_COLORS", False)
-    plan_entry = {
-        "profile_id": "test",
-        "folders": [
-            {"name": "Folder 1", "rules": 10, "action": 0},
-            {"name": "Folder 2", "rules": 20, "rule_groups": [{"action": 1}, {"action": 1}]},
-            {"name": "Folder 3", "rules": 30, "rule_groups": [{"action": 0}, {"action": 1}]},
+    plan_entry = main.PlanEntry(
+        profile="test",
+        folders=[
+            main.PlanFolderEntry(name="Folder 1", rules=10, action=0),
+            main.PlanFolderEntry(name="Folder 2", rules=20, rule_groups=[main.PlanRuleGroup(rules=0, action=1, status=1), main.PlanRuleGroup(rules=0, action=1, status=1)]),
+            main.PlanFolderEntry(name="Folder 3", rules=30, rule_groups=[main.PlanRuleGroup(rules=0, action=0, status=1), main.PlanRuleGroup(rules=0, action=1, status=1)]),
         ]
-    }
+    )
     main.print_plan_details(plan_entry)
     captured = capsys.readouterr()
 
@@ -481,3 +481,45 @@ def test_print_plan_details_retains_emojis_in_no_color(monkeypatch, capsys):
     assert "⛔ Block" in captured.out
     assert "✅ Allow" in captured.out
     assert "⚠️  Mixed" in captured.out
+
+def test_print_summary_table_empty_state_hint_unicode(monkeypatch, capsys):
+    """Test that a helpful hint is printed when total folders is 0 (Unicode mode)."""
+    monkeypatch.setattr(main, "USE_COLORS", True)
+    from main import SyncResult
+
+    sync_results = [
+        SyncResult(
+            profile="Profile_Empty",
+            folders=0,
+            rules=0,
+            duration=0.5,
+            status_label="ok",
+            success=True,
+        )
+    ]
+    main.print_summary_table(
+        sync_results=sync_results, success_count=1, total=1, dry_run=False
+    )
+    captured = capsys.readouterr()
+    assert "Hint: Add folder URLs using --folder-url or in your config.yaml" in captured.out
+
+def test_print_summary_table_empty_state_hint_ascii(monkeypatch, capsys):
+    """Test that a helpful hint is printed when total folders is 0 (ASCII mode)."""
+    monkeypatch.setattr(main, "USE_COLORS", False)
+    from main import SyncResult
+
+    sync_results = [
+        SyncResult(
+            profile="Profile_Empty",
+            folders=0,
+            rules=0,
+            duration=0.5,
+            status_label="ok",
+            success=True,
+        )
+    ]
+    main.print_summary_table(
+        sync_results=sync_results, success_count=1, total=1, dry_run=False
+    )
+    captured = capsys.readouterr()
+    assert "Hint: Add folder URLs using --folder-url or in your config.yaml" in captured.out
