@@ -2,6 +2,8 @@ import os
 import sys
 from unittest.mock import MagicMock
 
+import pytest
+
 import main
 
 
@@ -482,30 +484,10 @@ def test_print_plan_details_retains_emojis_in_no_color(monkeypatch, capsys):
     assert "✅ Allow" in captured.out
     assert "⚠️  Mixed" in captured.out
 
-def test_print_summary_table_empty_state_hint_unicode(monkeypatch, capsys):
-    """Test that a helpful hint is printed when total folders is 0 (Unicode mode)."""
-    monkeypatch.setattr(main, "USE_COLORS", True)
-    from main import SyncResult
-
-    sync_results = [
-        SyncResult(
-            profile="Profile_Empty",
-            folders=0,
-            rules=0,
-            duration=0.5,
-            status_label="ok",
-            success=True,
-        )
-    ]
-    main.print_summary_table(
-        sync_results=sync_results, success_count=1, total=1, dry_run=False
-    )
-    captured = capsys.readouterr()
-    assert "Hint: Add folder URLs using --folder-url or in your config.yaml" in captured.out
-
-def test_print_summary_table_empty_state_hint_ascii(monkeypatch, capsys):
-    """Test that a helpful hint is printed when total folders is 0 (ASCII mode)."""
-    monkeypatch.setattr(main, "USE_COLORS", False)
+@pytest.mark.parametrize("use_colors", [True, False])
+def test_print_summary_table_empty_state_hint(monkeypatch, capsys, use_colors: bool):
+    """Test that a helpful hint is printed when total folders is 0."""
+    monkeypatch.setattr(main, "USE_COLORS", use_colors)
     from main import SyncResult
 
     sync_results = [
