@@ -252,6 +252,7 @@
 
 **Merged pull requests:**
 
+- chore\(deps\): bump python-dotenv from 1.1.1 to 1.2.2 in the uv group across 1 directory [\#733](https://github.com/abhimehro/ctrld-sync/pull/733) ([dependabot[bot]](https://github.com/apps/dependabot))
 - fix\(tests\): resolve mypy typing issues in test\_ux.py [\#730](https://github.com/abhimehro/ctrld-sync/pull/730) ([abhimehro](https://github.com/abhimehro))
 - chore\(format\): Apply pre-commit formatting fixes [\#728](https://github.com/abhimehro/ctrld-sync/pull/728) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Retain semantic emojis in no-color fallbacks [\#726](https://github.com/abhimehro/ctrld-sync/pull/726) ([abhimehro](https://github.com/abhimehro))
