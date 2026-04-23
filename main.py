@@ -2706,6 +2706,8 @@ def print_summary_table(
         print(
             f"{sep}\n{'TOTAL':<{w[0]}} | {t_f:>{w[1]}} | {t_r:>{w[2]},} | {t_d:>{w[3] - 1}.1f}s | {t_status:<{w[4]}}\n{sep}\n"
         )
+        if t_f == 0:
+            print("  💡 Hint: Add folder URLs using --folder-url or in your config.yaml\n")
         return
 
     # Unicode Table
@@ -2738,6 +2740,9 @@ def print_summary_table(
         f"{print_line('├', '┼', '┤', w)}\n{print_row(['TOTAL', str(t_f), f'{t_r:,}', f'{t_d:.1f}s', f'{t_col}{t_status}{Colors.ENDC}'], w)}"
     )
     print(f"{print_line('└', '┴', '┘', w)}\n")
+
+    if t_f == 0:
+        _print_hint("  💡 Hint: Add folder URLs using --folder-url or in your config.yaml")
 
 
 def print_success_message(profile_ids: list[str]) -> None:
