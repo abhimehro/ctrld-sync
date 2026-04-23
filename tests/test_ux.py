@@ -466,12 +466,12 @@ def test_print_plan_details_retains_emojis_in_no_color(monkeypatch, capsys):
     the action_text when USE_COLORS is False.
     """
     monkeypatch.setattr(main, "USE_COLORS", False)
-    plan_entry = {
-        "profile_id": "test",
+    plan_entry: main.PlanEntry = {
+        "profile": "test",
         "folders": [
             {"name": "Folder 1", "rules": 10, "action": 0},
-            {"name": "Folder 2", "rules": 20, "rule_groups": [{"action": 1}, {"action": 1}]},
-            {"name": "Folder 3", "rules": 30, "rule_groups": [{"action": 0}, {"action": 1}]},
+            {"name": "Folder 2", "rules": 20, "rule_groups": [{"rules": 10, "action": 1, "status": 1}, {"rules": 10, "action": 1, "status": 1}]},
+            {"name": "Folder 3", "rules": 30, "rule_groups": [{"rules": 15, "action": 0, "status": 1}, {"rules": 15, "action": 1, "status": 1}]},
         ]
     }
     main.print_plan_details(plan_entry)
