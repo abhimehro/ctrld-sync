@@ -41,6 +41,7 @@
 
 **Closed issues:**
 
+- \[repo-automation\] Weekly Retrospective - 2026-04-19 [\#729](https://github.com/abhimehro/ctrld-sync/issues/729)
 - \[repo-automation\] Weekly Retrospective - 2026-04-12 [\#718](https://github.com/abhimehro/ctrld-sync/issues/718)
 - \[repo-automation\] Weekly Retrospective - 2026-04-05 [\#704](https://github.com/abhimehro/ctrld-sync/issues/704)
 - \[repo-automation\] Daily Status Report - 2026-04-02 [\#692](https://github.com/abhimehro/ctrld-sync/issues/692)
@@ -251,6 +252,7 @@
 
 **Merged pull requests:**
 
+- fix\(tests\): resolve mypy typing issues in test\_ux.py [\#730](https://github.com/abhimehro/ctrld-sync/pull/730) ([abhimehro](https://github.com/abhimehro))
 - chore\(format\): Apply pre-commit formatting fixes [\#728](https://github.com/abhimehro/ctrld-sync/pull/728) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Retain semantic emojis in no-color fallbacks [\#726](https://github.com/abhimehro/ctrld-sync/pull/726) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Decouple color formatting from input hints [\#725](https://github.com/abhimehro/ctrld-sync/pull/725) ([abhimehro](https://github.com/abhimehro))
