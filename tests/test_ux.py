@@ -460,6 +460,26 @@ class TestGetValidatedInput:
         assert f"\033[2m{main.EMPTY_INPUT_HINT}\033[0m" in captured.out
         assert f"\033[2m{main.INVALID_INPUT_HINT}\033[0m" in captured.out
 
+def test_print_hint_helper_usage(monkeypatch, capsys):
+    """Verify that _print_hint appropriately styles text and retains emojis."""
+
+    # Test NO_COLOR (False)
+    monkeypatch.setattr(main, "USE_COLORS", False)
+    main._print_hint("💡 Hint: Just a test")
+    captured = capsys.readouterr()
+    assert "\033[2m" not in captured.out
+    assert "💡 Hint: Just a test" in captured.out
+
+    # Test with colors (True)
+    monkeypatch.setattr(main, "USE_COLORS", True)
+    monkeypatch.setattr(main.Colors, "DIM", "\033[2m")
+    monkeypatch.setattr(main.Colors, "ENDC", "\033[0m")
+
+    main._print_hint("💡 Hint: Just a test")
+    captured = capsys.readouterr()
+    assert "\033[2m💡 Hint: Just a test\033[0m" in captured.out
+
+
 def test_print_plan_details_retains_emojis_in_no_color(monkeypatch, capsys):
     """
     Test that print_plan_details correctly retains semantic emojis in
