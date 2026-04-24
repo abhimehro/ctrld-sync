@@ -810,6 +810,9 @@ def get_password(
     error_msg: str,
 ) -> str:
     """Prompts for password input until the validator returns True."""
+    if "(typing will be hidden)" not in prompt:
+        prompt = f"{prompt.rstrip()} (typing will be hidden)"
+
     if not prompt.endswith(" "):
         prompt += " "
 

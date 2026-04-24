@@ -1,6 +1,6 @@
 {
-  "title": "fix(tests): resolve mypy typing issues in test_ux.py",
-  "body": "**Severity:** Low\n**Vulnerability:** None\n**Impact:** Fixes mypy typing failures in CI/CD pipeline.\n**Fix:** Corrected mocked `PlanEntry` dictionaries in `tests/test_ux.py` to match the expected TypedDict schema.\n**Verification:** Ran `uv run mypy .` and `uv run pytest`.",
-  "head": "fix-test-ux-typing",
+  "title": "🎨 Palette: Add typing hidden hint to password prompt",
+  "body": "### 💡 What\nAppended ` (typing will be hidden)` to the prompt in the `get_password` function.\n\n### 🎯 Why\nWhen generic password prompts use `getpass()` without explicitly telling the user that typing is hidden, users often get confused and think their terminal is frozen, causing frustration and abandoned flows.\n\n### 📸 Before/After\n**Before:** `Enter Control D API Token: `\n**After:** `Enter Control D API Token: (typing will be hidden) `\n\n### ♿ Accessibility\nProvides immediate, text-based cognitive support explaining non-standard terminal behavior, which is particularly helpful for less technical users or those relying on screen readers who might otherwise assume input is failing.",
+  "head": "ux-password-hidden-hint",
   "base": "main"
 }
