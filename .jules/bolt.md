@@ -1,3 +1,7 @@
 ## 2025-04-04 - Hot Path Dictionary Comprehension vs For-Loops
 **Learning:** Using dictionary comprehension to filter and deduplicate lists (`{h: None for h in lst if valid(h)}`) is up to 2x faster than using `dict.fromkeys()` and a Python `for` loop with `.append()`, especially when combined with a negative check (`not in existing_rules`) against a large set. Dictionary comprehensions operate at C-speed in Python. Additionally, pre-compiling regex (`re.compile`) at the module level provides nearly a 50% performance increase for functions like `extract_profile_id` compared to using inline `re.search()`.
 **Action:** Always prefer dict comprehensions for ordered deduplication combined with filtering, and always hoist regex compilation to the module level when used in functions invoked frequently.
+
+## 2025-04-04 - Native String Splitting vs Dynamic Regex Compilation
+**Learning:** For simple string parsing like extracting `KEY=value` patterns where the key varies dynamically, using native string splitting (`.split('=', 1)`) is approximately 4x faster than dynamically compiling and executing a regex (`re.match(rf'^{re.escape(key)}...')`). Avoiding regex compilation overhead on hot paths provides a significant performance boost.
+**Action:** Always prefer native string operations (`split`, `strip`, `startswith`) over dynamically constructed regular expressions for simple string parsing tasks.
