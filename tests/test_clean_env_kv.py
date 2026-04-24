@@ -2,15 +2,20 @@ import unittest
 import sys
 from unittest.mock import MagicMock
 
-# Mock dependencies that are missing in the environment
-sys.modules["httpx"] = MagicMock()
-sys.modules["dotenv"] = MagicMock()
-sys.modules["yaml"] = MagicMock()
-sys.modules["cache"] = MagicMock()
-sys.modules["api_client"] = MagicMock()
+# Environment-Safe Testing: main.py performs top-level imports of httpx, yaml, etc.
+# We ONLY mock these if they are missing from the environment to avoid interfering
+# with other tests in a full environment (like CI) that use spec=httpx.Response.
+def _maybe_mock(name):
+    if name not in sys.modules:
+        try:
+            __import__(name)
+        except ImportError:
+            sys.modules[name] = MagicMock()
 
-# Now we can import main
-import main
+for dep in ["httpx", "dotenv", "yaml", "cache", "api_client"]:
+    _maybe_mock(dep)
+
+import main  # noqa: E402
 
 class TestCleanEnvKV(unittest.TestCase):
     def test_clean_env_kv_none(self):
