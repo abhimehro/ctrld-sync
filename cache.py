@@ -29,6 +29,7 @@ import json
 import logging
 import os
 import platform
+import tempfile
 from pathlib import Path
 from collections.abc import Callable
 from typing import Any
@@ -207,24 +208,27 @@ def save_disk_cache() -> None:
             cache_dir.chmod(0o700)
 
         cache_file = cache_dir / "blocklists.json"
-        temp_file = cache_file.with_suffix(".tmp")
 
-        # Security: use os.open so the file is created with 0o600 from the
-        # start, avoiding a TOCTOU race where a world-readable file exists
-        # briefly before a subsequent chmod.
-        # Use O_EXCL to prevent symlink attacks on predictable temporary file names.
+        # Security: use tempfile.mkstemp so a unique temporary file is created
+        # with 0o600 permissions from the start.  This prevents symlink
+        # attacks and ensures other OS users cannot read the cached data.
+        fd, temp_path = tempfile.mkstemp(dir=cache_dir, prefix="blocklists.", suffix=".tmp")
+        temp_file = Path(temp_path)
+
         try:
-            fd = os.open(temp_file, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-        except FileExistsError:
-            # If the temp file exists from a previous aborted run, unlink and retry.
-            temp_file.unlink()
-            fd = os.open(temp_file, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                json.dump(_disk_cache, f, indent=2)
 
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
-            json.dump(_disk_cache, f, indent=2)
-
-        # POSIX guarantees rename is atomic.
-        temp_file.replace(cache_file)
+            # POSIX guarantees rename is atomic.
+            temp_file.replace(cache_file)
+        finally:
+            # If rename failed (e.g., crash mid-dump), ensure the temp file
+            # is cleaned up so we don't leak temporary files on disk.
+            if temp_file.exists():
+                try:
+                    temp_file.unlink()
+                except Exception:
+                    pass
 
         if log.isEnabledFor(logging.DEBUG):
             log.debug(f"Saved {len(_disk_cache):,} entries to disk cache")

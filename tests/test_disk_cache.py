@@ -193,16 +193,29 @@ class TestDiskCache(unittest.TestCase):
             "last_validated": 1234567890.0,
         }
 
+        # Use a real file instead of just a path so we can check if it exists
+        # during save_disk_cache execution.
         with patch("cache.get_cache_dir", return_value=cache_dir):
-            main.save_disk_cache()
+            # We want to verify that a temp file with prefix "blocklists." is used.
+            # Since mkstemp is used, we'll patch it to capture what it's called with.
+            import tempfile
+            original_mkstemp = tempfile.mkstemp
 
-        # Verify temp file is gone (was renamed)
-        temp_file = cache_dir / "blocklists.tmp"
-        self.assertFalse(temp_file.exists())
+            def mock_mkstemp(*args, **kwargs):
+                self.assertEqual(kwargs.get("prefix"), "blocklists.")
+                self.assertEqual(kwargs.get("suffix"), ".tmp")
+                return original_mkstemp(*args, **kwargs)
+
+            with patch("tempfile.mkstemp", side_effect=mock_mkstemp):
+                main.save_disk_cache()
 
         # Verify final file exists
         cache_file = cache_dir / "blocklists.json"
         self.assertTrue(cache_file.exists())
+
+        # Verify no blocklists.*.tmp files are left behind
+        temp_files = list(cache_dir.glob("blocklists.*.tmp"))
+        self.assertEqual(len(temp_files), 0, f"Found leaked temp files: {temp_files}")
 
     def test_cache_stats_tracking(self):
         """Test that cache statistics are tracked correctly."""
@@ -498,27 +511,3 @@ class TestDiskCache(unittest.TestCase):
 if __name__ == "__main__":
     unittest.main()
 
-    def test_save_disk_cache_temp_file_symlink(self):
-        """Test that O_EXCL prevents overwriting an existing symlink."""
-        cache_dir = Path(self.temp_dir)
-        cache_file = cache_dir / "blocklists.json"
-        temp_file = cache_dir / "blocklists.json.tmp"
-
-        # Pre-create a symlink at the temporary file location
-        if os.name != "nt":
-            target = cache_dir / "target_secret"
-            target.write_text("safe")
-            os.symlink("target_secret", temp_file)
-
-        # Add some data to the cache
-        main._disk_cache["test_url"] = {"data": "test_data"}
-
-        with patch("cache.get_cache_dir", return_value=cache_dir):
-            main.save_disk_cache()
-
-        # The cache should be saved successfully
-        self.assertTrue(cache_file.exists())
-
-        # If symlinks are supported, verify the target was NOT overwritten
-        if os.name != "nt":
-            self.assertEqual(target.read_text(), "safe")
