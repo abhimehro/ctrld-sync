@@ -760,9 +760,14 @@ def _clean_env_kv(value: str | None, key: str) -> str | None:
     if not value:
         return value
     v = value.strip()
-    m = re.match(rf"^{re.escape(key)}\s*=\s*(.+)$", v)
-    if m:
-        return m.group(1).strip()
+    if "=" in v:
+        k, val = v.split("=", 1)
+        if k.strip() == key:
+            # String splitting is used here as it's significantly faster than regex for basic KV parsing
+            # Emulate regex behavior: only return if value is not empty (.+ match)
+            val_stripped = val.strip()
+            if val_stripped:
+                return val_stripped
     return v
 
 
