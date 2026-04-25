@@ -1,6 +1,6 @@
 {
-  "title": "fix(tests): resolve mypy typing issues in test_ux.py",
-  "body": "**Severity:** Low\n**Vulnerability:** None\n**Impact:** Fixes mypy typing failures in CI/CD pipeline.\n**Fix:** Corrected mocked `PlanEntry` dictionaries in `tests/test_ux.py` to match the expected TypedDict schema.\n**Verification:** Ran `uv run mypy .` and `uv run pytest`.",
-  "head": "fix-test-ux-typing",
+  "title": "🎨 Palette: Add typing hidden hint to password prompt",
+  "body": "## 💡 What\nAdded `(typing will be hidden)` to the password prompt in the CLI.\n\n## 🎯 Why\nIn CLI environments, users often experience anxiety or assume the terminal has frozen when typing sensitive inputs like passwords, as no characters are echoed to the screen. Explicitly communicating that typing is hidden mitigates this confusion.\n\n## 📸 Before/After\n**Before:**\n`Enter Control D API Token: `\n\n**After:**\n`Enter Control D API Token: (typing will be hidden) `\n\n## ♿ Accessibility\nImproves clarity for all users, explicitly preventing confusion around hidden input states.",
+  "head": "chore/ux-hidden-input",
   "base": "main"
 }

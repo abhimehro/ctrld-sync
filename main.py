@@ -810,6 +810,9 @@ def get_password(
     error_msg: str,
 ) -> str:
     """Prompts for password input until the validator returns True."""
+    if "(typing will be hidden)" not in prompt:
+        prompt = f"{prompt.rstrip()} (typing will be hidden) "
+
     if not prompt.endswith(" "):
         prompt += " "
 
@@ -2707,7 +2710,9 @@ def print_summary_table(
             f"{sep}\n{'TOTAL':<{w[0]}} | {t_f:>{w[1]}} | {t_r:>{w[2]},} | {t_d:>{w[3] - 1}.1f}s | {t_status:<{w[4]}}\n{sep}\n"
         )
         if t_f == 0:
-            print("  💡 Hint: Add folder URLs using --folder-url or in your config.yaml\n")
+            print(
+                "  💡 Hint: Add folder URLs using --folder-url or in your config.yaml\n"
+            )
         return
 
     # Unicode Table
@@ -2742,7 +2747,9 @@ def print_summary_table(
     print(f"{print_line('└', '┴', '┘', w)}\n")
 
     if t_f == 0:
-        _print_hint("  💡 Hint: Add folder URLs using --folder-url or in your config.yaml")
+        _print_hint(
+            "  💡 Hint: Add folder URLs using --folder-url or in your config.yaml"
+        )
 
 
 def print_success_message(profile_ids: list[str]) -> None:
