@@ -527,3 +527,55 @@ def test_print_plan_details_retains_emojis_in_no_color(monkeypatch, capsys):
     assert "⛔ Block" in captured.out
     assert "✅ Allow" in captured.out
     assert "⚠️  Mixed" in captured.out
+
+
+# Tests for the get_password() hint salvaged from PR #742
+class TestGetPasswordHint:
+    """Verify get_password() auto-appends '(typing will be hidden)' to the prompt.
+
+    Salvaged from PR #742. The hint helps screen-reader users and fresh users
+    understand why characters do not echo. Callers that want to render the hint
+    with their own styling can opt out by including the literal substring in the
+    prompt they pass.
+    """
+
+    def test_default_prompt_gets_hint_appended(self, monkeypatch):
+        captured = {}
+
+        def fake_input(p):
+            captured["prompt"] = p
+            return "supersecret"
+
+        monkeypatch.setattr("builtins.input", fake_input)
+        monkeypatch.setattr("getpass.getpass", fake_input)
+        try:
+            main.get_password("Enter API token:", validator=lambda v: True, error_msg="bad")
+        except (EOFError, OSError, StopIteration):
+            pass
+
+        prompt = captured.get("prompt", "")
+        assert "(typing will be hidden)" in prompt, (
+            f"get_password should auto-append the hint, got: {prompt!r}"
+        )
+        assert prompt.endswith(" "), "prompt must end with a space for readability"
+
+    def test_caller_provided_hint_is_not_duplicated(self, monkeypatch):
+        captured = {}
+
+        def fake_input(p):
+            captured["prompt"] = p
+            return "supersecret"
+
+        monkeypatch.setattr("builtins.input", fake_input)
+        monkeypatch.setattr("getpass.getpass", fake_input)
+        custom_prompt = "Enter API token (typing will be hidden): "
+        try:
+            main.get_password(custom_prompt, validator=lambda v: True, error_msg="bad")
+        except (EOFError, OSError, StopIteration):
+            pass
+
+        prompt = captured.get("prompt", "")
+        # The hint should appear exactly once when the caller already includes it.
+        assert prompt.count("(typing will be hidden)") == 1, (
+            f"hint should not be duplicated, got: {prompt!r}"
+        )
