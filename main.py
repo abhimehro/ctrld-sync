@@ -814,7 +814,17 @@ def get_password(
     validator: Callable[[str], bool],
     error_msg: str,
 ) -> str:
-    """Prompts for password input until the validator returns True."""
+    """Prompts for password input until the validator returns True.
+
+    If the prompt does not already advertise that input is hidden, append a
+    "(typing will be hidden)" hint so a screen-reader or fresh user knows
+    why characters do not echo. Callers that want to render the hint with
+    their own styling (e.g. dimmed colors at a specific position) can opt
+    out by including the literal substring "(typing will be hidden)" in
+    the prompt they pass.
+    """
+    if "(typing will be hidden)" not in prompt:
+        prompt = f"{prompt.rstrip()} (typing will be hidden) "
     if not prompt.endswith(" "):
         prompt += " "
 
