@@ -760,9 +760,14 @@ def _clean_env_kv(value: str | None, key: str) -> str | None:
     if not value:
         return value
     v = value.strip()
-    m = re.match(rf"^{re.escape(key)}\s*=\s*(.+)$", v)
-    if m:
-        return m.group(1).strip()
+    if "=" in v:
+        k, val = v.split("=", 1)
+        if k.strip() == key:
+            # String splitting is used here as it's significantly faster than regex for basic KV parsing
+            # Emulate regex behavior: only return if value is not empty (.+ match)
+            val_stripped = val.strip()
+            if val_stripped:
+                return val_stripped
     return v
 
 
@@ -1959,7 +1964,7 @@ def warm_up_cache(urls: Sequence[str]) -> None:
 
     total = len(urls_to_process)
     if not USE_COLORS:
-        log.info(f"Warming up cache for {total:,} URLs...")
+        log.info(f"⏳ Warming up cache for {total:,} URLs...")
 
     # OPTIMIZATION: Combine validation (DNS) and fetching (HTTP) in one task
     # to allow validation latency to be parallelized.
@@ -2309,7 +2314,7 @@ def push_rules(
             sys.stderr.flush()
         else:
             log.info(
-                f"Folder {sanitize_for_log(folder_name)} – finished ({len(filtered_hostnames):,} new rules added)"
+                f"✅ Folder {sanitize_for_log(folder_name)} – finished ({len(filtered_hostnames):,} new rules added)"
             )
         return True
     if USE_COLORS:
@@ -2939,7 +2944,7 @@ def main() -> None:
         if not profile_ids:
             print(f"{Colors.CYAN}ℹ Profile ID is missing.{Colors.ENDC}")
             _print_hint(
-                "  You can find this in the URL of your profile in the Control D Dashboard (or just paste the URL)."
+                "  💡 Hint: You can find this in the URL of your profile in the Control D Dashboard (or just paste the URL)."
             )
 
             def validate_profile_input(value: str) -> bool:
@@ -2961,11 +2966,11 @@ def main() -> None:
         if not TOKEN:
             print(f"{Colors.CYAN}ℹ API Token is missing.{Colors.ENDC}")
             _print_hint(
-                "  You can generate one at: https://controld.com/account/manage-account"
+                "  💡 Hint: You can generate one at: https://controld.com/account/manage-account"
             )
 
             t_input = get_password(
-                f"{Colors.BOLD}Enter Control D API Token:{Colors.ENDC} ",
+                f"{Colors.BOLD}Enter Control D API Token {Colors.DIM}(typing will be hidden){Colors.ENDC}: ",
                 lambda x: len(x) > 8,
                 "Token seems too short. Please check your API token.",
             )

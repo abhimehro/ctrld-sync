@@ -252,6 +252,9 @@
 
 **Merged pull requests:**
 
+- ⚡ Bolt: Optimize \_clean\_env\_kv with string split [\#740](https://github.com/abhimehro/ctrld-sync/pull/740) ([abhimehro](https://github.com/abhimehro))
+- 🧪 Add tests for \_clean\_env\_kv [\#739](https://github.com/abhimehro/ctrld-sync/pull/739) ([abhimehro](https://github.com/abhimehro))
+- 🎨 Palette: Small UX and CLI hints improvements [\#734](https://github.com/abhimehro/ctrld-sync/pull/734) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump python-dotenv from 1.1.1 to 1.2.2 in the uv group across 1 directory [\#733](https://github.com/abhimehro/ctrld-sync/pull/733) ([dependabot[bot]](https://github.com/apps/dependabot))
 - fix\(tests\): resolve mypy typing issues in test\_ux.py [\#730](https://github.com/abhimehro/ctrld-sync/pull/730) ([abhimehro](https://github.com/abhimehro))
 - chore\(format\): Apply pre-commit formatting fixes [\#728](https://github.com/abhimehro/ctrld-sync/pull/728) ([abhimehro](https://github.com/abhimehro))
