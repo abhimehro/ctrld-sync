@@ -252,6 +252,7 @@
 
 **Merged pull requests:**
 
+- ux\(get\_password\): auto-append '\(typing will be hidden\)' hint \(salvages \#742\) [\#743](https://github.com/abhimehro/ctrld-sync/pull/743) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Optimize \_clean\_env\_kv with string split [\#740](https://github.com/abhimehro/ctrld-sync/pull/740) ([abhimehro](https://github.com/abhimehro))
 - 🧪 Add tests for \_clean\_env\_kv [\#739](https://github.com/abhimehro/ctrld-sync/pull/739) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Small UX and CLI hints improvements [\#734](https://github.com/abhimehro/ctrld-sync/pull/734) ([abhimehro](https://github.com/abhimehro))
