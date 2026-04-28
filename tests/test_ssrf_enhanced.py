@@ -54,6 +54,20 @@ class TestSSRFEnhanced(unittest.TestCase):
             result = main.validate_folder_url(url)
             self.assertFalse(result, "Should block domain resolving to 0.0.0.0")
 
+    def test_domain_resolving_to_reserved_ip(self):
+        """
+        Test that a domain resolving to a reserved IP (e.g., 240.0.0.1) is blocked.
+        """
+        with patch("socket.getaddrinfo") as mock_getaddrinfo:
+            # Simulate resolving to 240.0.0.1 (Class E reserved)
+            mock_getaddrinfo.return_value = [
+                (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("240.0.0.1", 443))
+            ]
+
+            url = "https://reserved.example.com/config.json"
+            result = main.validate_folder_url(url)
+            self.assertFalse(result, "Should block domain resolving to reserved IP")
+
 
 if __name__ == "__main__":
     unittest.main()
