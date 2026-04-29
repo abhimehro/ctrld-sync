@@ -404,6 +404,28 @@ class TestPromptForInteractiveRestart:
             captured = capsys.readouterr()
             assert "Cancelled" in captured.out
 
+    def test_reprompts_on_unrecognized_input(self, monkeypatch, capsys):
+        """Should reprompt when input is neither affirmative nor cancellation."""
+        monkeypatch.setattr(sys, "stdin", _DummyStdin(is_tty=True))
+
+        # We will feed 'maybe', then 'invalid', then 'y'
+        inputs = iter(["maybe", "invalid", "y"])
+        def mock_input(_):
+            return next(inputs)
+
+        monkeypatch.setattr("builtins.input", mock_input)
+        mock_execv = MagicMock()
+        monkeypatch.setattr(os, "execv", mock_execv)
+
+        main.prompt_for_interactive_restart(["123"])
+
+        mock_execv.assert_called_once()
+        captured = capsys.readouterr()
+
+        # Ensure it printed the unrecognized input error twice
+        assert captured.out.count("Unrecognized input") == 2
+        assert "Hint: Please type 'y' or press Enter to continue, or 'n' to cancel." in captured.out
+
 
 class TestGetValidatedInput:
     def test_get_validated_input_no_colors(self, monkeypatch, capsys):

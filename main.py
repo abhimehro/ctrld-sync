@@ -779,6 +779,23 @@ def _print_hint(hint: str) -> None:
         print(hint)
 
 
+def _print_cancellation_message() -> None:
+    """Helper to print cancellation message honoring colors."""
+    if USE_COLORS:
+        print(f"\n{Colors.WARNING}⚠️  Cancelled.{Colors.ENDC}")
+    else:
+        print("\n⚠️  Cancelled.")
+
+
+def _print_unrecognized_input_message() -> None:
+    """Helper to print unrecognized input message honoring colors."""
+    if USE_COLORS:
+        print(f"{Colors.FAIL}❌ Unrecognized input.{Colors.ENDC}")
+    else:
+        print("❌ Unrecognized input.")
+    _print_hint("   💡 Hint: Please type 'y' or press Enter to continue, or 'n' to cancel.")
+
+
 def get_validated_input(
     prompt: str,
     validator: Callable[[str], bool],
@@ -2644,16 +2661,20 @@ def prompt_for_interactive_restart(profile_ids: list[str]) -> None:
         else:
             prompt = "\n🚀 Ready to launch? Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
 
-        # Flush stdout (and stderr) so the prompt is visible even if output is buffered or redirected
-        sys.stdout.flush()
-        sys.stderr.flush()
-        user_response = input(prompt).strip().lower()
-        if user_response in ("n", "no", "q", "quit", "exit", "cancel"):
-            if USE_COLORS:
-                print(f"\n{Colors.WARNING}⚠️  Cancelled.{Colors.ENDC}")
-            else:
-                print("\n⚠️  Cancelled.")
-            return
+        while True:
+            # Flush stdout (and stderr) so the prompt is visible even if output is buffered or redirected
+            sys.stdout.flush()
+            sys.stderr.flush()
+            user_response = input(prompt).strip().lower()
+
+            if user_response in ("", "y", "yes"):
+                break
+
+            if user_response in ("n", "no", "q", "quit", "exit", "cancel"):
+                _print_cancellation_message()
+                return
+
+            _print_unrecognized_input_message()
 
         # Prepare environment for the new process
         # Pass the current token to avoid re-prompting if it was entered interactively
