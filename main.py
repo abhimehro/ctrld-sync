@@ -1097,6 +1097,8 @@ def _is_safe_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
         return False
     if ip.is_link_local:
         return False
+    if getattr(ip, "is_reserved", False):
+        return False
     if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
         return _is_safe_ip(ip.ipv4_mapped)
     if isinstance(ip, ipaddress.IPv4Address) and ip in _CGNAT_NETWORK:
@@ -2722,7 +2724,9 @@ def print_summary_table(
             f"{sep}\n{'TOTAL':<{w[0]}} | {t_f:>{w[1]}} | {t_r:>{w[2]},} | {t_d:>{w[3] - 1}.1f}s | {t_status:<{w[4]}}\n{sep}\n"
         )
         if t_f == 0:
-            print("  💡 Hint: Add folder URLs using --folder-url or in your config.yaml\n")
+            print(
+                "  💡 Hint: Add folder URLs using --folder-url or in your config.yaml\n"
+            )
         return
 
     # Unicode Table
@@ -2757,7 +2761,9 @@ def print_summary_table(
     print(f"{print_line('└', '┴', '┘', w)}\n")
 
     if t_f == 0:
-        _print_hint("  💡 Hint: Add folder URLs using --folder-url or in your config.yaml")
+        _print_hint(
+            "  💡 Hint: Add folder URLs using --folder-url or in your config.yaml"
+        )
 
 
 def print_success_message(profile_ids: list[str]) -> None:
