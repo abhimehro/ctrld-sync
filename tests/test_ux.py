@@ -404,6 +404,54 @@ class TestPromptForInteractiveRestart:
             captured = capsys.readouterr()
             assert "Cancelled" in captured.out
 
+    def test_handles_unrecognized_input_then_confirms(self, monkeypatch, capsys):
+        """Should reject invalid input, then accept valid confirmation."""
+        monkeypatch.setattr(sys, "stdin", _DummyStdin(is_tty=True))
+
+        # First give invalid input, then give empty string (Enter)
+        inputs = iter(["invalid_input", ""])
+
+        def mock_input(_):
+            return next(inputs)
+
+        monkeypatch.setattr("builtins.input", mock_input)
+        mock_execv = MagicMock()
+        monkeypatch.setattr(os, "execv", mock_execv)
+        monkeypatch.setattr(main, "USE_COLORS", False)
+
+        # To avoid the test hanging, we also need to mock os.environ
+        monkeypatch.setattr(os, "environ", {})
+        monkeypatch.setattr(sys, "executable", "python")
+        monkeypatch.setattr(sys, "argv", ["main.py", "--dry-run"])
+
+        main.prompt_for_interactive_restart(["123"])
+
+        captured = capsys.readouterr()
+        assert "Unrecognized input" in captured.out
+        mock_execv.assert_called_once()
+
+    def test_handles_unrecognized_input_then_cancels(self, monkeypatch, capsys):
+        """Should reject invalid input, then accept valid cancellation."""
+        monkeypatch.setattr(sys, "stdin", _DummyStdin(is_tty=True))
+
+        # First give invalid input, then give cancel command
+        inputs = iter(["invalid_input", "n"])
+
+        def mock_input(_):
+            return next(inputs)
+
+        monkeypatch.setattr("builtins.input", mock_input)
+        mock_execv = MagicMock()
+        monkeypatch.setattr(os, "execv", mock_execv)
+        monkeypatch.setattr(main, "USE_COLORS", False)
+
+        main.prompt_for_interactive_restart(["123"])
+
+        captured = capsys.readouterr()
+        assert "Unrecognized input" in captured.out
+        assert "Cancelled" in captured.out
+        mock_execv.assert_not_called()
+
 
 class TestGetValidatedInput:
     def test_get_validated_input_no_colors(self, monkeypatch, capsys):
