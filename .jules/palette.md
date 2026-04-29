@@ -50,3 +50,7 @@
 ## 2024-04-15 - Semantic Emojis in No-Color Fallbacks
 **Learning:** When stripping ANSI colors for fallback modes (e.g., `NO_COLOR=1` or non-TTY environments), it's a common mistake to accidentally strip semantic emojis along with the color formatting. Emojis provide vital scannability and context that users rely on when color cues are absent.
 **Action:** Always ensure that `if USE_COLORS` else blocks preserve emojis in the uncolored strings. Never treat emojis as part of the "color decoration" to be discarded.
+## 2025-03-31 - [Fail-Open CLI Prompts]
+
+**Learning:** Implementing a "fail-open" pattern in interactive CLI prompts for destructive actions (where any unrecognized input is treated as a confirmation) is dangerous and can lead to unintended execution if the user makes a typo or misunderstands the prompt.
+**Action:** Interactive confirmation prompts for destructive actions must be "fail-secure". They should explicitly validate for expected confirmation strings (e.g., "", "y", "yes") and expected cancellation strings (e.g., "n", "quit"). Any unrecognized input should be explicitly rejected with a clear error message, and the prompt should be repeated until valid input is received.
