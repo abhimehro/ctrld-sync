@@ -779,6 +779,23 @@ def _print_hint(hint: str) -> None:
         print(hint)
 
 
+def _print_cancellation_message() -> None:
+    """Helper to print cancellation message honoring colors."""
+    if USE_COLORS:
+        print(f"\n{Colors.WARNING}⚠️  Cancelled.{Colors.ENDC}")
+    else:
+        print("\n⚠️  Cancelled.")
+
+
+def _print_unrecognized_input_message() -> None:
+    """Helper to print unrecognized input message honoring colors."""
+    if USE_COLORS:
+        print(f"{Colors.FAIL}❌ Unrecognized input.{Colors.ENDC}")
+    else:
+        print("❌ Unrecognized input.")
+    _print_hint("   💡 Hint: Please type 'y' or press Enter to continue, or 'n' to cancel.")
+
+
 def get_validated_input(
     prompt: str,
     validator: Callable[[str], bool],
@@ -2654,18 +2671,10 @@ def prompt_for_interactive_restart(profile_ids: list[str]) -> None:
                 break
 
             if user_response in ("n", "no", "q", "quit", "exit", "cancel"):
-                if USE_COLORS:
-                    print(f"\n{Colors.WARNING}⚠️  Cancelled.{Colors.ENDC}")
-                else:
-                    print("\n⚠️  Cancelled.")
+                _print_cancellation_message()
                 return
 
-            if USE_COLORS:
-                print(f"{Colors.FAIL}❌ Unrecognized input.{Colors.ENDC}")
-                _print_hint("   💡 Hint: Please type 'y' or press Enter to continue, or 'n' to cancel.")
-            else:
-                print("❌ Unrecognized input.")
-                _print_hint("   💡 Hint: Please type 'y' or press Enter to continue, or 'n' to cancel.")
+            _print_unrecognized_input_message()
 
         # Prepare environment for the new process
         # Pass the current token to avoid re-prompting if it was entered interactively
