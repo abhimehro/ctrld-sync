@@ -2644,16 +2644,28 @@ def prompt_for_interactive_restart(profile_ids: list[str]) -> None:
         else:
             prompt = "\n🚀 Ready to launch? Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
 
-        # Flush stdout (and stderr) so the prompt is visible even if output is buffered or redirected
-        sys.stdout.flush()
-        sys.stderr.flush()
-        user_response = input(prompt).strip().lower()
-        if user_response in ("n", "no", "q", "quit", "exit", "cancel"):
+        while True:
+            # Flush stdout (and stderr) so the prompt is visible even if output is buffered or redirected
+            sys.stdout.flush()
+            sys.stderr.flush()
+            user_response = input(prompt).strip().lower()
+
+            if user_response in ("", "y", "yes"):
+                break
+
+            if user_response in ("n", "no", "q", "quit", "exit", "cancel"):
+                if USE_COLORS:
+                    print(f"\n{Colors.WARNING}⚠️  Cancelled.{Colors.ENDC}")
+                else:
+                    print("\n⚠️  Cancelled.")
+                return
+
             if USE_COLORS:
-                print(f"\n{Colors.WARNING}⚠️  Cancelled.{Colors.ENDC}")
+                print(f"{Colors.FAIL}❌ Unrecognized input.{Colors.ENDC}")
+                _print_hint("   💡 Hint: Please type 'y' or press Enter to continue, or 'n' to cancel.")
             else:
-                print("\n⚠️  Cancelled.")
-            return
+                print("❌ Unrecognized input.")
+                _print_hint("   💡 Hint: Please type 'y' or press Enter to continue, or 'n' to cancel.")
 
         # Prepare environment for the new process
         # Pass the current token to avoid re-prompting if it was entered interactively
