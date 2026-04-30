@@ -797,6 +797,18 @@ def test_validate_folder_data_structure(monkeypatch):
     assert m.validate_folder_data(valid_rg, "url") is True
 
 
+def test_is_safe_ip_reserved():
+    import ipaddress
+    import main
+
+    # Test valid global IP
+    assert main._is_safe_ip(ipaddress.IPv4Address("8.8.8.8")) is True
+    assert main._is_safe_ip(ipaddress.IPv6Address("2001:4860:4860::8888")) is True
+
+    # Test newly added reserved IP block
+    assert main._is_safe_ip(ipaddress.IPv4Address("240.0.0.1")) is False
+
+
 def test_is_valid_profile_id_format(monkeypatch):
     m = reload_main_with_env(monkeypatch)
     # Valid IDs
