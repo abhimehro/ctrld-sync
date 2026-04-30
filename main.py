@@ -2644,16 +2644,27 @@ def prompt_for_interactive_restart(profile_ids: list[str]) -> None:
         else:
             prompt = "\n🚀 Ready to launch? Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
 
-        # Flush stdout (and stderr) so the prompt is visible even if output is buffered or redirected
-        sys.stdout.flush()
-        sys.stderr.flush()
-        user_response = input(prompt).strip().lower()
-        if user_response in ("n", "no", "q", "quit", "exit", "cancel"):
-            if USE_COLORS:
-                print(f"\n{Colors.WARNING}⚠️  Cancelled.{Colors.ENDC}")
+        while True:
+            # Flush stdout (and stderr) so the prompt is visible even if output is buffered or redirected
+            sys.stdout.flush()
+            sys.stderr.flush()
+            user_response = input(prompt).strip().lower()
+
+            if user_response in ("", "y", "yes"):
+                break
+            elif user_response in ("n", "no", "q", "quit", "exit", "cancel"):
+                if USE_COLORS:
+                    print(f"\n{Colors.WARNING}⚠️  Cancelled.{Colors.ENDC}")
+                else:
+                    print("\n⚠️  Cancelled.")
+                return
             else:
-                print("\n⚠️  Cancelled.")
-            return
+                if USE_COLORS:
+                    print(f"{Colors.FAIL}❌ Unrecognized input. Please press Enter to continue, or 'n' to cancel.{Colors.ENDC}")
+                else:
+                    print("❌ Unrecognized input. Please press Enter to continue, or 'n' to cancel.")
+                # Ensure the loop re-prompts nicely without massive gaps, so we adjust prompt slightly if needed
+                prompt = f"{Colors.BOLD}🚀 Ready to launch? {Colors.ENDC}Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... " if USE_COLORS else "🚀 Ready to launch? Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
 
         # Prepare environment for the new process
         # Pass the current token to avoid re-prompting if it was entered interactively

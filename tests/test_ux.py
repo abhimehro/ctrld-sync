@@ -404,6 +404,43 @@ class TestPromptForInteractiveRestart:
             captured = capsys.readouterr()
             assert "Cancelled" in captured.out
 
+    def test_handles_invalid_input_then_valid(self, monkeypatch, capsys):
+        """Should reprompt on invalid input and proceed on valid input."""
+        monkeypatch.setattr(sys, "stdin", _DummyStdin(is_tty=True))
+
+        inputs = iter(["invalid", "y"])
+        def mock_input(_):
+            return next(inputs)
+
+        monkeypatch.setattr("builtins.input", mock_input)
+        mock_execv = MagicMock()
+        monkeypatch.setattr(os, "execv", mock_execv)
+
+        main.prompt_for_interactive_restart(["123"])
+
+        captured = capsys.readouterr()
+        assert "Unrecognized input" in captured.out
+        mock_execv.assert_called_once()
+
+    def test_handles_invalid_input_then_cancel(self, monkeypatch, capsys):
+        """Should reprompt on invalid input and cancel gracefully on 'n'."""
+        monkeypatch.setattr(sys, "stdin", _DummyStdin(is_tty=True))
+
+        inputs = iter(["invalid", "n"])
+        def mock_input(_):
+            return next(inputs)
+
+        monkeypatch.setattr("builtins.input", mock_input)
+        mock_execv = MagicMock()
+        monkeypatch.setattr(os, "execv", mock_execv)
+
+        main.prompt_for_interactive_restart(["123"])
+
+        captured = capsys.readouterr()
+        assert "Unrecognized input" in captured.out
+        assert "Cancelled" in captured.out
+        mock_execv.assert_not_called()
+
 
 class TestGetValidatedInput:
     def test_get_validated_input_no_colors(self, monkeypatch, capsys):
