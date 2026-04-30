@@ -404,11 +404,16 @@ class TestPromptForInteractiveRestart:
             captured = capsys.readouterr()
             assert "Cancelled" in captured.out
 
-    @pytest.mark.parametrize("final_input,should_execute", [
-        ("y", True),
-        ("n", False),
-    ])
-    def test_handles_invalid_input_then_action(self, monkeypatch, capsys, final_input: str, should_execute: bool):
+    @pytest.mark.parametrize(
+        "final_input,should_execute",
+        [
+            ("y", True),
+            ("n", False),
+        ],
+    )
+    def test_handles_invalid_input_then_action(
+        self, monkeypatch, capsys, final_input: str, should_execute: bool
+    ):
         """Should reprompt on invalid input and then proceed or cancel appropriately."""
         monkeypatch.setattr(sys, "stdin", _DummyStdin(is_tty=True))
 

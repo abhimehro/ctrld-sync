@@ -2628,10 +2628,29 @@ def sync_profile(
 # --------------------------------------------------------------------------- #
 def _get_interactive_restart_confirmation() -> bool:
     """Helper to prompt for and validate interactive restart confirmation."""
-    if USE_COLORS:
-        prompt = f"\n{Colors.BOLD}🚀 Ready to launch? {Colors.ENDC}Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
-    else:
-        prompt = "\n🚀 Ready to launch? Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
+    # Pre-compute formatted strings to reduce loop complexity
+    prompt_initial = (
+        f"\n{Colors.BOLD}🚀 Ready to launch? {Colors.ENDC}Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
+        if USE_COLORS
+        else "\n🚀 Ready to launch? Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
+    )
+    prompt_reprompt = (
+        f"{Colors.BOLD}🚀 Ready to launch? {Colors.ENDC}Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
+        if USE_COLORS
+        else "🚀 Ready to launch? Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
+    )
+    cancel_msg = (
+        f"\n{Colors.WARNING}⚠️  Cancelled.{Colors.ENDC}"
+        if USE_COLORS
+        else "\n⚠️  Cancelled."
+    )
+    err_msg = (
+        f"{Colors.FAIL}❌ Unrecognized input. Please press Enter to continue, or 'n' to cancel.{Colors.ENDC}"
+        if USE_COLORS
+        else "❌ Unrecognized input. Please press Enter to continue, or 'n' to cancel."
+    )
+
+    prompt = prompt_initial
 
     while True:
         # Flush stdout (and stderr) so the prompt is visible even if output is buffered or redirected
@@ -2643,26 +2662,11 @@ def _get_interactive_restart_confirmation() -> bool:
             return True
 
         if user_response in ("n", "no", "q", "quit", "exit", "cancel"):
-            if USE_COLORS:
-                print(f"\n{Colors.WARNING}⚠️  Cancelled.{Colors.ENDC}")
-            else:
-                print("\n⚠️  Cancelled.")
+            print(cancel_msg)
             return False
 
-        if USE_COLORS:
-            print(
-                f"{Colors.FAIL}❌ Unrecognized input. Please press Enter to continue, or 'n' to cancel.{Colors.ENDC}"
-            )
-        else:
-            print(
-                "❌ Unrecognized input. Please press Enter to continue, or 'n' to cancel."
-            )
-        # Ensure the loop re-prompts nicely without massive gaps, so we adjust prompt slightly if needed
-        prompt = (
-            f"{Colors.BOLD}🚀 Ready to launch? {Colors.ENDC}Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
-            if USE_COLORS
-            else "🚀 Ready to launch? Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
-        )
+        print(err_msg)
+        prompt = prompt_reprompt
 
 
 def prompt_for_interactive_restart(profile_ids: list[str]) -> None:
