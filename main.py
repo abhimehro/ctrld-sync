@@ -2652,19 +2652,28 @@ def prompt_for_interactive_restart(profile_ids: list[str]) -> None:
 
             if user_response in ("", "y", "yes"):
                 break
-            elif user_response in ("n", "no", "q", "quit", "exit", "cancel"):
+
+            if user_response in ("n", "no", "q", "quit", "exit", "cancel"):
                 if USE_COLORS:
                     print(f"\n{Colors.WARNING}⚠️  Cancelled.{Colors.ENDC}")
                 else:
                     print("\n⚠️  Cancelled.")
                 return
+
+            if USE_COLORS:
+                print(
+                    f"{Colors.FAIL}❌ Unrecognized input. Please press Enter to continue, or 'n' to cancel.{Colors.ENDC}"
+                )
             else:
-                if USE_COLORS:
-                    print(f"{Colors.FAIL}❌ Unrecognized input. Please press Enter to continue, or 'n' to cancel.{Colors.ENDC}")
-                else:
-                    print("❌ Unrecognized input. Please press Enter to continue, or 'n' to cancel.")
-                # Ensure the loop re-prompts nicely without massive gaps, so we adjust prompt slightly if needed
-                prompt = f"{Colors.BOLD}🚀 Ready to launch? {Colors.ENDC}Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... " if USE_COLORS else "🚀 Ready to launch? Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
+                print(
+                    "❌ Unrecognized input. Please press Enter to continue, or 'n' to cancel."
+                )
+            # Ensure the loop re-prompts nicely without massive gaps, so we adjust prompt slightly if needed
+            prompt = (
+                f"{Colors.BOLD}🚀 Ready to launch? {Colors.ENDC}Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
+                if USE_COLORS
+                else "🚀 Ready to launch? Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
+            )
 
         # Prepare environment for the new process
         # Pass the current token to avoid re-prompting if it was entered interactively
@@ -2733,7 +2742,9 @@ def print_summary_table(
             f"{sep}\n{'TOTAL':<{w[0]}} | {t_f:>{w[1]}} | {t_r:>{w[2]},} | {t_d:>{w[3] - 1}.1f}s | {t_status:<{w[4]}}\n{sep}\n"
         )
         if t_f == 0:
-            print("  💡 Hint: Add folder URLs using --folder-url or in your config.yaml\n")
+            print(
+                "  💡 Hint: Add folder URLs using --folder-url or in your config.yaml\n"
+            )
         return
 
     # Unicode Table
@@ -2768,7 +2779,9 @@ def print_summary_table(
     print(f"{print_line('└', '┴', '┘', w)}\n")
 
     if t_f == 0:
-        _print_hint("  💡 Hint: Add folder URLs using --folder-url or in your config.yaml")
+        _print_hint(
+            "  💡 Hint: Add folder URLs using --folder-url or in your config.yaml"
+        )
 
 
 def print_success_message(profile_ids: list[str]) -> None:
