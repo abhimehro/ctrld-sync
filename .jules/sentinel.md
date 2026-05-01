@@ -7,3 +7,8 @@
 **Vulnerability:** The `_is_safe_ip` function lacked an explicit check for link-local IP addresses (e.g., `169.254.169.254`). This omission exposed the application to SSRF vulnerabilities targeting cloud provider metadata APIs (such as AWS IMDS, GCP Metadata, Azure Instance Metadata), which could lead to severe credential exposure.
 **Learning:** Cloud metadata services reside on non-routable link-local IP addresses that are not always covered by standard `is_private` or `is_global` properties.
 **Prevention:** Explicitly check `ip.is_link_local` alongside `is_loopback`, `is_unspecified`, and `is_private` when validating outbound destination IPs.
+
+## 2025-05-01 - Add explicit reserved IP check to prevent SSRF bypass
+**Vulnerability:** The `_is_safe_ip` function lacked an explicit check for reserved IP addresses (e.g., `240.0.0.0/4`). This omission could expose the application to SSRF vulnerabilities or erratic behavior if traffic is routed to experimental/reserved address spaces not covered by `is_private` or `is_global`.
+**Learning:** Reserved IP ranges are not always strictly classified under `is_private` or explicitly rejected by default, requiring specific checks for comprehensive SSRF prevention.
+**Prevention:** Explicitly check `getattr(ip, 'is_reserved', False)` alongside other checks (like `is_loopback` and `is_link_local`) when validating outbound destination IPs.
