@@ -19,75 +19,53 @@ class TestSSRFEnhanced(unittest.TestCase):
         main.validate_hostname.cache_clear()
         main.validate_folder_url.cache_clear()
 
-    def test_domain_resolving_to_cgnat_ip(self):
-        """
-        Test that a domain resolving to a Carrier Grade NAT IP (100.64.x.x) is blocked.
-        Current code allows this, but security best practice is to block it.
-        """
+    def assert_url_validation_for_resolved_ip(
+        self,
+        *,
+        hostname: str,
+        address: str,
+        family: socket.AddressFamily,
+        expected: bool,
+        message: str,
+    ) -> None:
         with patch("socket.getaddrinfo") as mock_getaddrinfo:
-            # Simulate resolving to 100.64.0.1
             mock_getaddrinfo.return_value = [
-                (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("100.64.0.1", 443))
+                (family, socket.SOCK_STREAM, 6, "", (address, 443))
             ]
 
-            url = "https://cgnat.example.com/config.json"
+            url = f"https://{hostname}/config.json"
             result = main.validate_folder_url(url)
-            self.assertFalse(result, "Should block domain resolving to CGNAT IP")
+            self.assertIs(result, expected, message)
 
-    def test_domain_resolving_to_multicast_ip(self):
-        """
-        Test that a domain resolving to a Multicast IP is blocked.
-        """
-        with patch("socket.getaddrinfo") as mock_getaddrinfo:
-            # Simulate resolving to 224.0.0.1
-            mock_getaddrinfo.return_value = [
-                (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("224.0.0.1", 443))
-            ]
-
-            url = "https://multicast.example.com/config.json"
-            result = main.validate_folder_url(url)
-            self.assertFalse(result, "Should block domain resolving to Multicast IP")
-
-    def test_domain_resolving_to_unspecified_ip(self):
-        """
-        Test that a domain resolving to 0.0.0.0 is blocked.
-        """
-        with patch("socket.getaddrinfo") as mock_getaddrinfo:
-            # Simulate resolving to 0.0.0.0
-            mock_getaddrinfo.return_value = [
-                (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("0.0.0.0", 443))
-            ]
-
-            url = "https://zero.example.com/config.json"
-            result = main.validate_folder_url(url)
-            self.assertFalse(result, "Should block domain resolving to 0.0.0.0")
-
-    def test_domain_resolving_to_reserved_ip(self):
-        """
-        Test that a domain resolving to a reserved IP (e.g., 240.0.0.1) is blocked.
-        """
-        with patch("socket.getaddrinfo") as mock_getaddrinfo:
-            # Simulate resolving to 240.0.0.1
-            mock_getaddrinfo.return_value = [
-                (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("240.0.0.1", 443))
-            ]
-
-            url = "https://reserved.example.com/config.json"
-            result = main.validate_folder_url(url)
-            self.assertFalse(result, "Should block domain resolving to reserved IP")
+    def test_unsafe_domain_resolutions_are_blocked(self):
+        """Test that domains resolving to unsafe IP ranges are blocked."""
+        cases = [
+            ("cgnat.example.com", "100.64.0.1", "CGNAT IP"),
+            ("multicast.example.com", "224.0.0.1", "Multicast IP"),
+            ("zero.example.com", "0.0.0.0", "0.0.0.0"),
+            ("reserved.example.com", "240.0.0.1", "reserved IP"),
+        ]
+        for hostname, address, description in cases:
+            with self.subTest(address=address):
+                self.assert_url_validation_for_resolved_ip(
+                    hostname=hostname,
+                    address=address,
+                    family=socket.AF_INET,
+                    expected=False,
+                    message=f"Should block domain resolving to {description}",
+                )
 
     def test_ipv4_mapped_ipv6_global_ip_is_allowed(self):
         """
         Test that a global IPv4 address mapped to IPv6 is validated by its IPv4 value.
         """
-        with patch("socket.getaddrinfo") as mock_getaddrinfo:
-            mock_getaddrinfo.return_value = [
-                (socket.AF_INET6, socket.SOCK_STREAM, 6, "", ("::ffff:8.8.8.8", 443))
-            ]
-
-            url = "https://mapped-global.example.com/config.json"
-            result = main.validate_folder_url(url)
-            self.assertTrue(result, "Should allow global IPv4-mapped IPv6 addresses")
+        self.assert_url_validation_for_resolved_ip(
+            hostname="mapped-global.example.com",
+            address="::ffff:8.8.8.8",
+            family=socket.AF_INET6,
+            expected=True,
+            message="Should allow global IPv4-mapped IPv6 addresses",
+        )
 
 
 if __name__ == "__main__":
