@@ -1,6 +1,6 @@
 ---
-name: testing-github-actions-workflows
-description: Test GitHub Actions workflow YAML changes end-to-end with static validation, local shell simulation, and PR CI checks. Use when verifying CI/workflow changes such as secret handling in run blocks.
+name: "testing-github-actions-workflows"
+description: "Test GitHub Actions workflow YAML changes end-to-end with static validation, local shell simulation, and PR CI checks. Use when verifying CI/workflow changes such as secret handling in run blocks."
 ---
 
 # Testing GitHub Actions Workflow Changes
@@ -23,12 +23,16 @@ Use this skill when a PR changes files under `.github/workflows/`, especially ch
    - Expected `env:` scope.
    - Expected command-line arguments in `run:`.
    - Absence of unsafe direct secret interpolation inside shell scripts.
+   - Use of least-privilege `permissions` for `GITHUB_TOKEN`.
+   - Absence of untrusted context variables directly interpolated into shell scripts.
+   - Correctness of `if:` conditions and `concurrency` logic if modified.
 3. Parse the workflow with Python/YAML rather than relying on text search alone.
 4. For changed shell `run:` blocks, execute the extracted script locally with:
+   - The specified shell and working directory, if defined in the YAML.
    - Safe sentinel environment variables.
    - Any required GitHub metadata variables such as `GITHUB_REPOSITORY_OWNER` and `GITHUB_REPOSITORY`.
    - Stub executables placed first on `PATH` for external commands like `github_changelog_generator`.
-5. Have the stub record `sys.argv` to a temporary file and assert the command received the expected arguments.
+5. Have the stub record command-line arguments to a temporary file and assert the command received the expected arguments.
 6. Re-check PR CI with Devin git tooling after local validation.
 7. Re-check PR comments for actionable review/regression feedback.
 8. Post one compact PR comment with:
@@ -45,6 +49,8 @@ For secret-hardening changes, validate all of the following:
 - The shell `run:` block uses the environment variable, e.g. `$GITHUB_TOKEN`.
 - The shell `run:` block does not contain the literal secret expression.
 - The token env var is scoped as narrowly as possible, preferably to the single step that needs it.
+- The workflow grants only the minimum token permissions needed for the changed steps.
+- Untrusted contexts such as issue titles, PR titles, or PR bodies are not directly interpolated into shell scripts.
 - A local shell simulation proves the command receives the sentinel token from the environment.
 
 ## Reporting
