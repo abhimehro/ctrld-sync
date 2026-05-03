@@ -1086,7 +1086,7 @@ _CGNAT_NETWORK = ipaddress.IPv4Network("100.64.0.0/10")
 
 
 def _is_safe_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
-    """Rejects multicast, unspecified, loopback, and IPv4 CGNAT addresses; otherwise requires a global IP."""
+    """Rejects non-global, reserved, link-local, loopback, multicast, unspecified, and IPv4 CGNAT addresses."""
     if ip.is_multicast:
         return False
     if ip.is_unspecified:
@@ -1097,7 +1097,7 @@ def _is_safe_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
         return False
     if ip.is_link_local:
         return False
-    if getattr(ip, "is_reserved", False):
+    if ip.is_reserved:
         return False
     if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
         return _is_safe_ip(ip.ipv4_mapped)
@@ -2406,6 +2406,7 @@ def sync_profile(
     # SECURITY: Clear cached DNS validations at the start of each sync run.
     # This prevents TOCTOU issues where a domain's IP could change between runs.
     validate_folder_url.cache_clear()
+    validate_hostname.cache_clear()
 
     try:
         # Fetch all folder data first

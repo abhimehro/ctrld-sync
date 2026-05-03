@@ -10,5 +10,5 @@
 
 ## 2025-05-02 - Add explicit reserved IP check to prevent SSRF bypass
 **Vulnerability:** The `_is_safe_ip` function lacked an explicit check for reserved IP addresses (e.g., `240.0.0.0/4`). This omission exposed the application to potential SSRF vulnerabilities targeting these non-global, but potentially routable or internally handled IP ranges that bypass the `is_private` check.
-**Learning:** Reserved IP addresses are not always covered by standard `is_private` or `is_global` properties and must be explicitly handled. Since `is_reserved` may not be available on all IP structures or older Python versions uniformly, using `getattr(ip, 'is_reserved', False)` is a safe practice.
-**Prevention:** Explicitly check `getattr(ip, 'is_reserved', False)` alongside other non-global IP checks when validating outbound destination IPs.
+**Learning:** Reserved IP addresses are not always covered by standard `is_private` or `is_global` properties and must be explicitly handled. The supported Python runtime exposes `is_reserved` on IP address objects, so use it directly to avoid fail-open behavior.
+**Prevention:** Explicitly check `ip.is_reserved` alongside other non-global IP checks when validating outbound destination IPs.
