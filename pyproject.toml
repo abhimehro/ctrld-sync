@@ -46,5 +46,4 @@ testpaths = ["tests", "test_main.py"]
 [dependency-groups]
 dev = [
     "mccabe>=0.7.0",
-    "pytest-parametrize>=1.6.0",
 ]
