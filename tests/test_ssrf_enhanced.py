@@ -11,6 +11,14 @@ import main
 
 
 class TestSSRFEnhanced(unittest.TestCase):
+    def setUp(self):
+        main.validate_hostname.cache_clear()
+        main.validate_folder_url.cache_clear()
+
+    def tearDown(self):
+        main.validate_hostname.cache_clear()
+        main.validate_folder_url.cache_clear()
+
     def test_domain_resolving_to_cgnat_ip(self):
         """
         Test that a domain resolving to a Carrier Grade NAT IP (100.64.x.x) is blocked.
@@ -67,6 +75,19 @@ class TestSSRFEnhanced(unittest.TestCase):
             url = "https://reserved.example.com/config.json"
             result = main.validate_folder_url(url)
             self.assertFalse(result, "Should block domain resolving to reserved IP")
+
+    def test_ipv4_mapped_ipv6_global_ip_is_allowed(self):
+        """
+        Test that a global IPv4 address mapped to IPv6 is validated by its IPv4 value.
+        """
+        with patch("socket.getaddrinfo") as mock_getaddrinfo:
+            mock_getaddrinfo.return_value = [
+                (socket.AF_INET6, socket.SOCK_STREAM, 6, "", ("::ffff:8.8.8.8", 443))
+            ]
+
+            url = "https://mapped-global.example.com/config.json"
+            result = main.validate_folder_url(url)
+            self.assertTrue(result, "Should allow global IPv4-mapped IPv6 addresses")
 
 
 if __name__ == "__main__":
