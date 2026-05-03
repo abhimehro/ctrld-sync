@@ -33,8 +33,12 @@ class TestSSRFReserved(unittest.TestCase):
         Test that the explicit is_reserved guard blocks independently of other flags.
         """
         with (
-            patch.object(main.ipaddress.IPv4Address, "is_private", new_callable=PropertyMock) as mock_private,
-            patch.object(main.ipaddress.IPv4Address, "is_global", new_callable=PropertyMock) as mock_global,
+            patch.object(
+                main.ipaddress.IPv4Address, "is_private", new_callable=PropertyMock
+            ) as mock_private,
+            patch.object(
+                main.ipaddress.IPv4Address, "is_global", new_callable=PropertyMock
+            ) as mock_global,
         ):
             mock_private.return_value = False
             mock_global.return_value = True
