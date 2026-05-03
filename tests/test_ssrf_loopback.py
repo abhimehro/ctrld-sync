@@ -11,6 +11,14 @@ import main
 
 
 class TestSSRFLoopback(unittest.TestCase):
+    def setUp(self):
+        main.validate_hostname.cache_clear()
+        main.validate_folder_url.cache_clear()
+
+    def tearDown(self):
+        main.validate_hostname.cache_clear()
+        main.validate_folder_url.cache_clear()
+
     def test_domain_resolving_to_loopback_ip(self):
         """
         Test that a domain resolving to a loopback IP (127.0.0.2) is blocked.

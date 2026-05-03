@@ -11,6 +11,14 @@ import main
 
 
 class TestSSRFLinkLocal(unittest.TestCase):
+    def setUp(self):
+        main.validate_hostname.cache_clear()
+        main.validate_folder_url.cache_clear()
+
+    def tearDown(self):
+        main.validate_hostname.cache_clear()
+        main.validate_folder_url.cache_clear()
+
     def test_domain_resolving_to_link_local_ip(self):
         """
         Test that a domain resolving to a link-local IP (169.254.169.254) is blocked.
