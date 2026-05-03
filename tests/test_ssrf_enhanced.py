@@ -16,7 +16,7 @@ import main
     [
         ("100.64.0.1", "https://cgnat.example.com/config.json", "CGNAT IP"),
         ("224.0.0.1", "https://multicast.example.com/config.json", "Multicast IP"),
-        ("0.0.0.0", "https://zero.example.com/config.json", "0.0.0.0"),
+        ("0.0.0.0", "https://zero.example.com/config.json", "0.0.0.0"),  # nosec: B104 (Mocking for SSRF testing)
         ("240.0.0.1", "https://reserved.example.com/config.json", "reserved IP"),
     ],
 )
