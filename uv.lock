@@ -137,6 +137,7 @@ dev = [
 [package.dev-dependencies]
 dev = [
     { name = "mccabe" },
+    { name = "pytest-parametrize" },
 ]
 
 [package.metadata]
@@ -157,7 +158,10 @@ requires-dist = [
 provides-extras = ["dev"]
 
 [package.metadata.requires-dev]
-dev = [{ name = "mccabe", specifier = ">=0.7.0" }]
+dev = [
+    { name = "mccabe", specifier = ">=0.7.0" },
+    { name = "pytest-parametrize", specifier = ">=1.6.0" },
+]
 
 [[package]]
 name = "distlib"
@@ -474,6 +478,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/68/14/eb014d26be205d38ad5ad20d9a80f7d201472e08167f0bb4361e251084a9/pytest_mock-3.15.1.tar.gz", hash = "sha256:1849a238f6f396da19762269de72cb1814ab44416fa73a8686deac10b0d87a0f", size = 34036, upload-time = "2025-09-16T16:37:27.081Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/5a/cc/06253936f4a7fa2e0f48dfe6d851d9c56df896a9ab09ac019d70b760619c/pytest_mock-3.15.1-py3-none-any.whl", hash = "sha256:0a25e2eb88fe5168d535041d09a4529a188176ae608a6d249ee65abc0949630d", size = 10095, upload-time = "2025-09-16T16:37:25.734Z" },
+]
+
+[[package]]
+name = "pytest-parametrize"
+version = "1.6.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pytest" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/85/b3/1eecbc7cd2fd54f18e9b27e0b5bacac22ed69af125b31c5144efcfe12a39/pytest_parametrize-1.6.0.tar.gz", hash = "sha256:d647c415bd5be28130499f529b6424cf49fd6b5bf2581ffed94300abc01f0c2a", size = 3810, upload-time = "2026-04-03T13:48:08.93Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/95/e3/0722a455d5e3ba8d9fa29f2e314cf3feffa060c4e78170f5576c9915624b/pytest_parametrize-1.6.0-py3-none-any.whl", hash = "sha256:775d7367369840eaa0358c03e869464e0627b39dd94750d242e880e6f081dab3", size = 4535, upload-time = "2026-04-03T13:48:09.606Z" },
 ]
 
 [[package]]

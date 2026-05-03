@@ -11,4 +11,4 @@
 ## 2025-05-01 - Add explicit reserved IP check to prevent SSRF bypass
 **Vulnerability:** The `_is_safe_ip` function lacked an explicit check for reserved IP addresses (e.g., `240.0.0.0/4`). This omission could expose the application to SSRF vulnerabilities or erratic behavior if traffic is routed to experimental/reserved address spaces not covered by `is_private` or `is_global`.
 **Learning:** Reserved IP ranges are not always strictly classified under `is_private` or explicitly rejected by default, requiring specific checks for comprehensive SSRF prevention.
-**Prevention:** Explicitly check `ip.is_reserved` alongside other checks (like `is_loopback` and `is_link_local`) after unwrapping IPv4-mapped IPv6 addresses when validating outbound destination IPs.
+**Prevention:** Explicitly check `getattr(ip, 'is_reserved', False)` alongside other checks (like `is_loopback` and `is_link_local`) when validating outbound destination IPs.
