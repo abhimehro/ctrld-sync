@@ -2179,26 +2179,26 @@ def push_rules(
     else:
         unique_hostnames_dict = {h: None for h in hostnames if h not in existing_rules}
 
-    filtered_hostnames: list[str] = []
-    skipped_unsafe = 0
-
     # Optimization 2: Inline method references for hot loop performance
     is_safe = _ALLOWED_RULE_CHARS.issuperset
-    append = filtered_hostnames.append
 
     # Second pass: Strict safety validation
-    # Avoids an intermediate list allocation (new_hostnames)
-    for h in unique_hostnames_dict:
-        # Fast path: strict regex check
-        if not (h and is_safe(h)):
-            log.warning(
-                f"Skipping unsafe rule in {sanitize_for_log(folder_name)}: {sanitize_for_log(h)}"
-            )
-            skipped_unsafe += 1
-            continue
-        append(h)
+    # Fast path: C-speed list comprehension for the happy path where most rules are valid.
+    filtered_hostnames = [
+        h for h in unique_hostnames_dict if h and is_safe(h)
+    ]
 
-    if skipped_unsafe > 0:
+    skipped_unsafe = 0
+    if len(filtered_hostnames) != len(unique_hostnames_dict):
+        # Slow path: explicit validation loop to log exactly which rules failed.
+        # Only invoked if there are actually unsafe rules.
+        for h in unique_hostnames_dict:
+            if not (h and is_safe(h)):
+                log.warning(
+                    f"Skipping unsafe rule in {sanitize_for_log(folder_name)}: {sanitize_for_log(h)}"
+                )
+                skipped_unsafe += 1
+
         log.warning(
             f"Folder {sanitize_for_log(folder_name)}: skipped {skipped_unsafe} unsafe rules"
         )
