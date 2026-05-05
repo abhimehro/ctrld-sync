@@ -1521,7 +1521,7 @@ def _gh_get(url: str) -> dict:
                     allowed_types = ["application/json", "text/json", "text/plain"]
                     if not any(t in content_type for t in allowed_types):
                         raise ValueError(
-                            f"Invalid Content-Type from {sanitize_for_log(url)}: {content_type}. "
+                            f"Invalid Content-Type from {url}: {content_type}. "
                             f"Expected one of: {', '.join(allowed_types)}"
                         )
 
@@ -1546,8 +1546,7 @@ def _gh_get(url: str) -> dict:
                     # 2. Stream and check actual size
                     chunks = []
                     current_size = 0
-                    # Optimization: Use 16KB chunks to reduce loop overhead/appends for large files
-                    for chunk in r_retry.iter_bytes(chunk_size=16 * 1024):
+                    for chunk in r_retry.iter_bytes():
                         current_size += len(chunk)
                         if current_size > MAX_RESPONSE_SIZE:
                             raise ValueError(
