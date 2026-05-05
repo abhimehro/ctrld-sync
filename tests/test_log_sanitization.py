@@ -90,6 +90,13 @@ class TestLogSanitization(unittest.TestCase):
         self.assertNotIn("mysecretkey", sanitized)
         self.assertIn("secret=[REDACTED]", sanitized)
 
+    def test_sanitize_for_log_redacts_authorization_param(self):
+        """Test that sanitize_for_log redacts authorization query parameters."""
+        url = "https://example.com/api?authorization=Bearer%20mysecretkey"
+        sanitized = main.sanitize_for_log(url)
+        self.assertNotIn("mysecretkey", sanitized)
+        self.assertIn("authorization=[REDACTED]", sanitized)
+
     def test_sanitize_for_log_redacts_multiple_params(self):
         """Test redaction of multiple sensitive params while preserving safe ones."""
         url = "https://example.com/api?id=123&token=abc&name=user&api_key=def"
