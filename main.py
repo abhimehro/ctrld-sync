@@ -669,13 +669,14 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
                 else f"(⛔ {action_label})"
             )
 
+        rule_word = "rule" if rules_count == 1 else "rules"
         if USE_COLORS:
             print(
-                f"  • {Colors.BOLD}{name:<{max_name_len}}{Colors.ENDC} : {formatted_rules:>{max_rules_len}} rules {action_text}"
+                f"  • {Colors.BOLD}{name:<{max_name_len}}{Colors.ENDC} : {formatted_rules:>{max_rules_len}} {rule_word} {action_text}"
             )
         else:
             print(
-                f"  - {name:<{max_name_len}} : {formatted_rules:>{max_rules_len}} rules {action_text}"
+                f"  - {name:<{max_name_len}} : {formatted_rules:>{max_rules_len}} {rule_word} {action_text}"
             )
 
     print("")
@@ -2195,13 +2196,15 @@ def push_rules(
                 log.warning(
                     f"Skipping unsafe rule in {sanitized_folder}: {sanitize_for_log(h)}"
                 )
-        log.warning(f"Folder {sanitized_folder}: skipped {skipped_unsafe} unsafe rules")
+        unsafe_word = "rule" if skipped_unsafe == 1 else "rules"
+        log.warning(f"Folder {sanitized_folder}: skipped {skipped_unsafe} unsafe {unsafe_word}")
 
     duplicates_count = original_count - len(filtered_hostnames) - skipped_unsafe
 
     if duplicates_count > 0:
+        dup_word = "rule" if duplicates_count == 1 else "rules"
         log.info(
-            f"Folder {sanitize_for_log(folder_name)}: skipping {duplicates_count} duplicate rules"
+            f"Folder {sanitize_for_log(folder_name)}: skipping {duplicates_count} duplicate {dup_word}"
         )
 
     if not filtered_hostnames:
@@ -2241,11 +2244,13 @@ def push_rules(
         try:
             _api_post_form(ctx.client, f"{API_BASE}/{ctx.profile_id}/rules", data=data)
             if not USE_COLORS:
+                rule_word = "rule" if len(batch_data) == 1 else "rules"
                 log.info(
-                    "Folder %s – batch %d: added %d rules",
+                    "Folder %s – batch %d: added %d %s",
                     sanitized_folder_name,
                     batch_idx,
                     len(batch_data),
+                    rule_word,
                 )
             return batch_data
         except httpx.HTTPError as e:
@@ -2310,14 +2315,15 @@ def push_rules(
                 )
 
     if successful_batches == total_batches:
+        rule_word = "rule" if len(filtered_hostnames) == 1 else "rules"
         if USE_COLORS:
             sys.stderr.write(
-                f"\r\033[K{Colors.GREEN}✅ Folder {sanitize_for_log(folder_name)}: Finished ({len(filtered_hostnames):,} rules){Colors.ENDC}\n"
+                f"\r\033[K{Colors.GREEN}✅ Folder {sanitize_for_log(folder_name)}: Finished ({len(filtered_hostnames):,} {rule_word}){Colors.ENDC}\n"
             )
             sys.stderr.flush()
         else:
             log.info(
-                f"✅ Folder {sanitize_for_log(folder_name)} – finished ({len(filtered_hostnames):,} new rules added)"
+                f"✅ Folder {sanitize_for_log(folder_name)} – finished ({len(filtered_hostnames):,} new {rule_word} added)"
             )
         return True
     if USE_COLORS:
