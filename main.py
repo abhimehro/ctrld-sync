@@ -523,6 +523,18 @@ _SENSITIVE_PARAM_PATTERN = re.compile(
     flags=re.IGNORECASE,
 )
 
+# Fast-path check for sensitive query parameters to avoid expensive regex in hot paths
+_SENSITIVE_PARAM_KEYS_LOWER = (
+    "token=",
+    "key=",
+    "secret=",
+    "password=",
+    "auth=",
+    "authorization=",
+    "access_token=",
+    "api_key=",
+)
+
 
 def sanitize_for_log(text: Any) -> str:
     """Sanitize text for logging.
@@ -545,7 +557,11 @@ def sanitize_for_log(text: Any) -> str:
     # Redact sensitive query parameters (handles ?, &, and # separators)
     # Optimization: Check for delimiters before running expensive regex substitution
     if "?" in s or "&" in s or "#" in s:
-        s = _SENSITIVE_PARAM_PATTERN.sub(r"\1\2=[REDACTED]", s)
+        s_lower = s.lower()
+        for k in _SENSITIVE_PARAM_KEYS_LOWER:
+            if k in s_lower:
+                s = _SENSITIVE_PARAM_PATTERN.sub(r"\1\2=[REDACTED]", s)
+                break
 
     # repr() safely escapes control characters (e.g., \n -> \\n, \x1b -> \\x1b)
     # This prevents log injection and terminal hijacking.
