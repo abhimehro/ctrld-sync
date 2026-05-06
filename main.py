@@ -530,7 +530,7 @@ def sanitize_for_log(text: Any) -> str:
     Redacts:
     - TOKEN values
     - Basic Auth credentials in URLs (e.g. https://user:pass@host)
-    - Sensitive query parameters (token, key, secret, password, auth, access_token, api_key)
+    - Sensitive query parameters (token, key, secret, password, auth, authorization, access_token, api_key)
     - Control characters (prevents log injection and terminal hijacking)
     """
     s = str(text)
