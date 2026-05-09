@@ -1,7 +1,6 @@
 import contextlib
 import os
 import re
-import stat
 import tempfile
 
 __all__ = ["fix_env", "clean_val", "escape_val"]
