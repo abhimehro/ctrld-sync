@@ -1104,7 +1104,7 @@ def _is_safe_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
         return False
     if ip.is_link_local:
         return False
-    if ip.is_reserved:
+    if getattr(ip, "is_reserved", False):
         return False
     if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
         return _is_safe_ip(ip.ipv4_mapped)
@@ -1528,7 +1528,7 @@ def _gh_get(url: str) -> dict:
                     allowed_types = ["application/json", "text/json", "text/plain"]
                     if not any(t in content_type for t in allowed_types):
                         raise ValueError(
-                            f"Invalid Content-Type from {url}: {content_type}. "
+                            f"Invalid Content-Type from {sanitize_for_log(url)}: {sanitize_for_log(content_type)}. "
                             f"Expected one of: {', '.join(allowed_types)}"
                         )
 
@@ -1594,7 +1594,7 @@ def _gh_get(url: str) -> dict:
             allowed_types = ["application/json", "text/json", "text/plain"]
             if not any(t in content_type for t in allowed_types):
                 raise ValueError(
-                    f"Invalid Content-Type from {sanitize_for_log(url)}: {content_type}. "
+                    f"Invalid Content-Type from {sanitize_for_log(url)}: {sanitize_for_log(content_type)}. "
                     f"Expected one of: {', '.join(allowed_types)}"
                 )
 
