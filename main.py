@@ -519,7 +519,7 @@ _UNSAFE_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
 # Pre-compiled patterns for log sanitization
 _BASIC_AUTH_PATTERN = re.compile(r"://[^/@]+@")
 _SENSITIVE_PARAM_PATTERN = re.compile(
-    r"([?&#])(token|key|secret|password|auth|access_token|api_key)=[^&#\s]*",
+    r"([?&#])(token|key|secret|password|auth|access_token|api_key|authorization)=[^&#\s]*",
     flags=re.IGNORECASE,
 )
 
@@ -568,6 +568,13 @@ api_client._sanitize_fn = sanitize_for_log
 # Wire the same sanitizer into cache so that load/save error messages also
 # get full token redaction, consistent with the api_client pattern.
 cache._sanitize_fn = sanitize_for_log
+
+
+def pluralize(count: int, singular: str, plural: str | None = None) -> str:
+    """Helper to cleanly pluralize nouns based on count."""
+    if plural is None:
+        plural = f"{singular}s"
+    return singular if count == 1 else plural
 
 
 def print_plan_details(plan_entry: PlanEntry) -> None:
@@ -671,11 +678,11 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
 
         if USE_COLORS:
             print(
-                f"  • {Colors.BOLD}{name:<{max_name_len}}{Colors.ENDC} : {formatted_rules:>{max_rules_len}} rules {action_text}"
+                f"  • {Colors.BOLD}{name:<{max_name_len}}{Colors.ENDC} : {formatted_rules:>{max_rules_len}} {pluralize(rules_count, 'rule')} {action_text}"
             )
         else:
             print(
-                f"  - {name:<{max_name_len}} : {formatted_rules:>{max_rules_len}} rules {action_text}"
+                f"  - {name:<{max_name_len}} : {formatted_rules:>{max_rules_len}} {pluralize(rules_count, 'rule')} {action_text}"
             )
 
     print("")
@@ -1516,6 +1523,15 @@ def _gh_get(url: str) -> dict:
                 with _gh.stream("GET", url, headers=headers) as r_retry:
                     r_retry.raise_for_status()
 
+                    # Security: Validate Content-Type in fallback branch
+                    content_type = r_retry.headers.get("Content-Type", "").lower()
+                    allowed_types = ["application/json", "text/json", "text/plain"]
+                    if not any(t in content_type for t in allowed_types):
+                        raise ValueError(
+                            f"Invalid Content-Type from {url}: {content_type}. "
+                            f"Expected one of: {', '.join(allowed_types)}"
+                        )
+
                     # 1. Check Content-Length header if present
                     cl = r_retry.headers.get("Content-Length")
                     if cl:
@@ -2179,35 +2195,31 @@ def push_rules(
     else:
         unique_hostnames_dict = {h: None for h in hostnames if h not in existing_rules}
 
-    filtered_hostnames: list[str] = []
-    skipped_unsafe = 0
-
     # Optimization 2: Inline method references for hot loop performance
     is_safe = _ALLOWED_RULE_CHARS.issuperset
-    append = filtered_hostnames.append
 
     # Second pass: Strict safety validation
-    # Avoids an intermediate list allocation (new_hostnames)
-    for h in unique_hostnames_dict:
-        # Fast path: strict regex check
-        if not (h and is_safe(h)):
-            log.warning(
-                f"Skipping unsafe rule in {sanitize_for_log(folder_name)}: {sanitize_for_log(h)}"
-            )
-            skipped_unsafe += 1
-            continue
-        append(h)
+    # FAST PATH: C-speed list comprehension for the 99.9% case where rules are safe
+    filtered_hostnames = [h for h in unique_hostnames_dict if h and is_safe(h)]
+    skipped_unsafe = len(unique_hostnames_dict) - len(filtered_hostnames)
 
     if skipped_unsafe > 0:
+        # SLOW PATH: Only iterate again to log if we actually found unsafe rules
+        sanitized_folder = sanitize_for_log(folder_name)
+        for h in unique_hostnames_dict:
+            if not (h and is_safe(h)):
+                log.warning(
+                    f"Skipping unsafe rule in {sanitized_folder}: {sanitize_for_log(h)}"
+                )
         log.warning(
-            f"Folder {sanitize_for_log(folder_name)}: skipped {skipped_unsafe} unsafe rules"
+            f"Folder {sanitized_folder}: skipped {skipped_unsafe} unsafe {pluralize(skipped_unsafe, 'rule')}"
         )
 
     duplicates_count = original_count - len(filtered_hostnames) - skipped_unsafe
 
     if duplicates_count > 0:
         log.info(
-            f"Folder {sanitize_for_log(folder_name)}: skipping {duplicates_count} duplicate rules"
+            f"Folder {sanitize_for_log(folder_name)}: skipping {duplicates_count} duplicate {pluralize(duplicates_count, 'rule')}"
         )
 
     if not filtered_hostnames:
@@ -2248,10 +2260,11 @@ def push_rules(
             _api_post_form(ctx.client, f"{API_BASE}/{ctx.profile_id}/rules", data=data)
             if not USE_COLORS:
                 log.info(
-                    "Folder %s – batch %d: added %d rules",
+                    "Folder %s – batch %d: added %d %s",
                     sanitized_folder_name,
                     batch_idx,
                     len(batch_data),
+                    pluralize(len(batch_data), "rule"),
                 )
             return batch_data
         except httpx.HTTPError as e:
@@ -2318,12 +2331,12 @@ def push_rules(
     if successful_batches == total_batches:
         if USE_COLORS:
             sys.stderr.write(
-                f"\r\033[K{Colors.GREEN}✅ Folder {sanitize_for_log(folder_name)}: Finished ({len(filtered_hostnames):,} rules){Colors.ENDC}\n"
+                f"\r\033[K{Colors.GREEN}✅ Folder {sanitize_for_log(folder_name)}: Finished ({len(filtered_hostnames):,} {pluralize(len(filtered_hostnames), 'rule')}){Colors.ENDC}\n"
             )
             sys.stderr.flush()
         else:
             log.info(
-                f"✅ Folder {sanitize_for_log(folder_name)} – finished ({len(filtered_hostnames):,} new rules added)"
+                f"✅ Folder {sanitize_for_log(folder_name)} – finished ({len(filtered_hostnames):,} new {pluralize(len(filtered_hostnames), 'rule')} added)"
             )
         return True
     if USE_COLORS:
@@ -3217,6 +3230,12 @@ def main() -> None:
     )
     # Bottom Border
     print(make_col_separator(Box.BL, Box.B, Box.BR, Box.H, col_widths))
+
+    if total_folders == 0:
+        print()  # Spacer
+        _print_hint(
+            "  💡 Hint: Add folder URLs using --folder-url or in your config.yaml"
+        )
 
     # Success Delight
     if all_success and not args.dry_run:
