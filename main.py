@@ -1104,7 +1104,7 @@ def _is_safe_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
         return False
     if ip.is_link_local:
         return False
-    if getattr(ip, "is_reserved", False):
+    if ip.is_reserved:
         return False
     if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
         return _is_safe_ip(ip.ipv4_mapped)
