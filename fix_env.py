@@ -105,6 +105,7 @@ def fix_env():
             suffix=".tmp",
             dir=".",
             encoding="utf-8",
+            newline="\n",
         ) as f:
             temp_file = f.name
             f.write(new_content)
