@@ -18,7 +18,7 @@
 **Learning:** Security validations must be enforced consistently across all code paths, particularly in fallback, retry, and error-handling branches. Omitting checks in less frequently traversed paths creates defense-in-depth gaps that can be exploited if an attacker can trigger the fallback behavior.
 **Prevention:** Apply identical security validation and sanitization logic to both primary and fallback code paths. Abstracting shared validation logic into dedicated helper functions can further prevent such discrepancies.
 
-## 2024-05-10 - Unsanitized Headers/URLs in Error Messages
+## 2025-05-10 - Unsanitized Headers/URLs in Error Messages
 **Vulnerability:** Log Injection & Secret Leakage via un-sanitized API response fields (e.g. `Content-Type` header) and un-sanitized target URLs embedded directly into exception messages (which are subsequently logged).
 **Learning:** Even internal exception messages (like `ValueError`) that are meant to provide diagnostic context can become log injection vectors or leak redacted secrets (like tokens in query strings) if the embedded dynamic values (URLs, Headers) bypass the central logging sanitizer.
 **Prevention:** Ensure that ALL dynamic variables passed into exception strings are explicitly wrapped in `sanitize_for_log()` if the exception string is eventually rendered to the console or log system.
