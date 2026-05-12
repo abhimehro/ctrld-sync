@@ -2195,11 +2195,12 @@ def push_rules(
     # checks from len(hostnames) to len(unique_hostnames). Benchmark shows ~33%
     # reduction in execution time for high duplicate counts (0.25s -> 0.16s for 50k items).
     existing_rules = ctx.existing_rules
-    unique_hostnames_dict = dict.fromkeys(hostnames)
     if existing_rules:
-        unique_hostnames_dict = {
-            h: None for h in unique_hostnames_dict if h not in existing_rules
-        }
+        # Use set difference for C-speed filtering. This avoids the Python-level loop
+        # in the dict comprehension and is significantly faster for large sets.
+        unique_hostnames_dict = dict.fromkeys(set(hostnames) - existing_rules)
+    else:
+        unique_hostnames_dict = dict.fromkeys(hostnames)
 
     # Optimization 2: Inline method references for hot loop performance
     is_safe = _ALLOWED_RULE_CHARS.issuperset
