@@ -2063,38 +2063,36 @@ def delete_folder(
         return False
 
 
+def _process_new_folder_pk(pk: str, name: str, source: str) -> str | None:
+    if not validate_folder_id(pk, log_errors=False):
+        log.error(f"API returned invalid folder ID: {sanitize_for_log(pk)}")
+        return None
+    log.info(
+        "Created folder %s (ID %s) [%s]",
+        sanitize_for_log(name),
+        sanitize_for_log(pk),
+        source,
+    )
+    return pk
+
+
 def _extract_folder_id_from_response(response: httpx.Response, name: str) -> str | None:
     try:
-        resp_data = response.json()
-        body = resp_data.get("body", {})
+        body = response.json().get("body")
+        if not isinstance(body, dict):
+            return None
 
-        if isinstance(body, dict) and "group" in body and "PK" in body["group"]:
-            pk = str(body["group"]["PK"])
-            if not validate_folder_id(pk, log_errors=False):
-                log.error(f"API returned invalid folder ID: {sanitize_for_log(pk)}")
-                return None
-            log.info(
-                "Created folder %s (ID %s) [Direct]",
-                sanitize_for_log(name),
-                sanitize_for_log(pk),
-            )
-            return pk
+        group = body.get("group")
+        if isinstance(group, dict) and "PK" in group:
+            return _process_new_folder_pk(str(group["PK"]), name, "Direct")
 
-        if isinstance(body, dict) and "groups" in body:
-            for grp in body["groups"]:
-                if grp.get("group") == name:
-                    pk = str(grp["PK"])
-                    if not validate_folder_id(pk, log_errors=False):
-                        log.error(
-                            f"API returned invalid folder ID: {sanitize_for_log(pk)}"
-                        )
-                        continue
-                    log.info(
-                        "Created folder %s (ID %s) [Direct]",
-                        sanitize_for_log(name),
-                        sanitize_for_log(pk),
-                    )
-                    return pk
+        groups = body.get("groups")
+        if isinstance(groups, list):
+            for grp in groups:
+                if isinstance(grp, dict) and grp.get("group") == name and "PK" in grp:
+                    pk = _process_new_folder_pk(str(grp["PK"]), name, "Direct")
+                    if pk:
+                        return pk
     except Exception as e:
         if log.isEnabledFor(logging.DEBUG):
             log.debug(f"Could not extract ID from POST response: {sanitize_for_log(e)}")
@@ -2108,19 +2106,11 @@ def _poll_for_folder_id(ctx: SyncContext, name: str) -> str | None:
             groups = data.get("body", {}).get("groups", [])
 
             for grp in groups:
-                if grp["group"].strip() == name.strip():
-                    pk = str(grp["PK"])
-                    if not validate_folder_id(pk, log_errors=False):
-                        log.error(
-                            f"API returned invalid folder ID: {sanitize_for_log(pk)}"
-                        )
-                        return None
-                    log.info(
-                        "Created folder %s (ID %s) [Polled]",
-                        sanitize_for_log(name),
-                        sanitize_for_log(pk),
-                    )
-                    return pk
+                if grp.get("group", "").strip() == name.strip() and "PK" in grp:
+                    pk = _process_new_folder_pk(str(grp["PK"]), name, "Polled")
+                    if pk:
+                        return pk
+                    return None  # Invalid PK found, stop polling
         except Exception as e:
             log.warning(
                 f"Error fetching groups on attempt {attempt}: {sanitize_for_log(e)}"
