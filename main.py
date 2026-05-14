@@ -1335,7 +1335,15 @@ def _is_valid_rule_list(rules_list: Any) -> bool:
 
 
 def _log_invalid_rules(rules_list: list[Any], url: str, prefix: str) -> bool:
-    """Helper to log specific validation errors for a list of rules."""
+    """Helper to log specific validation errors for a list of rules.
+
+    This is only called after the fast-path ``_is_valid_rule_list`` check has
+    already determined the list is invalid, so we always return ``False``.
+    The fallthrough case (no specific per-rule error matched) can occur when
+    the fast-path uses strict ``type(...) is`` checks while this helper uses
+    ``isinstance(...)`` — in that case we still return ``False`` to preserve
+    the known-invalid verdict rather than accidentally accepting the data.
+    """
     for j, rule in enumerate(rules_list):
         if not isinstance(rule, dict):
             log.error(
@@ -1347,7 +1355,7 @@ def _log_invalid_rules(rules_list: list[Any], url: str, prefix: str) -> bool:
                 f"Invalid data from {sanitize_for_log(url)}: {prefix}[{j}].PK must be a string."
             )
             return False
-    return True
+    return False
 
 
 def validate_folder_data(data: dict[str, Any], url: str) -> TypeGuard[FolderData]:
