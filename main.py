@@ -2063,6 +2063,82 @@ def delete_folder(
         return False
 
 
+def _extract_folder_id_from_response(response: httpx.Response, name: str) -> str | None:
+    try:
+        resp_data = response.json()
+        body = resp_data.get("body", {})
+
+        if isinstance(body, dict) and "group" in body and "PK" in body["group"]:
+            pk = str(body["group"]["PK"])
+            if not validate_folder_id(pk, log_errors=False):
+                log.error(f"API returned invalid folder ID: {sanitize_for_log(pk)}")
+                return None
+            log.info(
+                "Created folder %s (ID %s) [Direct]",
+                sanitize_for_log(name),
+                sanitize_for_log(pk),
+            )
+            return pk
+
+        if isinstance(body, dict) and "groups" in body:
+            for grp in body["groups"]:
+                if grp.get("group") == name:
+                    pk = str(grp["PK"])
+                    if not validate_folder_id(pk, log_errors=False):
+                        log.error(
+                            f"API returned invalid folder ID: {sanitize_for_log(pk)}"
+                        )
+                        continue
+                    log.info(
+                        "Created folder %s (ID %s) [Direct]",
+                        sanitize_for_log(name),
+                        sanitize_for_log(pk),
+                    )
+                    return pk
+    except Exception as e:
+        if log.isEnabledFor(logging.DEBUG):
+            log.debug(f"Could not extract ID from POST response: {sanitize_for_log(e)}")
+    return None
+
+
+def _poll_for_folder_id(ctx: SyncContext, name: str) -> str | None:
+    for attempt in range(MAX_RETRIES + 1):
+        try:
+            data = _api_get(ctx.client, f"{API_BASE}/{ctx.profile_id}/groups").json()
+            groups = data.get("body", {}).get("groups", [])
+
+            for grp in groups:
+                if grp["group"].strip() == name.strip():
+                    pk = str(grp["PK"])
+                    if not validate_folder_id(pk, log_errors=False):
+                        log.error(
+                            f"API returned invalid folder ID: {sanitize_for_log(pk)}"
+                        )
+                        return None
+                    log.info(
+                        "Created folder %s (ID %s) [Polled]",
+                        sanitize_for_log(name),
+                        sanitize_for_log(pk),
+                    )
+                    return pk
+        except Exception as e:
+            log.warning(
+                f"Error fetching groups on attempt {attempt}: {sanitize_for_log(e)}"
+            )
+
+        if attempt < MAX_RETRIES:
+            wait_time = FOLDER_CREATION_DELAY * (attempt + 1)
+            log.info(
+                f"Folder '{sanitize_for_log(name)}' not found yet. Retrying in {wait_time}s..."
+            )
+            time.sleep(wait_time)
+
+    log.error(
+        f"Folder {sanitize_for_log(name)} was not found after creation and retries."
+    )
+    return None
+
+
 def create_folder(ctx: SyncContext, name: str, action: RuleAction) -> str | None:
     """
     Create a new folder and return its ID.
@@ -2077,83 +2153,12 @@ def create_folder(ctx: SyncContext, name: str, action: RuleAction) -> str | None
         )
 
         # OPTIMIZATION: Try to grab ID directly from response to avoid the wait loop
-        try:
-            resp_data = response.json()
-            body = resp_data.get("body", {})
-
-            # Check if it returned a single group object
-            if isinstance(body, dict) and "group" in body and "PK" in body["group"]:
-                pk = str(body["group"]["PK"])
-                if not validate_folder_id(pk, log_errors=False):
-                    log.error(f"API returned invalid folder ID: {sanitize_for_log(pk)}")
-                    return None
-                log.info(
-                    "Created folder %s (ID %s) [Direct]",
-                    sanitize_for_log(name),
-                    sanitize_for_log(pk),
-                )
-                return pk
-
-            # Check if it returned a list containing our group
-            if isinstance(body, dict) and "groups" in body:
-                for grp in body["groups"]:
-                    if grp.get("group") == name:
-                        pk = str(grp["PK"])
-                        if not validate_folder_id(pk, log_errors=False):
-                            log.error(
-                                f"API returned invalid folder ID: {sanitize_for_log(pk)}"
-                            )
-                            continue
-                        log.info(
-                            "Created folder %s (ID %s) [Direct]",
-                            sanitize_for_log(name),
-                            sanitize_for_log(pk),
-                        )
-                        return pk
-        except Exception as e:
-            if log.isEnabledFor(logging.DEBUG):
-                log.debug(
-                    f"Could not extract ID from POST response: {sanitize_for_log(e)}"
-                )
+        pk = _extract_folder_id_from_response(response, name)
+        if pk:
+            return pk
 
         # 2. Fallback: Poll for the new folder (The Robust Retry Logic)
-        for attempt in range(MAX_RETRIES + 1):
-            try:
-                data = _api_get(
-                    ctx.client, f"{API_BASE}/{ctx.profile_id}/groups"
-                ).json()
-                groups = data.get("body", {}).get("groups", [])
-
-                for grp in groups:
-                    if grp["group"].strip() == name.strip():
-                        pk = str(grp["PK"])
-                        if not validate_folder_id(pk, log_errors=False):
-                            log.error(
-                                f"API returned invalid folder ID: {sanitize_for_log(pk)}"
-                            )
-                            return None
-                        log.info(
-                            "Created folder %s (ID %s) [Polled]",
-                            sanitize_for_log(name),
-                            sanitize_for_log(pk),
-                        )
-                        return pk
-            except Exception as e:
-                log.warning(
-                    f"Error fetching groups on attempt {attempt}: {sanitize_for_log(e)}"
-                )
-
-            if attempt < MAX_RETRIES:
-                wait_time = FOLDER_CREATION_DELAY * (attempt + 1)
-                log.info(
-                    f"Folder '{sanitize_for_log(name)}' not found yet. Retrying in {wait_time}s..."
-                )
-                time.sleep(wait_time)
-
-        log.error(
-            f"Folder {sanitize_for_log(name)} was not found after creation and retries."
-        )
-        return None
+        return _poll_for_folder_id(ctx, name)
 
     except (httpx.HTTPError, KeyError) as e:
         hint = ""
