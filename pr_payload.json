@@ -1,6 +1,0 @@
-{
-  "title": "🛡️ Sentinel: [MEDIUM] Replace mkstemp with NamedTemporaryFile",
-  "head": "fix-tempfile-security",
-  "base": "main",
-  "body": "**Severity:** MEDIUM\n**Vulnerability:** The use of `tempfile.mkstemp` combined with manual file descriptor handling is error-prone and less readable, while `tempfile.NamedTemporaryFile` inherently provides secure file creation with 0o600 permissions.\n**Impact:** Prevents potential TOCTOU (Time-of-Check to Time-of-Use) vulnerabilities and symlink attacks during atomic file replacement.\n**Fix:** Migrated to `tempfile.NamedTemporaryFile(delete=False)` for atomic, secure file creation in `fix_env.py` and `cache.py`.\n**Verification:** Ran `uv run pytest tests/` to confirm functionality remains intact."
-}
