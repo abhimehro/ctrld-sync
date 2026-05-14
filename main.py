@@ -2185,20 +2185,18 @@ def push_rules(
 
     original_count = len(hostnames)
 
-    # Optimization 1: Deduplicate and filter existing rules in a C-speed dict comprehension.
-    # This completely avoids copying the potentially massive existing_rules set
-    # (which could be millions of items) for every folder processed, and is up
-    # to 2x faster than a manual loop due to avoiding Python interpreter overhead.
-    #
-    # BOLT OPTIMIZATION: Deduplicate hostnames using C-speed dict.fromkeys BEFORE
-    # checking against existing_rules. This reduces the number of Python-level `not in`
-    # checks from len(hostnames) to len(unique_hostnames). Benchmark shows ~33%
-    # reduction in execution time for high duplicate counts (0.25s -> 0.16s for 50k items).
+    # Optimization: Deduplicate hostnames first via dict.fromkeys (C-speed, preserves
+    # input order), then filter against existing_rules. Deduplicating first reduces the
+    # number of Python-level `not in` checks from len(hostnames) to the number of unique
+    # hostnames, which is a meaningful win for inputs with many duplicates. Input order
+    # is preserved so that batch composition is deterministic across runs (important for
+    # reproducibility when a batch partially fails). See
+    # tests/test_benchmarks.py::test_push_rules_benchmark_10k for measurement.
     existing_rules = ctx.existing_rules
     if existing_rules:
-        # Use set difference for C-speed filtering. This avoids the Python-level loop
-        # in the dict comprehension and is significantly faster for large sets.
-        unique_hostnames_dict = dict.fromkeys(set(hostnames) - existing_rules)
+        unique_hostnames_dict = dict.fromkeys(
+            h for h in dict.fromkeys(hostnames) if h not in existing_rules
+        )
     else:
         unique_hostnames_dict = dict.fromkeys(hostnames)
 
