@@ -258,7 +258,9 @@ def _retry_request(
                 _parse_rate_limit_headers(e.response)
 
                 if code == 429:
-                    wait_seconds = _extract_int_header(e.response.headers, "Retry-After")
+                    wait_seconds = _extract_int_header(
+                        e.response.headers, "Retry-After"
+                    )
                     if wait_seconds is not None:
                         log.warning(
                             f"Rate limited (429). Server requests {wait_seconds}s wait "
