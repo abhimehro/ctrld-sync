@@ -1,6 +1,1 @@
-{
-  "title": "🛡️ Sentinel: [MEDIUM] Replace mkstemp with NamedTemporaryFile",
-  "head": "fix-tempfile-security",
-  "base": "main",
-  "body": "**Severity:** MEDIUM\n**Vulnerability:** The use of `tempfile.mkstemp` combined with manual file descriptor handling is error-prone and less readable, while `tempfile.NamedTemporaryFile` inherently provides secure file creation with 0o600 permissions.\n**Impact:** Prevents potential TOCTOU (Time-of-Check to Time-of-Use) vulnerabilities and symlink attacks during atomic file replacement.\n**Fix:** Migrated to `tempfile.NamedTemporaryFile(delete=False)` for atomic, secure file creation in `fix_env.py` and `cache.py`.\n**Verification:** Ran `uv run pytest tests/` to confirm functionality remains intact."
-}
+{"title":"🧹 Simplify deeply nested logic in _retry_request", "head":"chore/refactor-retry-request", "base":"main", "body":"🎯 **What:** Extracted rate-limit retry extraction and debug logging to helper functions to reduce nesting in `_retry_request`.\n\n💡 **Why:** Reduces cyclomatic complexity and improves readability of error handling.\n\n✅ **Verification:** Verified by running full test suite `uv run pytest tests/` which checks API requests and retry logic.\n\n✨ **Result:** A more readable `_retry_request` function with simplified error handling."}
