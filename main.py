@@ -2076,26 +2076,34 @@ def _process_new_folder_pk(pk: str, name: str, source: str) -> str | None:
     return pk
 
 
+def _extract_from_groups_list(groups: list, name: str) -> str | None:
+    for grp in groups:
+        if isinstance(grp, dict) and grp.get("group") == name and "PK" in grp:
+            pk = _process_new_folder_pk(str(grp["PK"]), name, "Direct")
+            if pk:
+                return pk
+    return None
+
+
 def _extract_folder_id_from_response(response: httpx.Response, name: str) -> str | None:
     try:
         body = response.json().get("body")
-        if not isinstance(body, dict):
-            return None
-
-        group = body.get("group")
-        if isinstance(group, dict) and "PK" in group:
-            return _process_new_folder_pk(str(group["PK"]), name, "Direct")
-
-        groups = body.get("groups")
-        if isinstance(groups, list):
-            for grp in groups:
-                if isinstance(grp, dict) and grp.get("group") == name and "PK" in grp:
-                    pk = _process_new_folder_pk(str(grp["PK"]), name, "Direct")
-                    if pk:
-                        return pk
     except Exception as e:
         if log.isEnabledFor(logging.DEBUG):
             log.debug(f"Could not extract ID from POST response: {sanitize_for_log(e)}")
+        return None
+
+    if not isinstance(body, dict):
+        return None
+
+    group = body.get("group")
+    if isinstance(group, dict) and "PK" in group:
+        return _process_new_folder_pk(str(group["PK"]), name, "Direct")
+
+    groups = body.get("groups")
+    if isinstance(groups, list):
+        return _extract_from_groups_list(groups, name)
+
     return None
 
 
