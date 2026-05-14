@@ -594,8 +594,10 @@ def _get_action_text(folder: dict[str, Any]) -> str:
         if len(actions) > 1:
             return _format_action_text("Mixed", "⚠️ ", Colors.WARNING)
         action_val = next(iter(actions))
-    # Fallback to single action if not set
-    elif "action" in folder:
+
+    # Fallback to single top-level action if rule_groups didn't yield a
+    # recognized action (e.g., empty, missing, or None values).
+    if action_val not in (0, 1) and "action" in folder:
         action_val = folder["action"]
 
     if action_val == 0:
