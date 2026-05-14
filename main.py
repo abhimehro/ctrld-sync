@@ -2076,9 +2076,15 @@ def _process_new_folder_pk(pk: str, name: str, source: str) -> str | None:
     return pk
 
 
+def _is_matching_group_dict(grp: Any, name: str) -> bool:
+    if not isinstance(grp, dict):
+        return False
+    return grp.get("group", "").strip() == name.strip() and "PK" in grp
+
+
 def _extract_from_groups_list(groups: list, name: str) -> str | None:
     for grp in groups:
-        if isinstance(grp, dict) and grp.get("group") == name and "PK" in grp:
+        if _is_matching_group_dict(grp, name):
             pk = _process_new_folder_pk(str(grp["PK"]), name, "Direct")
             if pk:
                 return pk
@@ -2114,7 +2120,7 @@ def _poll_for_folder_id(ctx: SyncContext, name: str) -> str | None:
             groups = data.get("body", {}).get("groups", [])
 
             for grp in groups:
-                if grp.get("group", "").strip() == name.strip() and "PK" in grp:
+                if _is_matching_group_dict(grp, name):
                     pk = _process_new_folder_pk(str(grp["PK"]), name, "Polled")
                     if pk:
                         return pk
