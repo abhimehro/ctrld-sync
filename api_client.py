@@ -215,16 +215,6 @@ def retry_with_jitter(
     return exponential_delay * random.random()
 
 
-def _extract_retry_after(response: httpx.Response) -> int | None:
-    """Extract and parse Retry-After header from response."""
-    retry_after = response.headers.get("Retry-After")
-    if not retry_after:
-        return None
-    with contextlib.suppress(ValueError):
-        return int(retry_after)
-    return None
-
-
 def _log_response_content(e: httpx.HTTPError) -> None:
     """Log response content if debugging is enabled."""
     if (
@@ -268,7 +258,7 @@ def _retry_request(
                 _parse_rate_limit_headers(e.response)
 
                 if code == 429:
-                    wait_seconds = _extract_retry_after(e.response)
+                    wait_seconds = _extract_int_header(e.response.headers, "Retry-After")
                     if wait_seconds is not None:
                         log.warning(
                             f"Rate limited (429). Server requests {wait_seconds}s wait "
