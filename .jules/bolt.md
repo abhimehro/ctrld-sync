@@ -4,3 +4,6 @@
 ## 2026-04-25 - Native String Methods vs. Dynamically Compiled Regex for KV parsing
 **Learning:** For simple string parsing like extracting `KEY=value` pairs, native string manipulation (e.g., `value.split('=', 1)` and `value.strip()`) is noticeably faster than dynamically formatted and compiled regex (e.g., `re.match(rf'^{re.escape(key)}\s*=\s*(.+)$')`).
 **Action:** When extracting values with a single fixed delimiter, prefer using `.split()` and `.strip()` instead of dynamically interpolating variables into regex patterns inside hot/frequently called functions.
+## 2025-05-16 - Pre-Deduplication for Set Membership Filtering
+**Learning:** When filtering a list against a large existing set, using `dict.fromkeys(items)` to deduplicate the list *before* performing the `not in existing_set` membership test minimizes redundant hash map lookups in hot loops.
+**Action:** When filtering potentially repetitive lists against a set, always deduplicate the list before iteration to avoid repeated negative set lookups for duplicate items.
