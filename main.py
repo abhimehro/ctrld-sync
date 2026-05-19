@@ -2187,7 +2187,6 @@ def create_folder(ctx: SyncContext, name: str, action: RuleAction) -> str | None
         return None
 
 
-
 def _filter_rules_for_folder(
     existing_rules: set[str],
     hostnames: list[str],
@@ -2202,7 +2201,11 @@ def _filter_rules_for_folder(
     if not existing_rules:
         unique_hostnames_dict = dict.fromkeys(hostnames)
     else:
-        unique_hostnames_dict = {h: None for h in hostnames if h not in existing_rules}
+        # ⚡ Bolt Optimization: Deduplicate hostnames using dict.fromkeys BEFORE checking membership
+        # against existing_rules. This minimizes redundant hash map lookups for duplicates in hot loops.
+        unique_hostnames_dict = {
+            h: None for h in dict.fromkeys(hostnames) if h not in existing_rules
+        }
 
     # Optimization 2: Inline method references for hot loop performance
     is_safe = _ALLOWED_RULE_CHARS.issuperset
@@ -2870,7 +2873,11 @@ def print_summary_table(
             f"\n{('DRY RUN' if dry_run else 'SYNC') + ' SUMMARY':^{len(header)}}\n{sep}\n{header}\n{sep}"
         )
         for r in sync_results:
-            display_profile = "(Unspecified)" if r['profile'] == "dry-run-placeholder" else r['profile']
+            display_profile = (
+                "(Unspecified)"
+                if r["profile"] == "dry-run-placeholder"
+                else r["profile"]
+            )
             print(
                 f"{display_profile:<{w[0]}} | {r['folders']:>{w[1]}} | {r['rules']:>{w[2]},} | {r['duration']:>{w[3] - 1}.1f}s | {r['status_label']:<{w[4]}}"
             )
@@ -3302,7 +3309,11 @@ def main() -> None:
         s_rules = f"{res['rules']:,}"
         s_duration = f"{res['duration']:.1f}s"
 
-        display_profile = "(Unspecified)" if res["profile"] == "dry-run-placeholder" else res["profile"]
+        display_profile = (
+            "(Unspecified)"
+            if res["profile"] == "dry-run-placeholder"
+            else res["profile"]
+        )
         print(
             f"{Box.V} {display_profile:<{w_profile}} "
             f"{Box.V} {s_folders:>{w_folders}} "
