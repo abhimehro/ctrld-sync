@@ -678,11 +678,11 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
 
         if USE_COLORS:
             print(
-                f"  • {Colors.BOLD}{name:<{max_name_len}}{Colors.ENDC} : {formatted_rules:>{max_rules_len}} {pluralize(rules_count, 'rule'):<5} {action_text}"
+                f"  • {Colors.BOLD}{name:<{max_name_len}}{Colors.ENDC} : {formatted_rules:>{max_rules_len}} {pluralize(rules_count, 'rule')} {action_text}"
             )
         else:
             print(
-                f"  - {name:<{max_name_len}} : {formatted_rules:>{max_rules_len}} {pluralize(rules_count, 'rule'):<5} {action_text}"
+                f"  - {name:<{max_name_len}} : {formatted_rules:>{max_rules_len}} {pluralize(rules_count, 'rule')} {action_text}"
             )
 
     print("")
@@ -1528,7 +1528,7 @@ def _gh_get(url: str) -> dict:
                     allowed_types = ["application/json", "text/json", "text/plain"]
                     if not any(t in content_type for t in allowed_types):
                         raise ValueError(
-                            f"Invalid Content-Type from {sanitize_for_log(url)}: {sanitize_for_log(content_type)}. "
+                            f"Invalid Content-Type from {url}: {content_type}. "
                             f"Expected one of: {', '.join(allowed_types)}"
                         )
 
@@ -1594,7 +1594,7 @@ def _gh_get(url: str) -> dict:
             allowed_types = ["application/json", "text/json", "text/plain"]
             if not any(t in content_type for t in allowed_types):
                 raise ValueError(
-                    f"Invalid Content-Type from {sanitize_for_log(url)}: {sanitize_for_log(content_type)}. "
+                    f"Invalid Content-Type from {sanitize_for_log(url)}: {content_type}. "
                     f"Expected one of: {', '.join(allowed_types)}"
                 )
 
