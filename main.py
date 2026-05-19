@@ -2198,11 +2198,13 @@ def _filter_rules_for_folder(
     """
     original_count = len(hostnames)
 
-    # Optimization 1: Deduplicate and filter existing rules in a C-speed dict comprehension.
-    if not existing_rules:
-        unique_hostnames_dict = dict.fromkeys(hostnames)
+    # Optimization: dedupe hostnames before existing_rules membership checks.
+    if existing_rules:
+        unique_hostnames_dict = dict.fromkeys(
+            h for h in dict.fromkeys(hostnames) if h not in existing_rules
+        )
     else:
-        unique_hostnames_dict = {h: None for h in hostnames if h not in existing_rules}
+        unique_hostnames_dict = dict.fromkeys(hostnames)
 
     # Optimization 2: Inline method references for hot loop performance
     is_safe = _ALLOWED_RULE_CHARS.issuperset
