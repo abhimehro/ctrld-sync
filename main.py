@@ -2197,28 +2197,25 @@ def _filter_rules_for_folder(
     """
     original_count = len(hostnames)
 
-    # Optimization 1: Deduplicate and filter existing rules in a C-speed dict comprehension.
-    if not existing_rules:
-        unique_hostnames_dict = dict.fromkeys(hostnames)
-    else:
-        # Deduplicate *before* checking membership to minimize redundant hash map lookups
-        unique_hostnames_dict = {
-            h: None for h in dict.fromkeys(hostnames) if h not in existing_rules
-        }
+    seen: set[str] = set()
+    filtered_hostnames: list[str] = []
 
-    # Optimization 2: Inline method references for hot loop performance
+    for hostname in hostnames:
+        if not hostname or hostname in seen:
+            continue
+        seen.add(hostname)
+        if existing_rules and hostname in existing_rules:
+            continue
+        filtered_hostnames.append(hostname)
+
     is_safe = _ALLOWED_RULE_CHARS.issuperset
-
-    # Second pass: Strict safety validation
-    # FAST PATH: C-speed list comprehension for the 99.9% case where rules are safe
-    filtered_hostnames = [h for h in unique_hostnames_dict if h and is_safe(h)]
-    skipped_unsafe = len(unique_hostnames_dict) - len(filtered_hostnames)
+    safe_hostnames = [h for h in filtered_hostnames if is_safe(h)]
+    skipped_unsafe = len(filtered_hostnames) - len(safe_hostnames)
 
     if skipped_unsafe > 0:
-        # SLOW PATH: Only iterate again to log if we actually found unsafe rules
         sanitized_folder = sanitize_for_log(folder_name)
-        for h in unique_hostnames_dict:
-            if not (h and is_safe(h)):
+        for h in filtered_hostnames:
+            if not is_safe(h):
                 log.warning(
                     f"Skipping unsafe rule in {sanitized_folder}: {sanitize_for_log(h)}"
                 )
@@ -2233,7 +2230,7 @@ def _filter_rules_for_folder(
             f"Folder {sanitize_for_log(folder_name)}: skipping {duplicates_count} duplicate {pluralize(duplicates_count, 'rule')}"
         )
 
-    return filtered_hostnames
+    return safe_hostnames
 
 
 def _push_single_batch(
