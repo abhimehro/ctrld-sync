@@ -1977,7 +1977,7 @@ def fetch_folder_data(url: str) -> FolderData:
         # and reason phrase (e.g., "401 Unauthorized") in addition to our hint.
         original_msg = str(e)
         raise httpx.HTTPStatusError(
-            f"{original_msg} | hint: {hint} | url: {sanitize_for_log(url)}",
+            f"{sanitize_for_log(original_msg)} | hint: {hint} | url: {sanitize_for_log(url)}",
             request=e.request,
             response=e.response,
         ) from e
