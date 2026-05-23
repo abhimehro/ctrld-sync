@@ -29,6 +29,7 @@
 
 **Security fixes:**
 
+- 🛡️ \[Medium\] Script injection via workflow\_dispatch input in copilot-setup-steps.yml \(CWE-94\) [\#828](https://github.com/abhimehro/ctrld-sync/issues/828)
 - \[Security\] Validated HIGH: Workflow command injection via AI-inference output in summary.yml [\#767](https://github.com/abhimehro/ctrld-sync/issues/767)
 - \[Code Quality\] Fix SECURITY.md placeholder content with accurate version info [\#358](https://github.com/abhimehro/ctrld-sync/issues/358)
 - \[Code Quality\] Update SECURITY.md with accurate version information [\#348](https://github.com/abhimehro/ctrld-sync/issues/348)
@@ -42,6 +43,8 @@
 
 **Closed issues:**
 
+- Daily QA Check - ctrld-sync - 2026-05-21 [\#832](https://github.com/abhimehro/ctrld-sync/issues/832)
+- \[repo-automation\] Weekly Retrospective - 2026-05-17 [\#812](https://github.com/abhimehro/ctrld-sync/issues/812)
 - \[repo-automation\] Weekly Retrospective - 2026-05-10 [\#777](https://github.com/abhimehro/ctrld-sync/issues/777)
 - \[repo-automation\] Weekly Retrospective - 2026-05-03 [\#758](https://github.com/abhimehro/ctrld-sync/issues/758)
 - \[repo-automation\] Weekly Retrospective - 2026-04-26 [\#744](https://github.com/abhimehro/ctrld-sync/issues/744)
@@ -256,8 +259,34 @@
 
 **Merged pull requests:**
 
+- chore: Jules Daily QA & Agentic Review [\#833](https://github.com/abhimehro/ctrld-sync/pull/833) ([abhimehro](https://github.com/abhimehro))
+- chore\(tests\): fix mypy type mismatch in test\_ux.py PlanEntry creation [\#831](https://github.com/abhimehro/ctrld-sync/pull/831) ([abhimehro](https://github.com/abhimehro))
+- 🛡️ Sentinel: \[MEDIUM\] Sanitize Content-Length header in error logs [\#829](https://github.com/abhimehro/ctrld-sync/pull/829) ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump idna from 3.10 to 3.15 in the uv group across 1 directory [\#827](https://github.com/abhimehro/ctrld-sync/pull/827) ([dependabot[bot]](https://github.com/apps/dependabot))
+- fix\(security\): prevent script injection via workflow\_dispatch input in copilot-setup-steps \(CWE-94\) [\#826](https://github.com/abhimehro/ctrld-sync/pull/826) ([abhimehro](https://github.com/abhimehro))
+- fix\(tests\): resolve mypy type error in test\_ux.py [\#825](https://github.com/abhimehro/ctrld-sync/pull/825) ([abhimehro](https://github.com/abhimehro))
+- chore: fix formatting in fix\_env.py \(salvages \#781\) [\#823](https://github.com/abhimehro/ctrld-sync/pull/823) ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: Optimize hostnames deduplication before set membership check \(salvages \#811\) [\#820](https://github.com/abhimehro/ctrld-sync/pull/820) ([abhimehro](https://github.com/abhimehro))
+- fix\(security\): SSRF hardening \(salvages \#780\) [\#817](https://github.com/abhimehro/ctrld-sync/pull/817) ([abhimehro](https://github.com/abhimehro))
+- Jules Daily QA & Agentic Review [\#814](https://github.com/abhimehro/ctrld-sync/pull/814) ([abhimehro](https://github.com/abhimehro))
+- 🎨 Palette: improve empty state profile UX [\#813](https://github.com/abhimehro/ctrld-sync/pull/813) ([abhimehro](https://github.com/abhimehro))
+- 🛡️ Sentinel: \[MEDIUM\] Sanitize Content-Type header in exceptions [\#810](https://github.com/abhimehro/ctrld-sync/pull/810) ([abhimehro](https://github.com/abhimehro))
+- 🎨 Palette: Align plan details output [\#809](https://github.com/abhimehro/ctrld-sync/pull/809) ([abhimehro](https://github.com/abhimehro))
+- 🧹 Simplify deeply nested logic in \_retry\_request [\#808](https://github.com/abhimehro/ctrld-sync/pull/808) ([abhimehro](https://github.com/abhimehro))
+- 🧹 Simplify deeply nested logic in \_retry\_request [\#807](https://github.com/abhimehro/ctrld-sync/pull/807) ([abhimehro](https://github.com/abhimehro))
+- 🧹 \[Code Health Improvement\] Simplify verify\_access\_and\_get\_folders [\#805](https://github.com/abhimehro/ctrld-sync/pull/805) ([abhimehro](https://github.com/abhimehro))
+- 🧹 \[code health improvement\] Refactor push\_rules to improve maintainability [\#804](https://github.com/abhimehro/ctrld-sync/pull/804) ([abhimehro](https://github.com/abhimehro))
+- 🧹 \[code health improvement\] Simplify deeply nested logic in validate\_profile\_id [\#800](https://github.com/abhimehro/ctrld-sync/pull/800) ([abhimehro](https://github.com/abhimehro))
+- 🧹 Simplify deeply nested logic in validate\_folder\_data [\#797](https://github.com/abhimehro/ctrld-sync/pull/797) ([abhimehro](https://github.com/abhimehro))
+- 🧹 Simplify deeply nested logic in validate\_hostname [\#795](https://github.com/abhimehro/ctrld-sync/pull/795) ([abhimehro](https://github.com/abhimehro))
+- 🧹 Refactor: Simplify create\_folder logic [\#793](https://github.com/abhimehro/ctrld-sync/pull/793) ([abhimehro](https://github.com/abhimehro))
+- 🧹 Refactor: Extract helper functions from sync\_profile [\#792](https://github.com/abhimehro/ctrld-sync/pull/792) ([abhimehro](https://github.com/abhimehro))
+- 🧹 Refactor: extract logic from fix\_env [\#791](https://github.com/abhimehro/ctrld-sync/pull/791) ([abhimehro](https://github.com/abhimehro))
 - chore: auto-format fix\_env.py [\#785](https://github.com/abhimehro/ctrld-sync/pull/785) ([abhimehro](https://github.com/abhimehro))
+- 🛡️ Sentinel: \[security improvement\] Sanitize Content-Type in ValueError messages [\#783](https://github.com/abhimehro/ctrld-sync/pull/783) ([abhimehro](https://github.com/abhimehro))
+- 🎨 Palette: Apply pluralize helper to log messages [\#782](https://github.com/abhimehro/ctrld-sync/pull/782) ([abhimehro](https://github.com/abhimehro))
 - chore: complete daily QA agentic review [\#779](https://github.com/abhimehro/ctrld-sync/pull/779) ([abhimehro](https://github.com/abhimehro))
+- chore: auto-format fix\_env.py [\#778](https://github.com/abhimehro/ctrld-sync/pull/778) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[MEDIUM\] Replace mkstemp with NamedTemporaryFile [\#776](https://github.com/abhimehro/ctrld-sync/pull/776) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[CRITICAL/HIGH\] Fix Authorization Log Leakage [\#775](https://github.com/abhimehro/ctrld-sync/pull/775) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[MEDIUM\] Add authorization parameter to log sanitization [\#774](https://github.com/abhimehro/ctrld-sync/pull/774) ([abhimehro](https://github.com/abhimehro))

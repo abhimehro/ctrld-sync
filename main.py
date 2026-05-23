@@ -612,6 +612,8 @@ def _get_action_text(folder: dict[str, Any]) -> str:
 def print_plan_details(plan_entry: PlanEntry) -> None:
     """Pretty-print the folder-level breakdown during a dry-run."""
     profile = sanitize_for_log(plan_entry.get("profile", "unknown"))
+    if profile == "dry-run-placeholder":
+        profile = "(Unspecified)"
     folders = plan_entry.get("folders", [])
 
     if USE_COLORS:
@@ -646,11 +648,11 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
 
         if USE_COLORS:
             print(
-                f"  • {Colors.BOLD}{name:<{max_name_len}}{Colors.ENDC} : {formatted_rules:>{max_rules_len}} {pluralize(rules_count, 'rule')} {action_text}"
+                f"  • {Colors.BOLD}{name:<{max_name_len}}{Colors.ENDC} : {formatted_rules:>{max_rules_len}} {pluralize(rules_count, 'rule'):<5} {action_text}"
             )
         else:
             print(
-                f"  - {name:<{max_name_len}} : {formatted_rules:>{max_rules_len}} {pluralize(rules_count, 'rule')} {action_text}"
+                f"  - {name:<{max_name_len}} : {formatted_rules:>{max_rules_len}} {pluralize(rules_count, 'rule'):<5} {action_text}"
             )
 
     print("")
@@ -1081,6 +1083,29 @@ def _is_safe_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
     return ip.is_global
 
 
+def _resolve_and_validate_domain(hostname: str) -> bool:
+    try:
+        # Resolve hostname to IPs (IPv4 and IPv6)
+        # We filter for AF_INET/AF_INET6 to ensure we get IP addresses
+        addr_info = socket.getaddrinfo(hostname, None, proto=socket.IPPROTO_TCP)
+        for res in addr_info:
+            # res is (family, type, proto, canonname, sockaddr)
+            # sockaddr is (address, port) for AF_INET/AF_INET6
+            ip_str = res[4][0]
+            ip = ipaddress.ip_address(ip_str)
+            if not _is_safe_ip(ip):
+                log.warning(
+                    f"Skipping unsafe hostname {sanitize_for_log(hostname)} (resolves to non-global/multicast IP {ip})"
+                )
+                return False
+        return True
+    except (socket.gaierror, ValueError, OSError) as e:
+        log.warning(
+            f"Failed to resolve/validate domain {sanitize_for_log(hostname)}: {sanitize_for_log(e)}"
+        )
+        return False
+
+
 @lru_cache(maxsize=128)
 def validate_hostname(hostname: str) -> bool:
     """
@@ -1108,26 +1133,7 @@ def validate_hostname(hostname: str) -> bool:
         return True
     except ValueError:
         # Not an IP literal, it's a domain. Resolve and check IPs.
-        try:
-            # Resolve hostname to IPs (IPv4 and IPv6)
-            # We filter for AF_INET/AF_INET6 to ensure we get IP addresses
-            addr_info = socket.getaddrinfo(hostname, None, proto=socket.IPPROTO_TCP)
-            for res in addr_info:
-                # res is (family, type, proto, canonname, sockaddr)
-                # sockaddr is (address, port) for AF_INET/AF_INET6
-                ip_str = res[4][0]
-                ip = ipaddress.ip_address(ip_str)
-                if not _is_safe_ip(ip):
-                    log.warning(
-                        f"Skipping unsafe hostname {sanitize_for_log(hostname)} (resolves to non-global/multicast IP {ip})"
-                    )
-                    return False
-            return True
-        except (socket.gaierror, ValueError, OSError) as e:
-            log.warning(
-                f"Failed to resolve/validate domain {sanitize_for_log(hostname)}: {sanitize_for_log(e)}"
-            )
-            return False
+        return _resolve_and_validate_domain(hostname)
 
 
 @lru_cache(maxsize=128)
@@ -1201,16 +1207,20 @@ def validate_profile_id(profile_id: str, log_errors: bool = True) -> bool:
     Returns True if profile ID is valid, False otherwise.
     Logs specific validation errors when log_errors=True.
     """
-    if not is_valid_profile_id_format(profile_id):
-        if log_errors:
-            if not PROFILE_ID_PATTERN.match(profile_id):
-                log.error("Invalid profile ID format (contains unsafe characters)")
-            elif len(profile_id) > MAX_PROFILE_ID_LENGTH:
-                log.error(
-                    f"Invalid profile ID length (max {MAX_PROFILE_ID_LENGTH} chars)"
-                )
-        return False
-    return True
+    if is_valid_profile_id_format(profile_id):
+        return True
+
+    if not PROFILE_ID_PATTERN.match(profile_id):
+        return _log_validation_error(
+            "Invalid profile ID format (contains unsafe characters)", log_errors
+        )
+
+    if len(profile_id) > MAX_PROFILE_ID_LENGTH:
+        return _log_validation_error(
+            f"Invalid profile ID length (max {MAX_PROFILE_ID_LENGTH} chars)", log_errors
+        )
+
+    return False
 
 
 def _log_validation_error(msg: str, log_errors: bool) -> bool:
@@ -1302,6 +1312,30 @@ def _is_valid_rule_list(rules_list: Any) -> bool:
     return True
 
 
+def _log_invalid_rules(rules_list: list[Any], url: str, prefix: str) -> bool:
+    """Helper to log specific validation errors for a list of rules.
+
+    This is only called after the fast-path ``_is_valid_rule_list`` check has
+    already determined the list is invalid, so we always return ``False``.
+    The fallthrough case (no specific per-rule error matched) can occur when
+    the fast-path uses strict ``type(...) is`` checks while this helper uses
+    ``isinstance(...)`` — in that case we still return ``False`` to preserve
+    the known-invalid verdict rather than accidentally accepting the data.
+    """
+    for j, rule in enumerate(rules_list):
+        if not isinstance(rule, dict):
+            log.error(
+                f"Invalid data from {sanitize_for_log(url)}: {prefix}[{j}] must be an object."
+            )
+            return False
+        if (pk := rule.get("PK")) is not None and not isinstance(pk, str):
+            log.error(
+                f"Invalid data from {sanitize_for_log(url)}: {prefix}[{j}].PK must be a string."
+            )
+            return False
+    return False
+
+
 def validate_folder_data(data: dict[str, Any], url: str) -> TypeGuard[FolderData]:
     """
     Validates folder JSON data structure and content.
@@ -1354,17 +1388,7 @@ def validate_folder_data(data: dict[str, Any], url: str) -> TypeGuard[FolderData
         # Fallback identifies the exact error for logging.
         rules_list = data["rules"]
         if not _is_valid_rule_list(rules_list):
-            for j, rule in enumerate(rules_list):
-                if not isinstance(rule, dict):
-                    log.error(
-                        f"Invalid data from {sanitize_for_log(url)}: rules[{j}] must be an object."
-                    )
-                    return False
-                if (pk := rule.get("PK")) is not None and not isinstance(pk, str):
-                    log.error(
-                        f"Invalid data from {sanitize_for_log(url)}: rules[{j}].PK must be a string."
-                    )
-                    return False
+            return _log_invalid_rules(rules_list, url, "rules")
 
     # Validate 'rule_groups' if present (must be a list of dicts)
     if "rule_groups" in data:
@@ -1392,19 +1416,9 @@ def validate_folder_data(data: dict[str, Any], url: str) -> TypeGuard[FolderData
                 # Optimization: Fast path inline type check avoids function call overhead per rule.
                 # Fallback identifies the exact error for logging.
                 if not _is_valid_rule_list(rg_rules_list):
-                    for j, rule in enumerate(rg_rules_list):
-                        if not isinstance(rule, dict):
-                            log.error(
-                                f"Invalid data from {sanitize_for_log(url)}: rule_groups[{i}].rules[{j}] must be an object."
-                            )
-                            return False
-                        if (pk := rule.get("PK")) is not None and not isinstance(
-                            pk, str
-                        ):
-                            log.error(
-                                f"Invalid data from {sanitize_for_log(url)}: rule_groups[{i}].rules[{j}].PK must be a string."
-                            )
-                            return False
+                    return _log_invalid_rules(
+                        rg_rules_list, url, f"rule_groups[{i}].rules"
+                    )
 
     return True
 
@@ -1496,7 +1510,7 @@ def _gh_get(url: str) -> dict:
                     allowed_types = ["application/json", "text/json", "text/plain"]
                     if not any(t in content_type for t in allowed_types):
                         raise ValueError(
-                            f"Invalid Content-Type from {url}: {content_type}. "
+                            f"Invalid Content-Type from {sanitize_for_log(url)}: {sanitize_for_log(content_type)}. "
                             f"Expected one of: {', '.join(allowed_types)}"
                         )
 
@@ -1514,7 +1528,7 @@ def _gh_get(url: str) -> dict:
                             if "Response too large" in str(e):
                                 raise
                             log.warning(
-                                f"Malformed Content-Length header from {sanitize_for_log(url)}: {cl!r}. "
+                                f"Malformed Content-Length header from {sanitize_for_log(url)}: {sanitize_for_log(cl)}. "
                                 "Falling back to streaming size check."
                             )
 
@@ -1562,7 +1576,7 @@ def _gh_get(url: str) -> dict:
             allowed_types = ["application/json", "text/json", "text/plain"]
             if not any(t in content_type for t in allowed_types):
                 raise ValueError(
-                    f"Invalid Content-Type from {sanitize_for_log(url)}: {content_type}. "
+                    f"Invalid Content-Type from {sanitize_for_log(url)}: {sanitize_for_log(content_type)}. "
                     f"Expected one of: {', '.join(allowed_types)}"
                 )
 
@@ -1580,7 +1594,7 @@ def _gh_get(url: str) -> dict:
                     if "Response too large" in str(e):
                         raise
                     log.warning(
-                        f"Malformed Content-Length header from {sanitize_for_log(url)}: {cl!r}. "
+                        f"Malformed Content-Length header from {sanitize_for_log(url)}: {sanitize_for_log(cl)}. "
                         "Falling back to streaming size check."
                     )
 
@@ -1706,6 +1720,75 @@ def list_existing_folders(client: httpx.Client, profile_id: str) -> dict[str, st
         return {}
 
 
+def _parse_folders_response(data: dict) -> dict[str, str] | None:
+    # Ensure we got the expected top-level JSON structure.
+    if not isinstance(data, dict):
+        log.error(
+            "Failed to parse folders data: expected JSON object at top level, "
+            f"got {type(data).__name__}"
+        )
+        return None
+
+    body = data.get("body")
+    if not isinstance(body, dict):
+        log.error(
+            "Failed to parse folders data: expected 'body' to be an object, "
+            f"got {type(body).__name__ if body is not None else 'None'}"
+        )
+        return None
+
+    folders = body.get("groups", [])
+    if not isinstance(folders, list):
+        log.error(
+            "Failed to parse folders data: expected 'body[\"groups\"]' to be a list, "
+            f"got {type(folders).__name__}"
+        )
+        return None
+
+    # Only process entries that are dicts and have the required keys.
+    result: dict[str, str] = {}
+    for f in folders:
+        if not isinstance(f, dict):
+            continue
+        name = f.get("group")
+        pk = f.get("PK")
+        # Skip entries with empty or None values for required fields
+        if not name or not pk:
+            continue
+
+        pk_str = str(pk)
+        if not validate_folder_id(pk_str):
+            continue
+
+        result[str(name).strip()] = pk_str
+
+    return result
+
+
+def _log_auth_error(code: int, profile_id: str) -> None:
+    if code == 401:
+        log.critical(
+            f"{Colors.FAIL}❌ Authentication Failed: The API Token is invalid.{Colors.ENDC}"
+        )
+        log.critical(
+            f"{Colors.FAIL}   Please check your token at: https://controld.com/account/manage-account{Colors.ENDC}"
+        )
+    elif code == 403:
+        log.critical(
+            "%s🚫 Access Denied: Token lacks permission for Profile %s.%s",
+            Colors.FAIL,
+            sanitize_for_log(profile_id),
+            Colors.ENDC,
+        )
+    elif code == 404:
+        log.critical(
+            f"{Colors.FAIL}🔍 Profile Not Found: The ID '{sanitize_for_log(profile_id)}' does not exist.{Colors.ENDC}"
+        )
+        log.critical(
+            f"{Colors.FAIL}   Please verify the Profile ID from your Control D Dashboard URL.{Colors.ENDC}"
+        )
+
+
 def verify_access_and_get_folders(
     client: httpx.Client, profile_id: str
 ) -> dict[str, str] | None:
@@ -1723,85 +1806,15 @@ def verify_access_and_get_folders(
             resp.raise_for_status()
 
             try:
-                data = resp.json()
-
-                # Ensure we got the expected top-level JSON structure.
-                # We defensively validate types here so that unexpected but valid
-                # JSON (e.g., a list or a scalar) doesn't cause AttributeError/TypeError
-                # and cause the operation to fail unexpectedly.
-                if not isinstance(data, dict):
-                    log.error(
-                        "Failed to parse folders data: expected JSON object at top level, "
-                        f"got {type(data).__name__}"
-                    )
-                    return None
-
-                body = data.get("body")
-                if not isinstance(body, dict):
-                    log.error(
-                        "Failed to parse folders data: expected 'body' to be an object, "
-                        f"got {type(body).__name__ if body is not None else 'None'}"
-                    )
-                    return None
-
-                folders = body.get("groups", [])
-                if not isinstance(folders, list):
-                    log.error(
-                        "Failed to parse folders data: expected 'body[\"groups\"]' to be a list, "
-                        f"got {type(folders).__name__}"
-                    )
-                    return None
-
-                # Only process entries that are dicts and have the required keys.
-                result: dict[str, str] = {}
-                for f in folders:
-                    if not isinstance(f, dict):
-                        # Skip non-dict entries instead of crashing; this protects
-                        # against partial data corruption or unexpected API changes.
-                        continue
-                    name = f.get("group")
-                    pk = f.get("PK")
-                    # Skip entries with empty or None values for required fields
-                    if not name or not pk:
-                        continue
-
-                    pk_str = str(pk)
-                    if not validate_folder_id(pk_str):
-                        continue
-
-                    result[str(name).strip()] = pk_str
-
-                return result
+                return _parse_folders_response(resp.json())
             except (ValueError, TypeError, AttributeError) as err:
-                # As a final safeguard, catch any remaining parsing/shape errors so
-                # that a malformed response cannot crash the caller.
                 log.error("Failed to parse folders data: %s", sanitize_for_log(err))
                 return None
 
         except httpx.HTTPStatusError as e:
             code = e.response.status_code
             if code in (401, 403, 404):
-                if code == 401:
-                    log.critical(
-                        f"{Colors.FAIL}❌ Authentication Failed: The API Token is invalid.{Colors.ENDC}"
-                    )
-                    log.critical(
-                        f"{Colors.FAIL}   Please check your token at: https://controld.com/account/manage-account{Colors.ENDC}"
-                    )
-                elif code == 403:
-                    log.critical(
-                        "%s🚫 Access Denied: Token lacks permission for Profile %s.%s",
-                        Colors.FAIL,
-                        sanitize_for_log(profile_id),
-                        Colors.ENDC,
-                    )
-                elif code == 404:
-                    log.critical(
-                        f"{Colors.FAIL}🔍 Profile Not Found: The ID '{sanitize_for_log(profile_id)}' does not exist.{Colors.ENDC}"
-                    )
-                    log.critical(
-                        f"{Colors.FAIL}   Please verify the Profile ID from your Control D Dashboard URL.{Colors.ENDC}"
-                    )
+                _log_auth_error(code, profile_id)
                 return None
 
             if attempt == MAX_RETRIES - 1:
@@ -1957,7 +1970,7 @@ def warm_up_cache(urls: Sequence[str]) -> None:
 
     total = len(urls_to_process)
     if not USE_COLORS:
-        log.info(f"⏳ Warming up cache for {total:,} URLs...")
+        log.info(f"⏳ Warming up cache for {total:,} {pluralize(total, 'URL')}...")
 
     # OPTIMIZATION: Combine validation (DNS) and fetching (HTTP) in one task
     # to allow validation latency to be parallelized.
@@ -2031,6 +2044,86 @@ def delete_folder(
         return False
 
 
+def _process_new_folder_pk(pk: str, name: str, source: str) -> str | None:
+    if not validate_folder_id(pk, log_errors=False):
+        log.error(f"API returned invalid folder ID: {sanitize_for_log(pk)}")
+        return None
+    log.info(
+        "Created folder %s (ID %s) [%s]",
+        sanitize_for_log(name),
+        sanitize_for_log(pk),
+        source,
+    )
+    return pk
+
+
+def _is_matching_group_dict(grp: Any, name: str) -> bool:
+    if not isinstance(grp, dict):
+        return False
+    return grp.get("group", "").strip() == name.strip() and "PK" in grp
+
+
+def _extract_from_groups_list(groups: list, name: str) -> str | None:
+    for grp in groups:
+        if _is_matching_group_dict(grp, name):
+            pk = _process_new_folder_pk(str(grp["PK"]), name, "Direct")
+            if pk:
+                return pk
+    return None
+
+
+def _extract_folder_id_from_response(response: httpx.Response, name: str) -> str | None:
+    try:
+        body = response.json().get("body")
+    except Exception as e:
+        if log.isEnabledFor(logging.DEBUG):
+            log.debug(f"Could not extract ID from POST response: {sanitize_for_log(e)}")
+        return None
+
+    if not isinstance(body, dict):
+        return None
+
+    group = body.get("group")
+    if isinstance(group, dict) and "PK" in group:
+        return _process_new_folder_pk(str(group["PK"]), name, "Direct")
+
+    groups = body.get("groups")
+    if isinstance(groups, list):
+        return _extract_from_groups_list(groups, name)
+
+    return None
+
+
+def _poll_for_folder_id(ctx: SyncContext, name: str) -> str | None:
+    for attempt in range(MAX_RETRIES + 1):
+        try:
+            data = _api_get(ctx.client, f"{API_BASE}/{ctx.profile_id}/groups").json()
+            groups = data.get("body", {}).get("groups", [])
+
+            for grp in groups:
+                if _is_matching_group_dict(grp, name):
+                    pk = _process_new_folder_pk(str(grp["PK"]), name, "Polled")
+                    if pk:
+                        return pk
+                    return None  # Invalid PK found, stop polling
+        except Exception as e:
+            log.warning(
+                f"Error fetching groups on attempt {attempt}: {sanitize_for_log(e)}"
+            )
+
+        if attempt < MAX_RETRIES:
+            wait_time = FOLDER_CREATION_DELAY * (attempt + 1)
+            log.info(
+                f"Folder '{sanitize_for_log(name)}' not found yet. Retrying in {wait_time}s..."
+            )
+            time.sleep(wait_time)
+
+    log.error(
+        f"Folder {sanitize_for_log(name)} was not found after creation and retries."
+    )
+    return None
+
+
 def create_folder(ctx: SyncContext, name: str, action: RuleAction) -> str | None:
     """
     Create a new folder and return its ID.
@@ -2045,83 +2138,12 @@ def create_folder(ctx: SyncContext, name: str, action: RuleAction) -> str | None
         )
 
         # OPTIMIZATION: Try to grab ID directly from response to avoid the wait loop
-        try:
-            resp_data = response.json()
-            body = resp_data.get("body", {})
-
-            # Check if it returned a single group object
-            if isinstance(body, dict) and "group" in body and "PK" in body["group"]:
-                pk = str(body["group"]["PK"])
-                if not validate_folder_id(pk, log_errors=False):
-                    log.error(f"API returned invalid folder ID: {sanitize_for_log(pk)}")
-                    return None
-                log.info(
-                    "Created folder %s (ID %s) [Direct]",
-                    sanitize_for_log(name),
-                    sanitize_for_log(pk),
-                )
-                return pk
-
-            # Check if it returned a list containing our group
-            if isinstance(body, dict) and "groups" in body:
-                for grp in body["groups"]:
-                    if grp.get("group") == name:
-                        pk = str(grp["PK"])
-                        if not validate_folder_id(pk, log_errors=False):
-                            log.error(
-                                f"API returned invalid folder ID: {sanitize_for_log(pk)}"
-                            )
-                            continue
-                        log.info(
-                            "Created folder %s (ID %s) [Direct]",
-                            sanitize_for_log(name),
-                            sanitize_for_log(pk),
-                        )
-                        return pk
-        except Exception as e:
-            if log.isEnabledFor(logging.DEBUG):
-                log.debug(
-                    f"Could not extract ID from POST response: {sanitize_for_log(e)}"
-                )
+        pk = _extract_folder_id_from_response(response, name)
+        if pk:
+            return pk
 
         # 2. Fallback: Poll for the new folder (The Robust Retry Logic)
-        for attempt in range(MAX_RETRIES + 1):
-            try:
-                data = _api_get(
-                    ctx.client, f"{API_BASE}/{ctx.profile_id}/groups"
-                ).json()
-                groups = data.get("body", {}).get("groups", [])
-
-                for grp in groups:
-                    if grp["group"].strip() == name.strip():
-                        pk = str(grp["PK"])
-                        if not validate_folder_id(pk, log_errors=False):
-                            log.error(
-                                f"API returned invalid folder ID: {sanitize_for_log(pk)}"
-                            )
-                            return None
-                        log.info(
-                            "Created folder %s (ID %s) [Polled]",
-                            sanitize_for_log(name),
-                            sanitize_for_log(pk),
-                        )
-                        return pk
-            except Exception as e:
-                log.warning(
-                    f"Error fetching groups on attempt {attempt}: {sanitize_for_log(e)}"
-                )
-
-            if attempt < MAX_RETRIES:
-                wait_time = FOLDER_CREATION_DELAY * (attempt + 1)
-                log.info(
-                    f"Folder '{sanitize_for_log(name)}' not found yet. Retrying in {wait_time}s..."
-                )
-                time.sleep(wait_time)
-
-        log.error(
-            f"Folder {sanitize_for_log(name)} was not found after creation and retries."
-        )
-        return None
+        return _poll_for_folder_id(ctx, name)
 
     except (httpx.HTTPError, KeyError) as e:
         hint = ""
@@ -2133,35 +2155,23 @@ def create_folder(ctx: SyncContext, name: str, action: RuleAction) -> str | None
         return None
 
 
-def push_rules(
-    ctx: SyncContext,
-    folder_name: str,
-    folder_id: str,
-    action: RuleAction,
+def _filter_rules_for_folder(
+    existing_rules: set[str],
     hostnames: list[str],
-) -> bool:
+    folder_name: str,
+) -> list[str]:
     """
-    Pushes rules to a folder in batches, filtering duplicates and invalid rules.
-
-    Deduplicates input, validates rules against _ALLOWED_RULE_CHARS, and sends batches
-    in parallel for optimal performance. Updates ctx.existing_rules set with newly
-    added rules. Returns True if all batches succeed.
+    Deduplicates and filters hostnames, logging dropped entries.
     """
-    if not hostnames:
-        log.info("Folder %s - no rules to push", sanitize_for_log(folder_name))
-        return True
-
     original_count = len(hostnames)
 
     # Optimization 1: Deduplicate and filter existing rules in a C-speed dict comprehension.
-    # This completely avoids copying the potentially massive existing_rules set
-    # (which could be millions of items) for every folder processed, and is up
-    # to 2x faster than a manual loop due to avoiding Python interpreter overhead.
-    existing_rules = ctx.existing_rules
     if not existing_rules:
         unique_hostnames_dict = dict.fromkeys(hostnames)
     else:
-        unique_hostnames_dict = {h: None for h in hostnames if h not in existing_rules}
+        unique_hostnames_dict = {
+            h: None for h in dict.fromkeys(hostnames) if h not in existing_rules
+        }
 
     # Optimization 2: Inline method references for hot loop performance
     is_safe = _ALLOWED_RULE_CHARS.issuperset
@@ -2190,20 +2200,76 @@ def push_rules(
             f"Folder {sanitize_for_log(folder_name)}: skipping {duplicates_count} duplicate {pluralize(duplicates_count, 'rule')}"
         )
 
-    if not filtered_hostnames:
-        log.info(
-            f"Folder {sanitize_for_log(folder_name)} - no new rules to push after filtering duplicates"
+    return filtered_hostnames
+
+
+def _push_single_batch(
+    client: httpx.Client,
+    profile_id: str,
+    sanitized_folder_name: str,
+    str_do: str,
+    str_status: str,
+    str_group: str,
+    batch_idx: int,
+    batch_data: list[str],
+) -> list[str] | None:
+    """Processes a single batch of rules by sending API request."""
+    data = {
+        "do": str_do,
+        "status": str_status,
+        "group": str_group,
+    }
+    # Optimization: Use pre-calculated keys and zip for faster dict update
+    # strict=False is intentional: batch_data may be shorter than BATCH_KEYS for final batch
+    data.update(zip(BATCH_KEYS, batch_data, strict=False))
+
+    try:
+        _api_post_form(client, f"{API_BASE}/{profile_id}/rules", data=data)
+        if not USE_COLORS:
+            log.info(
+                "Folder %s – batch %d: added %d %s",
+                sanitized_folder_name,
+                batch_idx,
+                len(batch_data),
+                pluralize(len(batch_data), "rule"),
+            )
+        return batch_data
+    except httpx.HTTPError as e:
+        if USE_COLORS:
+            sys.stderr.write("\r\033[K")
+            sys.stderr.flush()
+        hint = ""
+        if isinstance(e, httpx.HTTPStatusError):
+            # Use a more specific name to avoid confusion with the rule "status" payload
+            status_code = e.response.status_code
+            hint = f" ({_STATUS_HINTS.get(status_code, f'HTTP {status_code}')})"
+        log.error(
+            f"Failed to push batch {batch_idx} for folder {sanitized_folder_name}{hint}: {sanitize_for_log(e)}"
         )
-        return True
+        if (
+            hasattr(e, "response")
+            and e.response is not None
+            and log.isEnabledFor(logging.DEBUG)
+        ):
+            log.debug(f"Response content: {sanitize_for_log(e.response.text)}")
+        return None
 
+
+def _push_rule_batches(
+    ctx: SyncContext,
+    folder_name: str,
+    folder_id: str,
+    action: RuleAction,
+    filtered_hostnames: list[str],
+) -> bool:
+    """
+    Splits rules into batches and pushes them to the API in parallel.
+    """
     successful_batches = 0
-
-    # Prepare batches
     batches = [
         filtered_hostnames[start : start + BATCH_SIZE]
         for start in range(0, len(filtered_hostnames), BATCH_SIZE)
     ]
-
     total_batches = len(batches)
 
     # Optimization: Hoist loop invariants to avoid redundant computations
@@ -2213,53 +2279,18 @@ def push_rules(
     sanitized_folder_name = sanitize_for_log(folder_name)
     progress_label = f"Folder {sanitized_folder_name}"
 
-    def process_batch(batch_idx: int, batch_data: list[str]) -> list[str] | None:
-        """Processes a single batch of rules by sending API request."""
-        data = {
-            "do": str_do,
-            "status": str_status,
-            "group": str_group,
-        }
-        # Optimization: Use pre-calculated keys and zip for faster dict update
-        # strict=False is intentional: batch_data may be shorter than BATCH_KEYS for final batch
-        data.update(zip(BATCH_KEYS, batch_data, strict=False))
-
-        try:
-            _api_post_form(ctx.client, f"{API_BASE}/{ctx.profile_id}/rules", data=data)
-            if not USE_COLORS:
-                log.info(
-                    "Folder %s – batch %d: added %d %s",
-                    sanitized_folder_name,
-                    batch_idx,
-                    len(batch_data),
-                    pluralize(len(batch_data), "rule"),
-                )
-            return batch_data
-        except httpx.HTTPError as e:
-            if USE_COLORS:
-                sys.stderr.write("\r\033[K")
-                sys.stderr.flush()
-            hint = ""
-            if isinstance(e, httpx.HTTPStatusError):
-                # Use a more specific name to avoid confusion with the rule "status" payload
-                status_code = e.response.status_code
-                hint = f" ({_STATUS_HINTS.get(status_code, f'HTTP {status_code}')})"
-            log.error(
-                f"Failed to push batch {batch_idx} for folder {sanitized_folder_name}{hint}: {sanitize_for_log(e)}"
-            )
-            if (
-                hasattr(e, "response")
-                and e.response is not None
-                and log.isEnabledFor(logging.DEBUG)
-            ):
-                log.debug(f"Response content: {sanitize_for_log(e.response.text)}")
-            return None
-
     # Optimization 3: Parallelize batch processing
-    # Using 3 workers to speed up writes without hitting aggressive rate limits.
-    # If only 1 batch, run it synchronously to avoid ThreadPoolExecutor overhead.
     if total_batches == 1:
-        result = process_batch(1, batches[0])
+        result = _push_single_batch(
+            ctx.client,
+            ctx.profile_id,
+            sanitized_folder_name,
+            str_do,
+            str_status,
+            str_group,
+            1,
+            batches[0],
+        )
         if result:
             successful_batches += 1
             ctx.existing_rules.update(result)
@@ -2280,7 +2311,17 @@ def push_rules(
 
         with executor_ctx as executor:
             futures = {
-                executor.submit(process_batch, i, batch): i
+                executor.submit(
+                    _push_single_batch,
+                    ctx.client,
+                    ctx.profile_id,
+                    sanitized_folder_name,
+                    str_do,
+                    str_status,
+                    str_group,
+                    i,
+                    batch,
+                ): i
                 for i, batch in enumerate(batches, 1)
             }
 
@@ -2299,12 +2340,12 @@ def push_rules(
     if successful_batches == total_batches:
         if USE_COLORS:
             sys.stderr.write(
-                f"\r\033[K{Colors.GREEN}✅ Folder {sanitize_for_log(folder_name)}: Finished ({len(filtered_hostnames):,} {pluralize(len(filtered_hostnames), 'rule')}){Colors.ENDC}\n"
+                f"\r\033[K{Colors.GREEN}✅ Folder {sanitized_folder_name}: Finished ({len(filtered_hostnames):,} {pluralize(len(filtered_hostnames), 'rule')}){Colors.ENDC}\n"
             )
             sys.stderr.flush()
         else:
             log.info(
-                f"✅ Folder {sanitize_for_log(folder_name)} – finished ({len(filtered_hostnames):,} new {pluralize(len(filtered_hostnames), 'rule')} added)"
+                f"✅ Folder {sanitized_folder_name} – finished ({len(filtered_hostnames):,} new {pluralize(len(filtered_hostnames), 'rule')} added)"
             )
         return True
     if USE_COLORS:
@@ -2312,11 +2353,48 @@ def push_rules(
         sys.stderr.flush()
     log.error(
         "Folder %s – only %d/%d batches succeeded",
-        sanitize_for_log(folder_name),
+        sanitized_folder_name,
         successful_batches,
         total_batches,
     )
     return False
+
+
+def push_rules(
+    ctx: SyncContext,
+    folder_name: str,
+    folder_id: str,
+    action: RuleAction,
+    hostnames: list[str],
+) -> bool:
+    """
+    Pushes rules to a folder in batches, filtering duplicates and invalid rules.
+
+    Deduplicates input, validates rules against _ALLOWED_RULE_CHARS, and sends batches
+    in parallel for optimal performance. Updates ctx.existing_rules set with newly
+    added rules. Returns True if all batches succeed.
+    """
+    if not hostnames:
+        log.info("Folder %s - no rules to push", sanitize_for_log(folder_name))
+        return True
+
+    filtered_hostnames = _filter_rules_for_folder(
+        ctx.existing_rules, hostnames, folder_name
+    )
+
+    if not filtered_hostnames:
+        log.info(
+            f"Folder {sanitize_for_log(folder_name)} - no new rules to push after filtering duplicates"
+        )
+        return True
+
+    return _push_rule_batches(
+        ctx,
+        folder_name,
+        folder_id,
+        action,
+        filtered_hostnames,
+    )
 
 
 def _process_single_folder(
@@ -2369,6 +2447,176 @@ def _process_single_folder(
 # --------------------------------------------------------------------------- #
 # 4. Main workflow
 # --------------------------------------------------------------------------- #
+def _fetch_all_folder_data(folder_urls: Sequence[str]) -> list[FolderData] | None:
+    """Fetches folder data for all URLs in parallel."""
+    folder_data_list: list[FolderData] = []
+
+    # OPTIMIZATION: Move validation inside the thread pool to parallelize DNS lookups.
+    # Previously, sequential validation blocked the main thread.
+    def _fetch_if_valid(url: str):
+        # Optimization: If we already have the content in cache, return it directly.
+        # The content was validated at the time of fetch (warm_up_cache).
+        # Read directly from cache to avoid calling fetch_folder_data while holding lock.
+        with _cache_lock:
+            if (cached := _cache.get(url)) is not None:
+                return cached
+
+        if validate_folder_url(url):
+            return fetch_folder_data(url)
+        return None
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        future_to_url = {
+            executor.submit(_fetch_if_valid, url): url for url in folder_urls
+        }
+
+        for future in concurrent.futures.as_completed(future_to_url):
+            url = future_to_url[future]
+            try:
+                result = future.result()
+                if result:
+                    folder_data_list.append(result)
+            except (httpx.HTTPError, KeyError, ValueError) as e:
+                log.error(
+                    f"Failed to fetch folder data from {sanitize_for_log(url)}: {sanitize_for_log(e)}"
+                )
+                continue
+
+    if not folder_data_list:
+        log.error("No valid folder data found")
+        hint_message = (
+            "💡 Hint: Check your --folder-url flags or your config file "
+            "(see --config, config.yaml, or config.yml) for typos or unreachable URLs"
+        )
+        if USE_COLORS:
+            log.warning(f"{Colors.DIM}{hint_message}{Colors.ENDC}")
+        else:
+            log.warning(hint_message)
+        return None
+
+    return folder_data_list
+
+
+def _build_plan_entry(profile_id: str, folder_data_list: list[FolderData]) -> PlanEntry:
+    """Builds the plan entry for a given profile."""
+    plan_entry: PlanEntry = {"profile": profile_id, "folders": []}
+    for folder_data in folder_data_list:
+        grp = folder_data["group"]
+        name = grp["group"].strip()
+
+        if "rule_groups" in folder_data:
+            # Multi-action format
+            total_rules = sum(
+                len(rg.get("rules", [])) for rg in folder_data["rule_groups"]
+            )
+            plan_entry["folders"].append(
+                {
+                    "name": name,
+                    "rules": total_rules,
+                    "rule_groups": [
+                        {
+                            "rules": len(rg.get("rules", [])),
+                            "action": rg.get("action", {}).get("do"),
+                            "status": rg.get("action", {}).get("status"),
+                        }
+                        for rg in folder_data["rule_groups"]
+                    ],
+                }
+            )
+        else:
+            # Legacy single-action format
+            # OPTIMIZATION: Count valid rules via generator to avoid an intermediate list and lower peak memory use.
+            rules_count = sum(1 for r in folder_data.get("rules", []) if r.get("PK"))
+            plan_entry["folders"].append(
+                {
+                    "name": name,
+                    "rules": rules_count,
+                    "action": grp.get("action", {}).get("do"),
+                    "status": grp.get("action", {}).get("status"),
+                }
+            )
+    return plan_entry
+
+
+def _prepare_folders_and_rules(
+    client: httpx.Client,
+    profile_id: str,
+    folder_data_list: list[FolderData],
+    no_delete: bool,
+    shared_executor: concurrent.futures.ThreadPoolExecutor,
+) -> tuple[dict[str, str] | None, set[str]]:
+    """
+    Verifies access, deletes old folders, and fetches existing rules in background.
+    """
+    # Verify access and list existing folders in one request
+    existing_folders = verify_access_and_get_folders(client, profile_id)
+    if existing_folders is None:
+        return None, set()
+
+    # Identify folders to delete and folders to keep (scan)
+    folders_to_delete = []
+    folders_to_scan = existing_folders.copy()
+
+    if not no_delete:
+        for folder_data in folder_data_list:
+            name = folder_data["group"]["group"].strip()
+            if name in existing_folders:
+                folders_to_delete.append((name, existing_folders[name]))
+                # OPTIMIZATION: Use dict.pop() to avoid a redundant dictionary lookup.
+                folders_to_scan.pop(name, None)
+
+    # Start fetching rules from kept folders in background (parallel to deletions)
+    existing_rules_future = shared_executor.submit(
+        get_all_existing_rules, client, profile_id, folders_to_scan
+    )
+
+    if not no_delete:
+        deletion_occurred = False
+        if folders_to_delete:
+            # Parallel delete to speed up the "clean slate" phase
+            # Use shared_executor (3 workers)
+            future_to_name = {
+                shared_executor.submit(
+                    delete_folder, client, profile_id, name, folder_id
+                ): name
+                for name, folder_id in folders_to_delete
+            }
+
+            for future in concurrent.futures.as_completed(future_to_name):
+                name = future_to_name[future]
+                try:
+                    if future.result():
+                        del existing_folders[name]
+                        deletion_occurred = True
+                except Exception as exc:
+                    # Sanitize both name and exception to prevent log injection
+                    log.error(
+                        "Failed to delete folder %s: %s",
+                        sanitize_for_log(name),
+                        sanitize_for_log(exc),
+                    )
+
+        # CRITICAL FIX: Increased wait time for massive folders to clear
+        if deletion_occurred:
+            if not USE_COLORS:
+                log.info(
+                    "Waiting 60s for deletions to propagate (prevents 'Badware Hoster' zombie state)..."
+                )
+            countdown_timer(60, "Waiting for deletions to propagate")
+
+    # Retrieve result from background task
+    # If deletion occurred, we effectively used the wait time to fetch rules!
+    try:
+        existing_rules = existing_rules_future.result()
+    except Exception as e:
+        log.error(
+            f"Failed to fetch existing rules in background: {sanitize_for_log(e)}"
+        )
+        existing_rules = set()
+
+    return existing_folders, existing_rules
+
+
 def sync_profile(
     profile_id: str,
     folder_urls: Sequence[str],
@@ -2390,91 +2638,12 @@ def sync_profile(
     validate_hostname.cache_clear()
 
     try:
-        # Fetch all folder data first
-        folder_data_list = []
-
-        # OPTIMIZATION: Move validation inside the thread pool to parallelize DNS lookups.
-        # Previously, sequential validation blocked the main thread.
-        def _fetch_if_valid(url: str):
-            # Optimization: If we already have the content in cache, return it directly.
-            # The content was validated at the time of fetch (warm_up_cache).
-            # Read directly from cache to avoid calling fetch_folder_data while holding lock.
-            with _cache_lock:
-                if (cached := _cache.get(url)) is not None:
-                    return cached
-
-            if validate_folder_url(url):
-                return fetch_folder_data(url)
-            return None
-
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            future_to_url = {
-                executor.submit(_fetch_if_valid, url): url for url in folder_urls
-            }
-
-            for future in concurrent.futures.as_completed(future_to_url):
-                url = future_to_url[future]
-                try:
-                    result = future.result()
-                    if result:
-                        folder_data_list.append(result)
-                except (httpx.HTTPError, KeyError, ValueError) as e:
-                    log.error(
-                        f"Failed to fetch folder data from {sanitize_for_log(url)}: {sanitize_for_log(e)}"
-                    )
-                    continue
-
-        if not folder_data_list:
-            log.error("No valid folder data found")
-            hint_message = (
-                "💡 Hint: Check your --folder-url flags or your config file "
-                "(see --config, config.yaml, or config.yml) for typos or unreachable URLs"
-            )
-            if USE_COLORS:
-                log.warning(f"{Colors.DIM}{hint_message}{Colors.ENDC}")
-            else:
-                log.warning(hint_message)
+        folder_data_list = _fetch_all_folder_data(folder_urls)
+        if folder_data_list is None:
             return False
 
         # Build plan entries
-        plan_entry: PlanEntry = {"profile": profile_id, "folders": []}
-        for folder_data in folder_data_list:
-            grp = folder_data["group"]
-            name = grp["group"].strip()
-
-            if "rule_groups" in folder_data:
-                # Multi-action format
-                total_rules = sum(
-                    len(rg.get("rules", [])) for rg in folder_data["rule_groups"]
-                )
-                plan_entry["folders"].append(
-                    {
-                        "name": name,
-                        "rules": total_rules,
-                        "rule_groups": [
-                            {
-                                "rules": len(rg.get("rules", [])),
-                                "action": rg.get("action", {}).get("do"),
-                                "status": rg.get("action", {}).get("status"),
-                            }
-                            for rg in folder_data["rule_groups"]
-                        ],
-                    }
-                )
-            else:
-                # Legacy single-action format
-                # OPTIMIZATION: Count valid rules via generator to avoid an intermediate list and lower peak memory use.
-                rules_count = sum(
-                    1 for r in folder_data.get("rules", []) if r.get("PK")
-                )
-                plan_entry["folders"].append(
-                    {
-                        "name": name,
-                        "rules": rules_count,
-                        "action": grp.get("action", {}).get("do"),
-                        "status": grp.get("action", {}).get("status"),
-                    }
-                )
+        plan_entry = _build_plan_entry(profile_id, folder_data_list)
 
         if plan_accumulator is not None:
             plan_accumulator.append(plan_entry)
@@ -2499,71 +2668,12 @@ def sync_profile(
             ) as shared_executor,
             _api_client() as client,
         ):
-            # Verify access and list existing folders in one request
-            existing_folders = verify_access_and_get_folders(client, profile_id)
-            if existing_folders is None:
-                return False
-
-            # Identify folders to delete and folders to keep (scan)
-            folders_to_delete = []
-            folders_to_scan = existing_folders.copy()
-
-            if not no_delete:
-                for folder_data in folder_data_list:
-                    name = folder_data["group"]["group"].strip()
-                    if name in existing_folders:
-                        folders_to_delete.append((name, existing_folders[name]))
-                        # OPTIMIZATION: Use dict.pop() to avoid a redundant dictionary lookup.
-                        folders_to_scan.pop(name, None)
-
-            # Start fetching rules from kept folders in background (parallel to deletions)
-            existing_rules_future = shared_executor.submit(
-                get_all_existing_rules, client, profile_id, folders_to_scan
+            existing_folders_and_rules = _prepare_folders_and_rules(
+                client, profile_id, folder_data_list, no_delete, shared_executor
             )
-
-            if not no_delete:
-                deletion_occurred = False
-                if folders_to_delete:
-                    # Parallel delete to speed up the "clean slate" phase
-                    # Use shared_executor (3 workers)
-                    future_to_name = {
-                        shared_executor.submit(
-                            delete_folder, client, profile_id, name, folder_id
-                        ): name
-                        for name, folder_id in folders_to_delete
-                    }
-
-                    for future in concurrent.futures.as_completed(future_to_name):
-                        name = future_to_name[future]
-                        try:
-                            if future.result():
-                                del existing_folders[name]
-                                deletion_occurred = True
-                        except Exception as exc:
-                            # Sanitize both name and exception to prevent log injection
-                            log.error(
-                                "Failed to delete folder %s: %s",
-                                sanitize_for_log(name),
-                                sanitize_for_log(exc),
-                            )
-
-                # CRITICAL FIX: Increased wait time for massive folders to clear
-                if deletion_occurred:
-                    if not USE_COLORS:
-                        log.info(
-                            "Waiting 60s for deletions to propagate (prevents 'Badware Hoster' zombie state)..."
-                        )
-                    countdown_timer(60, "Waiting for deletions to propagate")
-
-            # Retrieve result from background task
-            # If deletion occurred, we effectively used the wait time to fetch rules!
-            try:
-                existing_rules = existing_rules_future.result()
-            except Exception as e:
-                log.error(
-                    f"Failed to fetch existing rules in background: {sanitize_for_log(e)}"
-                )
-                existing_rules = set()
+            if existing_folders_and_rules[0] is None:
+                return False
+            existing_folders, existing_rules = existing_folders_and_rules
 
             ctx = SyncContext(
                 profile_id=profile_id,
@@ -2596,7 +2706,7 @@ def sync_profile(
                         )
 
         log.info(
-            f"Sync complete: {success_count}/{len(folder_data_list)} folders processed successfully"
+            f"Sync complete: {success_count}/{len(folder_data_list)} {pluralize(len(folder_data_list), 'folder')} processed successfully"
         )
         return success_count == len(folder_data_list)
 
@@ -2729,8 +2839,13 @@ def print_summary_table(
             f"\n{('DRY RUN' if dry_run else 'SYNC') + ' SUMMARY':^{len(header)}}\n{sep}\n{header}\n{sep}"
         )
         for r in sync_results:
+            display_profile = (
+                "(Unspecified)"
+                if r["profile"] == "dry-run-placeholder"
+                else r["profile"]
+            )
             print(
-                f"{r['profile']:<{w[0]}} | {r['folders']:>{w[1]}} | {r['rules']:>{w[2]},} | {r['duration']:>{w[3] - 1}.1f}s | {r['status_label']:<{w[4]}}"
+                f"{display_profile:<{w[0]}} | {r['folders']:>{w[1]}} | {r['rules']:>{w[2]},} | {r['duration']:>{w[3] - 1}.1f}s | {r['status_label']:<{w[4]}}"
             )
         print(
             f"{sep}\n{'TOTAL':<{w[0]}} | {t_f:>{w[1]}} | {t_r:>{w[2]},} | {t_d:>{w[3] - 1}.1f}s | {t_status:<{w[4]}}\n{sep}\n"
@@ -3160,8 +3275,13 @@ def main() -> None:
         s_rules = f"{res['rules']:,}"
         s_duration = f"{res['duration']:.1f}s"
 
+        display_profile = (
+            "(Unspecified)"
+            if res["profile"] == "dry-run-placeholder"
+            else res["profile"]
+        )
         print(
-            f"{Box.V} {res['profile']:<{w_profile}} "
+            f"{Box.V} {display_profile:<{w_profile}} "
             f"{Box.V} {s_folders:>{w_folders}} "
             f"{Box.V} {s_rules:>{w_rules}} "
             f"{Box.V} {s_duration:>{w_duration}} "
