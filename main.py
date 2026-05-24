@@ -2709,7 +2709,7 @@ def sync_profile(
                         )
 
         log.info(
-            f"Sync complete: {success_count}/{len(folder_data_list)} {pluralize(len(folder_data_list), 'folder')} processed successfully"
+            f"Sync complete: {success_count}/{len(folder_data_list)} folders processed successfully"
         )
         return success_count == len(folder_data_list)
 
