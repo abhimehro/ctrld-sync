@@ -262,8 +262,10 @@
 
 **Merged pull requests:**
 
+- 🛡️ Sentinel: \[MEDIUM\] Fix log injection via HTTPStatusError \(salvages \#835\) [\#843](https://github.com/abhimehro/ctrld-sync/pull/843) ([abhimehro](https://github.com/abhimehro))
 - Revert "🛡️ Sentinel: \[MEDIUM\] Fix log injection via HTTPStatusError" [\#842](https://github.com/abhimehro/ctrld-sync/pull/842) ([abhimehro](https://github.com/abhimehro))
 - fix\(api\): optimize rule filtering to resolve benchmark regression [\#841](https://github.com/abhimehro/ctrld-sync/pull/841) ([abhimehro](https://github.com/abhimehro))
+- 🎨 Palette: Fix dynamic pluralization on folder count [\#838](https://github.com/abhimehro/ctrld-sync/pull/838) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Add chunk\_size to fallback HTTP streaming [\#837](https://github.com/abhimehro/ctrld-sync/pull/837) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[MEDIUM\] Fix log injection via HTTPStatusError [\#835](https://github.com/abhimehro/ctrld-sync/pull/835) ([abhimehro](https://github.com/abhimehro))
 - chore: Jules Daily QA & Agentic Review [\#833](https://github.com/abhimehro/ctrld-sync/pull/833) ([abhimehro](https://github.com/abhimehro))
@@ -291,6 +293,7 @@
 - 🧹 Refactor: Simplify create\_folder logic [\#793](https://github.com/abhimehro/ctrld-sync/pull/793) ([abhimehro](https://github.com/abhimehro))
 - 🧹 Refactor: Extract helper functions from sync\_profile [\#792](https://github.com/abhimehro/ctrld-sync/pull/792) ([abhimehro](https://github.com/abhimehro))
 - 🧹 Refactor: extract logic from fix\_env [\#791](https://github.com/abhimehro/ctrld-sync/pull/791) ([abhimehro](https://github.com/abhimehro))
+- 🧹 Refactor print\_plan\_details to improve maintainability [\#789](https://github.com/abhimehro/ctrld-sync/pull/789) ([abhimehro](https://github.com/abhimehro))
 - chore: auto-format fix\_env.py [\#785](https://github.com/abhimehro/ctrld-sync/pull/785) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[security improvement\] Sanitize Content-Type in ValueError messages [\#783](https://github.com/abhimehro/ctrld-sync/pull/783) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Apply pluralize helper to log messages [\#782](https://github.com/abhimehro/ctrld-sync/pull/782) ([abhimehro](https://github.com/abhimehro))
