@@ -584,7 +584,7 @@ def _format_action_text(label: str, icon: str, color: str) -> str:
     return f"({icon} {label})"
 
 
-def _get_action_text(folder: dict[str, Any]) -> str:
+def _get_action_text(folder: PlanFolderEntry) -> str:
     """Determine the action label (Block/Allow/Mixed) for a given folder."""
     action_val = None
 
