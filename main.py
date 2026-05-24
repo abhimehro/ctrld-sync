@@ -1567,7 +1567,8 @@ def _gh_get(url: str) -> dict:
                     # 2. Stream and check actual size
                     chunks = []
                     current_size = 0
-                    for chunk in r_retry.iter_bytes():
+                    # Optimization: Use 16KB chunks to reduce loop overhead/appends for large files
+                    for chunk in r_retry.iter_bytes(chunk_size=16 * 1024):
                         current_size += len(chunk)
                         if current_size > MAX_RESPONSE_SIZE:
                             raise ValueError(
@@ -2197,13 +2198,15 @@ def _filter_rules_for_folder(
     """
     original_count = len(hostnames)
 
-    # Optimization 1: Deduplicate and filter existing rules in a C-speed dict comprehension.
+    # Optimization 1: Deduplicate and filter existing rules efficiently.
     if not existing_rules:
         unique_hostnames_dict = dict.fromkeys(hostnames)
     else:
-        unique_hostnames_dict = {
-            h: None for h in dict.fromkeys(hostnames) if h not in existing_rules
-        }
+        # Filter first using a list comprehension (C-speed), then deduplicate with dict.fromkeys.
+        # This prevents redundant dictionary insertions for rules already in existing_rules.
+        unique_hostnames_dict = dict.fromkeys(
+            [h for h in hostnames if h not in existing_rules]
+        )
 
     # Optimization 2: Inline method references for hot loop performance
     is_safe = _ALLOWED_RULE_CHARS.issuperset
