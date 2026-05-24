@@ -263,6 +263,7 @@
 **Merged pull requests:**
 
 - Revert "🛡️ Sentinel: \[MEDIUM\] Fix log injection via HTTPStatusError" [\#842](https://github.com/abhimehro/ctrld-sync/pull/842) ([abhimehro](https://github.com/abhimehro))
+- fix\(api\): optimize rule filtering to resolve benchmark regression [\#841](https://github.com/abhimehro/ctrld-sync/pull/841) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Add chunk\_size to fallback HTTP streaming [\#837](https://github.com/abhimehro/ctrld-sync/pull/837) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[MEDIUM\] Fix log injection via HTTPStatusError [\#835](https://github.com/abhimehro/ctrld-sync/pull/835) ([abhimehro](https://github.com/abhimehro))
 - chore: Jules Daily QA & Agentic Review [\#833](https://github.com/abhimehro/ctrld-sync/pull/833) ([abhimehro](https://github.com/abhimehro))
