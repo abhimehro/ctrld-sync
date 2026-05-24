@@ -577,6 +577,38 @@ def pluralize(count: int, singular: str, plural: str | None = None) -> str:
     return singular if count == 1 else plural
 
 
+def _format_action_text(label: str, icon: str, color: str) -> str:
+    """Format action label with appropriate color and icon based on USE_COLORS."""
+    if USE_COLORS:
+        return f"({color}{icon} {label}{Colors.ENDC})"
+    return f"({icon} {label})"
+
+
+def _get_action_text(folder: PlanFolderEntry) -> str:
+    """Determine the action label (Block/Allow/Mixed) for a given folder."""
+    action_val = None
+
+    # Check for multiple rule groups first
+    if "rule_groups" in folder and folder["rule_groups"]:
+        actions = {rg.get("action") for rg in folder["rule_groups"]}
+        if len(actions) > 1:
+            return _format_action_text("Mixed", "⚠️ ", Colors.WARNING)
+        action_val = next(iter(actions))
+
+    # Fallback to single top-level action if rule_groups didn't yield a
+    # recognized action (e.g., empty, missing, or None values).
+    if action_val not in (0, 1) and "action" in folder:
+        action_val = folder["action"]
+
+    if action_val == 0:
+        return _format_action_text("Block", "⛔", Colors.FAIL)
+    if action_val == 1:
+        return _format_action_text("Allow", "✅", Colors.GREEN)
+
+    # Default fallback
+    return _format_action_text("Block (Default)", "⛔", Colors.FAIL)
+
+
 def print_plan_details(plan_entry: PlanEntry) -> None:
     """Pretty-print the folder-level breakdown during a dry-run."""
     profile = sanitize_for_log(plan_entry.get("profile", "unknown"))
@@ -612,71 +644,7 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
         rules_count = folder.get("rules", 0)
         formatted_rules = f"{rules_count:,}"
 
-        # Determine action (Block/Allow)
-        action_text = ""
-        action_color = ""
-        action_label = ""
-
-        # Check for multiple rule groups first
-        if "rule_groups" in folder and folder["rule_groups"]:
-            actions = {rg.get("action") for rg in folder["rule_groups"]}
-            if len(actions) > 1:
-                action_label = "Mixed"
-                action_color = Colors.WARNING
-                action_text = (
-                    f"({action_color}⚠️  {action_label}{Colors.ENDC})"
-                    if USE_COLORS
-                    else f"(⚠️  {action_label})"
-                )
-            else:
-                # All groups have same action
-                action_val = next(iter(actions))
-                if action_val == 0:
-                    action_label = "Block"
-                    action_color = Colors.FAIL
-                    action_text = (
-                        f"({action_color}⛔ {action_label}{Colors.ENDC})"
-                        if USE_COLORS
-                        else f"(⛔ {action_label})"
-                    )
-                elif action_val == 1:
-                    action_label = "Allow"
-                    action_color = Colors.GREEN
-                    action_text = (
-                        f"({action_color}✅ {action_label}{Colors.ENDC})"
-                        if USE_COLORS
-                        else f"(✅ {action_label})"
-                    )
-
-        # Fallback to single action if not set
-        if not action_text and "action" in folder:
-            action_val = folder["action"]
-            if action_val == 0:
-                action_label = "Block"
-                action_color = Colors.FAIL
-                action_text = (
-                    f"({action_color}⛔ {action_label}{Colors.ENDC})"
-                    if USE_COLORS
-                    else f"(⛔ {action_label})"
-                )
-            elif action_val == 1:
-                action_label = "Allow"
-                action_color = Colors.GREEN
-                action_text = (
-                    f"({action_color}✅ {action_label}{Colors.ENDC})"
-                    if USE_COLORS
-                    else f"(✅ {action_label})"
-                )
-
-        # If action is still completely missing/unknown, default to Block (Default) for clearer UX
-        if not action_text:
-            action_label = "Block (Default)"
-            action_color = Colors.FAIL
-            action_text = (
-                f"({action_color}⛔ {action_label}{Colors.ENDC})"
-                if USE_COLORS
-                else f"(⛔ {action_label})"
-            )
+        action_text = _get_action_text(folder)
 
         if USE_COLORS:
             print(
@@ -2741,7 +2709,7 @@ def sync_profile(
                         )
 
         log.info(
-            f"Sync complete: {success_count}/{len(folder_data_list)} {pluralize(len(folder_data_list), 'folder')} processed successfully"
+            f"Sync complete: {success_count}/{len(folder_data_list)} folders processed successfully"
         )
         return success_count == len(folder_data_list)
 
