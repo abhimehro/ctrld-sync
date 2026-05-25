@@ -30,6 +30,7 @@
 **Security fixes:**
 
 - 🛡️ \[Medium\] Script injection via workflow\_dispatch input in copilot-setup-steps.yml \(CWE-94\) [\#828](https://github.com/abhimehro/ctrld-sync/issues/828)
+- \[Security\] Scheduled AppSec Review — 2026-05-12: no validated medium+ findings [\#786](https://github.com/abhimehro/ctrld-sync/issues/786)
 - \[Security\] Validated HIGH: Workflow command injection via AI-inference output in summary.yml [\#767](https://github.com/abhimehro/ctrld-sync/issues/767)
 - \[Code Quality\] Fix SECURITY.md placeholder content with accurate version info [\#358](https://github.com/abhimehro/ctrld-sync/issues/358)
 - \[Code Quality\] Update SECURITY.md with accurate version information [\#348](https://github.com/abhimehro/ctrld-sync/issues/348)
@@ -44,6 +45,7 @@
 **Closed issues:**
 
 - Daily QA Check - ctrld-sync - 2026-05-24 [\#840](https://github.com/abhimehro/ctrld-sync/issues/840)
+- \[repo-automation\] Weekly Retrospective - 2026-05-24 [\#839](https://github.com/abhimehro/ctrld-sync/issues/839)
 - Daily QA Check - ctrld-sync - 2026-05-23 [\#836](https://github.com/abhimehro/ctrld-sync/issues/836)
 - Daily QA Check - ctrld-sync - 2026-05-22 [\#834](https://github.com/abhimehro/ctrld-sync/issues/834)
 - Daily QA Check - ctrld-sync - 2026-05-21 [\#832](https://github.com/abhimehro/ctrld-sync/issues/832)
@@ -262,6 +264,7 @@
 
 **Merged pull requests:**
 
+- 🎨 Palette: Intercept dry-run-placeholder in colored table [\#844](https://github.com/abhimehro/ctrld-sync/pull/844) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[MEDIUM\] Fix log injection via HTTPStatusError \(salvages \#835\) [\#843](https://github.com/abhimehro/ctrld-sync/pull/843) ([abhimehro](https://github.com/abhimehro))
 - Revert "🛡️ Sentinel: \[MEDIUM\] Fix log injection via HTTPStatusError" [\#842](https://github.com/abhimehro/ctrld-sync/pull/842) ([abhimehro](https://github.com/abhimehro))
 - fix\(api\): optimize rule filtering to resolve benchmark regression [\#841](https://github.com/abhimehro/ctrld-sync/pull/841) ([abhimehro](https://github.com/abhimehro))
