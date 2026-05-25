@@ -2872,10 +2872,13 @@ def print_summary_table(
 
     for r in sync_results:
         sc = Colors.GREEN if r["success"] else Colors.FAIL
+        display_profile = (
+            "(Unspecified)" if r["profile"] == "dry-run-placeholder" else r["profile"]
+        )
         print(
             print_row(
                 [
-                    r["profile"],
+                    display_profile,
                     str(r["folders"]),
                     f"{r['rules']:,}",
                     f"{r['duration']:.1f}s",
