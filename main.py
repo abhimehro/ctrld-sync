@@ -2170,10 +2170,10 @@ def _filter_rules_for_folder(
     if not existing_rules:
         unique_hostnames_dict = dict.fromkeys(hostnames)
     else:
-        # Filter first using a list comprehension (C-speed), then deduplicate with dict.fromkeys.
-        # This prevents redundant dictionary insertions for rules already in existing_rules.
+        # Deduplicate first using dict.fromkeys to minimize redundant hash map lookups,
+        # then filter using a list comprehension (C-speed).
         unique_hostnames_dict = dict.fromkeys(
-            [h for h in hostnames if h not in existing_rules]
+            [h for h in dict.fromkeys(hostnames) if h not in existing_rules]
         )
 
     # Optimization 2: Inline method references for hot loop performance
