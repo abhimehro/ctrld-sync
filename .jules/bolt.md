@@ -7,3 +7,6 @@
 ## 2026-05-14 - Extracting functions to improve readability and complexity score
 **Learning:** Monolithic functions such as `push_rules` that handle deduplication, API communication, and batch parallelization increase the cyclomatic complexity and trigger "Brain Method" warnings on tools like CodeScene.
 **Action:** Always decompose monolithic logic into small, modular private helper functions (e.g., `_filter_rules_for_folder`, `_push_rule_batches`) and keep the parent function strictly as an orchestrator.
+## 2025-05-26 - itertools.filterfalse vs List Comprehension
+**Learning:** When filtering a list against a large set and deduplicating the result, using a list comprehension (`[h for h in lst if h not in existing_set]`) followed by `dict.fromkeys()` materializes a large intermediate list. Avoid deduplicating the list *before* filtering, as it degrades performance for inputs with zero duplicates. Instead, use `dict.fromkeys(itertools.filterfalse(existing_set.__contains__, lst))` to achieve C-speed filtering while piping directly into the dictionary, minimizing memory footprint and redundant hash insertions.
+**Action:** Use `dict.fromkeys(itertools.filterfalse(existing_set.__contains__, lst))` when filtering and deduplicating lists against large sets to avoid materializing large intermediate lists.

@@ -20,6 +20,7 @@ import concurrent.futures
 import contextlib
 import getpass
 import ipaddress
+import itertools
 import json
 import logging
 import os
@@ -2170,10 +2171,11 @@ def _filter_rules_for_folder(
     if not existing_rules:
         unique_hostnames_dict = dict.fromkeys(hostnames)
     else:
-        # Filter first using a list comprehension (C-speed), then deduplicate with dict.fromkeys.
-        # This prevents redundant dictionary insertions for rules already in existing_rules.
+        # Filter first using itertools.filterfalse (C-speed), then deduplicate with dict.fromkeys.
+        # This prevents redundant dictionary insertions for rules already in existing_rules,
+        # and avoids materializing a large intermediate list before deduplication.
         unique_hostnames_dict = dict.fromkeys(
-            [h for h in hostnames if h not in existing_rules]
+            itertools.filterfalse(existing_rules.__contains__, hostnames)
         )
 
     # Optimization 2: Inline method references for hot loop performance
