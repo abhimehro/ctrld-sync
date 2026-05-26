@@ -44,6 +44,8 @@
 
 **Closed issues:**
 
+- Daily QA Check - ctrld-sync - 2026-05-26 [\#848](https://github.com/abhimehro/ctrld-sync/issues/848)
+- Daily QA Check - ctrld-sync - 2026-05-25 [\#845](https://github.com/abhimehro/ctrld-sync/issues/845)
 - Daily QA Check - ctrld-sync - 2026-05-24 [\#840](https://github.com/abhimehro/ctrld-sync/issues/840)
 - \[repo-automation\] Weekly Retrospective - 2026-05-24 [\#839](https://github.com/abhimehro/ctrld-sync/issues/839)
 - Daily QA Check - ctrld-sync - 2026-05-23 [\#836](https://github.com/abhimehro/ctrld-sync/issues/836)
@@ -264,6 +266,7 @@
 
 **Merged pull requests:**
 
+- ⚡ Bolt: Optimize \_filter\_rules\_for\_folder with itertools.filterfalse [\#849](https://github.com/abhimehro/ctrld-sync/pull/849) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Intercept dry-run-placeholder in colored table [\#844](https://github.com/abhimehro/ctrld-sync/pull/844) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[MEDIUM\] Fix log injection via HTTPStatusError \(salvages \#835\) [\#843](https://github.com/abhimehro/ctrld-sync/pull/843) ([abhimehro](https://github.com/abhimehro))
 - Revert "🛡️ Sentinel: \[MEDIUM\] Fix log injection via HTTPStatusError" [\#842](https://github.com/abhimehro/ctrld-sync/pull/842) ([abhimehro](https://github.com/abhimehro))
