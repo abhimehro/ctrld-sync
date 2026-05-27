@@ -44,6 +44,7 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-05-27 [\#850](https://github.com/abhimehro/ctrld-sync/issues/850)
 - Daily QA Check - ctrld-sync - 2026-05-26 [\#848](https://github.com/abhimehro/ctrld-sync/issues/848)
 - Daily QA Check - ctrld-sync - 2026-05-25 [\#845](https://github.com/abhimehro/ctrld-sync/issues/845)
 - Daily QA Check - ctrld-sync - 2026-05-24 [\#840](https://github.com/abhimehro/ctrld-sync/issues/840)
@@ -266,6 +267,7 @@
 
 **Merged pull requests:**
 
+- 🎨 Palette: Add dynamic pluralization for folder sync status [\#851](https://github.com/abhimehro/ctrld-sync/pull/851) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Optimize \_filter\_rules\_for\_folder with itertools.filterfalse [\#849](https://github.com/abhimehro/ctrld-sync/pull/849) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Intercept dry-run-placeholder in colored table [\#844](https://github.com/abhimehro/ctrld-sync/pull/844) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[MEDIUM\] Fix log injection via HTTPStatusError \(salvages \#835\) [\#843](https://github.com/abhimehro/ctrld-sync/pull/843) ([abhimehro](https://github.com/abhimehro))
