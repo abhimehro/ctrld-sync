@@ -455,8 +455,7 @@ def test_interactive_input_extracts_id(monkeypatch, capsys):
     monkeypatch.setattr(m, "warm_up_cache", MagicMock())
 
     # Run main, expect clean exit
-    with pytest.raises(SystemExit):
-        m.main()
+    assert m.main() is False
 
     # Verify sync_profile called with extracted ID
     args, _ = mock_sync.call_args

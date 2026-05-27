@@ -2768,21 +2768,21 @@ def _get_interactive_restart_confirmation() -> bool:
         prompt = prompt_reprompt
 
 
-def prompt_for_interactive_restart(profile_ids: list[str]) -> None:
+def prompt_for_interactive_restart(profile_ids: list[str]) -> bool:
     """
     Prompts the user to restart the script in live mode (after a successful dry run).
 
-    If the user confirms, the script restarts itself using os.execv, preserving
-    all original arguments (except --dry-run) and environment variables.
+    If the user confirms, the function returns True, and sys.argv is modified in-place
+    to remove --dry-run so the next loop iteration performs a live sync.
 
     This function only runs if sys.stdin is a TTY (interactive session).
     """
     if not sys.stdin.isatty():
-        return
+        return False
 
     try:
         if not _get_interactive_restart_confirmation():
-            return
+            return False
 
         # Prepare environment for the new process
         # Pass the current token to avoid re-prompting if it was entered interactively
@@ -2801,12 +2801,15 @@ def prompt_for_interactive_restart(profile_ids: list[str]) -> None:
             new_argv.extend(["--profiles", ",".join(profile_ids)])
 
         print(f"\n{Colors.GREEN}🔄 Restarting in live mode...{Colors.ENDC}")
-        # Security: The input to execv is derived from trusted sys.argv and validated profile_ids.
-        # It restarts the same script with the same python interpreter.
-        os.execv(sys.executable, new_argv)  # nosec B606
+        # Modifying sys.argv in-place allows the main loop to pick up the new arguments
+        # without invoking os.execv, eliminating command injection risks entirely.
+        sys.argv.clear()
+        sys.argv.extend(new_argv)
+        return True
 
     except (KeyboardInterrupt, EOFError):
         print(f"\n{Colors.WARNING}⚠️  Cancelled.{Colors.ENDC}")
+        return False
 
 
 def print_line(left_char: str, mid_char: str, right_char: str, w: list[int]) -> str:
@@ -2991,7 +2994,7 @@ def make_col_separator(
     return left + mid.join(parts) + right
 
 
-def main() -> None:
+def main() -> bool:
     """
     Main entry point for Control D Sync.
 
@@ -3363,7 +3366,8 @@ def main() -> None:
                 print(f"   {cmd_str}")
 
             # Offer interactive restart if appropriate
-            prompt_for_interactive_restart(profile_ids)
+            if prompt_for_interactive_restart(profile_ids):
+                return True
 
         else:
             if USE_COLORS:
@@ -3448,8 +3452,15 @@ def main() -> None:
 
     total = len(profile_ids or ["dry-run-placeholder"])
     log.info(f"All profiles processed: {success_count}/{total} successful")
-    exit(0 if success_count == total else 1)
+    if success_count != total:
+        exit(1)
+    return False
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        while main():
+            pass
+    except KeyboardInterrupt:
+        print(f"\n{Colors.WARNING}⚠️  Cancelled by user.{Colors.ENDC}")
+        sys.exit(130)
