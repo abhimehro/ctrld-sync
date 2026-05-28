@@ -375,7 +375,7 @@ class TestPromptForInteractiveRestart:
             raise KeyboardInterrupt()
 
         monkeypatch.setattr("builtins.input", mock_input)
-        
+
 
 
 
@@ -396,7 +396,7 @@ class TestPromptForInteractiveRestart:
             monkeypatch.setattr("builtins.input", make_mock_input(cancel_input))
 
 
-    
+
 
             assert main.prompt_for_interactive_restart(["123"]) is False
             captured = capsys.readouterr()
@@ -421,12 +421,12 @@ class TestPromptForInteractiveRestart:
             return next(inputs)
 
         monkeypatch.setattr("builtins.input", mock_input)
-        
+
 
 
 
         result = main.prompt_for_interactive_restart(["123"])
-        
+
         captured = capsys.readouterr()
         assert "Unrecognized input" in captured.out
         if should_execute:
