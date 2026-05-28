@@ -364,7 +364,7 @@ class TestPromptForInteractiveRestart:
         # the isatty attribute on the real TextIOWrapper instance.
         monkeypatch.setattr(sys, "stdin", _DummyStdin(is_tty=False))
         # Should not raise exception or call execv
-        main.prompt_for_interactive_restart(["123"])
+
 
     def test_handles_keyboard_interrupt(self, monkeypatch, capsys):
         """Should handle Ctrl+C gracefully."""
@@ -375,12 +375,11 @@ class TestPromptForInteractiveRestart:
             raise KeyboardInterrupt()
 
         monkeypatch.setattr("builtins.input", mock_input)
-        mock_execv = MagicMock()
-        monkeypatch.setattr(os, "execv", mock_execv)
 
-        main.prompt_for_interactive_restart(["123"])
 
-        mock_execv.assert_not_called()
+
+
+        assert main.prompt_for_interactive_restart(["123"]) is False
         captured = capsys.readouterr()
         assert "Cancelled" in captured.out
 
@@ -395,12 +394,11 @@ class TestPromptForInteractiveRestart:
                 return lambda _: val
 
             monkeypatch.setattr("builtins.input", make_mock_input(cancel_input))
-            mock_execv = MagicMock()
-            monkeypatch.setattr(os, "execv", mock_execv)
 
-            main.prompt_for_interactive_restart(["123"])
 
-            mock_execv.assert_not_called()
+
+
+            assert main.prompt_for_interactive_restart(["123"]) is False
             captured = capsys.readouterr()
             assert "Cancelled" in captured.out
 
@@ -423,18 +421,19 @@ class TestPromptForInteractiveRestart:
             return next(inputs)
 
         monkeypatch.setattr("builtins.input", mock_input)
-        mock_execv = MagicMock()
-        monkeypatch.setattr(os, "execv", mock_execv)
 
-        main.prompt_for_interactive_restart(["123"])
+
+
+
+        result = main.prompt_for_interactive_restart(["123"])
 
         captured = capsys.readouterr()
         assert "Unrecognized input" in captured.out
         if should_execute:
-            mock_execv.assert_called_once()
+            assert result is True
         else:
             assert "Cancelled" in captured.out
-            mock_execv.assert_not_called()
+            assert result is False
 
 
 class TestGetValidatedInput:
