@@ -269,6 +269,7 @@
 **Merged pull requests:**
 
 - 🎨 Palette: Add delight to summary table titles [\#854](https://github.com/abhimehro/ctrld-sync/pull/854) ([abhimehro](https://github.com/abhimehro))
+- 🛡️ Sentinel: \[MEDIUM\] Fix command injection risk in restart logic [\#852](https://github.com/abhimehro/ctrld-sync/pull/852) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Add dynamic pluralization for folder sync status [\#851](https://github.com/abhimehro/ctrld-sync/pull/851) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Optimize \_filter\_rules\_for\_folder with itertools.filterfalse [\#849](https://github.com/abhimehro/ctrld-sync/pull/849) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Intercept dry-run-placeholder in colored table [\#844](https://github.com/abhimehro/ctrld-sync/pull/844) ([abhimehro](https://github.com/abhimehro))
