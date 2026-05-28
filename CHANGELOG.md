@@ -44,6 +44,7 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-05-28 [\#853](https://github.com/abhimehro/ctrld-sync/issues/853)
 - Daily QA & Agentic Review — 2026-05-27 [\#850](https://github.com/abhimehro/ctrld-sync/issues/850)
 - Daily QA Check - ctrld-sync - 2026-05-26 [\#848](https://github.com/abhimehro/ctrld-sync/issues/848)
 - Daily QA Check - ctrld-sync - 2026-05-25 [\#845](https://github.com/abhimehro/ctrld-sync/issues/845)
@@ -267,6 +268,7 @@
 
 **Merged pull requests:**
 
+- 🎨 Palette: Add delight to summary table titles [\#854](https://github.com/abhimehro/ctrld-sync/pull/854) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Add dynamic pluralization for folder sync status [\#851](https://github.com/abhimehro/ctrld-sync/pull/851) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Optimize \_filter\_rules\_for\_folder with itertools.filterfalse [\#849](https://github.com/abhimehro/ctrld-sync/pull/849) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Intercept dry-run-placeholder in colored table [\#844](https://github.com/abhimehro/ctrld-sync/pull/844) ([abhimehro](https://github.com/abhimehro))
