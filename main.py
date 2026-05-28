@@ -3240,7 +3240,7 @@ def main() -> None:
     dummy_sep = make_col_separator(Box.TL, Box.T, Box.TR, Box.H, col_widths)
     table_width = len(dummy_sep)
 
-    title_text = " DRY RUN SUMMARY " if args.dry_run else " SYNC SUMMARY "
+    title_text = " 🧪 DRY RUN SUMMARY " if args.dry_run else " 🚀 SYNC SUMMARY "
     title_color = Colors.CYAN if args.dry_run else Colors.HEADER
 
     # Top Border (Single Cell for Title)
