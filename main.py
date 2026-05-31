@@ -3161,7 +3161,10 @@ def main() -> bool:
                 )
                 continue
 
-            log.info("Starting sync for profile %s", profile_id)
+            display_profile = (
+                "(Unspecified)" if profile_id == "dry-run-placeholder" else profile_id
+            )
+            log.info("Starting sync for profile %s", display_profile)
             status = sync_profile(
                 profile_id,
                 folder_urls,

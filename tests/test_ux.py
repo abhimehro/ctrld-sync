@@ -365,7 +365,6 @@ class TestPromptForInteractiveRestart:
         monkeypatch.setattr(sys, "stdin", _DummyStdin(is_tty=False))
         # Should not raise exception or call execv
 
-
     def test_handles_keyboard_interrupt(self, monkeypatch, capsys):
         """Should handle Ctrl+C gracefully."""
         # Simulate running in an interactive TTY.
@@ -375,9 +374,6 @@ class TestPromptForInteractiveRestart:
             raise KeyboardInterrupt()
 
         monkeypatch.setattr("builtins.input", mock_input)
-
-
-
 
         assert main.prompt_for_interactive_restart(["123"]) is False
         captured = capsys.readouterr()
@@ -394,9 +390,6 @@ class TestPromptForInteractiveRestart:
                 return lambda _: val
 
             monkeypatch.setattr("builtins.input", make_mock_input(cancel_input))
-
-
-
 
             assert main.prompt_for_interactive_restart(["123"]) is False
             captured = capsys.readouterr()
@@ -421,9 +414,6 @@ class TestPromptForInteractiveRestart:
             return next(inputs)
 
         monkeypatch.setattr("builtins.input", mock_input)
-
-
-
 
         result = main.prompt_for_interactive_restart(["123"])
 
