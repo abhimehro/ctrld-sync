@@ -271,6 +271,7 @@
 
 **Merged pull requests:**
 
+- 🎨 Palette: Clean up unspecified profile log presentation [\#861](https://github.com/abhimehro/ctrld-sync/pull/861) ([abhimehro](https://github.com/abhimehro))
 - docs\(qa\): Daily QA notes 2026-05-31 — matrix healthy [\#860](https://github.com/abhimehro/ctrld-sync/pull/860) ([cursor[bot]](https://github.com/apps/cursor))
 - docs\(qa\): Daily QA notes for 2026-05-30 [\#857](https://github.com/abhimehro/ctrld-sync/pull/857) ([cursor[bot]](https://github.com/apps/cursor))
 - 🎨 Palette: Add delight to summary table titles [\#854](https://github.com/abhimehro/ctrld-sync/pull/854) ([abhimehro](https://github.com/abhimehro))
