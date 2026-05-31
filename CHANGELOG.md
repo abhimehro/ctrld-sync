@@ -44,6 +44,7 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-05-31 [\#859](https://github.com/abhimehro/ctrld-sync/issues/859)
 - Daily QA & Agentic Review — 2026-05-30 [\#856](https://github.com/abhimehro/ctrld-sync/issues/856)
 - Daily QA & Agentic Review — 2026-05-29 [\#855](https://github.com/abhimehro/ctrld-sync/issues/855)
 - Daily QA & Agentic Review — 2026-05-28 [\#853](https://github.com/abhimehro/ctrld-sync/issues/853)
@@ -270,6 +271,7 @@
 
 **Merged pull requests:**
 
+- docs\(qa\): Daily QA notes 2026-05-31 — matrix healthy [\#860](https://github.com/abhimehro/ctrld-sync/pull/860) ([cursor[bot]](https://github.com/apps/cursor))
 - docs\(qa\): Daily QA notes for 2026-05-30 [\#857](https://github.com/abhimehro/ctrld-sync/pull/857) ([cursor[bot]](https://github.com/apps/cursor))
 - 🎨 Palette: Add delight to summary table titles [\#854](https://github.com/abhimehro/ctrld-sync/pull/854) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[MEDIUM\] Fix command injection risk in restart logic [\#852](https://github.com/abhimehro/ctrld-sync/pull/852) ([abhimehro](https://github.com/abhimehro))
