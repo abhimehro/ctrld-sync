@@ -1,5 +1,6 @@
 # Control D Sync
 
+[![CodeScene general](https://codescene.io/images/analyzed-by-codescene-badge.svg)](https://codescene.io/projects/80823)
 [![Tests](https://github.com/abhimehro/ctrld-sync/actions/workflows/test.yml/badge.svg)](https://github.com/abhimehro/ctrld-sync/actions/workflows/test.yml)
 [![Sync](https://github.com/abhimehro/ctrld-sync/actions/workflows/sync.yml/badge.svg)](https://github.com/abhimehro/ctrld-sync/actions/workflows/sync.yml)
 [![Bandit](https://github.com/abhimehro/ctrld-sync/actions/workflows/bandit.yml/badge.svg)](https://github.com/abhimehro/ctrld-sync/actions/workflows/bandit.yml)
@@ -7,7 +8,6 @@
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-[![CodeScene general](https://codescene.io/images/analyzed-by-codescene-badge.svg)](https://codescene.io/projects/80823)
 [![CodeScene Average Code Health](https://codescene.io/projects/80823/status-badges/average-code-health)](https://codescene.io/projects/80823)
 [![CodeScene Hotspot Code Health](https://codescene.io/projects/80823/status-badges/hotspot-code-health)](https://codescene.io/projects/80823)
 [![CodeScene System Mastery](https://codescene.io/projects/80823/status-badges/system-mastery)](https://codescene.io/projects/80823)
