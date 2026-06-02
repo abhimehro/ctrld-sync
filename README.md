@@ -10,8 +10,8 @@
 
 [![CodeScene Average Code Health](https://codescene.io/projects/80823/status-badges/average-code-health)](https://codescene.io/projects/80823)
 [![CodeScene Hotspot Code Health](https://codescene.io/projects/80823/status-badges/hotspot-code-health)](https://codescene.io/projects/80823)
-[![CodeScene Missed Goals](https://codescene.io/projects/80823/status-badges/missed-goals)](https://codescene.io/projects/80823)
 [![CodeScene System Mastery](https://codescene.io/projects/80823/status-badges/system-mastery)](https://codescene.io/projects/80823)
+[![CodeScene Missed Goals](https://codescene.io/projects/80823/status-badges/missed-goals)](https://codescene.io/projects/80823)
 
 A tiny Python script that keeps your Control D Folders in sync with a set of
 remote block-lists.
