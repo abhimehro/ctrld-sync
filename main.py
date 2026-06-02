@@ -1888,9 +1888,8 @@ def get_all_existing_rules(
         try:
             data = _api_get(client, f"{API_BASE}/{profile_id}/rules").json()
             root_rules = data.get("body", {}).get("rules", [])
-            for rule in root_rules:
-                if rule.get("PK"):
-                    all_rules.add(rule["PK"])
+            # OPTIMIZATION: C-speed list comprehension with bulk update is faster than Python for-loop
+            all_rules.update([pk for rule in root_rules if (pk := rule.get("PK"))])
         except httpx.HTTPError as e:
             log.debug(
                 "Could not fetch root-level rules (will proceed with folder rules only): %s",
