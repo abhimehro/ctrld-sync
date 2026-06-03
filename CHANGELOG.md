@@ -44,6 +44,8 @@
 
 **Closed issues:**
 
+- Daily QA Check - 2026-06-03 [\#867](https://github.com/abhimehro/ctrld-sync/issues/867)
+- Daily QA Check - 2026-06-03 [\#866](https://github.com/abhimehro/ctrld-sync/issues/866)
 - Daily QA Check - ctrld-sync - 2026-06-02 [\#863](https://github.com/abhimehro/ctrld-sync/issues/863)
 - Daily QA & Agentic Review — 2026-06-01 [\#862](https://github.com/abhimehro/ctrld-sync/issues/862)
 - Daily QA & Agentic Review — 2026-05-31 [\#859](https://github.com/abhimehro/ctrld-sync/issues/859)
@@ -274,6 +276,7 @@
 
 **Merged pull requests:**
 
+- docs\(qa\): Daily QA notes 2026-06-03 — matrix healthy [\#868](https://github.com/abhimehro/ctrld-sync/pull/868) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Optimize root rule extraction [\#865](https://github.com/abhimehro/ctrld-sync/pull/865) ([abhimehro](https://github.com/abhimehro))
 - docs\(qa\): Daily QA notes 2026-06-02 — matrix healthy [\#864](https://github.com/abhimehro/ctrld-sync/pull/864) ([cursor[bot]](https://github.com/apps/cursor))
 - 🎨 Palette: Clean up unspecified profile log presentation [\#861](https://github.com/abhimehro/ctrld-sync/pull/861) ([abhimehro](https://github.com/abhimehro))
