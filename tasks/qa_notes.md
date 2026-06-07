@@ -1,15 +1,15 @@
-## Daily QA — 2026-06-06
+## Daily QA — 2026-06-07
 
 ### Matrix summary (all repos healthy)
 
 | Repo | Verification | Result |
 |------|--------------|--------|
 | ctrld-sync | pytest, ruff, mypy, dry-run | 339 passed; ruff/mypy clean; dry-run OK |
-| email-security-pipeline | pytest, pre-commit | 621 passed; lint hooks passed |
-| personal-config | make test + test-python | 36/39 shell (3 skip), 247 Python OK |
+| email-security-pipeline | pytest | 621 passed (7 subtests) |
+| personal-config | make test-all, lint-errors | 36/39 shell (3 skip), 247 Python OK |
 | Hydrograph_Versus_Seatek_Sensors_Project | core pytest subset | 35 passed |
 | series_correction_project_updated | pytest (full suite) | 33 passed |
-| Seatek_Analysis | testthat (renv restore + R 4.3.3) | All tests passed |
+| Seatek_Analysis | testthat (R 4.3.3, user lib) | All tests passed (1 skip) |
 
 ### ctrld-sync (this repo)
 
@@ -17,7 +17,7 @@
 - **Code Quality**: `uv run ruff check .` — all checks passed; `uv run mypy .` — no issues in 49 source files.
 - **Smoke**: `uv run python main.py --dry-run` — completed without errors.
 - **Domain Focus**: DNS sync logic covered by passing suite; no regressions.
-- **Issues**: No open prior Daily QA issues. Status unchanged from 2026-06-03.
+- **Issues**: No open prior Daily QA issues.
 - **Conclusion**: Repository is fully healthy.
 
 **Bash commands:**
@@ -30,6 +30,7 @@ uv run python main.py --dry-run
 
 ### Notes
 
+- **email-security-pipeline**: Test count increased to 621 (from 594 on 2026-05-21); all pass with `requirements-ci.txt`.
 - **Hydrograph**: Fresh environments need `pip install -r requirements.txt` before the core pytest subset (includes `defusedxml`).
-- **series_correction**: Full suite (33 tests) passes on current pandas; prior batch-correction failures appear resolved.
-- **Seatek**: `renv::restore()` to a writable `R_LIBS_USER` path (e.g. `.r-lib/`) after system libs install; testthat completes cleanly.
+- **series_correction**: Full suite (33 tests) passes on current pandas.
+- **Seatek**: Requires `libuv1-dev` plus other system libs; install `testthat` to `~/R/library` with `RENV_CONFIG_AUTOLOADER_ENABLED=FALSE`.
