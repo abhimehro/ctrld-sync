@@ -44,6 +44,7 @@
 
 **Closed issues:**
 
+- Daily QA Check - ctrld-sync - 2026-06-07 [\#873](https://github.com/abhimehro/ctrld-sync/issues/873)
 - Daily QA Check - ctrld-sync - 2026-06-06 [\#870](https://github.com/abhimehro/ctrld-sync/issues/870)
 - Daily QA Check - 2026-06-05 [\#869](https://github.com/abhimehro/ctrld-sync/issues/869)
 - Daily QA Check - 2026-06-03 [\#867](https://github.com/abhimehro/ctrld-sync/issues/867)
@@ -278,6 +279,7 @@
 
 **Merged pull requests:**
 
+- docs\(qa\): Daily QA notes 2026-06-07 — matrix healthy [\#874](https://github.com/abhimehro/ctrld-sync/pull/874) ([cursor[bot]](https://github.com/apps/cursor))
 - docs\(qa\): Daily QA notes 2026-06-06 — matrix healthy [\#871](https://github.com/abhimehro/ctrld-sync/pull/871) ([cursor[bot]](https://github.com/apps/cursor))
 - docs\(qa\): Daily QA notes 2026-06-03 — matrix healthy [\#868](https://github.com/abhimehro/ctrld-sync/pull/868) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Optimize root rule extraction [\#865](https://github.com/abhimehro/ctrld-sync/pull/865) ([abhimehro](https://github.com/abhimehro))
