@@ -1,11 +1,11 @@
-## Daily QA — 2026-06-07
+## Daily QA — 2026-06-08
 
 ### Matrix summary (all repos healthy)
 
 | Repo | Verification | Result |
 |------|--------------|--------|
 | ctrld-sync | pytest, ruff, mypy, dry-run | 339 passed; ruff/mypy clean; dry-run OK |
-| email-security-pipeline | pytest | 621 passed (7 subtests) |
+| email-security-pipeline | pytest | 622 passed (7 subtests) |
 | personal-config | make test-all, lint-errors | 36/39 shell (3 skip), 247 Python OK |
 | Hydrograph_Versus_Seatek_Sensors_Project | core pytest subset | 35 passed |
 | series_correction_project_updated | pytest (full suite) | 33 passed |
@@ -30,7 +30,7 @@ uv run python main.py --dry-run
 
 ### Notes
 
-- **email-security-pipeline**: Test count increased to 621 (from 594 on 2026-05-21); all pass with `requirements-ci.txt`.
+- **email-security-pipeline**: Test count stable at 622 (from 621 on 2026-06-07); all pass with `requirements-ci.txt`.
 - **Hydrograph**: Fresh environments need `pip install -r requirements.txt` before the core pytest subset (includes `defusedxml`).
 - **series_correction**: Full suite (33 tests) passes on current pandas.
 - **Seatek**: Requires `libuv1-dev` plus other system libs; install `testthat` to `~/R/library` with `RENV_CONFIG_AUTOLOADER_ENABLED=FALSE`.
