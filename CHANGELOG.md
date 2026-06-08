@@ -44,6 +44,7 @@
 
 **Closed issues:**
 
+- Daily QA Check - ctrld-sync - 2026-06-08 [\#876](https://github.com/abhimehro/ctrld-sync/issues/876)
 - Daily QA Check - ctrld-sync - 2026-06-07 [\#873](https://github.com/abhimehro/ctrld-sync/issues/873)
 - Daily QA Check - ctrld-sync - 2026-06-06 [\#870](https://github.com/abhimehro/ctrld-sync/issues/870)
 - Daily QA Check - 2026-06-05 [\#869](https://github.com/abhimehro/ctrld-sync/issues/869)
@@ -279,6 +280,8 @@
 
 **Merged pull requests:**
 
+- ⚡ Bolt: Replace generator with list comp for faster rule counting [\#877](https://github.com/abhimehro/ctrld-sync/pull/877) ([abhimehro](https://github.com/abhimehro))
+- docs\(qa\): Daily QA notes 2026-06-08 — matrix healthy [\#875](https://github.com/abhimehro/ctrld-sync/pull/875) ([cursor[bot]](https://github.com/apps/cursor))
 - docs\(qa\): Daily QA notes 2026-06-07 — matrix healthy [\#874](https://github.com/abhimehro/ctrld-sync/pull/874) ([cursor[bot]](https://github.com/apps/cursor))
 - docs\(qa\): Daily QA notes 2026-06-06 — matrix healthy [\#871](https://github.com/abhimehro/ctrld-sync/pull/871) ([cursor[bot]](https://github.com/apps/cursor))
 - docs\(qa\): Daily QA notes 2026-06-03 — matrix healthy [\#868](https://github.com/abhimehro/ctrld-sync/pull/868) ([abhimehro](https://github.com/abhimehro))
