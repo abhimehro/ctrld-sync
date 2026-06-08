@@ -13,3 +13,6 @@
 ## 2026-06-02 - Optimize Root Rule Extraction
 **Learning:** The Performance Optimization Pattern states `str.join([list_comprehension])` is faster than `str.join(generator_expression)`. A similar optimization applies to sets. Using a C-speed list comprehension with `set.update()` (`all_rules.update([pk for rule in rules if (pk := rule.get("PK"))])`) avoids Python-level loop overhead and is measurably faster than iterating and adding items individually (`all_rules.add()`).
 **Action:** When extracting large sets of rule IDs from API JSON bodies, prefer `set.update([list_comp])` over a manual `for` loop with `.add()`.
+## 2026-07-28 - len(list_comprehension) vs sum(generator)
+**Learning:** Using `len([1 for x in lst if condition])` is measurably (~20-30%) faster than `sum(1 for x in lst if condition)` because the list comprehension operates entirely in C, avoiding the overhead of Python's generator iteration.
+**Action:** Always prefer `len()` with a list comprehension over `sum()` with a generator expression when simply counting items matching a condition, even if it materializes a small intermediate list.
