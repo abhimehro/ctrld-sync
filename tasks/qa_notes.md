@@ -1,4 +1,4 @@
-## Daily QA — 2026-06-08
+## Daily QA — 2026-06-09
 
 ### Matrix summary (all repos healthy)
 
@@ -9,7 +9,7 @@
 | personal-config | make test-all, lint-errors | 36/39 shell (3 skip), 247 Python OK |
 | Hydrograph_Versus_Seatek_Sensors_Project | core pytest subset | 35 passed |
 | series_correction_project_updated | pytest (full suite) | 33 passed |
-| Seatek_Analysis | testthat (R 4.3.3, user lib) | All tests passed (1 skip) |
+| Seatek_Analysis | testthat (R 4.3.3, apt testthat) | All tests passed |
 
 ### ctrld-sync (this repo)
 
@@ -30,7 +30,8 @@ uv run python main.py --dry-run
 
 ### Notes
 
-- **email-security-pipeline**: Test count stable at 622 (from 621 on 2026-06-07); all pass with `requirements-ci.txt`.
+- **email-security-pipeline**: Test count stable at 622; all pass with `requirements-ci.txt`.
 - **Hydrograph**: Fresh environments need `pip install -r requirements.txt` before the core pytest subset (includes `defusedxml`).
 - **series_correction**: Full suite (33 tests) passes on current pandas.
-- **Seatek**: Requires `libuv1-dev` plus other system libs; install `testthat` to `~/R/library` with `RENV_CONFIG_AUTOLOADER_ENABLED=FALSE`.
+- **Seatek**: `r-cran-testthat` via apt; run with `RENV_CONFIG_AUTOLOADER_ENABLED=FALSE`.
+- **personal-config**: 3 expected macOS-only shell skips on Linux CI.
