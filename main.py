@@ -2511,7 +2511,7 @@ def _build_plan_entry(profile_id: str, folder_data_list: list[FolderData]) -> Pl
         if "rule_groups" in folder_data:
             # Multi-action format
             total_rules = sum(
-                len(rg.get("rules", [])) for rg in folder_data["rule_groups"]
+                [len(rg.get("rules", [])) for rg in folder_data["rule_groups"]]
             )
             plan_entry["folders"].append(
                 {
@@ -2829,9 +2829,9 @@ def print_summary_table(
     w = [max(25, max_p), 10, 12, 10, 15]
 
     t_f, t_r, t_d = (
-        sum(r["folders"] for r in sync_results),
-        sum(r["rules"] for r in sync_results),
-        sum(r["duration"] for r in sync_results),
+        sum([r["folders"] for r in sync_results]),
+        sum([r["rules"] for r in sync_results]),
+        sum([r["duration"] for r in sync_results]),
     )
     all_ok = success_count == total
     t_status = ("✅ Ready" if dry_run else "✅ All Good") if all_ok else "❌ Errors"
@@ -3180,7 +3180,7 @@ def main() -> bool:
             # RESTORED STATS LOGIC: Calculate actual counts from the plan
             entry = next((p for p in plan if p["profile"] == profile_id), None)
             folder_count = len(entry["folders"]) if entry else 0
-            rule_count = sum(f["rules"] for f in entry["folders"]) if entry else 0
+            rule_count = sum([f["rules"] for f in entry["folders"]]) if entry else 0
 
             if args.dry_run:
                 status_text = "✅ Planned" if status else "❌ Failed (Dry)"
@@ -3209,7 +3209,7 @@ def main() -> bool:
         # Try to recover stats for the interrupted profile
         entry = next((p for p in plan if p["profile"] == profile_id), None)
         folder_count = len(entry["folders"]) if entry else 0
-        rule_count = sum(f["rules"] for f in entry["folders"]) if entry else 0
+        rule_count = sum([f["rules"] for f in entry["folders"]]) if entry else 0
 
         sync_results.append(
             {
