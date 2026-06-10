@@ -31,3 +31,13 @@ Single-file Python CLI tool (`main.py`) that syncs Control D DNS folders with re
 ### Secrets for live runs
 
 A live sync run requires `TOKEN` (Control D API token) and `PROFILE` (profile ID) as environment variables or in a `.env` file. All tests use mocks and do not need these secrets.
+
+### CodeScene review/salvage trigger
+
+During automated PR review or salvage sessions, if CodeScene is red on a PR, post:
+
+```bash
+/cs-agent skill:fix-code-health-degradations
+```
+
+Then wait for that run to complete before final defer/salvage disposition.

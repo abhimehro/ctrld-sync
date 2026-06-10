@@ -283,6 +283,14 @@ This project uses manual releases via GitHub Releases. To create a new release:
 | **Bandit** | `bandit.yml` | Push/PR to `main`, weekly schedule  | Security vulnerability scanning for Python code                                  |
 | **Codacy** | `codacy.yml` | Push/PR to `main`, weekly schedule  | Code quality analysis and SARIF upload to GitHub Security tab                    |
 
+If CodeScene blocks a PR during review/salvage sessions, post:
+
+```bash
+/cs-agent skill:fix-code-health-degradations
+```
+
+Then resume verification after the remediation run completes.
+
 ### How Caching Works
 
 The GitHub Actions workflows use automatic dependency caching to speed up CI runs:
