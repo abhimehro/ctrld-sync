@@ -1,3 +1,7 @@
+import re
+from typing import Any
+from repository_automation import repository_slug, gh_text, writes_allowed, ensure_gh_token, create_or_update_issue
+
 def release_url(tag_name: str) -> str:
     slug = repository_slug()
     if not slug or not tag_name:
