@@ -2881,9 +2881,7 @@ def print_summary_table(
             "(Unspecified)" if r["profile"] == "dry-run-placeholder" else r["profile"]
         )
         w_adjusted = list(w)
-        w_adjusted[4] = (
-            w[4] - _display_width(r["status_label"]) + len(r["status_label"])
-        )
+        w_adjusted[4] = w[4] - _display_width(r["status_label"]) + len(r["status_label"])
         print(
             print_row(
                 [
@@ -2992,15 +2990,24 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _is_wide_char(char: str) -> bool:
+    """Check if a character is wide or an emoji (takes 2 terminal columns)."""
+    if unicodedata.east_asian_width(char) in ("W", "F"):
+        return True
+    if ord(char) > 0xFFFF:
+        return True
+    if "\u2600" <= char <= "\u27bf":
+        return True
+    if "\u2300" <= char <= "\u23ff":
+        return True
+    return False
+
+
 def _display_width(s: str) -> int:
     """Calculate the display width of a string (emojis/wide chars take 2 columns)."""
     w = 0
     for char in s:
-        if unicodedata.east_asian_width(char) in ("W", "F") or (
-            ord(char) > 0xFFFF
-            or "\u2600" <= char <= "\u27bf"
-            or "\u2300" <= char <= "\u23ff"
-        ):
+        if _is_wide_char(char):
             w += 2
         elif unicodedata.category(char) in ("Mn", "Me", "Cf"):
             w += 0
@@ -3015,6 +3022,73 @@ def make_col_separator(
     """Generates a table row separator with given box drawing characters and column widths."""
     parts = [horiz * (w + 2) for w in col_widths]
     return left + mid.join(parts) + right
+
+
+def _print_run_summary_table(
+    sync_results: list[SyncResult],
+    dry_run: bool,
+    profile_ids: list[str],
+    success_count: int,
+) -> tuple[bool, int]:
+    """Prints the rich summary table for the entire run and returns (all_success, total_folders)."""
+    w_profile = max(25, max((len(r["profile"]) for r in sync_results), default=25))
+    col_widths = [w_profile, 10, 12, 10, 15]
+    table_width = len(make_col_separator(Box.TL, Box.T, Box.TR, Box.H, col_widths))
+    title_text, title_color = (" 🧪 DRY RUN SUMMARY ", Colors.CYAN) if dry_run else (" 🚀 SYNC SUMMARY ", Colors.HEADER)
+
+    print("\n" + Box.TL + Box.H * (table_width - 2) + Box.TR)
+    visible_title = title_text.strip()
+    display_len = _display_width(visible_title)
+    pad_left = (table_width - 2 - display_len) // 2
+    pad_right = table_width - 2 - display_len - pad_left
+    print(f"{Box.V}{' ' * pad_left}{title_color}{visible_title}{Colors.ENDC}{' ' * pad_right}{Box.V}")
+    print(make_col_separator(Box.L, Box.T, Box.R, Box.H, col_widths))
+    print(
+        f"{Box.V} {Colors.BOLD}{'Profile ID':<{w_profile}}{Colors.ENDC} "
+        f"{Box.V} {Colors.BOLD}{'Folders':>10}{Colors.ENDC} "
+        f"{Box.V} {Colors.BOLD}{'Rules':>12}{Colors.ENDC} "
+        f"{Box.V} {Colors.BOLD}{'Duration':>10}{Colors.ENDC} "
+        f"{Box.V} {Colors.BOLD}{'Status':>15}{Colors.ENDC} {Box.V}"
+    )
+    print(make_col_separator(Box.L, Box.X, Box.R, Box.H, col_widths))
+
+    total_folders, total_rules, total_duration = 0, 0, 0.0
+    for res in sync_results:
+        status_color = Colors.GREEN if res["success"] else Colors.FAIL
+        dp = "(Unspecified)" if res["profile"] == "dry-run-placeholder" else res["profile"]
+        pad_len = 15 - _display_width(res["status_label"]) + len(res["status_label"])
+        print(
+            f"{Box.V} {dp:<{w_profile}} "
+            f"{Box.V} {f'{res['folders']:,}':>10} "
+            f"{Box.V} {f'{res['rules']:,}':>12} "
+            f"{Box.V} {f'{res['duration']:.1f}s':>10} "
+            f"{Box.V} {status_color}{res['status_label']:<{pad_len}}{Colors.ENDC} {Box.V}"
+        )
+        total_folders += res["folders"]
+        total_rules += res["rules"]
+        total_duration += res["duration"]
+
+    print(make_col_separator(Box.L, Box.X, Box.R, Box.H, col_widths))
+
+    all_success = success_count == len(profile_ids or ["dry-run-placeholder"])
+    total_status_text = ("✅ Ready" if dry_run else "✅ All Good") if all_success else "❌ Errors"
+    total_status_color = Colors.GREEN if all_success else Colors.FAIL
+    total_pad_len = 15 - _display_width(total_status_text) + len(total_status_text)
+
+    print(
+        f"{Box.V} {Colors.BOLD}{'TOTAL':<{w_profile}}{Colors.ENDC} "
+        f"{Box.V} {f'{total_folders:,}':>10} "
+        f"{Box.V} {f'{total_rules:,}':>12} "
+        f"{Box.V} {f'{total_duration:.1f}s':>10} "
+        f"{Box.V} {total_status_color}{total_status_text:<{total_pad_len}}{Colors.ENDC} {Box.V}"
+    )
+    print(make_col_separator(Box.BL, Box.B, Box.BR, Box.H, col_widths))
+
+    if total_folders == 0:
+        print()
+        _print_hint("  💡 Hint: Add folder URLs using --folder-url or in your config.yaml")
+
+    return all_success, total_folders
 
 
 def main() -> bool:
@@ -3252,122 +3326,9 @@ def main() -> bool:
         log.info("Plan written to %s", args.plan_json)
 
     # Print Summary Table
-    # Determine the width for the Profile ID column (min 25)
-    max_profile_len = max((len(r["profile"]) for r in sync_results), default=25)
-    profile_col_width = max(25, max_profile_len)
-
-    # Column widths
-    w_profile = profile_col_width
-    w_folders = 10
-    w_rules = 12
-    w_duration = 10
-    w_status = 15
-
-    col_widths = [w_profile, w_folders, w_rules, w_duration, w_status]
-
-    # Calculate table width using a dummy separator
-    dummy_sep = make_col_separator(Box.TL, Box.T, Box.TR, Box.H, col_widths)
-    table_width = len(dummy_sep)
-
-    title_text = " 🧪 DRY RUN SUMMARY " if args.dry_run else " 🚀 SYNC SUMMARY "
-    title_color = Colors.CYAN if args.dry_run else Colors.HEADER
-
-    # Top Border (Single Cell for Title)
-    print("\n" + Box.TL + Box.H * (table_width - 2) + Box.TR)
-
-    # Title Row
-    visible_title = title_text.strip()
-    inner_width = table_width - 2
-    display_len = _display_width(visible_title)
-    pad_left = (inner_width - display_len) // 2
-    pad_right = inner_width - display_len - pad_left
-    print(
-        f"{Box.V}{' ' * pad_left}{title_color}{visible_title}{Colors.ENDC}{' ' * pad_right}{Box.V}"
+    all_success, total_folders = _print_run_summary_table(
+        sync_results, args.dry_run, profile_ids, success_count
     )
-
-    # Separator between Title and Headers (introduces columns)
-    print(make_col_separator(Box.L, Box.T, Box.R, Box.H, col_widths))
-
-    # Header Row
-    print(
-        f"{Box.V} {Colors.BOLD}{'Profile ID':<{w_profile}}{Colors.ENDC} "
-        f"{Box.V} {Colors.BOLD}{'Folders':>{w_folders}}{Colors.ENDC} "
-        f"{Box.V} {Colors.BOLD}{'Rules':>{w_rules}}{Colors.ENDC} "
-        f"{Box.V} {Colors.BOLD}{'Duration':>{w_duration}}{Colors.ENDC} "
-        f"{Box.V} {Colors.BOLD}{'Status':<{w_status}}{Colors.ENDC} {Box.V}"
-    )
-
-    # Separator between Header and Body
-    print(make_col_separator(Box.L, Box.X, Box.R, Box.H, col_widths))
-
-    # Rows
-    total_folders = 0
-    total_rules = 0
-    total_duration = 0.0
-
-    for res in sync_results:
-        # Use boolean success field for color logic
-        status_color = Colors.GREEN if res["success"] else Colors.FAIL
-
-        s_folders = f"{res['folders']:,}"
-        s_rules = f"{res['rules']:,}"
-        s_duration = f"{res['duration']:.1f}s"
-
-        display_profile = (
-            "(Unspecified)"
-            if res["profile"] == "dry-run-placeholder"
-            else res["profile"]
-        )
-        pad_len = (
-            w_status - _display_width(res["status_label"]) + len(res["status_label"])
-        )
-        print(
-            f"{Box.V} {display_profile:<{w_profile}} "
-            f"{Box.V} {s_folders:>{w_folders}} "
-            f"{Box.V} {s_rules:>{w_rules}} "
-            f"{Box.V} {s_duration:>{w_duration}} "
-            f"{Box.V} {status_color}{res['status_label']:<{pad_len}}{Colors.ENDC} {Box.V}"
-        )
-        total_folders += res["folders"]
-        total_rules += res["rules"]
-        total_duration += res["duration"]
-
-    # Separator between Body and Total
-    print(make_col_separator(Box.L, Box.X, Box.R, Box.H, col_widths))
-
-    # Total Row
-    total = len(profile_ids or ["dry-run-placeholder"])
-    all_success = success_count == total
-
-    if args.dry_run:
-        total_status_text = "✅ Ready" if all_success else "❌ Errors"
-    else:
-        total_status_text = "✅ All Good" if all_success else "❌ Errors"
-
-    total_status_color = Colors.GREEN if all_success else Colors.FAIL
-
-    s_total_folders = f"{total_folders:,}"
-    s_total_rules = f"{total_rules:,}"
-    s_total_duration = f"{total_duration:.1f}s"
-
-    total_pad_len = (
-        w_status - _display_width(total_status_text) + len(total_status_text)
-    )
-    print(
-        f"{Box.V} {Colors.BOLD}{'TOTAL':<{w_profile}}{Colors.ENDC} "
-        f"{Box.V} {s_total_folders:>{w_folders}} "
-        f"{Box.V} {s_total_rules:>{w_rules}} "
-        f"{Box.V} {s_total_duration:>{w_duration}} "
-        f"{Box.V} {total_status_color}{total_status_text:<{total_pad_len}}{Colors.ENDC} {Box.V}"
-    )
-    # Bottom Border
-    print(make_col_separator(Box.BL, Box.B, Box.BR, Box.H, col_widths))
-
-    if total_folders == 0:
-        print()  # Spacer
-        _print_hint(
-            "  💡 Hint: Add folder URLs using --folder-url or in your config.yaml"
-        )
 
     # Success Delight
     if all_success and not args.dry_run:
