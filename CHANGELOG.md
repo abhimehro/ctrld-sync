@@ -44,6 +44,9 @@
 
 **Closed issues:**
 
+- Daily QA Check - ctrld-sync - 2026-06-11 [\#884](https://github.com/abhimehro/ctrld-sync/issues/884)
+- Daily QA & Agentic Review — 2026-06-11 [\#883](https://github.com/abhimehro/ctrld-sync/issues/883)
+- Daily QA Check - ctrld-sync - 2026-06-10 [\#880](https://github.com/abhimehro/ctrld-sync/issues/880)
 - Daily QA Check - ctrld-sync - 2026-06-09 [\#878](https://github.com/abhimehro/ctrld-sync/issues/878)
 - Daily QA Check - ctrld-sync - 2026-06-08 [\#876](https://github.com/abhimehro/ctrld-sync/issues/876)
 - Daily QA Check - ctrld-sync - 2026-06-07 [\#873](https://github.com/abhimehro/ctrld-sync/issues/873)
