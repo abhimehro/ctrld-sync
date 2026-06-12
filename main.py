@@ -29,6 +29,7 @@ import re
 import shutil
 import socket
 import stat
+import unicodedata
 import sys
 import threading
 import time
@@ -2879,6 +2880,10 @@ def print_summary_table(
         display_profile = (
             "(Unspecified)" if r["profile"] == "dry-run-placeholder" else r["profile"]
         )
+        w_adjusted = list(w)
+        w_adjusted[4] = (
+            w[4] - _display_width(r["status_label"]) + len(r["status_label"])
+        )
         print(
             print_row(
                 [
@@ -2888,12 +2893,14 @@ def print_summary_table(
                     f"{r['duration']:.1f}s",
                     f"{sc}{r['status_label']}{Colors.ENDC}",
                 ],
-                w,
+                w_adjusted,
             )
         )
 
+    w_total_adjusted = list(w)
+    w_total_adjusted[4] = w[4] - _display_width(t_status) + len(t_status)
     print(
-        f"{print_line('├', '┼', '┤', w)}\n{print_row(['TOTAL', str(t_f), f'{t_r:,}', f'{t_d:.1f}s', f'{t_col}{t_status}{Colors.ENDC}'], w)}"
+        f"{print_line('├', '┼', '┤', w)}\n{print_row(['TOTAL', str(t_f), f'{t_r:,}', f'{t_d:.1f}s', f'{t_col}{t_status}{Colors.ENDC}'], w_total_adjusted)}"
     )
     print(f"{print_line('└', '┴', '┘', w)}\n")
 
@@ -2983,6 +2990,23 @@ def parse_args() -> argparse.Namespace:
         default=None,
     )
     return parser.parse_args()
+
+
+def _display_width(s: str) -> int:
+    """Calculate the display width of a string (emojis/wide chars take 2 columns)."""
+    w = 0
+    for char in s:
+        if unicodedata.east_asian_width(char) in ("W", "F") or (
+            ord(char) > 0xFFFF
+            or "\u2600" <= char <= "\u27bf"
+            or "\u2300" <= char <= "\u23ff"
+        ):
+            w += 2
+        elif unicodedata.category(char) in ("Mn", "Me", "Cf"):
+            w += 0
+        else:
+            w += 1
+    return w
 
 
 def make_col_separator(
@@ -3254,8 +3278,9 @@ def main() -> bool:
     # Title Row
     visible_title = title_text.strip()
     inner_width = table_width - 2
-    pad_left = (inner_width - len(visible_title)) // 2
-    pad_right = inner_width - len(visible_title) - pad_left
+    display_len = _display_width(visible_title)
+    pad_left = (inner_width - display_len) // 2
+    pad_right = inner_width - display_len - pad_left
     print(
         f"{Box.V}{' ' * pad_left}{title_color}{visible_title}{Colors.ENDC}{' ' * pad_right}{Box.V}"
     )
@@ -3293,12 +3318,15 @@ def main() -> bool:
             if res["profile"] == "dry-run-placeholder"
             else res["profile"]
         )
+        pad_len = (
+            w_status - _display_width(res["status_label"]) + len(res["status_label"])
+        )
         print(
             f"{Box.V} {display_profile:<{w_profile}} "
             f"{Box.V} {s_folders:>{w_folders}} "
             f"{Box.V} {s_rules:>{w_rules}} "
             f"{Box.V} {s_duration:>{w_duration}} "
-            f"{Box.V} {status_color}{res['status_label']:<{w_status}}{Colors.ENDC} {Box.V}"
+            f"{Box.V} {status_color}{res['status_label']:<{pad_len}}{Colors.ENDC} {Box.V}"
         )
         total_folders += res["folders"]
         total_rules += res["rules"]
@@ -3322,12 +3350,15 @@ def main() -> bool:
     s_total_rules = f"{total_rules:,}"
     s_total_duration = f"{total_duration:.1f}s"
 
+    total_pad_len = (
+        w_status - _display_width(total_status_text) + len(total_status_text)
+    )
     print(
         f"{Box.V} {Colors.BOLD}{'TOTAL':<{w_profile}}{Colors.ENDC} "
         f"{Box.V} {s_total_folders:>{w_folders}} "
         f"{Box.V} {s_total_rules:>{w_rules}} "
         f"{Box.V} {s_total_duration:>{w_duration}} "
-        f"{Box.V} {total_status_color}{total_status_text:<{w_status}}{Colors.ENDC} {Box.V}"
+        f"{Box.V} {total_status_color}{total_status_text:<{total_pad_len}}{Colors.ENDC} {Box.V}"
     )
     # Bottom Border
     print(make_col_separator(Box.BL, Box.B, Box.BR, Box.H, col_widths))

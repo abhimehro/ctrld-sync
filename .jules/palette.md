@@ -55,3 +55,7 @@
 
 **Learning:** When displaying data tables or CLI interfaces that fall back to placeholders for empty or unsaved state (e.g., `dry-run-placeholder` internally used when no profile is given), leaking the literal placeholder string creates an unpolished and confusing UX.
 **Action:** Always intercept placeholder constants at the UI boundary and render them as clean, human-readable strings like `(Unspecified)` or `(None)`.
+
+## 2025-06-12 - [Emoji Display Padding in UI Tables]
+**Learning:** When generating CLI tables manually using format strings (e.g. `f"{text:<width}"`), Python calculates width by character count. Emojis and full-width characters often take up 2 terminal columns but count as 1 character in Python. This causes misaligned borders in CLI tables.
+**Action:** Implement a custom `_display_width()` helper that uses `unicodedata` to calculate the actual terminal footprint of text containing emojis/wide-characters, and use this to calculate padding manually instead of relying solely on `:<{width}` formatting.
