@@ -44,9 +44,14 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-06-12 [\#888](https://github.com/abhimehro/ctrld-sync/issues/888)
+- Daily QA Check - ctrld-sync - 2026-06-11 [\#884](https://github.com/abhimehro/ctrld-sync/issues/884)
+- Daily QA & Agentic Review — 2026-06-11 [\#883](https://github.com/abhimehro/ctrld-sync/issues/883)
+- Daily QA Check - ctrld-sync - 2026-06-10 [\#880](https://github.com/abhimehro/ctrld-sync/issues/880)
 - Daily QA Check - ctrld-sync - 2026-06-09 [\#878](https://github.com/abhimehro/ctrld-sync/issues/878)
 - Daily QA Check - ctrld-sync - 2026-06-08 [\#876](https://github.com/abhimehro/ctrld-sync/issues/876)
 - Daily QA Check - ctrld-sync - 2026-06-07 [\#873](https://github.com/abhimehro/ctrld-sync/issues/873)
+- \[repo-automation\] Weekly Retrospective - 2026-06-07 [\#872](https://github.com/abhimehro/ctrld-sync/issues/872)
 - Daily QA Check - ctrld-sync - 2026-06-06 [\#870](https://github.com/abhimehro/ctrld-sync/issues/870)
 - Daily QA Check - 2026-06-05 [\#869](https://github.com/abhimehro/ctrld-sync/issues/869)
 - Daily QA Check - 2026-06-03 [\#867](https://github.com/abhimehro/ctrld-sync/issues/867)
@@ -281,6 +286,9 @@
 
 **Merged pull requests:**
 
+- fix\(automation\): restore truncated repository\_automation\_common.py [\#889](https://github.com/abhimehro/ctrld-sync/pull/889) ([abhimehro](https://github.com/abhimehro))
+- fix\(automation\): restore truncated repository\_automation\_common.py [\#887](https://github.com/abhimehro/ctrld-sync/pull/887) ([cursor[bot]](https://github.com/apps/cursor))
+- ci: re-baseline performance benchmarks and guard sum\(generator\) pattern [\#885](https://github.com/abhimehro/ctrld-sync/pull/885) ([abhimehro](https://github.com/abhimehro))
 - docs\(qa\): daily health check notes 2026-06-09 [\#879](https://github.com/abhimehro/ctrld-sync/pull/879) ([cursor[bot]](https://github.com/apps/cursor))
 - ⚡ Bolt: Replace generator with list comp for faster rule counting [\#877](https://github.com/abhimehro/ctrld-sync/pull/877) ([abhimehro](https://github.com/abhimehro))
 - docs\(qa\): Daily QA notes 2026-06-08 — matrix healthy [\#875](https://github.com/abhimehro/ctrld-sync/pull/875) ([cursor[bot]](https://github.com/apps/cursor))
