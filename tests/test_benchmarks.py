@@ -93,3 +93,28 @@ def test_push_rules_benchmark_10k(benchmark, overlap_ratio):
     action = main.RuleAction(do=1, status=1)
 
     benchmark(main.push_rules, ctx, folder_name, folder_id, action, hostnames)
+
+
+def test_sum_sync_result_totals_benchmark(benchmark):
+    """Guard sync summary totals: sum(generator) is preferred over sum([list comp])."""
+    sync_results = [
+        {
+            "profile": f"profile-{i}",
+            "folders": i % 5,
+            "rules": i * 10,
+            "duration": 0.05 * i,
+        }
+        for i in range(25)
+    ]
+
+    def totals() -> tuple[int, int, float]:
+        return (
+            sum(r["folders"] for r in sync_results),
+            sum(r["rules"] for r in sync_results),
+            sum(r["duration"] for r in sync_results),
+        )
+
+    folders, rules, duration = benchmark(totals)
+    assert folders == 50
+    assert rules == 3000
+    assert duration == pytest.approx(15.0)
