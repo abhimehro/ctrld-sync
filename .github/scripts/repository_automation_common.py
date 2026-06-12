@@ -147,9 +147,9 @@ def build_result(
 
 
 def write_result(
-    task: str, status: str, summary: str, body: str, extra: dict[str, Any] | None = None
+    result: dict[str, Any], body: str
 ) -> dict[str, Any]:
-    result = build_result(task, status, summary, extra)
+    task = result["task"]
     directory = task_dir(task)
     (directory / "report.md").write_text(body.rstrip() + "\n")
     (directory / "result.json").write_text(
@@ -375,7 +375,7 @@ def latest_tag_for_action(repo_id: str) -> str:
             "--jq",
             "[.[] | select(.prerelease == false)] | .[0].tag_name",
         ],
-        default=None,
+        default="",
     )
     if releases and isinstance(releases, str):
         return releases
@@ -394,6 +394,10 @@ def ref_exists(repo_id: str, ref: str) -> bool:
     # Then check branches (heads)
     head_result = run_process([GH_BIN, "api", f"repos/{repo_id}/git/refs/heads/{ref}"])
     return head_result.returncode == 0
+
+
+def is_commit_sha(ref: str) -> bool:
+    return bool(re.fullmatch(r"[0-9a-fA-F]{40}", ref))
 
 
 def numeric_version(text: str) -> tuple[int, int, int] | None:
