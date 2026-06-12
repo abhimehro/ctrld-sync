@@ -147,9 +147,9 @@ def build_result(
 
 
 def write_result(
-    task: str, status: str, summary: str, body: str, extra: dict[str, Any] | None = None
+    result: dict[str, Any], body: str
 ) -> dict[str, Any]:
-    result = build_result(task, status, summary, extra)
+    task = result["task"]
     directory = task_dir(task)
     (directory / "report.md").write_text(body.rstrip() + "\n")
     (directory / "result.json").write_text(
