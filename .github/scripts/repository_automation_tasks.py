@@ -11,6 +11,7 @@ from repository_automation_common import (
     OUTPUT_ROOT,
     ROOT,
     append_publication_result,
+    build_result,
     command_block,
     create_pr_for_current_changes,
     ensure_gh_token,
@@ -314,13 +315,13 @@ def run_workflow_updater(config: dict[str, Any]) -> dict[str, Any]:
 
     if not updates:
         body = "# Workflow updater\n\n- Status: **success**\n- Summary: No GitHub Action updates were detected.\n"
-        return write_result(
+        result = build_result(
             "workflow-updater",
             "success",
             "No GitHub Action updates were detected.",
-            body,
             {"updates": []},
         )
+        return write_result(result, body)
 
     status = "warning"
     summary = f"Detected {len(updates)} workflow action updates."
@@ -344,13 +345,13 @@ def run_workflow_updater(config: dict[str, Any]) -> dict[str, Any]:
                 "",
             ]
         )
-        return write_result(
+        result = build_result(
             "workflow-updater",
             status,
             summary,
-            "\n".join(body_parts),
             {"updates": updates, "pull_request_url": ""},
         )
+        return write_result(result, "\n".join(body_parts))
 
     allowed_paths = section.get(
         "allowed_paths", [".github/workflows/*.yml", ".github/workflows/*.yaml"]
@@ -363,13 +364,13 @@ def run_workflow_updater(config: dict[str, Any]) -> dict[str, Any]:
                 "",
             ]
         )
-        return write_result(
+        result = build_result(
             "workflow-updater",
             "needs_review",
             summary,
-            "\n".join(body_parts),
             {"updates": updates, "pull_request_url": ""},
         )
+        return write_result(result, "\n".join(body_parts))
 
     pr_url = ""
     try:
@@ -384,13 +385,13 @@ def run_workflow_updater(config: dict[str, Any]) -> dict[str, Any]:
         status = "failure"
         body_parts.extend(["## Draft PR failure", f"- {exc}", ""])
 
-    return write_result(
+    result = build_result(
         "workflow-updater",
         status,
         summary,
-        "\n".join(body_parts),
         {"updates": updates, "pull_request_url": pr_url},
     )
+    return write_result(result, "\n".join(body_parts))
 
 
 def run_performance_optimizer(config: dict[str, Any]) -> dict[str, Any]:
@@ -415,25 +416,25 @@ def run_performance_optimizer(config: dict[str, Any]) -> dict[str, Any]:
     if suggestions:
         lines.extend(["", "## Suggestions"])
         lines.extend(f"- {item}" for item in suggestions)
-    return write_result(
+    result = build_result(
         "performance-optimizer",
         status,
         summary,
-        "\n".join(lines) + "\n",
         {"hotspots": hotspots, "command_results": details["command_results"]},
     )
+    return write_result(result, "\n".join(lines) + "\n")
 
 
 def run_quality_assurance(config: dict[str, Any]) -> dict[str, Any]:
     section = config.get("quality_assurance", {})
     status, summary, details = run_command_set("quality-assurance", section)
-    return write_result(
+    result = build_result(
         "quality-assurance",
         status,
         summary,
-        details["body"],
         {"command_results": details["command_results"]},
     )
+    return write_result(result, details["body"])
 
 
 def parse_timestamp(value: str) -> dt.datetime:
@@ -535,11 +536,10 @@ def run_backlog_manager(config: dict[str, Any]) -> dict[str, Any]:
         lines.extend(render_stale_candidates(stale_issues, "Issue"))
         lines.extend(render_stale_candidates(stale_prs, "PR"))
 
-    return write_result(
+    result = build_result(
         "backlog-manager",
         status,
         summary,
-        "\n".join(lines) + "\n",
         {
             "issues": issues,
             "pull_requests": prs,
@@ -547,6 +547,7 @@ def run_backlog_manager(config: dict[str, Any]) -> dict[str, Any]:
             "stale_pull_requests": stale_prs,
         },
     )
+    return write_result(result, "\n".join(lines) + "\n")
 
 
 def load_task_results() -> list[dict[str, Any]]:
@@ -674,13 +675,13 @@ def run_daily_status_report(config: dict[str, Any]) -> dict[str, Any]:
         body, title=title, labels=section.get("labels", []), noun="daily issue"
     )
     status = "failure" if error else overall_status(results)
-    return write_result(
+    result = build_result(
         "daily-status-report",
         status,
         summary,
-        body,
         {"issue_url": issue_url, "task_results": results},
     )
+    return write_result(result, body)
 
 
 def extract_status_markers(issue_body: str) -> dict[str, str]:
@@ -875,10 +876,10 @@ def run_weekly_retrospective(config: dict[str, Any]) -> dict[str, Any]:
     )
     if error:
         status = "failure"
-    return write_result(
+    result = build_result(
         "weekly-retrospective",
         status,
         summary,
-        body,
         {"issue_url": issue_url, "runs": runs, "safe_pr_url": safe_pr_url},
     )
+    return write_result(result, body)

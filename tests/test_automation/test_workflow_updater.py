@@ -4,7 +4,12 @@ from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / ".github" / "scripts"))
 
-from repository_automation_common import latest_tag_for_action, ref_exists, target_ref
+from repository_automation_common import (
+    is_commit_sha,
+    latest_tag_for_action,
+    ref_exists,
+    target_ref,
+)
 from repository_automation_tasks import workflow_file_plans
 
 
@@ -26,6 +31,12 @@ def test_latest_tag_for_action_empty(mock_gh_text, mock_gh_json):
     mock_gh_json.return_value = None
 
     assert latest_tag_for_action("actions/checkout") == ""
+
+
+def test_target_ref_skips_commit_sha_pins():
+    sha = "deadbeef" + "0" * 32
+    assert is_commit_sha(sha)
+    assert target_ref(sha, "v5.0.0") is None
 
 
 def test_target_ref_valid_and_invalid():
