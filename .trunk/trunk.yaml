@@ -14,6 +14,7 @@ lint:
   disabled:
     - markdownlint
   enabled:
+    - mypy@2.1.0
     - grype@0.114.0
     - pinact@4.1.0
     - actionlint@1.7.12
