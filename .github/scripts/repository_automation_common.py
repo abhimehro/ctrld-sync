@@ -375,7 +375,7 @@ def latest_tag_for_action(repo_id: str) -> str:
             "--jq",
             "[.[] | select(.prerelease == false)] | .[0].tag_name",
         ],
-        default=None,
+        default="",
     )
     if releases and isinstance(releases, str):
         return releases
