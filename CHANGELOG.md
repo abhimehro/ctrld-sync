@@ -287,6 +287,7 @@
 **Merged pull requests:**
 
 - fix\(automation\): restore truncated repository\_automation\_common.py [\#889](https://github.com/abhimehro/ctrld-sync/pull/889) ([abhimehro](https://github.com/abhimehro))
+- fix\(automation\): restore truncated repository\_automation\_common.py [\#887](https://github.com/abhimehro/ctrld-sync/pull/887) ([cursor[bot]](https://github.com/apps/cursor))
 - ci: re-baseline performance benchmarks and guard sum\(generator\) pattern [\#885](https://github.com/abhimehro/ctrld-sync/pull/885) ([abhimehro](https://github.com/abhimehro))
 - docs\(qa\): daily health check notes 2026-06-09 [\#879](https://github.com/abhimehro/ctrld-sync/pull/879) ([cursor[bot]](https://github.com/apps/cursor))
 - ⚡ Bolt: Replace generator with list comp for faster rule counting [\#877](https://github.com/abhimehro/ctrld-sync/pull/877) ([abhimehro](https://github.com/abhimehro))
