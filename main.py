@@ -1426,6 +1426,73 @@ def validate_folder_data(data: dict[str, Any], url: str) -> TypeGuard[FolderData
 
 # _api_stats_lock, _api_get, _api_delete, _api_post, _api_post_form,
 # retry_with_jitter, _retry_request imported from api_client above
+def _parse_and_cache_response(url: str, r: httpx.Response) -> dict:
+    """
+    Validate, stream, parse, and cache a blocklist response.
+    """
+    content_type = r.headers.get("Content-Type", "").lower()
+    allowed_types = ["application/json", "text/json", "text/plain"]
+    if not any(t in content_type for t in allowed_types):
+        raise ValueError(
+            f"Invalid Content-Type from {sanitize_for_log(url)}: {sanitize_for_log(content_type)}. "
+            f"Expected one of: {', '.join(allowed_types)}"
+        )
+
+    # 1. Check Content-Length header if present
+    cl = r.headers.get("Content-Length")
+    if cl:
+        try:
+            if int(cl) > MAX_RESPONSE_SIZE:
+                raise ValueError(
+                    f"Response too large from {sanitize_for_log(url)} "
+                    f"({int(cl) / (1024 * 1024):.2f} MB)"
+                )
+        except ValueError as e:
+            # Only catch the conversion error, let the size error propagate
+            if "Response too large" in str(e):
+                raise
+            log.warning(
+                f"Malformed Content-Length header from {sanitize_for_log(url)}: {sanitize_for_log(cl)}. "
+                "Falling back to streaming size check."
+            )
+
+    # 2. Stream and check actual size
+    chunks = []
+    current_size = 0
+    # Optimization: Use 16KB chunks to reduce loop overhead/appends for large files
+    for chunk in r.iter_bytes(chunk_size=16 * 1024):
+        current_size += len(chunk)
+        if current_size > MAX_RESPONSE_SIZE:
+            raise ValueError(
+                f"Response too large from {sanitize_for_log(url)} "
+                f"(> {MAX_RESPONSE_SIZE / (1024 * 1024):.2f} MB)"
+            )
+        chunks.append(chunk)
+
+    try:
+        data = json.loads(b"".join(chunks))
+    except json.JSONDecodeError as e:
+        raise ValueError(
+            f"Invalid JSON response from {sanitize_for_log(url)}"
+        ) from e
+
+    # Store cache headers for future conditional requests
+    etag = r.headers.get("ETag")
+    last_modified = r.headers.get("Last-Modified")
+
+    # Update disk cache with new data and headers
+    _disk_cache[url] = {
+        "data": data,
+        "etag": etag,
+        "last_modified": last_modified,
+        "fetched_at": time.time(),
+        "last_validated": time.time(),
+    }
+
+    _cache_stats["misses"] += 1
+    return cast(dict, data)
+
+
 def _gh_get(url: str) -> dict:
     """
     Fetch blocklist data from URL with HTTP cache header support.
@@ -1465,8 +1532,6 @@ def _gh_get(url: str) -> dict:
         # Beyond TTL: send conditional request using cached ETag/Last-Modified
         # Server returns 304 if content hasn't changed
         # NOTE: Cached values may be None if the server didn't send these headers.
-        # httpx requires header values to be str/bytes, so we only add headers
-        # when the cached value is truthy.
         etag = cached_entry.get("etag")
         if etag:
             headers["If-None-Match"] = etag
@@ -1505,144 +1570,10 @@ def _gh_get(url: str) -> dict:
                 headers = {}
                 with _gh.stream("GET", url, headers=headers) as r_retry:
                     r_retry.raise_for_status()
-
-                    # Security: Validate Content-Type in fallback branch
-                    content_type = r_retry.headers.get("Content-Type", "").lower()
-                    allowed_types = ["application/json", "text/json", "text/plain"]
-                    if (
-                        "application/json" not in content_type
-                        and "text/json" not in content_type
-                        and "text/plain" not in content_type
-                    ):
-                        raise ValueError(
-                            f"Invalid Content-Type from {sanitize_for_log(url)}: {sanitize_for_log(content_type)}. "
-                            f"Expected one of: {', '.join(allowed_types)}"
-                        )
-
-                    # 1. Check Content-Length header if present
-                    cl = r_retry.headers.get("Content-Length")
-                    if cl:
-                        try:
-                            if int(cl) > MAX_RESPONSE_SIZE:
-                                raise ValueError(
-                                    f"Response too large from {sanitize_for_log(url)} "
-                                    f"({int(cl) / (1024 * 1024):.2f} MB)"
-                                )
-                        except ValueError as e:
-                            # Only catch the conversion error, let the size error propagate
-                            if "Response too large" in str(e):
-                                raise
-                            log.warning(
-                                f"Malformed Content-Length header from {sanitize_for_log(url)}: {sanitize_for_log(cl)}. "
-                                "Falling back to streaming size check."
-                            )
-
-                    # 2. Stream and check actual size
-                    chunks = []
-                    current_size = 0
-                    # Optimization: Use 16KB chunks to reduce loop overhead/appends for large files
-                    for chunk in r_retry.iter_bytes(chunk_size=16 * 1024):
-                        current_size += len(chunk)
-                        if current_size > MAX_RESPONSE_SIZE:
-                            raise ValueError(
-                                f"Response too large from {sanitize_for_log(url)} "
-                                f"(> {MAX_RESPONSE_SIZE / (1024 * 1024):.2f} MB)"
-                            )
-                        chunks.append(chunk)
-
-                    try:
-                        data = json.loads(b"".join(chunks))
-                    except json.JSONDecodeError as e:
-                        raise ValueError(
-                            f"Invalid JSON response from {sanitize_for_log(url)}"
-                        ) from e
-
-                    # Store cache headers for future conditional requests
-                    # ETag is preferred over Last-Modified (more reliable)
-                    etag = r_retry.headers.get("ETag")
-                    last_modified = r_retry.headers.get("Last-Modified")
-
-                    # Update disk cache with new data and headers
-                    _disk_cache[url] = {
-                        "data": data,
-                        "etag": etag,
-                        "last_modified": last_modified,
-                        "fetched_at": time.time(),
-                        "last_validated": time.time(),
-                    }
-
-                    _cache_stats["misses"] += 1
-                    return cast(dict, data)
+                    return _parse_and_cache_response(url, r_retry)
 
             r.raise_for_status()
-
-            # Security: Validate Content-Type
-            # Prevent processing of unexpected content types (e.g., HTML/XML from captive portals or attack sites)
-            content_type = r.headers.get("Content-Type", "").lower()
-            allowed_types = ["application/json", "text/json", "text/plain"]
-            if (
-                "application/json" not in content_type
-                and "text/json" not in content_type
-                and "text/plain" not in content_type
-            ):
-                raise ValueError(
-                    f"Invalid Content-Type from {sanitize_for_log(url)}: {sanitize_for_log(content_type)}. "
-                    f"Expected one of: {', '.join(allowed_types)}"
-                )
-
-            # 1. Check Content-Length header if present
-            cl = r.headers.get("Content-Length")
-            if cl:
-                try:
-                    if int(cl) > MAX_RESPONSE_SIZE:
-                        raise ValueError(
-                            f"Response too large from {sanitize_for_log(url)} "
-                            f"({int(cl) / (1024 * 1024):.2f} MB)"
-                        )
-                except ValueError as e:
-                    # Only catch the conversion error, let the size error propagate
-                    if "Response too large" in str(e):
-                        raise
-                    log.warning(
-                        f"Malformed Content-Length header from {sanitize_for_log(url)}: {sanitize_for_log(cl)}. "
-                        "Falling back to streaming size check."
-                    )
-
-            # 2. Stream and check actual size
-            chunks = []
-            current_size = 0
-            # Optimization: Use 16KB chunks to reduce loop overhead/appends for large files
-            for chunk in r.iter_bytes(chunk_size=16 * 1024):
-                current_size += len(chunk)
-                if current_size > MAX_RESPONSE_SIZE:
-                    raise ValueError(
-                        f"Response too large from {sanitize_for_log(url)} "
-                        f"(> {MAX_RESPONSE_SIZE / (1024 * 1024):.2f} MB)"
-                    )
-                chunks.append(chunk)
-
-            try:
-                data = json.loads(b"".join(chunks))
-            except json.JSONDecodeError as e:
-                raise ValueError(
-                    f"Invalid JSON response from {sanitize_for_log(url)}"
-                ) from e
-
-            # Store cache headers for future conditional requests
-            # ETag is preferred over Last-Modified (more reliable)
-            etag = r.headers.get("ETag")
-            last_modified = r.headers.get("Last-Modified")
-
-            # Update disk cache with new data and headers
-            _disk_cache[url] = {
-                "data": data,
-                "etag": etag,
-                "last_modified": last_modified,
-                "fetched_at": time.time(),
-                "last_validated": time.time(),
-            }
-
-            _cache_stats["misses"] += 1
+            data = _parse_and_cache_response(url, r)
 
     except httpx.HTTPStatusError:
         # Re-raise with original exception (don't catch and re-raise)
