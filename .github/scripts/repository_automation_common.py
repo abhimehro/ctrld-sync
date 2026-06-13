@@ -146,9 +146,7 @@ def build_result(
     return result
 
 
-def write_result(
-    result: dict[str, Any], body: str
-) -> dict[str, Any]:
+def write_result(result: dict[str, Any], body: str) -> dict[str, Any]:
     task = result["task"]
     directory = task_dir(task)
     (directory / "report.md").write_text(body.rstrip() + "\n")

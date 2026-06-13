@@ -1509,7 +1509,11 @@ def _gh_get(url: str) -> dict:
                     # Security: Validate Content-Type in fallback branch
                     content_type = r_retry.headers.get("Content-Type", "").lower()
                     allowed_types = ["application/json", "text/json", "text/plain"]
-                    if not any(t in content_type for t in allowed_types):
+                    if (
+                        "application/json" not in content_type
+                        and "text/json" not in content_type
+                        and "text/plain" not in content_type
+                    ):
                         raise ValueError(
                             f"Invalid Content-Type from {sanitize_for_log(url)}: {sanitize_for_log(content_type)}. "
                             f"Expected one of: {', '.join(allowed_types)}"
@@ -1576,7 +1580,11 @@ def _gh_get(url: str) -> dict:
             # Prevent processing of unexpected content types (e.g., HTML/XML from captive portals or attack sites)
             content_type = r.headers.get("Content-Type", "").lower()
             allowed_types = ["application/json", "text/json", "text/plain"]
-            if not any(t in content_type for t in allowed_types):
+            if (
+                "application/json" not in content_type
+                and "text/json" not in content_type
+                and "text/plain" not in content_type
+            ):
                 raise ValueError(
                     f"Invalid Content-Type from {sanitize_for_log(url)}: {sanitize_for_log(content_type)}. "
                     f"Expected one of: {', '.join(allowed_types)}"

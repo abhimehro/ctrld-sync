@@ -16,3 +16,6 @@
 ## 2026-07-28 - len(list_comprehension) vs sum(generator)
 **Learning:** Using `len([1 for x in lst if condition])` is measurably (~20-30%) faster than `sum(1 for x in lst if condition)` because the list comprehension operates entirely in C, avoiding the overhead of Python's generator iteration.
 **Action:** Always prefer `len()` with a list comprehension over `sum()` with a generator expression when simply counting items matching a condition, even if it materializes a small intermediate list.
+## 2025-06-13 - Direct boolean checks vs any(generator) for tiny sets
+**Learning:** Using `any(x in str for x in small_collection)` introduces Python generator iteration overhead. For very small collections (like checking 2-3 allowed Content-Types), unrolling the check into direct boolean expressions (`"a" not in str and "b" not in str`) is measurably faster and avoids the overhead of creating and consuming a generator.
+**Action:** For tiny, fixed-size checks (like 2-3 items) in hot paths, unroll the `any()` or `all()` generator expressions into direct `or`/`and` boolean checks.
