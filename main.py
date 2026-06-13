@@ -36,6 +36,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
+import unicodedata
 from typing import Any, NotRequired, TypedDict, TypeGuard, cast
 
 import httpx
@@ -2816,9 +2817,35 @@ def print_line(left_char: str, mid_char: str, right_char: str, w: list[int]) -> 
     return f"{Colors.BOLD}{left_char}{mid_char.join('─' * (x + 2) for x in w)}{right_char}{Colors.ENDC}"
 
 
+def _display_len(s: str) -> int:
+    """Calculate display width of a string considering full-width characters."""
+    return sum(2 if unicodedata.east_asian_width(c) in ('W', 'F') else 1 for c in s)
+
+
+def _pad_string(s: str, width: int, align: str = "<") -> str:
+    """Pad string considering full-width characters."""
+    pad_len = width - _display_len(s)
+    if pad_len < 0:
+        pad_len = 0
+    if align == "<":
+        return s + " " * pad_len
+    if align == ">":
+        return " " * pad_len + s
+    if align == "^":
+        left = pad_len // 2
+        right = pad_len - left
+        return " " * left + s + " " * right
+    return s
+
+
 def print_row(cols: list[str], w: list[int]) -> str:
     """Format a row of table data."""
-    return f"{Colors.BOLD}│{Colors.ENDC} {cols[0]:<{w[0]}} {Colors.BOLD}│{Colors.ENDC} {cols[1]:>{w[1]}} {Colors.BOLD}│{Colors.ENDC} {cols[2]:>{w[2]}} {Colors.BOLD}│{Colors.ENDC} {cols[3]:>{w[3]}} {Colors.BOLD}│{Colors.ENDC} {cols[4]:<{w[4]}} {Colors.BOLD}│{Colors.ENDC}"
+    col0 = _pad_string(cols[0], w[0], "<")
+    col1 = _pad_string(cols[1], w[1], ">")
+    col2 = _pad_string(cols[2], w[2], ">")
+    col3 = _pad_string(cols[3], w[3], ">")
+    col4 = _pad_string(cols[4], w[4], "<")
+    return f"{Colors.BOLD}│{Colors.ENDC} {col0} {Colors.BOLD}│{Colors.ENDC} {col1} {Colors.BOLD}│{Colors.ENDC} {col2} {Colors.BOLD}│{Colors.ENDC} {col3} {Colors.BOLD}│{Colors.ENDC} {col4} {Colors.BOLD}│{Colors.ENDC}"
 
 
 def print_summary_table(
@@ -3293,12 +3320,15 @@ def main() -> bool:
             if res["profile"] == "dry-run-placeholder"
             else res["profile"]
         )
+        status_text = f"{status_color}{res['status_label']}{Colors.ENDC}"
+        padded_status = status_text + " " * max(0, w_status - _display_len(res['status_label']))
+
         print(
-            f"{Box.V} {display_profile:<{w_profile}} "
-            f"{Box.V} {s_folders:>{w_folders}} "
-            f"{Box.V} {s_rules:>{w_rules}} "
-            f"{Box.V} {s_duration:>{w_duration}} "
-            f"{Box.V} {status_color}{res['status_label']:<{w_status}}{Colors.ENDC} {Box.V}"
+            f"{Box.V} {_pad_string(display_profile, w_profile, '<')} "
+            f"{Box.V} {_pad_string(s_folders, w_folders, '>')} "
+            f"{Box.V} {_pad_string(s_rules, w_rules, '>')} "
+            f"{Box.V} {_pad_string(s_duration, w_duration, '>')} "
+            f"{Box.V} {padded_status} {Box.V}"
         )
         total_folders += res["folders"]
         total_rules += res["rules"]
@@ -3322,12 +3352,15 @@ def main() -> bool:
     s_total_rules = f"{total_rules:,}"
     s_total_duration = f"{total_duration:.1f}s"
 
+    total_status = f"{total_status_color}{total_status_text}{Colors.ENDC}"
+    padded_total_status = total_status + " " * max(0, w_status - _display_len(total_status_text))
+
     print(
-        f"{Box.V} {Colors.BOLD}{'TOTAL':<{w_profile}}{Colors.ENDC} "
-        f"{Box.V} {s_total_folders:>{w_folders}} "
-        f"{Box.V} {s_total_rules:>{w_rules}} "
-        f"{Box.V} {s_total_duration:>{w_duration}} "
-        f"{Box.V} {total_status_color}{total_status_text:<{w_status}}{Colors.ENDC} {Box.V}"
+        f"{Box.V} {Colors.BOLD}{_pad_string('TOTAL', w_profile, '<')}{Colors.ENDC} "
+        f"{Box.V} {_pad_string(s_total_folders, w_folders, '>')} "
+        f"{Box.V} {_pad_string(s_total_rules, w_rules, '>')} "
+        f"{Box.V} {_pad_string(s_total_duration, w_duration, '>')} "
+        f"{Box.V} {padded_total_status} {Box.V}"
     )
     # Bottom Border
     print(make_col_separator(Box.BL, Box.B, Box.BR, Box.H, col_widths))
