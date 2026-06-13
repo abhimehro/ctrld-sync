@@ -2819,7 +2819,7 @@ def print_line(left_char: str, mid_char: str, right_char: str, w: list[int]) -> 
 
 def _display_len(s: str) -> int:
     """Calculate display width of a string considering full-width characters."""
-    return sum(2 if unicodedata.east_asian_width(c) in ('W', 'F') else 1 for c in s)
+    return sum(2 if unicodedata.east_asian_width(c) in ("W", "F") else 1 for c in s)
 
 
 def _pad_string(s: str, width: int, align: str = "<") -> str:
@@ -3321,7 +3321,9 @@ def main() -> bool:
             else res["profile"]
         )
         status_text = f"{status_color}{res['status_label']}{Colors.ENDC}"
-        padded_status = status_text + " " * max(0, w_status - _display_len(res['status_label']))
+        padded_status = status_text + " " * max(
+            0, w_status - _display_len(res["status_label"])
+        )
 
         print(
             f"{Box.V} {_pad_string(display_profile, w_profile, '<')} "
@@ -3353,7 +3355,9 @@ def main() -> bool:
     s_total_duration = f"{total_duration:.1f}s"
 
     total_status = f"{total_status_color}{total_status_text}{Colors.ENDC}"
-    padded_total_status = total_status + " " * max(0, w_status - _display_len(total_status_text))
+    padded_total_status = total_status + " " * max(
+        0, w_status - _display_len(total_status_text)
+    )
 
     print(
         f"{Box.V} {Colors.BOLD}{_pad_string('TOTAL', w_profile, '<')}{Colors.ENDC} "
