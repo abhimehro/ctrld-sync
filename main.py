@@ -3349,7 +3349,11 @@ def main() -> bool:
             # Build the suggested command once so it stays consistent between
             # color and non-color output modes.
             cmd_parts = ["python", "main.py"]
-            p_str = ",".join(profile_ids) if profile_ids else "<your-profile-id>"
+            p_str = (
+                ",".join(profile_ids)
+                if profile_ids and profile_ids[0] != "dry-run-placeholder"
+                else "<your-profile-id>"
+            )
             cmd_parts.append(f"--profiles {p_str}")
 
             # Reconstruct other args if they were used (optional but helpful)
