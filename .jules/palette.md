@@ -55,3 +55,7 @@
 
 **Learning:** When displaying data tables or CLI interfaces that fall back to placeholders for empty or unsaved state (e.g., `dry-run-placeholder` internally used when no profile is given), leaking the literal placeholder string creates an unpolished and confusing UX.
 **Action:** Always intercept placeholder constants at the UI boundary and render them as clean, human-readable strings like `(Unspecified)` or `(None)`.
+## 2025-05-18 - [CLI Emoji Alignment]
+
+**Learning:** When generating CLI tables with emojis or full-width characters in the title or headers, using `len()` causes incorrect padding because these characters occupy 2 terminal columns but only count as length 1. This creates broken borders and a misaligned UX.
+**Action:** Always use a custom display width calculation (e.g. `_display_len`) based on `unicodedata.east_asian_width` instead of `len()` for padding text that contains emojis or full-width characters.
