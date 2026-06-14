@@ -3281,8 +3281,8 @@ def main() -> bool:
     # Title Row
     visible_title = title_text.strip()
     inner_width = table_width - 2
-    pad_left = (inner_width - len(visible_title)) // 2
-    pad_right = inner_width - len(visible_title) - pad_left
+    pad_left = (inner_width - _display_len(visible_title)) // 2
+    pad_right = inner_width - _display_len(visible_title) - pad_left
     print(
         f"{Box.V}{' ' * pad_left}{title_color}{visible_title}{Colors.ENDC}{' ' * pad_right}{Box.V}"
     )

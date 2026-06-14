@@ -55,3 +55,7 @@
 
 **Learning:** When displaying data tables or CLI interfaces that fall back to placeholders for empty or unsaved state (e.g., `dry-run-placeholder` internally used when no profile is given), leaking the literal placeholder string creates an unpolished and confusing UX.
 **Action:** Always intercept placeholder constants at the UI boundary and render them as clean, human-readable strings like `(Unspecified)` or `(None)`.
+## 2025-06-13 - [CLI Empty State UI]
+
+**Learning:** When displaying data tables or CLI interfaces that calculate widths for alignment (e.g., using `len()` for padding calculations), emojis and full-width characters cause misalignment because they occupy 2 columns in the terminal but count as 1 character in Python's `len()`.
+**Action:** Always use a custom display width calculation (like `unicodedata.east_asian_width` or `_display_len`) when calculating padding around strings that may contain emojis or full-width characters to ensure perfect alignment.
