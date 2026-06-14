@@ -1432,11 +1432,15 @@ def _parse_and_cache_response(url: str, r: httpx.Response) -> dict:
     Validate, stream, parse, and cache a blocklist response.
     """
     content_type = r.headers.get("Content-Type", "").lower()
-    allowed_types = ["application/json", "text/json", "text/plain"]
-    if not any(t in content_type for t in allowed_types):
+    # OPTIMIZATION: Unroll fixed-size Content-Type checks to avoid generator overhead.
+    if (
+        "application/json" not in content_type
+        and "text/json" not in content_type
+        and "text/plain" not in content_type
+    ):
         raise ValueError(
             f"Invalid Content-Type from {sanitize_for_log(url)}: {sanitize_for_log(content_type)}. "
-            f"Expected one of: {', '.join(allowed_types)}"
+            "Expected one of: application/json, text/json, text/plain"
         )
 
     # 1. Check Content-Length header if present
