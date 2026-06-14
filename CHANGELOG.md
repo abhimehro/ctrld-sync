@@ -289,6 +289,7 @@
 
 - fix\(test\): instantiate TypedDict instead of dict for mypy [\#896](https://github.com/abhimehro/ctrld-sync/pull/896) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Fix CLI table title border alignment [\#895](https://github.com/abhimehro/ctrld-sync/pull/895) ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: Unroll generator expressions for Content-Type checks [\#892](https://github.com/abhimehro/ctrld-sync/pull/892) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Fix CLI table alignment when emojis are present [\#890](https://github.com/abhimehro/ctrld-sync/pull/890) ([abhimehro](https://github.com/abhimehro))
 - fix\(automation\): restore truncated repository\_automation\_common.py [\#889](https://github.com/abhimehro/ctrld-sync/pull/889) ([abhimehro](https://github.com/abhimehro))
 - fix\(automation\): restore truncated repository\_automation\_common.py [\#887](https://github.com/abhimehro/ctrld-sync/pull/887) ([cursor[bot]](https://github.com/apps/cursor))
