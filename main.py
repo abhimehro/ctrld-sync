@@ -1425,6 +1425,19 @@ def validate_folder_data(data: dict[str, Any], url: str) -> TypeGuard[FolderData
     return True
 
 
+def _is_valid_content_type(content_type: str) -> bool:
+    """
+    Check if the response Content-Type is one of the allowed types.
+    """
+    if "application/json" in content_type:
+        return True
+    if "text/json" in content_type:
+        return True
+    if "text/plain" in content_type:
+        return True
+    return False
+
+
 # _api_stats_lock, _api_get, _api_delete, _api_post, _api_post_form,
 # retry_with_jitter, _retry_request imported from api_client above
 def _parse_and_cache_response(url: str, r: httpx.Response) -> dict:
@@ -1432,12 +1445,8 @@ def _parse_and_cache_response(url: str, r: httpx.Response) -> dict:
     Validate, stream, parse, and cache a blocklist response.
     """
     content_type = r.headers.get("Content-Type", "").lower()
-    # OPTIMIZATION: Unroll fixed-size Content-Type checks to avoid generator overhead.
-    if (
-        "application/json" not in content_type
-        and "text/json" not in content_type
-        and "text/plain" not in content_type
-    ):
+    # OPTIMIZATION: Delegate content-type checks to a helper to avoid complex conditional and reduce complexity.
+    if not _is_valid_content_type(content_type):
         raise ValueError(
             f"Invalid Content-Type from {sanitize_for_log(url)}: {sanitize_for_log(content_type)}. "
             "Expected one of: application/json, text/json, text/plain"
