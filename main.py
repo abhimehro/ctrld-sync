@@ -1432,8 +1432,14 @@ def _parse_and_cache_response(url: str, r: httpx.Response) -> dict:
     Validate, stream, parse, and cache a blocklist response.
     """
     content_type = r.headers.get("Content-Type", "").lower()
-    allowed_types = ["application/json", "text/json", "text/plain"]
-    if not any(t in content_type for t in allowed_types):
+    # OPTIMIZATION: Unrolling `any()` generator into direct boolean checks avoids Python
+    # generator iteration overhead for tiny sets, making this hot-path check measurably faster.
+    if (
+        "application/json" not in content_type
+        and "text/json" not in content_type
+        and "text/plain" not in content_type
+    ):
+        allowed_types = ["application/json", "text/json", "text/plain"]
         raise ValueError(
             f"Invalid Content-Type from {sanitize_for_log(url)}: {sanitize_for_log(content_type)}. "
             f"Expected one of: {', '.join(allowed_types)}"
@@ -1473,9 +1479,7 @@ def _parse_and_cache_response(url: str, r: httpx.Response) -> dict:
     try:
         data = json.loads(b"".join(chunks))
     except json.JSONDecodeError as e:
-        raise ValueError(
-            f"Invalid JSON response from {sanitize_for_log(url)}"
-        ) from e
+        raise ValueError(f"Invalid JSON response from {sanitize_for_log(url)}") from e
 
     # Store cache headers for future conditional requests
     etag = r.headers.get("ETag")
