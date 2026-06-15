@@ -19,3 +19,6 @@
 ## 2025-06-13 - Direct boolean checks vs any(generator) for tiny sets
 **Learning:** Using `any(x in str for x in small_collection)` introduces Python generator iteration overhead. For very small collections (like checking 2-3 allowed Content-Types), unrolling the check into direct boolean expressions (`"a" not in str and "b" not in str`) is measurably faster and avoids the overhead of creating and consuming a generator.
 **Action:** For tiny, fixed-size checks (like 2-3 items) in hot paths, unroll the `any()` or `all()` generator expressions into direct `or`/`and` boolean checks.
+## 2025-06-13 - Anti-Micro-Optimization
+**Learning:** Do not apply CPU-level micro-optimizations (like unrolling `any(generator)` into direct boolean checks) to inherently I/O-bound functions, such as HTTP response processing. These provide no measurable real-world impact and can introduce maintainability hazards, such as hardcoding string checks while leaving the original configuration list intact.
+**Action:** Avoid micro-optimizations in I/O bound functions.
