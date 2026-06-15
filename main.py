@@ -636,7 +636,7 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
     # Calculate max width for alignment
     max_name_len = max(
         # Use the same default ("Unknown") as when printing, so alignment is accurate
-        (len(sanitize_for_log(f.get("name", "Unknown"))) for f in folders),
+        (_display_len(sanitize_for_log(f.get("name", "Unknown"))) for f in folders),
         default=0,
     )
     max_rules_len = max((len(f"{f.get('rules', 0):,}") for f in folders), default=0)
@@ -648,13 +648,15 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
 
         action_text = _get_action_text(folder)
 
+        padded_name = _pad_string(name, max_name_len, "<")
+
         if USE_COLORS:
             print(
-                f"  • {Colors.BOLD}{name:<{max_name_len}}{Colors.ENDC} : {formatted_rules:>{max_rules_len}} {pluralize(rules_count, 'rule'):<5} {action_text}"
+                f"  • {Colors.BOLD}{padded_name}{Colors.ENDC} : {formatted_rules:>{max_rules_len}} {pluralize(rules_count, 'rule'):<5} {action_text}"
             )
         else:
             print(
-                f"  - {name:<{max_name_len}} : {formatted_rules:>{max_rules_len}} {pluralize(rules_count, 'rule'):<5} {action_text}"
+                f"  - {padded_name} : {formatted_rules:>{max_rules_len}} {pluralize(rules_count, 'rule'):<5} {action_text}"
             )
 
     print("")
@@ -1473,9 +1475,7 @@ def _parse_and_cache_response(url: str, r: httpx.Response) -> dict:
     try:
         data = json.loads(b"".join(chunks))
     except json.JSONDecodeError as e:
-        raise ValueError(
-            f"Invalid JSON response from {sanitize_for_log(url)}"
-        ) from e
+        raise ValueError(f"Invalid JSON response from {sanitize_for_log(url)}") from e
 
     # Store cache headers for future conditional requests
     etag = r.headers.get("ETag")
