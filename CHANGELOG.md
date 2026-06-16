@@ -44,6 +44,9 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-06-15 [\#903](https://github.com/abhimehro/ctrld-sync/issues/903)
+- Daily QA & Agentic Review — 2026-06-14 [\#900](https://github.com/abhimehro/ctrld-sync/issues/900)
+- \[repo-automation\] Weekly Retrospective - 2026-06-14 [\#897](https://github.com/abhimehro/ctrld-sync/issues/897)
 - Daily QA & Agentic Review — 2026-06-13 [\#894](https://github.com/abhimehro/ctrld-sync/issues/894)
 - Daily QA & Agentic Review — 2026-06-12 [\#888](https://github.com/abhimehro/ctrld-sync/issues/888)
 - Daily QA Check - ctrld-sync - 2026-06-11 [\#884](https://github.com/abhimehro/ctrld-sync/issues/884)
@@ -287,6 +290,9 @@
 
 **Merged pull requests:**
 
+- ⚡ Bolt: optimize \_display\_len using list comprehension [\#906](https://github.com/abhimehro/ctrld-sync/pull/906) ([abhimehro](https://github.com/abhimehro))
+- 🛡️ Sentinel: \[MEDIUM\] Fix un-sanitized exception log in rate limit parser [\#905](https://github.com/abhimehro/ctrld-sync/pull/905) ([abhimehro](https://github.com/abhimehro))
+- 🎨 Palette: Fix plan details alignment with emojis [\#902](https://github.com/abhimehro/ctrld-sync/pull/902) ([abhimehro](https://github.com/abhimehro))
 - fix\(test\): instantiate TypedDict instead of dict for mypy [\#896](https://github.com/abhimehro/ctrld-sync/pull/896) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Fix CLI table title border alignment [\#895](https://github.com/abhimehro/ctrld-sync/pull/895) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Unroll generator expressions for Content-Type checks [\#892](https://github.com/abhimehro/ctrld-sync/pull/892) ([abhimehro](https://github.com/abhimehro))
