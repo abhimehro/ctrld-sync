@@ -63,3 +63,6 @@
 ## 2025-03-04 - CLI Table Alignment with Emojis
 **Learning:** Python's standard `len()` and f-string padding mechanisms fail to correctly align CLI tables when dealing with emojis and full-width characters. These characters typically take 2 terminal columns but count as 1 character in standard string length calculations, causing visual misalignment.
 **Action:** Use a custom display width calculation leveraging `unicodedata.east_asian_width` to manually calculate and apply padding lengths for strings containing emojis or CJK characters.
+## 2025-02-28 - Fix CLI table alignment with ANSI colors
+**Learning:** ANSI color codes in strings affect Python's `len()`, which breaks table padding when calculating display width for CLI tables. This results in misaligned columns.
+**Action:** Strip ANSI escape sequences using regex (`\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])`) before calculating the display length to ensure accurate visual alignment.
