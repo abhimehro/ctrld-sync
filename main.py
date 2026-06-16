@@ -1425,48 +1425,50 @@ def validate_folder_data(data: dict[str, Any], url: str) -> TypeGuard[FolderData
     return True
 
 
-# _api_stats_lock, _api_get, _api_delete, _api_post, _api_post_form,
-# retry_with_jitter, _retry_request imported from api_client above
-def _parse_and_cache_response(url: str, r: httpx.Response) -> dict:
+def _validate_content_type(content_type: str, url: str) -> None:
     """
-    Validate, stream, parse, and cache a blocklist response.
+    Validate that the Content-Type is allowed.
     """
-    content_type = r.headers.get("Content-Type", "").lower()
-    # OPTIMIZATION: Unrolling `any()` generator into direct boolean checks avoids Python
-    # generator iteration overhead for tiny sets, making this hot-path check measurably faster.
-    if (
-        "application/json" not in content_type
-        and "text/json" not in content_type
-        and "text/plain" not in content_type
-    ):
+    is_valid = False
+    for allowed in ("application/json", "text/json", "text/plain"):
+        if allowed in content_type:
+            is_valid = True
+            break
+    if not is_valid:
         allowed_types = ["application/json", "text/json", "text/plain"]
         raise ValueError(
             f"Invalid Content-Type from {sanitize_for_log(url)}: {sanitize_for_log(content_type)}. "
             f"Expected one of: {', '.join(allowed_types)}"
         )
 
-    # 1. Check Content-Length header if present
-    cl = r.headers.get("Content-Length")
-    if cl:
-        try:
-            if int(cl) > MAX_RESPONSE_SIZE:
-                raise ValueError(
-                    f"Response too large from {sanitize_for_log(url)} "
-                    f"({int(cl) / (1024 * 1024):.2f} MB)"
-                )
-        except ValueError as e:
-            # Only catch the conversion error, let the size error propagate
-            if "Response too large" in str(e):
-                raise
-            log.warning(
-                f"Malformed Content-Length header from {sanitize_for_log(url)}: {sanitize_for_log(cl)}. "
-                "Falling back to streaming size check."
-            )
 
-    # 2. Stream and check actual size
+def _check_content_length(cl: str | None, url: str) -> None:
+    """
+    Validate Content-Length header if present.
+    """
+    if not cl:
+        return
+    try:
+        if int(cl) > MAX_RESPONSE_SIZE:
+            raise ValueError(
+                f"Response too large from {sanitize_for_log(url)} "
+                f"({int(cl) / (1024 * 1024):.2f} MB)"
+            )
+    except ValueError as e:
+        if "Response too large" in str(e):
+            raise
+        log.warning(
+            f"Malformed Content-Length header from {sanitize_for_log(url)}: {sanitize_for_log(cl)}. "
+            "Falling back to streaming size check."
+        )
+
+
+def _stream_response_chunks(r: httpx.Response, url: str) -> bytes:
+    """
+    Stream and check actual size.
+    """
     chunks = []
     current_size = 0
-    # Optimization: Use 16KB chunks to reduce loop overhead/appends for large files
     for chunk in r.iter_bytes(chunk_size=16 * 1024):
         current_size += len(chunk)
         if current_size > MAX_RESPONSE_SIZE:
@@ -1475,9 +1477,30 @@ def _parse_and_cache_response(url: str, r: httpx.Response) -> dict:
                 f"(> {MAX_RESPONSE_SIZE / (1024 * 1024):.2f} MB)"
             )
         chunks.append(chunk)
+    return b"".join(chunks)
+
+
+def _read_and_validate_response_body(r: httpx.Response, url: str) -> bytes:
+    """
+    Read the response body while enforcing size limits.
+    """
+    _check_content_length(r.headers.get("Content-Length"), url)
+    return _stream_response_chunks(r, url)
+
+
+# _api_stats_lock, _api_get, _api_delete, _api_post, _api_post_form,
+# retry_with_jitter, _retry_request imported from api_client above
+def _parse_and_cache_response(url: str, r: httpx.Response) -> dict:
+    """
+    Validate, stream, parse, and cache a blocklist response.
+    """
+    content_type = r.headers.get("Content-Type", "").lower()
+    _validate_content_type(content_type, url)
+
+    body_bytes = _read_and_validate_response_body(r, url)
 
     try:
-        data = json.loads(b"".join(chunks))
+        data = json.loads(body_bytes)
     except json.JSONDecodeError as e:
         raise ValueError(f"Invalid JSON response from {sanitize_for_log(url)}") from e
 
