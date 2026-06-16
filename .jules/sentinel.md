@@ -6,3 +6,8 @@
 **Vulnerability:** A log statement caught a generic `Exception` during HTTP header parsing and directly embedded `e` into the log string. Since HTTP headers can be attacker-controlled, a malicious server could return crafted headers designed to cause an exception and inject malicious payloads or control characters into the logs.
 **Learning:** Even internal exception strings can leak sensitive context or allow log injection if the exception resulted from processing untrusted input.
 **Prevention:** Always explicitly wrap dynamic values and caught exceptions `e` in a sanitization function like `sanitize_for_log(e)` before embedding them into any log statements, including `log.debug`.
+
+## $(date +%Y-%m-%d) - [Sanitize Exception Messages]
+**Vulnerability:** HTTP client error exception strings contained un-sanitized values (URLs with auth, or tokens in query parameters) when re-raised.
+**Learning:** Re-raising an exception like `raise e` without reconstructing it with a sanitized string propagates sensitive data up the call stack, which could leak into tracebacks or uncaught exception handlers.
+**Prevention:** Always reconstruct explicitly logged/re-raised `HTTPStatusError` objects using the `sanitize_for_log` equivalent, e.g., `raise httpx.HTTPStatusError(sanitize_fn(str(e)), ...) from e`.
