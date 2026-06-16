@@ -59,3 +59,7 @@
 
 **Learning:** When displaying data tables or CLI interfaces that calculate widths for alignment (e.g., using `len()` for padding calculations), emojis and full-width characters cause misalignment because they occupy 2 columns in the terminal but count as 1 character in Python's `len()`.
 **Action:** Always use a custom display width calculation (like `unicodedata.east_asian_width` or `_display_len`) when calculating padding around strings that may contain emojis or full-width characters to ensure perfect alignment.
+
+## 2025-03-04 - CLI Table Alignment with Emojis
+**Learning:** Python's standard `len()` and f-string padding mechanisms fail to correctly align CLI tables when dealing with emojis and full-width characters. These characters typically take 2 terminal columns but count as 1 character in standard string length calculations, causing visual misalignment.
+**Action:** Use a custom display width calculation leveraging `unicodedata.east_asian_width` to manually calculate and apply padding lengths for strings containing emojis or CJK characters.

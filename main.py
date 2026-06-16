@@ -636,7 +636,7 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
     # Calculate max width for alignment
     max_name_len = max(
         # Use the same default ("Unknown") as when printing, so alignment is accurate
-        (len(sanitize_for_log(f.get("name", "Unknown"))) for f in folders),
+        (_display_len(sanitize_for_log(f.get("name", "Unknown"))) for f in folders),
         default=0,
     )
     max_rules_len = max((len(f"{f.get('rules', 0):,}") for f in folders), default=0)
@@ -648,13 +648,15 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
 
         action_text = _get_action_text(folder)
 
+        padded_name = _pad_string(name, max_name_len, "<")
+
         if USE_COLORS:
             print(
-                f"  • {Colors.BOLD}{name:<{max_name_len}}{Colors.ENDC} : {formatted_rules:>{max_rules_len}} {pluralize(rules_count, 'rule'):<5} {action_text}"
+                f"  • {Colors.BOLD}{padded_name}{Colors.ENDC} : {formatted_rules:>{max_rules_len}} {pluralize(rules_count, 'rule'):<5} {action_text}"
             )
         else:
             print(
-                f"  - {name:<{max_name_len}} : {formatted_rules:>{max_rules_len}} {pluralize(rules_count, 'rule'):<5} {action_text}"
+                f"  - {padded_name} : {formatted_rules:>{max_rules_len}} {pluralize(rules_count, 'rule'):<5} {action_text}"
             )
 
     print("")
