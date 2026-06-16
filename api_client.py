@@ -186,7 +186,7 @@ def _parse_rate_limit_headers(response: httpx.Response) -> None:
         # Rate limit parsing failures should never crash the sync
         # Just log and continue
         if log.isEnabledFor(logging.DEBUG):
-            log.debug(f"Failed to parse rate limit headers: {e}")
+            log.debug(f"Failed to parse rate limit headers: {_sanitize_fn(e)}")
 
 
 # --------------------------------------------------------------------------- #
