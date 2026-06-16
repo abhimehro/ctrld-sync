@@ -2756,7 +2756,8 @@ def print_line(left_char: str, mid_char: str, right_char: str, w: list[int]) -> 
 
 def _display_len(s: str) -> int:
     """Calculate display width of a string considering full-width characters."""
-    return sum(2 if unicodedata.east_asian_width(c) in ("W", "F") else 1 for c in s)
+    # OPTIMIZATION: C-speed list comprehension avoids Python loop overhead
+    return len(s) + len([1 for c in s if unicodedata.east_asian_width(c) in ("W", "F")])
 
 
 def _pad_string(s: str, width: int, align: str = "<") -> str:
