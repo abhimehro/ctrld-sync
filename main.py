@@ -1473,9 +1473,7 @@ def _parse_and_cache_response(url: str, r: httpx.Response) -> dict:
     try:
         data = json.loads(b"".join(chunks))
     except json.JSONDecodeError as e:
-        raise ValueError(
-            f"Invalid JSON response from {sanitize_for_log(url)}"
-        ) from e
+        raise ValueError(f"Invalid JSON response from {sanitize_for_log(url)}") from e
 
     # Store cache headers for future conditional requests
     etag = r.headers.get("ETag")
@@ -2758,7 +2756,8 @@ def print_line(left_char: str, mid_char: str, right_char: str, w: list[int]) -> 
 
 def _display_len(s: str) -> int:
     """Calculate display width of a string considering full-width characters."""
-    return sum(2 if unicodedata.east_asian_width(c) in ("W", "F") else 1 for c in s)
+    # OPTIMIZATION: C-speed list comprehension avoids Python loop overhead
+    return len(s) + len([1 for c in s if unicodedata.east_asian_width(c) in ("W", "F")])
 
 
 def _pad_string(s: str, width: int, align: str = "<") -> str:
