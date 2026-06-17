@@ -288,7 +288,7 @@ def _check_client_error(e: httpx.HTTPStatusError) -> None:
             _sanitize_fn(str(e)),
             request=e.request,
             response=e.response,
-        ) from e
+        ) from None
 
 
 def _retry_request(

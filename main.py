@@ -1474,8 +1474,10 @@ def _parse_and_cache_response(url: str, r: httpx.Response) -> dict:
 
     try:
         data = json.loads(b"".join(chunks))
-    except json.JSONDecodeError as e:
-        raise ValueError(f"Invalid JSON response from {sanitize_for_log(url)}") from e
+    except json.JSONDecodeError:
+        raise ValueError(
+            f"Invalid JSON response from {sanitize_for_log(url)}"
+        ) from None
 
     # Store cache headers for future conditional requests
     etag = r.headers.get("ETag")
@@ -1889,7 +1891,7 @@ def fetch_folder_data(url: str) -> FolderData:
             f"{sanitize_for_log(original_msg)} | hint: {hint} | url: {sanitize_for_log(url)}",
             request=e.request,
             response=e.response,
-        ) from e
+        ) from None
     if not validate_folder_data(js, url):
         raise KeyError(f"Invalid folder data from {sanitize_for_log(url)}")
     return js
