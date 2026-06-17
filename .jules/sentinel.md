@@ -11,3 +11,8 @@
 **Vulnerability:** HTTP client error exception strings contained un-sanitized values (URLs with auth, or tokens in query parameters) when re-raised.
 **Learning:** Re-raising an exception like `raise e` without reconstructing it with a sanitized string propagates sensitive data up the call stack, which could leak into tracebacks or uncaught exception handlers.
 **Prevention:** Always reconstruct explicitly logged/re-raised `HTTPStatusError` objects using the `sanitize_for_log` equivalent, e.g., `raise httpx.HTTPStatusError(sanitize_fn(str(e)), ...) from e`.
+
+## $(date +%Y-%m-%d) - [Exception Chaining Leakage]
+**Vulnerability:** Re-raising sanitized exceptions utilizing `raise e` or `raise from e` keeps the unsanitized original exception linked within the `__cause__` attribute, meaning that standard tracebacks can still leak raw sensitive data.
+**Learning:** To prevent leakage via exception chaining, when a sanitized version of an exception is created to be re-raised or logged, the un-sanitized context from the original exception must be fully decoupled by appending `from None`.
+**Prevention:** Ensure that anytime a sanitized exception is raised to mitigate data leakage, `raise from None` is utilized rather than `raise from e` or implicitly linking the previous exception.
