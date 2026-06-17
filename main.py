@@ -2740,9 +2740,16 @@ def print_line(left_char: str, mid_char: str, right_char: str, w: list[int]) -> 
     return f"{Colors.BOLD}{left_char}{mid_char.join('─' * (x + 2) for x in w)}{right_char}{Colors.ENDC}"
 
 
+_ANSI_ESCAPE_PATTERN = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+
+
 def _display_len(s: str) -> int:
-    """Calculate display width of a string considering full-width characters."""
-    return sum(2 if unicodedata.east_asian_width(c) in ("W", "F") else 1 for c in s)
+    """Calculate display width of a string considering full-width characters and ignoring ANSI codes."""
+    stripped = _ANSI_ESCAPE_PATTERN.sub("", s)
+    # OPTIMIZATION: C-speed list comprehension avoids Python loop overhead
+    return len(stripped) + len(
+        [1 for c in stripped if unicodedata.east_asian_width(c) in ("W", "F")]
+    )
 
 
 def _pad_string(s: str, width: int, align: str = "<") -> str:
