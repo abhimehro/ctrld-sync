@@ -284,7 +284,11 @@ def _check_client_error(e: httpx.HTTPStatusError) -> None:
             f"API request failed with HTTP {code}{hint_suffix}: {_sanitize_fn(e)}"
         )
         _log_debug_response_content(e)
-        raise e
+        raise httpx.HTTPStatusError(
+            _sanitize_fn(str(e)),
+            request=e.request,
+            response=e.response,
+        ) from e
 
 
 def _retry_request(
