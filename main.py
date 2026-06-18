@@ -2452,8 +2452,9 @@ def _build_plan_entry(profile_id: str, folder_data_list: list[FolderData]) -> Pl
 
         if "rule_groups" in folder_data:
             # Multi-action format
+            # OPTIMIZATION: C-speed list comprehension avoids Python loop overhead, benchmarking faster than sum(generator)
             total_rules = sum(
-                len(rg.get("rules", [])) for rg in folder_data["rule_groups"]
+                [len(rg.get("rules", [])) for rg in folder_data["rule_groups"]]
             )
             plan_entry["folders"].append(
                 {
