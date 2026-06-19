@@ -636,7 +636,7 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
     # Calculate max width for alignment
     max_name_len = max(
         # Use the same default ("Unknown") as when printing, so alignment is accurate
-        (_display_len(sanitize_for_log(f.get("name", "Unknown"))) for f in folders),
+        (len(sanitize_for_log(f.get("name", "Unknown"))) for f in folders),
         default=0,
     )
     max_rules_len = max((len(f"{f.get('rules', 0):,}") for f in folders), default=0)
@@ -648,15 +648,13 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
 
         action_text = _get_action_text(folder)
 
-        padded_name = _pad_string(name, max_name_len, "<")
-
         if USE_COLORS:
             print(
-                f"  • {Colors.BOLD}{padded_name}{Colors.ENDC} : {formatted_rules:>{max_rules_len}} {pluralize(rules_count, 'rule'):<5} {action_text}"
+                f"  • {Colors.BOLD}{name:<{max_name_len}}{Colors.ENDC} : {formatted_rules:>{max_rules_len}} {pluralize(rules_count, 'rule'):<5} {action_text}"
             )
         else:
             print(
-                f"  - {padded_name} : {formatted_rules:>{max_rules_len}} {pluralize(rules_count, 'rule'):<5} {action_text}"
+                f"  - {name:<{max_name_len}} : {formatted_rules:>{max_rules_len}} {pluralize(rules_count, 'rule'):<5} {action_text}"
             )
 
     print("")
@@ -1430,50 +1428,48 @@ def validate_folder_data(data: dict[str, Any], url: str) -> TypeGuard[FolderData
 # _api_stats_lock, _api_get, _api_delete, _api_post, _api_post_form,
 # retry_with_jitter, _retry_request imported from api_client above
 def _parse_and_cache_response(url: str, r: httpx.Response) -> dict:
-    """
-    Validate, stream, parse, and cache a blocklist response.
-    """
-    content_type = r.headers.get("Content-Type", "").lower()
-    allowed_types = ["application/json", "text/json", "text/plain"]
-    if not any(t in content_type for t in allowed_types):
-        raise ValueError(
-            f"Invalid Content-Type from {sanitize_for_log(url)}: {sanitize_for_log(content_type)}. "
-            f"Expected one of: {', '.join(allowed_types)}"
-        )
+    """Validate, stream, parse, and cache a blocklist response."""
 
-    # 1. Check Content-Length header if present
-    cl = r.headers.get("Content-Length")
-    if cl:
-        try:
-            if int(cl) > MAX_RESPONSE_SIZE:
+    def _validate_ct() -> None:
+        ct = r.headers.get("Content-Type", "").lower()
+        if not any(t in ct for t in ("application/json", "text/json", "text/plain")):
+            raise ValueError(
+                f"Invalid Content-Type from {sanitize_for_log(url)}: {sanitize_for_log(ct)}."
+            )
+
+    def _read_body() -> bytes:
+        cl = r.headers.get("Content-Length")
+        if cl:
+            try:
+                if int(cl) > MAX_RESPONSE_SIZE:
+                    raise ValueError(
+                        f"Response too large from {sanitize_for_log(url)} "
+                        f"({int(cl) / (1024 * 1024):.2f} MB)"
+                    )
+            except ValueError as e:
+                if "Response too large" in str(e):
+                    raise
+                log.warning(
+                    f"Malformed Content-Length header from {sanitize_for_log(url)}: "
+                    f"{sanitize_for_log(cl)}. Falling back to streaming check."
+                )
+        chunks = []
+        current_size = 0
+        for chunk in r.iter_bytes(chunk_size=16 * 1024):
+            current_size += len(chunk)
+            if current_size > MAX_RESPONSE_SIZE:
                 raise ValueError(
                     f"Response too large from {sanitize_for_log(url)} "
-                    f"({int(cl) / (1024 * 1024):.2f} MB)"
+                    f"(> {MAX_RESPONSE_SIZE / (1024 * 1024):.2f} MB)"
                 )
-        except ValueError as e:
-            # Only catch the conversion error, let the size error propagate
-            if "Response too large" in str(e):
-                raise
-            log.warning(
-                f"Malformed Content-Length header from {sanitize_for_log(url)}: {sanitize_for_log(cl)}. "
-                "Falling back to streaming size check."
-            )
+            chunks.append(chunk)
+        return b"".join(chunks)
 
-    # 2. Stream and check actual size
-    chunks = []
-    current_size = 0
-    # Optimization: Use 16KB chunks to reduce loop overhead/appends for large files
-    for chunk in r.iter_bytes(chunk_size=16 * 1024):
-        current_size += len(chunk)
-        if current_size > MAX_RESPONSE_SIZE:
-            raise ValueError(
-                f"Response too large from {sanitize_for_log(url)} "
-                f"(> {MAX_RESPONSE_SIZE / (1024 * 1024):.2f} MB)"
-            )
-        chunks.append(chunk)
+    _validate_ct()
+    body_bytes = _read_body()
 
     try:
-        data = json.loads(b"".join(chunks))
+        data = json.loads(body_bytes)
     except json.JSONDecodeError:
         raise ValueError(
             f"Invalid JSON response from {sanitize_for_log(url)}"
