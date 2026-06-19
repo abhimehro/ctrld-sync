@@ -337,6 +337,12 @@ def _retry_request(
 
             if attempt == max_retries - 1:
                 _log_debug_response_content(e)
+                if isinstance(e, httpx.HTTPStatusError):
+                    raise httpx.HTTPStatusError(
+                        _sanitize_fn(str(e)),
+                        request=e.request,
+                        response=e.response,
+                    ) from None
                 raise
 
             # Full jitter exponential backoff: delay drawn from [0, min(delay * 2^attempt, MAX_RETRY_DELAY)]
