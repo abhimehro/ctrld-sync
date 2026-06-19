@@ -66,3 +66,6 @@
 ## 2025-10-24 - [CLI Table Alignment with ANSI Codes]
 **Learning:** Python calculates width by character count. ANSI color escape sequences take 0 columns, breaking border alignment.
 **Action:** Fix this by stripping ANSI escape sequences (e.g., via regex `\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])`) and using a custom display width calculation to accurately measure visual padding.
+## 2025-03-03 - CLI Plan Details Alignment Fix
+**Learning:** Python's standard `len()` and format alignment (`:<`) calculate widths by raw character count, causing visual misalignment in CLI tables when strings contain emojis or full-width characters (which take 2 visual columns but count as 1).
+**Action:** When printing structured CLI output like dry-run plan details, use a custom display width calculation (like `_display_len` via `unicodedata`) and custom padding logic (like `_pad_string`) instead of relying on standard f-string formatting.
