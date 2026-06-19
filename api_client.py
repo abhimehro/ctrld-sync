@@ -274,6 +274,15 @@ def _handle_rate_limit(
     return False
 
 
+def _raise_sanitized_status_error(e: Exception) -> None:
+    if isinstance(e, httpx.HTTPStatusError):
+        raise httpx.HTTPStatusError(
+            _sanitize_fn(str(e)),
+            request=e.request,
+            response=e.response,
+        ) from None
+
+
 def _check_client_error(e: httpx.HTTPStatusError) -> None:
     """Raise exception for 4xx client errors (excluding 429) without retrying."""
     code = e.response.status_code
@@ -337,12 +346,7 @@ def _retry_request(
 
             if attempt == max_retries - 1:
                 _log_debug_response_content(e)
-                if isinstance(e, httpx.HTTPStatusError):
-                    raise httpx.HTTPStatusError(
-                        _sanitize_fn(str(e)),
-                        request=e.request,
-                        response=e.response,
-                    ) from None
+                _raise_sanitized_status_error(e)
                 raise
 
             # Full jitter exponential backoff: delay drawn from [0, min(delay * 2^attempt, MAX_RETRY_DELAY)]
