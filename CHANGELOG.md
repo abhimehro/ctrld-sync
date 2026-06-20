@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased](https://github.com/abhimehro/ctrld-sync/tree/HEAD)
+
+[Full Changelog](https://github.com/abhimehro/ctrld-sync/compare/v0.1.0...HEAD)
+
+**Merged pull requests:**
+
+- 🛡️ Sentinel: \[MEDIUM\] Prevent data leakage in exception chaining [\#922](https://github.com/abhimehro/ctrld-sync/pull/922) ([abhimehro](https://github.com/abhimehro))
+- 🎨 Palette: Fix plan details table alignment for wide characters [\#919](https://github.com/abhimehro/ctrld-sync/pull/919) ([abhimehro](https://github.com/abhimehro))
+
 ## [v0.1.0](https://github.com/abhimehro/ctrld-sync/tree/v0.1.0) (2026-06-20)
 
 [Full Changelog](https://github.com/abhimehro/ctrld-sync/compare/a26109fcdfef4b876222a340c7ad0c24f0ac1734...v0.1.0)
