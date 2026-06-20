@@ -1,8 +1,8 @@
 # Changelog
 
-## [Unreleased](https://github.com/abhimehro/ctrld-sync/tree/HEAD)
+## [v0.1.0](https://github.com/abhimehro/ctrld-sync/tree/v0.1.0) (2026-06-20)
 
-[Full Changelog](https://github.com/abhimehro/ctrld-sync/compare/a26109fcdfef4b876222a340c7ad0c24f0ac1734...HEAD)
+[Full Changelog](https://github.com/abhimehro/ctrld-sync/compare/a26109fcdfef4b876222a340c7ad0c24f0ac1734...v0.1.0)
 
 **Implemented enhancements:**
 
@@ -294,6 +294,10 @@
 
 **Merged pull requests:**
 
+- chore\(deps\): bump actions/github-script from 8 to 9 [\#927](https://github.com/abhimehro/ctrld-sync/pull/927) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump codescene-oss/pr-refactoring-agent from bc0d8b91c0a1a88154fb1dfb82124f8f43733d65 to 841e34c7ddd7a8ec887d632ac51432d6c71e2fe1 [\#926](https://github.com/abhimehro/ctrld-sync/pull/926) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump actions/checkout from 4 to 7 [\#925](https://github.com/abhimehro/ctrld-sync/pull/925) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump github/gh-aw from 0.55.0 to 0.80.5 [\#924](https://github.com/abhimehro/ctrld-sync/pull/924) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump ruby/setup-ruby from 1.308.0 to 1.313.0 [\#923](https://github.com/abhimehro/ctrld-sync/pull/923) ([dependabot[bot]](https://github.com/apps/dependabot))
 - ⚡ Bolt: \[Replace sum\(generator\) with sum\(list\_comprehension\)\] [\#918](https://github.com/abhimehro/ctrld-sync/pull/918) ([abhimehro](https://github.com/abhimehro))
 - refactor\(api\): extract response parsing helpers \(salvages \#908\) [\#915](https://github.com/abhimehro/ctrld-sync/pull/915) ([abhimehro](https://github.com/abhimehro))
