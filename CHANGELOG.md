@@ -44,6 +44,9 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-06-19 [\#920](https://github.com/abhimehro/ctrld-sync/issues/920)
+- Daily QA & Agentic Review — 2026-06-18 [\#916](https://github.com/abhimehro/ctrld-sync/issues/916)
+- Daily QA & Agentic Review — 2026-06-17 [\#912](https://github.com/abhimehro/ctrld-sync/issues/912)
 - Daily QA & Agentic Review — 2026-06-16 [\#909](https://github.com/abhimehro/ctrld-sync/issues/909)
 - Daily QA & Agentic Review — 2026-06-15 [\#903](https://github.com/abhimehro/ctrld-sync/issues/903)
 - Daily QA & Agentic Review — 2026-06-14 [\#900](https://github.com/abhimehro/ctrld-sync/issues/900)
@@ -291,6 +294,12 @@
 
 **Merged pull requests:**
 
+- chore\(deps\): bump ruby/setup-ruby from 1.308.0 to 1.313.0 [\#923](https://github.com/abhimehro/ctrld-sync/pull/923) ([dependabot[bot]](https://github.com/apps/dependabot))
+- ⚡ Bolt: \[Replace sum\(generator\) with sum\(list\_comprehension\)\] [\#918](https://github.com/abhimehro/ctrld-sync/pull/918) ([abhimehro](https://github.com/abhimehro))
+- refactor\(api\): extract response parsing helpers \(salvages \#908\) [\#915](https://github.com/abhimehro/ctrld-sync/pull/915) ([abhimehro](https://github.com/abhimehro))
+- 🛡️ Sentinel: \[MEDIUM\] Fix exception chaining data leakage [\#913](https://github.com/abhimehro/ctrld-sync/pull/913) ([abhimehro](https://github.com/abhimehro))
+- 🛡️ Sentinel: \[MEDIUM\] Sanitize HTTP client error exceptions [\#911](https://github.com/abhimehro/ctrld-sync/pull/911) ([abhimehro](https://github.com/abhimehro))
+- 🎨 Palette: Fix CLI table alignment by ignoring ANSI codes [\#910](https://github.com/abhimehro/ctrld-sync/pull/910) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: optimize \_display\_len using list comprehension [\#906](https://github.com/abhimehro/ctrld-sync/pull/906) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[MEDIUM\] Fix un-sanitized exception log in rate limit parser [\#905](https://github.com/abhimehro/ctrld-sync/pull/905) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Fix plan details alignment with emojis [\#902](https://github.com/abhimehro/ctrld-sync/pull/902) ([abhimehro](https://github.com/abhimehro))
