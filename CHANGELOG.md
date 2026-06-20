@@ -294,6 +294,7 @@
 
 **Merged pull requests:**
 
+- chore\(deps\): bump ruby/setup-ruby from 1.308.0 to 1.313.0 [\#923](https://github.com/abhimehro/ctrld-sync/pull/923) ([dependabot[bot]](https://github.com/apps/dependabot))
 - ⚡ Bolt: \[Replace sum\(generator\) with sum\(list\_comprehension\)\] [\#918](https://github.com/abhimehro/ctrld-sync/pull/918) ([abhimehro](https://github.com/abhimehro))
 - refactor\(api\): extract response parsing helpers \(salvages \#908\) [\#915](https://github.com/abhimehro/ctrld-sync/pull/915) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[MEDIUM\] Fix exception chaining data leakage [\#913](https://github.com/abhimehro/ctrld-sync/pull/913) ([abhimehro](https://github.com/abhimehro))
