@@ -1574,9 +1574,13 @@ def _gh_get(url: str) -> dict:
             r.raise_for_status()
             data = _parse_and_cache_response(url, r)
 
-    except httpx.HTTPStatusError:
-        # Re-raise with original exception (don't catch and re-raise)
-        raise
+    except httpx.HTTPStatusError as e:
+        # Re-raise with sanitized exception to prevent data leakage
+        raise httpx.HTTPStatusError(
+            sanitize_for_log(str(e)),
+            request=e.request,
+            response=e.response,
+        ) from None
 
     # Double-checked locking: Check again after fetch to avoid duplicate fetches
     # If another thread already cached it while we were fetching, use theirs
