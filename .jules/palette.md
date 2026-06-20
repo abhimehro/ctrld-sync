@@ -69,3 +69,7 @@
 ## 2025-03-03 - CLI Plan Details Alignment Fix
 **Learning:** Python's standard `len()` and format alignment (`:<`) calculate widths by raw character count, causing visual misalignment in CLI tables when strings contain emojis or full-width characters (which take 2 visual columns but count as 1).
 **Action:** When printing structured CLI output like dry-run plan details, use a custom display width calculation (like `_display_len` via `unicodedata`) and custom padding logic (like `_pad_string`) instead of relying on standard f-string formatting.
+
+## 2023-10-27 - Graceful Failures on CLI Interactive Prompts
+**Learning:** Users often press `Ctrl+C` or `Ctrl+D` to exit prompts. If the input function does not catch `KeyboardInterrupt` or `EOFError`, the app crashes with a stack trace instead of failing securely/gracefully.
+**Action:** Always wrap `input()` in interactive CLI flows with proper exception handling to return securely.

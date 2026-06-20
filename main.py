@@ -2698,7 +2698,11 @@ def _get_interactive_restart_confirmation() -> bool:
         # Flush stdout (and stderr) so the prompt is visible even if output is buffered or redirected
         sys.stdout.flush()
         sys.stderr.flush()
-        user_response = input(prompt).strip().lower()
+        try:
+            user_response = input(prompt).strip().lower()
+        except (KeyboardInterrupt, EOFError):
+            print(cancel_msg)
+            return False
 
         if user_response in ("", "y", "yes"):
             return True
