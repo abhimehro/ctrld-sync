@@ -269,7 +269,8 @@ def _handle_rate_limit(
         if attempt < max_retries - 1:
             time.sleep(wait_seconds)
             return True
-        raise e  # Max retries exceeded
+        _raise_sanitized_status_error(e)
+        raise e  # fallback if not HTTPStatusError
 
     return False
 
