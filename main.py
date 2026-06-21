@@ -3358,7 +3358,10 @@ def main() -> bool:
         _api_stats["control_d_api_calls"] + _api_stats["blocklist_fetches"]
     )
     if total_api_calls > 0:
-        print(f"{Colors.BOLD}API Statistics:{Colors.ENDC}")
+        if USE_COLORS:
+            print(f"{Colors.BOLD}API Statistics:{Colors.ENDC}")
+        else:
+            print("API Statistics:")
         print(f"  • Control D API calls: {_api_stats['control_d_api_calls']:>7,}")
         print(f"  • Blocklist fetches:   {_api_stats['blocklist_fetches']:>7,}")
         print(f"  • Total API requests:  {total_api_calls:>7,}")
@@ -3366,7 +3369,10 @@ def main() -> bool:
 
     # Display cache statistics if any cache activity occurred
     if _cache_stats["hits"] + _cache_stats["misses"] + _cache_stats["validations"] > 0:
-        print(f"{Colors.BOLD}Cache Statistics:{Colors.ENDC}")
+        if USE_COLORS:
+            print(f"{Colors.BOLD}Cache Statistics:{Colors.ENDC}")
+        else:
+            print("Cache Statistics:")
         print(f"  • Hits (in-memory):    {_cache_stats['hits']:>7,}")
         print(f"  • Misses (downloaded): {_cache_stats['misses']:>7,}")
         print(f"  • Validations (304):   {_cache_stats['validations']:>7,}")
