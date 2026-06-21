@@ -588,19 +588,13 @@ def _format_action_text(label: str, icon: str, color: str) -> str:
 
 def _get_action_text(folder: PlanFolderEntry) -> str:
     """Determine the action label (Block/Allow/Mixed) for a given folder."""
-    action_val = None
+    actions = {rg.get("action") for rg in folder.get("rule_groups") or []}
+    if len(actions) > 1:
+        return _format_action_text("Mixed", "⚠️ ", Colors.WARNING)
 
-    # Check for multiple rule groups first
-    if "rule_groups" in folder and folder["rule_groups"]:
-        actions = {rg.get("action") for rg in folder["rule_groups"]}
-        if len(actions) > 1:
-            return _format_action_text("Mixed", "⚠️ ", Colors.WARNING)
-        action_val = next(iter(actions))
-
-    # Fallback to single top-level action if rule_groups didn't yield a
-    # recognized action (e.g., empty, missing, or None values).
-    if action_val not in (0, 1) and "action" in folder:
-        action_val = folder["action"]
+    action_val = next(iter(actions)) if actions else folder.get("action")
+    if action_val not in (0, 1):
+        action_val = folder.get("action")
 
     if action_val == 0:
         return _format_action_text("Block", "⛔", Colors.FAIL)
@@ -2670,27 +2664,10 @@ def sync_profile(
 # --------------------------------------------------------------------------- #
 def _get_interactive_restart_confirmation() -> bool:
     """Helper to prompt for and validate interactive restart confirmation."""
-    # Pre-compute formatted strings to reduce loop complexity
-    prompt_initial = (
-        f"\n{Colors.BOLD}🚀 Ready to launch? {Colors.ENDC}Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
-        if USE_COLORS
-        else "\n🚀 Ready to launch? Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
-    )
-    prompt_reprompt = (
-        f"{Colors.BOLD}🚀 Ready to launch? {Colors.ENDC}Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
-        if USE_COLORS
-        else "🚀 Ready to launch? Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
-    )
-    cancel_msg = (
-        f"\n{Colors.WARNING}⚠️  Cancelled.{Colors.ENDC}"
-        if USE_COLORS
-        else "\n⚠️  Cancelled."
-    )
-    err_msg = (
-        f"{Colors.FAIL}❌ Unrecognized input. Please press Enter to continue, or 'n' to cancel.{Colors.ENDC}"
-        if USE_COLORS
-        else "❌ Unrecognized input. Please press Enter to continue, or 'n' to cancel."
-    )
+    prompt_initial = f"\n{Colors.BOLD}🚀 Ready to launch? {Colors.ENDC}Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
+    prompt_reprompt = f"{Colors.BOLD}🚀 Ready to launch? {Colors.ENDC}Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
+    cancel_msg = f"\n{Colors.WARNING}⚠️  Cancelled.{Colors.ENDC}"
+    err_msg = f"{Colors.FAIL}❌ Unrecognized input. Please press Enter to continue, or 'n' to cancel.{Colors.ENDC}"
 
     prompt = prompt_initial
 
@@ -2698,7 +2675,11 @@ def _get_interactive_restart_confirmation() -> bool:
         # Flush stdout (and stderr) so the prompt is visible even if output is buffered or redirected
         sys.stdout.flush()
         sys.stderr.flush()
-        user_response = input(prompt).strip().lower()
+        try:
+            user_response = input(prompt).strip().lower()
+        except (KeyboardInterrupt, EOFError):
+            print(cancel_msg)
+            return False
 
         if user_response in ("", "y", "yes"):
             return True
