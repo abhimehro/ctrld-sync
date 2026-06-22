@@ -6,11 +6,14 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-06-21 [\#933](https://github.com/abhimehro/ctrld-sync/issues/933)
 - \[repo-automation\] Weekly Retrospective - 2026-06-21 [\#931](https://github.com/abhimehro/ctrld-sync/issues/931)
 - Daily QA & Agentic Review — 2026-06-20 [\#929](https://github.com/abhimehro/ctrld-sync/issues/929)
 
 **Merged pull requests:**
 
+- 🛡️ Sentinel: \[HIGH\] Fix exception chaining data leak in rate limit handler [\#935](https://github.com/abhimehro/ctrld-sync/pull/935) ([abhimehro](https://github.com/abhimehro))
+- 🎨 Palette: Fix CLI UI coloring and spacing [\#932](https://github.com/abhimehro/ctrld-sync/pull/932) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Add graceful exit for interactive restart prompt [\#930](https://github.com/abhimehro/ctrld-sync/pull/930) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[MEDIUM\] Prevent data leakage in exception chaining [\#922](https://github.com/abhimehro/ctrld-sync/pull/922) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Fix plan details table alignment for wide characters [\#919](https://github.com/abhimehro/ctrld-sync/pull/919) ([abhimehro](https://github.com/abhimehro))
