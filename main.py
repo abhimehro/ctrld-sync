@@ -579,30 +579,24 @@ def pluralize(count: int, singular: str, plural: str | None = None) -> str:
     return singular if count == 1 else plural
 
 
-def _format_action_text(label: str, icon: str, color: str) -> str:
-    """Format action label with appropriate color and icon based on USE_COLORS."""
-    if USE_COLORS:
-        return f"({color}{icon} {label}{Colors.ENDC})"
-    return f"({icon} {label})"
-
-
 def _get_action_text(folder: PlanFolderEntry) -> str:
     """Determine the action label (Block/Allow/Mixed) for a given folder."""
     actions = {rg.get("action") for rg in folder.get("rule_groups") or []}
     if len(actions) > 1:
-        return _format_action_text("Mixed", "⚠️ ", Colors.WARNING)
+        label, icon, color = "Mixed", "⚠️ ", Colors.WARNING
+    else:
+        action_val = next(iter(actions)) if actions else folder.get("action")
+        if action_val not in (0, 1):
+            action_val = folder.get("action")
 
-    action_val = next(iter(actions)) if actions else folder.get("action")
-    if action_val not in (0, 1):
-        action_val = folder.get("action")
+        label, icon, color = {
+            0: ("Block", "⛔", Colors.FAIL),
+            1: ("Allow", "✅", Colors.GREEN)
+        }.get(action_val, ("Block (Default)", "⛔", Colors.FAIL))
 
-    if action_val == 0:
-        return _format_action_text("Block", "⛔", Colors.FAIL)
-    if action_val == 1:
-        return _format_action_text("Allow", "✅", Colors.GREEN)
-
-    # Default fallback
-    return _format_action_text("Block (Default)", "⛔", Colors.FAIL)
+    if USE_COLORS:
+        return f"({color}{icon} {label}{Colors.ENDC})"
+    return f"({icon} {label})"
 
 
 def print_plan_details(plan_entry: PlanEntry) -> None:
@@ -1660,72 +1654,32 @@ def list_existing_folders(client: httpx.Client, profile_id: str) -> dict[str, st
 
 
 def _parse_folders_response(data: dict) -> dict[str, str] | None:
-    # Ensure we got the expected top-level JSON structure.
+    """Parse folders response."""
     if not isinstance(data, dict):
-        log.error(
-            "Failed to parse folders data: expected JSON object at top level, "
-            f"got {type(data).__name__}"
-        )
+        log.error("Failed to parse folders data: response is not a JSON object")
         return None
-
     body = data.get("body")
     if not isinstance(body, dict):
-        log.error(
-            "Failed to parse folders data: expected 'body' to be an object, "
-            f"got {type(body).__name__ if body is not None else 'None'}"
-        )
+        log.error("Failed to parse folders data: 'body' is not a JSON object")
         return None
-
     folders = body.get("groups", [])
     if not isinstance(folders, list):
-        log.error(
-            "Failed to parse folders data: expected 'body[\"groups\"]' to be a list, "
-            f"got {type(folders).__name__}"
-        )
+        log.error("Failed to parse folders data: 'body[\"groups\"]' is not a list")
         return None
 
-    # Only process entries that are dicts and have the required keys.
     result: dict[str, str] = {}
     for f in folders:
         if not isinstance(f, dict):
             continue
         name = f.get("group")
         pk = f.get("PK")
-        # Skip entries with empty or None values for required fields
         if not name or not pk:
             continue
-
         pk_str = str(pk)
-        if not validate_folder_id(pk_str):
-            continue
-
-        result[str(name).strip()] = pk_str
+        if validate_folder_id(pk_str):
+            result[str(name).strip()] = pk_str
 
     return result
-
-
-def _log_auth_error(code: int, profile_id: str) -> None:
-    if code == 401:
-        log.critical(
-            f"{Colors.FAIL}❌ Authentication Failed: The API Token is invalid.{Colors.ENDC}"
-        )
-        log.critical(
-            f"{Colors.FAIL}   Please check your token at: https://controld.com/account/manage-account{Colors.ENDC}"
-        )
-    elif code == 403:
-        log.critical(
-            "%s🚫 Access Denied: Token lacks permission for Profile %s.%s",
-            Colors.FAIL,
-            sanitize_for_log(profile_id),
-            Colors.ENDC,
-        )
-    elif code == 404:
-        log.critical(
-            f"{Colors.FAIL}🔍 Profile Not Found: The ID '{sanitize_for_log(profile_id)}' does not exist.{Colors.ENDC}"
-        )
-        log.critical(
-            f"{Colors.FAIL}   Please verify the Profile ID from your Control D Dashboard URL.{Colors.ENDC}"
-        )
 
 
 def verify_access_and_get_folders(
@@ -1743,17 +1697,26 @@ def verify_access_and_get_folders(
         try:
             resp = client.get(url)
             resp.raise_for_status()
-
-            try:
-                return _parse_folders_response(resp.json())
-            except (ValueError, TypeError, AttributeError) as err:
-                log.error("Failed to parse folders data: %s", sanitize_for_log(err))
-                return None
+            return _parse_folders_response(resp.json())
 
         except httpx.HTTPStatusError as e:
             code = e.response.status_code
             if code in (401, 403, 404):
-                _log_auth_error(code, profile_id)
+                ERROR_MESSAGES = {
+                    401: [
+                        "❌ Authentication Failed: The API Token is invalid.",
+                        "   Please check your token at: https://controld.com/account/manage-account"
+                    ],
+                    403: [
+                        f"🚫 Access Denied: Token lacks permission for Profile {sanitize_for_log(profile_id)}."
+                    ],
+                    404: [
+                        f"🔍 Profile Not Found: The ID '{sanitize_for_log(profile_id)}' does not exist.",
+                        "   Please verify the Profile ID from your Control D Dashboard URL."
+                    ]
+                }
+                for line in ERROR_MESSAGES.get(code, []):
+                    log.critical(f"{Colors.FAIL}{line}{Colors.ENDC}")
                 return None
 
             if attempt == MAX_RETRIES - 1:
@@ -1762,11 +1725,7 @@ def verify_access_and_get_folders(
 
         except httpx.RequestError as err:
             if attempt == MAX_RETRIES - 1:
-                hint = ""
-                if isinstance(err, httpx.TimeoutException):
-                    hint = f" | hint: {_TIMEOUT_HINT}"
-                elif isinstance(err, httpx.ConnectError):
-                    hint = f" | hint: {_CONNECT_ERROR_HINT}"
+                hint = f" | hint: {_TIMEOUT_HINT}" if isinstance(err, httpx.TimeoutException) else (f" | hint: {_CONNECT_ERROR_HINT}" if isinstance(err, httpx.ConnectError) else "")
                 log.error(
                     "Network error during access verification: %s%s",
                     sanitize_for_log(err),
@@ -1995,15 +1954,14 @@ def _process_new_folder_pk(pk: str, name: str, source: str) -> str | None:
     return pk
 
 
-def _is_matching_group_dict(grp: Any, name: str) -> bool:
-    if not isinstance(grp, dict):
-        return False
-    return grp.get("group", "").strip() == name.strip() and "PK" in grp
-
-
 def _extract_from_groups_list(groups: list, name: str) -> str | None:
+    """Extract folder ID from groups list."""
     for grp in groups:
-        if _is_matching_group_dict(grp, name):
+        if not isinstance(grp, dict):
+            continue
+        if grp.get("group", "").strip() != name.strip():
+            continue
+        if "PK" in grp:
             pk = _process_new_folder_pk(str(grp["PK"]), name, "Direct")
             if pk:
                 return pk
@@ -2039,7 +1997,11 @@ def _poll_for_folder_id(ctx: SyncContext, name: str) -> str | None:
             groups = data.get("body", {}).get("groups", [])
 
             for grp in groups:
-                if _is_matching_group_dict(grp, name):
+                if not isinstance(grp, dict):
+                    continue
+                if grp.get("group", "").strip() != name.strip():
+                    continue
+                if "PK" in grp:
                     pk = _process_new_folder_pk(str(grp["PK"]), name, "Polled")
                     if pk:
                         return pk
@@ -2951,6 +2913,89 @@ def make_col_separator(
     return left + mid.join(parts) + right
 
 
+def display_api_statistics() -> None:
+    """Display API statistics."""
+    total_api_calls = (
+        _api_stats["control_d_api_calls"] + _api_stats["blocklist_fetches"]
+    )
+    if total_api_calls > 0:
+        if USE_COLORS:
+            print(f"{Colors.BOLD}API Statistics:{Colors.ENDC}")
+        else:
+            print("API Statistics:")
+        print(f"  • Control D API calls: {_api_stats['control_d_api_calls']:>7,}")
+        print(f"  • Blocklist fetches:   {_api_stats['blocklist_fetches']:>7,}")
+        print(f"  • Total API requests:  {total_api_calls:>7,}")
+        print()
+
+
+def display_cache_statistics() -> None:
+    """Display cache statistics if any cache activity occurred."""
+    if _cache_stats["hits"] + _cache_stats["misses"] + _cache_stats["validations"] > 0:
+        if USE_COLORS:
+            print(f"{Colors.BOLD}Cache Statistics:{Colors.ENDC}")
+        else:
+            print("Cache Statistics:")
+        print(f"  • Hits (in-memory):    {_cache_stats['hits']:>7,}")
+        print(f"  • Misses (downloaded): {_cache_stats['misses']:>7,}")
+        print(f"  • Validations (304):   {_cache_stats['validations']:>7,}")
+        if _cache_stats["errors"] > 0:
+            print(f"  • Errors (non-fatal):  {_cache_stats['errors']:>7,}")
+
+        # Calculate cache effectiveness
+        total_requests = (
+            _cache_stats["hits"] + _cache_stats["misses"] + _cache_stats["validations"]
+        )
+        if total_requests > 0:
+            # Hits + validations = avoided full downloads
+            cache_effectiveness = (
+                (_cache_stats["hits"] + _cache_stats["validations"])
+                / total_requests
+                * 100
+            )
+            print(f"  • Cache effectiveness:  {cache_effectiveness:>6.1f}%")
+        print()
+
+
+def display_rate_limit_status() -> None:
+    """Display rate limit information if available."""
+    with _rate_limit_lock:
+        if not any(v is not None for v in _rate_limit_info.values()):
+            return
+
+        print(f"{Colors.BOLD}API Rate Limit Status:{Colors.ENDC}")
+
+        if _rate_limit_info["limit"] is not None:
+            print(f"  • Requests limit:       {_rate_limit_info['limit']:>6,}")
+
+        if _rate_limit_info["remaining"] is not None:
+            remaining = _rate_limit_info["remaining"]
+            limit = _rate_limit_info["limit"]
+            if limit and limit > 0:
+                pct = (remaining / limit) * 100
+                color = Colors.FAIL if pct < 20 else (Colors.WARNING if pct < 50 else Colors.GREEN)
+                print(
+                    f"  • Requests remaining:   {color}{remaining:>6,} ({pct:>5.1f}%){Colors.ENDC}"
+                )
+            else:
+                print(f"  • Requests remaining:   {remaining:>6,}")
+
+        if _rate_limit_info["reset"] is not None:
+            reset_time = time.strftime(
+                "%H:%M:%S", time.localtime(_rate_limit_info["reset"])
+            )
+            print(f"  • Limit resets at:      {reset_time}")
+
+        print()
+
+
+def display_statistics() -> None:
+    """Display API, cache, and rate limit statistics."""
+    display_api_statistics()
+    display_cache_statistics()
+    display_rate_limit_status()
+
+
 def main() -> bool:
     """
     Main entry point for Control D Sync.
@@ -3353,74 +3398,8 @@ def main() -> bool:
             else:
                 print("⚠️  Dry run encountered errors. Please check the logs above.")
 
-    # Display API statistics
-    total_api_calls = (
-        _api_stats["control_d_api_calls"] + _api_stats["blocklist_fetches"]
-    )
-    if total_api_calls > 0:
-        print(f"{Colors.BOLD}API Statistics:{Colors.ENDC}")
-        print(f"  • Control D API calls: {_api_stats['control_d_api_calls']:>7,}")
-        print(f"  • Blocklist fetches:   {_api_stats['blocklist_fetches']:>7,}")
-        print(f"  • Total API requests:  {total_api_calls:>7,}")
-        print()
-
-    # Display cache statistics if any cache activity occurred
-    if _cache_stats["hits"] + _cache_stats["misses"] + _cache_stats["validations"] > 0:
-        print(f"{Colors.BOLD}Cache Statistics:{Colors.ENDC}")
-        print(f"  • Hits (in-memory):    {_cache_stats['hits']:>7,}")
-        print(f"  • Misses (downloaded): {_cache_stats['misses']:>7,}")
-        print(f"  • Validations (304):   {_cache_stats['validations']:>7,}")
-        if _cache_stats["errors"] > 0:
-            print(f"  • Errors (non-fatal):  {_cache_stats['errors']:>7,}")
-
-        # Calculate cache effectiveness
-        total_requests = (
-            _cache_stats["hits"] + _cache_stats["misses"] + _cache_stats["validations"]
-        )
-        if total_requests > 0:
-            # Hits + validations = avoided full downloads
-            cache_effectiveness = (
-                (_cache_stats["hits"] + _cache_stats["validations"])
-                / total_requests
-                * 100
-            )
-            print(f"  • Cache effectiveness:  {cache_effectiveness:>6.1f}%")
-        print()
-
-    # Display rate limit information if available
-    with _rate_limit_lock:
-        if any(v is not None for v in _rate_limit_info.values()):
-            print(f"{Colors.BOLD}API Rate Limit Status:{Colors.ENDC}")
-
-            if _rate_limit_info["limit"] is not None:
-                print(f"  • Requests limit:       {_rate_limit_info['limit']:>6,}")
-
-            if _rate_limit_info["remaining"] is not None:
-                remaining = _rate_limit_info["remaining"]
-                limit = _rate_limit_info["limit"]
-
-                # Color code based on remaining capacity
-                if limit and limit > 0:
-                    pct = (remaining / limit) * 100
-                    if pct < 20:
-                        color = Colors.FAIL  # Red for critical
-                    elif pct < 50:
-                        color = Colors.WARNING  # Yellow for caution
-                    else:
-                        color = Colors.GREEN  # Green for healthy
-                    print(
-                        f"  • Requests remaining:   {color}{remaining:>6,} ({pct:>5.1f}%){Colors.ENDC}"
-                    )
-                else:
-                    print(f"  • Requests remaining:   {remaining:>6,}")
-
-            if _rate_limit_info["reset"] is not None:
-                reset_time = time.strftime(
-                    "%H:%M:%S", time.localtime(_rate_limit_info["reset"])
-                )
-                print(f"  • Limit resets at:      {reset_time}")
-
-            print()
+    # Display execution statistics and rate limit status
+    display_statistics()
 
     # Save cache to disk after successful sync (non-fatal if it fails)
     if not args.dry_run:
