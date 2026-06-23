@@ -579,15 +579,6 @@ def pluralize(count: int, singular: str, plural: str | None = None) -> str:
     return singular if count == 1 else plural
 
 
-def _get_action_properties(action_val: int | None) -> tuple[str, str, str]:
-    if not isinstance(action_val, int) or action_val not in (0, 1):
-        return ("Block (Default)", "⛔", Colors.FAIL)
-    return {
-        0: ("Block", "⛔", Colors.FAIL),
-        1: ("Allow", "✅", Colors.GREEN),
-    }[action_val]
-
-
 def _get_action_text(folder: PlanFolderEntry) -> str:
     """Determine the action label (Block/Allow/Mixed) for a given folder."""
     actions = {rg.get("action") for rg in folder.get("rule_groups") or []}
@@ -595,8 +586,15 @@ def _get_action_text(folder: PlanFolderEntry) -> str:
         label, icon, color = "Mixed", "⚠️ ", Colors.WARNING
     else:
         action_val = next(iter(actions)) if actions else folder.get("action")
-        label, icon, color = _get_action_properties(
-            action_val if action_val in (0, 1) else folder.get("action")
+        if action_val not in (0, 1):
+            action_val = folder.get("action")
+
+        prop_map: dict[int | None | str, tuple[str, str, str]] = {
+            0: ("Block", "⛔", Colors.FAIL),
+            1: ("Allow", "✅", Colors.GREEN),
+        }
+        label, icon, color = prop_map.get(
+            action_val, ("Block (Default)", "⛔", Colors.FAIL)
         )
 
     if USE_COLORS:
