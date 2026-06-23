@@ -1702,7 +1702,7 @@ def verify_access_and_get_folders(
         except httpx.HTTPStatusError as e:
             code = e.response.status_code
             if code in (401, 403, 404):
-                ERROR_MESSAGES = {
+                error_messages = {
                     401: [
                         "❌ Authentication Failed: The API Token is invalid.",
                         "   Please check your token at: https://controld.com/account/manage-account"
@@ -1715,7 +1715,7 @@ def verify_access_and_get_folders(
                         "   Please verify the Profile ID from your Control D Dashboard URL."
                     ]
                 }
-                for line in ERROR_MESSAGES.get(code, []):
+                for line in error_messages.get(code, []):
                     log.critical(f"{Colors.FAIL}{line}{Colors.ENDC}")
                 return None
 
