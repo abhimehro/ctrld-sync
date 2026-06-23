@@ -589,10 +589,15 @@ def _get_action_text(folder: PlanFolderEntry) -> str:
         if action_val not in (0, 1):
             action_val = folder.get("action")
 
-        label, icon, color = {
-            0: ("Block", "⛔", Colors.FAIL),
-            1: ("Allow", "✅", Colors.GREEN)
-        }.get(action_val, ("Block (Default)", "⛔", Colors.FAIL))
+        # For type checking without losing the fallback string behavior:
+        # We handle None explicitly by using the fallback, otherwise look it up
+        if action_val is None:
+            label, icon, color = ("Block (Default)", "⛔", Colors.FAIL)
+        else:
+            label, icon, color = {
+                0: ("Block", "⛔", Colors.FAIL),
+                1: ("Allow", "✅", Colors.GREEN),
+            }.get(action_val, ("Block (Default)", "⛔", Colors.FAIL))
 
     if USE_COLORS:
         return f"({color}{icon} {label}{Colors.ENDC})"
@@ -1702,20 +1707,20 @@ def verify_access_and_get_folders(
         except httpx.HTTPStatusError as e:
             code = e.response.status_code
             if code in (401, 403, 404):
-                ERROR_MESSAGES = {
+                error_messages = {
                     401: [
                         "❌ Authentication Failed: The API Token is invalid.",
-                        "   Please check your token at: https://controld.com/account/manage-account"
+                        "   Please check your token at: https://controld.com/account/manage-account",
                     ],
                     403: [
                         f"🚫 Access Denied: Token lacks permission for Profile {sanitize_for_log(profile_id)}."
                     ],
                     404: [
                         f"🔍 Profile Not Found: The ID '{sanitize_for_log(profile_id)}' does not exist.",
-                        "   Please verify the Profile ID from your Control D Dashboard URL."
-                    ]
+                        "   Please verify the Profile ID from your Control D Dashboard URL.",
+                    ],
                 }
-                for line in ERROR_MESSAGES.get(code, []):
+                for line in error_messages.get(code, []):
                     log.critical(f"{Colors.FAIL}{line}{Colors.ENDC}")
                 return None
 
@@ -1725,7 +1730,15 @@ def verify_access_and_get_folders(
 
         except httpx.RequestError as err:
             if attempt == MAX_RETRIES - 1:
-                hint = f" | hint: {_TIMEOUT_HINT}" if isinstance(err, httpx.TimeoutException) else (f" | hint: {_CONNECT_ERROR_HINT}" if isinstance(err, httpx.ConnectError) else "")
+                hint = (
+                    f" | hint: {_TIMEOUT_HINT}"
+                    if isinstance(err, httpx.TimeoutException)
+                    else (
+                        f" | hint: {_CONNECT_ERROR_HINT}"
+                        if isinstance(err, httpx.ConnectError)
+                        else ""
+                    )
+                )
                 log.error(
                     "Network error during access verification: %s%s",
                     sanitize_for_log(err),
@@ -2708,6 +2721,10 @@ _ANSI_ESCAPE_PATTERN = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 
 def _display_len(s: str) -> int:
     """Calculate display width of a string considering full-width characters and ignoring ANSI codes."""
+    # FAST PATH: If string is plain ASCII without ANSI escapes, length is exact.
+    if s.isascii() and "\x1b" not in s:
+        return len(s)
+
     stripped = _ANSI_ESCAPE_PATTERN.sub("", s)
     # OPTIMIZATION: C-speed list comprehension avoids Python loop overhead
     return len(stripped) + len(
@@ -2973,7 +2990,11 @@ def display_rate_limit_status() -> None:
             limit = _rate_limit_info["limit"]
             if limit and limit > 0:
                 pct = (remaining / limit) * 100
-                color = Colors.FAIL if pct < 20 else (Colors.WARNING if pct < 50 else Colors.GREEN)
+                color = (
+                    Colors.FAIL
+                    if pct < 20
+                    else (Colors.WARNING if pct < 50 else Colors.GREEN)
+                )
                 print(
                     f"  • Requests remaining:   {color}{remaining:>6,} ({pct:>5.1f}%){Colors.ENDC}"
                 )

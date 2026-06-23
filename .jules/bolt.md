@@ -28,3 +28,9 @@
 ## 2025-10-24 - sum(list_comprehension) vs sum(generator) for data aggregation
 **Learning:** For CPU-bound data parsing paths (like aggregating nested lists in `_build_plan_entry` and `_sync_profiles`), replacing a generator expression inside a `sum()` call with a list comprehension (e.g., `sum([len(...) for ...])`) is measurably faster (~20-30%) as it leverages C-level iteration and avoids Python's generator overhead.
 **Action:** Prefer `sum([list_comprehension])` over `sum(generator_expression)` for CPU-bound data aggregation paths in Python.
+## 2025-06-25 - Fast Path for String Processing
+**Learning:** The `_display_len` calculation uses expensive regex and unicodedata checks. For the vast majority of console output that is plain ASCII without ANSI codes, computing this overhead is unnecessary. A fast path check (`s.isascii() and '\x1b' not in s`) runs in pure C and avoids all overhead.
+**Action:** When performing complex parsing or filtering on strings (like stripping ANSI codes or calculating East Asian widths), always add an early return fast path for standard ASCII strings to bypass the expensive logic completely.
+## 2025-06-25 - Review Action: Careful with Fallback Strings
+**Learning:** When attempting to tighten typing by forcing `None` to `0` in a `.get()` lookup (e.g., `dict.get(val if val is not None else 0)`), I inadvertently bypassed the intended fallback behavior (which relied on the default argument of `.get()` when `val` was `None` instead of `0`).
+**Action:** Handle `None` explicitly before or outside dictionary lookups to preserve specific fallback behaviors.
