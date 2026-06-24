@@ -2719,6 +2719,8 @@ _ANSI_ESCAPE_PATTERN = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 
 def _display_len(s: str) -> int:
     """Calculate display width of a string considering full-width characters and ignoring ANSI codes."""
+    if s.isascii() and "\x1b" not in s:
+        return len(s)
     stripped = _ANSI_ESCAPE_PATTERN.sub("", s)
     # OPTIMIZATION: C-speed list comprehension avoids Python loop overhead
     return len(stripped) + len(

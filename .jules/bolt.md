@@ -28,3 +28,6 @@
 ## 2025-10-24 - sum(list_comprehension) vs sum(generator) for data aggregation
 **Learning:** For CPU-bound data parsing paths (like aggregating nested lists in `_build_plan_entry` and `_sync_profiles`), replacing a generator expression inside a `sum()` call with a list comprehension (e.g., `sum([len(...) for ...])`) is measurably faster (~20-30%) as it leverages C-level iteration and avoids Python's generator overhead.
 **Action:** Prefer `sum([list_comprehension])` over `sum(generator_expression)` for CPU-bound data aggregation paths in Python.
+## 2026-11-12 - Fast-path for early return in expensive string processing
+**Learning:** Performance Optimization Pattern: When a function performs expensive string manipulation (e.g., regex stripping and Unicode property lookups) on console output, introducing an early-return fast path for standard ASCII strings (`if s.isascii() and '\x1b' not in s: return len(s)`) bypasses Python overhead and leverages C-level execution for the vast majority of standard text.
+**Action:** Use early return checks with `.isascii()` to bypass expensive unicode or regex checks when processing standard ASCII text.
