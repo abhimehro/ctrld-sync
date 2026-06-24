@@ -52,7 +52,7 @@ jobs:
       # May 2026 that no longer match current ubuntu-latest runner performance.
       # On cache miss, the committed cache/benchmark-data.json from checkout is used.
       - name: Download previous benchmark data
-        uses: actions/cache@v5
+        uses: actions/cache@v6.0.0
         id: benchmark-cache
         with:
           path: ./cache
