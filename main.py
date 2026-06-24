@@ -589,10 +589,13 @@ def _get_action_text(folder: PlanFolderEntry) -> str:
         if action_val not in (0, 1):
             action_val = folder.get("action")
 
-        label, icon, color = {
+        prop_map: dict[int | None | str, tuple[str, str, str]] = {
             0: ("Block", "⛔", Colors.FAIL),
             1: ("Allow", "✅", Colors.GREEN),
-        }.get(action_val if action_val is not None else -1, ("Block (Default)", "⛔", Colors.FAIL))
+        }
+        label, icon, color = prop_map.get(
+            action_val, ("Block (Default)", "⛔", Colors.FAIL)
+        )
 
     if USE_COLORS:
         return f"({color}{icon} {label}{Colors.ENDC})"

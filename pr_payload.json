@@ -1,6 +1,0 @@
-{
-  "title": "🧹 Refactor: extract logic from fix_env",
-  "head": "refactor/fix-env",
-  "base": "main",
-  "body": "🎯 **What:** Extract logic from `fix_env` to smaller helper methods `_parse_env_content`, `_resolve_assignments`, and `_write_env_securely`.\n💡 **Why:** Reduces cyclomatic complexity and improves readability of `fix_env.py` without changing behavior.\n✅ **Verification:** Verified by checking format using `ruff format` and `ruff check`, and full test execution via `uv run pytest`.\n✨ **Result:** Improved maintainability and modularity of the script."
-}
