@@ -14,6 +14,7 @@
 
 **Merged pull requests:**
 
+- ⚡ Bolt: Add early return fast-path for string display length calculation [\#947](https://github.com/abhimehro/ctrld-sync/pull/947) ([abhimehro](https://github.com/abhimehro))
 - fix\(qa\): minor type check and linting fixes [\#943](https://github.com/abhimehro/ctrld-sync/pull/943) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[HIGH\] Fix exception chaining data leak in rate limit handler [\#935](https://github.com/abhimehro/ctrld-sync/pull/935) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Fix CLI UI coloring and spacing [\#932](https://github.com/abhimehro/ctrld-sync/pull/932) ([abhimehro](https://github.com/abhimehro))
