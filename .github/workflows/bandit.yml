@@ -27,7 +27,7 @@ jobs:
 
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.0
 
       # PERFORMANCE: Cache pip dependencies so that any packages installed by the
       # bandit scan action (or future pip-install steps) are served from cache.
