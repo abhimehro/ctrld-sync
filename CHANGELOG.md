@@ -6,6 +6,7 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review - 2026-06-25 [\#949](https://github.com/abhimehro/ctrld-sync/issues/949)
 - Daily QA & Agentic Review — 2026-06-24 [\#948](https://github.com/abhimehro/ctrld-sync/issues/948)
 - Daily QA & Agentic Review — 2026-06-23 [\#945](https://github.com/abhimehro/ctrld-sync/issues/945)
 - Daily QA & Agentic Review — 2026-06-22 [\#937](https://github.com/abhimehro/ctrld-sync/issues/937)
@@ -15,6 +16,8 @@
 
 **Merged pull requests:**
 
+- chore\(deps\): bump release-drafter/release-drafter from 7.4.0 to 7.5.1 [\#951](https://github.com/abhimehro/ctrld-sync/pull/951) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump actions/checkout from 4.2.2 to 7.0.0 [\#950](https://github.com/abhimehro/ctrld-sync/pull/950) ([dependabot[bot]](https://github.com/apps/dependabot))
 - ⚡ Bolt: Add early return fast-path for string display length calculation [\#947](https://github.com/abhimehro/ctrld-sync/pull/947) ([abhimehro](https://github.com/abhimehro))
 - fix\(qa\): minor type check and linting fixes [\#943](https://github.com/abhimehro/ctrld-sync/pull/943) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump ruby/setup-ruby from 1.313.0 to 1.314.0 [\#942](https://github.com/abhimehro/ctrld-sync/pull/942) ([dependabot[bot]](https://github.com/apps/dependabot))
