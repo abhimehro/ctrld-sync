@@ -765,6 +765,9 @@ def get_validated_input(
             sys.stderr.flush()
             value = input(prompt).strip()
         except (KeyboardInterrupt, EOFError):
+            if USE_COLORS:
+                sys.stderr.write("\r\033[K")
+                sys.stderr.flush()
             print(f"\n{Colors.WARNING}⚠️  Input cancelled.{Colors.ENDC}")
             sys.exit(130)
 
@@ -805,6 +808,9 @@ def get_password(
             sys.stderr.flush()
             value = getpass.getpass(prompt).strip()
         except (KeyboardInterrupt, EOFError):
+            if USE_COLORS:
+                sys.stderr.write("\r\033[K")
+                sys.stderr.flush()
             print(f"\n{Colors.WARNING}⚠️  Input cancelled.{Colors.ENDC}")
             sys.exit(130)
 
@@ -2651,6 +2657,9 @@ def _get_interactive_restart_confirmation() -> bool:
         try:
             user_response = input(prompt).strip().lower()
         except (KeyboardInterrupt, EOFError):
+            if USE_COLORS:
+                sys.stderr.write("\r\033[K")
+                sys.stderr.flush()
             print(cancel_msg)
             return False
 
@@ -2705,6 +2714,9 @@ def prompt_for_interactive_restart(profile_ids: list[str]) -> bool:
         return True
 
     except (KeyboardInterrupt, EOFError):
+        if USE_COLORS:
+            sys.stderr.write("\r\033[K")
+            sys.stderr.flush()
         print(f"\n{Colors.WARNING}⚠️  Cancelled.{Colors.ENDC}")
         return False
 
@@ -3434,5 +3446,8 @@ if __name__ == "__main__":
         while main():
             pass
     except KeyboardInterrupt:
+        if USE_COLORS:
+            sys.stderr.write("\r\033[K")
+            sys.stderr.flush()
         print(f"\n{Colors.WARNING}⚠️  Cancelled by user.{Colors.ENDC}")
         sys.exit(130)
