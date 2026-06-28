@@ -212,13 +212,6 @@ class Colors:
         UNDERLINE = ""
         DIM = ""
 
-    @staticmethod
-    def clear_line() -> None:
-        """Helper to cleanly erase the current terminal line residue (e.g. ^C)."""
-        if USE_COLORS:
-            sys.stderr.write("\r\033[K")
-            sys.stderr.flush()
-
 
 class Box:
     """Box drawing characters for pretty tables."""
@@ -772,8 +765,10 @@ def get_validated_input(
             sys.stderr.flush()
             value = input(prompt).strip()
         except (KeyboardInterrupt, EOFError):
-            Colors.clear_line()
-            print(f"\n{Colors.WARNING}⚠️  Input cancelled.{Colors.ENDC}")
+            if sys.stderr.isatty():
+                sys.stderr.write("\r\033[K")
+                sys.stderr.flush()
+            print(f"{Colors.WARNING}⚠️  Input cancelled.{Colors.ENDC}")
             sys.exit(130)
 
         if not value:
@@ -813,8 +808,10 @@ def get_password(
             sys.stderr.flush()
             value = getpass.getpass(prompt).strip()
         except (KeyboardInterrupt, EOFError):
-            Colors.clear_line()
-            print(f"\n{Colors.WARNING}⚠️  Input cancelled.{Colors.ENDC}")
+            if sys.stderr.isatty():
+                sys.stderr.write("\r\033[K")
+                sys.stderr.flush()
+            print(f"{Colors.WARNING}⚠️  Input cancelled.{Colors.ENDC}")
             sys.exit(130)
 
         if not value:
@@ -2660,8 +2657,10 @@ def _get_interactive_restart_confirmation() -> bool:
         try:
             user_response = input(prompt).strip().lower()
         except (KeyboardInterrupt, EOFError):
-            Colors.clear_line()
-            print(cancel_msg)
+            if sys.stderr.isatty():
+                sys.stderr.write("\r\033[K")
+                sys.stderr.flush()
+            print(cancel_msg.lstrip("\n"))
             return False
 
         if user_response in ("", "y", "yes"):
@@ -2715,8 +2714,10 @@ def prompt_for_interactive_restart(profile_ids: list[str]) -> bool:
         return True
 
     except (KeyboardInterrupt, EOFError):
-        Colors.clear_line()
-        print(f"\n{Colors.WARNING}⚠️  Cancelled.{Colors.ENDC}")
+        if sys.stderr.isatty():
+            sys.stderr.write("\r\033[K")
+            sys.stderr.flush()
+        print(f"{Colors.WARNING}⚠️  Cancelled.{Colors.ENDC}")
         return False
 
 
@@ -3445,6 +3446,8 @@ if __name__ == "__main__":
         while main():
             pass
     except KeyboardInterrupt:
-        Colors.clear_line()
-        print(f"\n{Colors.WARNING}⚠️  Cancelled by user.{Colors.ENDC}")
+        if sys.stderr.isatty():
+            sys.stderr.write("\r\033[K")
+            sys.stderr.flush()
+        print(f"{Colors.WARNING}⚠️  Cancelled by user.{Colors.ENDC}")
         sys.exit(130)
