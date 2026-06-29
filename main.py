@@ -87,7 +87,9 @@ class SyncContext:
     batch_executor: concurrent.futures.Executor | None = None
 
 
+# --------------------------------------------------------------------------- #
 # TypedDicts – document the shapes of API response and plan objects
+# --------------------------------------------------------------------------- #
 
 
 class FolderAction(TypedDict, total=False):
@@ -168,7 +170,9 @@ class SyncResult(TypedDict):
     duration: float
 
 
+# --------------------------------------------------------------------------- #
 # 0. Bootstrap – load secrets and configure logging
+# --------------------------------------------------------------------------- #
 # SECURITY: load_dotenv() moved to main() to ensure permissions are checked first
 
 # Respect NO_COLOR standard (https://no-color.org/)
@@ -453,7 +457,9 @@ def check_env_permissions(env_path: str = ".env") -> None:
 # SECURITY: Check .env permissions will be called in main() to avoid side effects at import time
 log = logging.getLogger("control-d-sync")
 
+# --------------------------------------------------------------------------- #
 # 1. Constants – tweak only here
+# --------------------------------------------------------------------------- #
 API_BASE = "https://api.controld.com/profiles"
 USER_AGENT = "Control-D-Sync/0.1.0"
 
@@ -759,8 +765,9 @@ def get_validated_input(
             sys.stderr.flush()
             value = input(prompt).strip()
         except (KeyboardInterrupt, EOFError):
-            sys.stderr.write("\r\033[K" if sys.stderr.isatty() else "")
-            sys.stderr.flush()
+            if sys.stderr.isatty():
+                sys.stderr.write("\r\033[K")
+                sys.stderr.flush()
             print(f"{Colors.WARNING}⚠️  Input cancelled.{Colors.ENDC}")
             sys.exit(130)
 
@@ -801,8 +808,9 @@ def get_password(
             sys.stderr.flush()
             value = getpass.getpass(prompt).strip()
         except (KeyboardInterrupt, EOFError):
-            sys.stderr.write("\r\033[K" if sys.stderr.isatty() else "")
-            sys.stderr.flush()
+            if sys.stderr.isatty():
+                sys.stderr.write("\r\033[K")
+                sys.stderr.flush()
             print(f"{Colors.WARNING}⚠️  Input cancelled.{Colors.ENDC}")
             sys.exit(130)
 
@@ -1029,17 +1037,23 @@ _gh = httpx.Client(
 )
 MAX_RESPONSE_SIZE = 10 * 1024 * 1024  # 10 MB limit for external resources
 
+# --------------------------------------------------------------------------- #
 # 3. Helpers
+# --------------------------------------------------------------------------- #
 _cache: dict[str, dict] = {}
 # Use RLock (reentrant lock) to allow nested acquisitions by the same thread
 # This prevents deadlocks when _fetch_if_valid calls fetch_folder_data which calls _gh_get
 _cache_lock = threading.RLock()
 
+# --------------------------------------------------------------------------- #
 # 3a. Persistent Disk Cache Support  (implementation lives in cache.py)
+# --------------------------------------------------------------------------- #
 
 # _api_stats imported from api_client above
 
+# --------------------------------------------------------------------------- #
 # 3b. Rate Limit Tracking
+# --------------------------------------------------------------------------- #
 # _rate_limit_info, _rate_limit_lock imported from api_client above
 
 
@@ -2350,7 +2364,9 @@ def _process_single_folder(
     return folder_success
 
 
+# --------------------------------------------------------------------------- #
 # 4. Main workflow
+# --------------------------------------------------------------------------- #
 def _fetch_all_folder_data(folder_urls: Sequence[str]) -> list[FolderData] | None:
     """Fetches folder data for all URLs in parallel."""
     folder_data_list: list[FolderData] = []
@@ -2622,7 +2638,9 @@ def sync_profile(
         return False
 
 
+# --------------------------------------------------------------------------- #
 # 5. Entry-point
+# --------------------------------------------------------------------------- #
 def _get_interactive_restart_confirmation() -> bool:
     """Helper to prompt for and validate interactive restart confirmation."""
     prompt_initial = f"\n{Colors.BOLD}🚀 Ready to launch? {Colors.ENDC}Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
@@ -2639,8 +2657,9 @@ def _get_interactive_restart_confirmation() -> bool:
         try:
             user_response = input(prompt).strip().lower()
         except (KeyboardInterrupt, EOFError):
-            sys.stderr.write("\r\033[K" if sys.stderr.isatty() else "")
-            sys.stderr.flush()
+            if sys.stderr.isatty():
+                sys.stderr.write("\r\033[K")
+                sys.stderr.flush()
             print(cancel_msg.lstrip("\n"))
             return False
 
@@ -2695,8 +2714,9 @@ def prompt_for_interactive_restart(profile_ids: list[str]) -> bool:
         return True
 
     except (KeyboardInterrupt, EOFError):
-        sys.stderr.write("\r\033[K" if sys.stderr.isatty() else "")
-        sys.stderr.flush()
+        if sys.stderr.isatty():
+            sys.stderr.write("\r\033[K")
+            sys.stderr.flush()
         print(f"{Colors.WARNING}⚠️  Cancelled.{Colors.ENDC}")
         return False
 
@@ -3426,7 +3446,8 @@ if __name__ == "__main__":
         while main():
             pass
     except KeyboardInterrupt:
-        sys.stderr.write("\r\033[K" if sys.stderr.isatty() else "")
-        sys.stderr.flush()
+        if sys.stderr.isatty():
+            sys.stderr.write("\r\033[K")
+            sys.stderr.flush()
         print(f"{Colors.WARNING}⚠️  Cancelled by user.{Colors.ENDC}")
         sys.exit(130)
