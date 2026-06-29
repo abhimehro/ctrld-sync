@@ -765,7 +765,10 @@ def get_validated_input(
             sys.stderr.flush()
             value = input(prompt).strip()
         except (KeyboardInterrupt, EOFError):
-            print(f"\n{Colors.WARNING}⚠️  Input cancelled.{Colors.ENDC}")
+            if sys.stderr.isatty():
+                sys.stderr.write("\r\033[K")
+                sys.stderr.flush()
+            print(f"{Colors.WARNING}⚠️  Input cancelled.{Colors.ENDC}")
             sys.exit(130)
 
         if not value:
@@ -805,7 +808,10 @@ def get_password(
             sys.stderr.flush()
             value = getpass.getpass(prompt).strip()
         except (KeyboardInterrupt, EOFError):
-            print(f"\n{Colors.WARNING}⚠️  Input cancelled.{Colors.ENDC}")
+            if sys.stderr.isatty():
+                sys.stderr.write("\r\033[K")
+                sys.stderr.flush()
+            print(f"{Colors.WARNING}⚠️  Input cancelled.{Colors.ENDC}")
             sys.exit(130)
 
         if not value:
@@ -2651,7 +2657,10 @@ def _get_interactive_restart_confirmation() -> bool:
         try:
             user_response = input(prompt).strip().lower()
         except (KeyboardInterrupt, EOFError):
-            print(cancel_msg)
+            if sys.stderr.isatty():
+                sys.stderr.write("\r\033[K")
+                sys.stderr.flush()
+            print(cancel_msg.lstrip("\n"))
             return False
 
         if user_response in ("", "y", "yes"):
@@ -2677,36 +2686,31 @@ def prompt_for_interactive_restart(profile_ids: list[str]) -> bool:
     if not sys.stdin.isatty():
         return False
 
-    try:
-        if not _get_interactive_restart_confirmation():
-            return False
-
-        # Prepare environment for the new process
-        # Pass the current token to avoid re-prompting if it was entered interactively
-        if TOKEN:
-            os.environ["TOKEN"] = TOKEN
-
-        # Construct command arguments
-        # Use sys.argv filtering to preserve all user-provided flags (even future ones)
-        # while removing --dry-run to switch to live mode.
-        clean_argv = [arg for arg in sys.argv[1:] if arg != "--dry-run"]
-        new_argv = [sys.executable, sys.argv[0]] + clean_argv
-
-        # If --profiles wasn't in original args (meaning it came from env/input),
-        # inject it explicitly so the user doesn't have to re-enter it.
-        if "--profiles" not in sys.argv and profile_ids:
-            new_argv.extend(["--profiles", ",".join(profile_ids)])
-
-        print(f"\n{Colors.GREEN}🔄 Restarting in live mode...{Colors.ENDC}")
-        # Modifying sys.argv in-place allows the main loop to pick up the new arguments
-        # without invoking os.execv, eliminating command injection risks entirely.
-        sys.argv.clear()
-        sys.argv.extend(new_argv)
-        return True
-
-    except (KeyboardInterrupt, EOFError):
-        print(f"\n{Colors.WARNING}⚠️  Cancelled.{Colors.ENDC}")
+    if not _get_interactive_restart_confirmation():
         return False
+
+    # Prepare environment for the new process
+    # Pass the current token to avoid re-prompting if it was entered interactively
+    if TOKEN:
+        os.environ["TOKEN"] = TOKEN
+
+    # Construct command arguments
+    # Use sys.argv filtering to preserve all user-provided flags (even future ones)
+    # while removing --dry-run to switch to live mode.
+    clean_argv = [arg for arg in sys.argv[1:] if arg != "--dry-run"]
+    new_argv = [sys.executable, sys.argv[0]] + clean_argv
+
+    # If --profiles wasn't in original args (meaning it came from env/input),
+    # inject it explicitly so the user doesn't have to re-enter it.
+    if "--profiles" not in sys.argv and profile_ids:
+        new_argv.extend(["--profiles", ",".join(profile_ids)])
+
+    print(f"\n{Colors.GREEN}🔄 Restarting in live mode...{Colors.ENDC}")
+    # Modifying sys.argv in-place allows the main loop to pick up the new arguments
+    # without invoking os.execv, eliminating command injection risks entirely.
+    sys.argv.clear()
+    sys.argv.extend(new_argv)
+    return True
 
 
 def print_line(left_char: str, mid_char: str, right_char: str, w: list[int]) -> str:
@@ -3434,5 +3438,8 @@ if __name__ == "__main__":
         while main():
             pass
     except KeyboardInterrupt:
-        print(f"\n{Colors.WARNING}⚠️  Cancelled by user.{Colors.ENDC}")
+        if sys.stderr.isatty():
+            sys.stderr.write("\r\033[K")
+            sys.stderr.flush()
+        print(f"{Colors.WARNING}⚠️  Cancelled by user.{Colors.ENDC}")
         sys.exit(130)
