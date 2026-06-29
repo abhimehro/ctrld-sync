@@ -69,3 +69,6 @@
 ## 2025-03-03 - CLI Plan Details Alignment Fix
 **Learning:** Python's standard `len()` and format alignment (`:<`) calculate widths by raw character count, causing visual misalignment in CLI tables when strings contain emojis or full-width characters (which take 2 visual columns but count as 1).
 **Action:** When printing structured CLI output like dry-run plan details, use a custom display width calculation (like `_display_len` via `unicodedata`) and custom padding logic (like `_pad_string`) instead of relying on standard f-string formatting.
+## 2024-06-29 - CLI Table Alignment with Emojis
+**Learning:** Standard Python `len()` calculates string length based on character count, which treats emojis (like ✅, ⛔, 🧪) as 1 character. However, terminal emulators render these specific symbols as 2 columns wide. If strings with emojis are padded using `len()`, the table borders will misalign. Using `unicodedata.east_asian_width` helps, but many emojis return `N` (Neutral) or `A` (Ambiguous) for east asian width while still being rendered as 2 columns by the terminal.
+**Action:** When building custom CLI tables that pad text containing emojis, calculate the display width manually by extending the width check to include `So` (Symbol, Other) or `Sk` (Symbol, Modifier) unicode categories with a codepoint > 0x2000.
