@@ -6,6 +6,7 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review - 2026-06-29 [\#959](https://github.com/abhimehro/ctrld-sync/issues/959)
 - Daily QA & Agentic Review - 2026-06-28 [\#957](https://github.com/abhimehro/ctrld-sync/issues/957)
 - \[repo-automation\] Weekly Retrospective - 2026-06-28 [\#955](https://github.com/abhimehro/ctrld-sync/issues/955)
 - Daily QA & Agentic Review - 2026-06-27 [\#954](https://github.com/abhimehro/ctrld-sync/issues/954)
@@ -20,6 +21,7 @@
 
 **Merged pull requests:**
 
+- chore\(deps\): bump github/gh-aw from 0.80.9 to 0.81.6 [\#962](https://github.com/abhimehro/ctrld-sync/pull/962) ([dependabot[bot]](https://github.com/apps/dependabot))
 - 🎨 Palette: fix terminal line residue on interactive prompt cancellation [\#956](https://github.com/abhimehro/ctrld-sync/pull/956) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump actions/cache from 6.0.0 to 6.1.0 [\#953](https://github.com/abhimehro/ctrld-sync/pull/953) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump release-drafter/release-drafter from 7.4.0 to 7.5.1 [\#951](https://github.com/abhimehro/ctrld-sync/pull/951) ([dependabot[bot]](https://github.com/apps/dependabot))
