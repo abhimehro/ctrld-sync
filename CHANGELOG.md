@@ -23,6 +23,7 @@
 
 - chore\(deps\): bump github/gh-aw from 0.80.9 to 0.81.6 [\#962](https://github.com/abhimehro/ctrld-sync/pull/962) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump github/gh-aw/actions/setup from 0.80.9 to 0.81.6 [\#961](https://github.com/abhimehro/ctrld-sync/pull/961) ([dependabot[bot]](https://github.com/apps/dependabot))
+- 🎨 Palette: Fix CLI table alignment for emojis [\#960](https://github.com/abhimehro/ctrld-sync/pull/960) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Add isatty guard for terminal residue cleanup [\#958](https://github.com/abhimehro/ctrld-sync/pull/958) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: fix terminal line residue on interactive prompt cancellation [\#956](https://github.com/abhimehro/ctrld-sync/pull/956) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump actions/cache from 6.0.0 to 6.1.0 [\#953](https://github.com/abhimehro/ctrld-sync/pull/953) ([dependabot[bot]](https://github.com/apps/dependabot))
