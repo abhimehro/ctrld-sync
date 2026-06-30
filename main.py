@@ -2177,6 +2177,41 @@ def _push_single_batch(
         return None
 
 
+def _log_folder_sync_completion(
+    successful_batches: int,
+    total_batches: int,
+    sanitized_folder_name: str,
+    filtered_hostnames: list[str],
+) -> bool:
+    """Helper to cleanly log the completion status of a folder sync."""
+    if successful_batches == total_batches:
+        if not USE_COLORS:
+            log.info(
+                f"✅ Folder {sanitized_folder_name} – finished ({len(filtered_hostnames):,} new {pluralize(len(filtered_hostnames), 'rule')} added)"
+            )
+        elif sys.stderr.isatty():
+            sys.stderr.write(
+                f"\r\033[K{Colors.GREEN}✅ Folder {sanitized_folder_name}: Finished ({len(filtered_hostnames):,} {pluralize(len(filtered_hostnames), 'rule')}){Colors.ENDC}\n"
+            )
+            sys.stderr.flush()
+        else:
+            print(
+                f"{Colors.GREEN}✅ Folder {sanitized_folder_name}: Finished ({len(filtered_hostnames):,} {pluralize(len(filtered_hostnames), 'rule')}){Colors.ENDC}"
+            )
+        return True
+
+    if USE_COLORS and sys.stderr.isatty():
+        sys.stderr.write("\r\033[K")
+        sys.stderr.flush()
+    log.error(
+        "Folder %s – only %d/%d batches succeeded",
+        sanitized_folder_name,
+        successful_batches,
+        total_batches,
+    )
+    return False
+
+
 def _push_rule_batches(
     ctx: SyncContext,
     folder_name: str,
@@ -2259,31 +2294,9 @@ def _push_rule_batches(
                     progress_label,
                 )
 
-    if successful_batches == total_batches:
-        if not USE_COLORS:
-            log.info(
-                f"✅ Folder {sanitized_folder_name} – finished ({len(filtered_hostnames):,} new {pluralize(len(filtered_hostnames), 'rule')} added)"
-            )
-        elif sys.stderr.isatty():
-            sys.stderr.write(
-                f"\r\033[K{Colors.GREEN}✅ Folder {sanitized_folder_name}: Finished ({len(filtered_hostnames):,} {pluralize(len(filtered_hostnames), 'rule')}){Colors.ENDC}\n"
-            )
-            sys.stderr.flush()
-        else:
-            print(
-                f"{Colors.GREEN}✅ Folder {sanitized_folder_name}: Finished ({len(filtered_hostnames):,} {pluralize(len(filtered_hostnames), 'rule')}){Colors.ENDC}"
-            )
-        return True
-    if USE_COLORS and sys.stderr.isatty():
-        sys.stderr.write("\r\033[K")
-        sys.stderr.flush()
-    log.error(
-        "Folder %s – only %d/%d batches succeeded",
-        sanitized_folder_name,
-        successful_batches,
-        total_batches,
+    return _log_folder_sync_completion(
+        successful_batches, total_batches, sanitized_folder_name, filtered_hostnames
     )
-    return False
 
 
 def push_rules(
