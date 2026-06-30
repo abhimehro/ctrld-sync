@@ -72,3 +72,8 @@
 ## 2024-06-29 - CLI Table Alignment with Emojis
 **Learning:** Standard Python `len()` calculates string length based on character count, which treats emojis (like ✅, ⛔, 🧪) as 1 character. However, terminal emulators render these specific symbols as 2 columns wide. If strings with emojis are padded using `len()`, the table borders will misalign. Using `unicodedata.east_asian_width` helps, but many emojis return `N` (Neutral) or `A` (Ambiguous) for east asian width while still being rendered as 2 columns by the terminal.
 **Action:** When building custom CLI tables that pad text containing emojis, calculate the display width manually by extending the width check to include `So` (Symbol, Other) or `Sk` (Symbol, Modifier) unicode categories with a codepoint > 0x2000.
+
+## 2025-10-25 - [Terminal Residue in Non-Interactive Mode]
+
+**Learning:** When handling `KeyboardInterrupt` or `EOFError` during long operations, explicitly clearing the terminal line using ANSI sequences (`\r\033[K`) without checking if the environment is a TTY (`sys.stderr.isatty()`) leaks visible ANSI garbage into non-interactive execution logs (like CI or piped output).
+**Action:** Always guard terminal clearance codes and carriage returns with a `sys.stderr.isatty()` check, even if global color settings (`USE_COLORS`) are theoretically supposed to cover it, as `USE_COLORS` might be overridden or misused in edge cases.
