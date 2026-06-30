@@ -2728,7 +2728,12 @@ def _display_len(s: str) -> int:
     stripped = _ANSI_ESCAPE_PATTERN.sub("", s)
     # OPTIMIZATION: C-speed list comprehension avoids Python loop overhead
     return len(stripped) + len(
-        [1 for c in stripped if unicodedata.east_asian_width(c) in ("W", "F")]
+        [
+            1
+            for c in stripped
+            if unicodedata.east_asian_width(c) in ("W", "F")
+            or (ord(c) >= 0x2600 and unicodedata.category(c) in ("So", "Sk"))
+        ]
     )
 
 
