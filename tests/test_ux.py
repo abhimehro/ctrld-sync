@@ -218,7 +218,8 @@ class TestRenderProgressBar:
         err = capsys.readouterr().err
         assert "Loading" in err
         assert "█" in err
-        assert "\r\033[K" in err
+        # Since capsys is not a tty, we get a newline instead
+        assert "\n" in err
 
 
 class TestMakeColSeparator:

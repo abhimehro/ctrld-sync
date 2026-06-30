@@ -693,13 +693,15 @@ def countdown_timer(seconds: int, message: str = "Waiting") -> None:
         progress = (seconds - remaining + 1) / seconds
         filled = int(width * progress)
         bar = "█" * filled + "·" * (width - filled)
+        clear_prefix = "\r\033[K" if sys.stderr.isatty() else "\n"
         sys.stderr.write(
-            f"\r\033[K{Colors.CYAN}⏳ {message}: [{bar}] {remaining:>{max_len}}s...{Colors.ENDC}"
+            f"{clear_prefix}{Colors.CYAN}⏳ {message}: [{bar}] {remaining:>{max_len}}s...{Colors.ENDC}"
         )
         sys.stderr.flush()
         time.sleep(1)
 
-    sys.stderr.write(f"\r\033[K{Colors.GREEN}✅ {message}: Done!{Colors.ENDC}\n")
+    clear_prefix = "\r\033[K" if sys.stderr.isatty() else "\n"
+    sys.stderr.write(f"{clear_prefix}{Colors.GREEN}✅ {message}: Done!{Colors.ENDC}\n")
     sys.stderr.flush()
 
 
@@ -720,8 +722,9 @@ def render_progress_bar(
     total_str = str(total)
 
     # Use \033[K to clear line residue
+    clear_prefix = "\r\033[K" if sys.stderr.isatty() else "\n"
     sys.stderr.write(
-        f"\r\033[K{Colors.CYAN}{prefix} {label}: [{bar}] {percent:>3}% ({current:>{len(total_str)}}/{total_str}){Colors.ENDC}"
+        f"{clear_prefix}{Colors.CYAN}{prefix} {label}: [{bar}] {percent:>3}% ({current:>{len(total_str)}}/{total_str}){Colors.ENDC}"
     )
     sys.stderr.flush()
 
@@ -1907,8 +1910,8 @@ def warm_up_cache(urls: Sequence[str]) -> None:
             try:
                 future.result()
             except Exception as e:
-                if USE_COLORS:
-                    # Clear line to print warning cleanly
+                # Clear line to print warning cleanly
+                if USE_COLORS and sys.stderr.isatty():
                     sys.stderr.write("\r\033[K")
                     sys.stderr.flush()
 
@@ -1920,8 +1923,9 @@ def warm_up_cache(urls: Sequence[str]) -> None:
                 render_progress_bar(completed, total, "Warming up cache", prefix="⏳")
 
     if USE_COLORS:
+        clear_prefix = "\r\033[K" if sys.stderr.isatty() else "\n"
         sys.stderr.write(
-            f"\r\033[K{Colors.GREEN}✅ Warming up cache: Done!{Colors.ENDC}\n"
+            f"{clear_prefix}{Colors.GREEN}✅ Warming up cache: Done!{Colors.ENDC}\n"
         )
         sys.stderr.flush()
     else:
@@ -2155,7 +2159,7 @@ def _push_single_batch(
             )
         return batch_data
     except httpx.HTTPError as e:
-        if USE_COLORS:
+        if USE_COLORS and sys.stderr.isatty():
             sys.stderr.write("\r\033[K")
             sys.stderr.flush()
         hint = ""
@@ -2259,8 +2263,9 @@ def _push_rule_batches(
 
     if successful_batches == total_batches:
         if USE_COLORS:
+            clear_prefix = "\r\033[K" if sys.stderr.isatty() else "\n"
             sys.stderr.write(
-                f"\r\033[K{Colors.GREEN}✅ Folder {sanitized_folder_name}: Finished ({len(filtered_hostnames):,} {pluralize(len(filtered_hostnames), 'rule')}){Colors.ENDC}\n"
+                f"{clear_prefix}{Colors.GREEN}✅ Folder {sanitized_folder_name}: Finished ({len(filtered_hostnames):,} {pluralize(len(filtered_hostnames), 'rule')}){Colors.ENDC}\n"
             )
             sys.stderr.flush()
         else:
@@ -2268,7 +2273,7 @@ def _push_rule_batches(
                 f"✅ Folder {sanitized_folder_name} – finished ({len(filtered_hostnames):,} new {pluralize(len(filtered_hostnames), 'rule')} added)"
             )
         return True
-    if USE_COLORS:
+    if USE_COLORS and sys.stderr.isatty():
         sys.stderr.write("\r\033[K")
         sys.stderr.flush()
     log.error(
