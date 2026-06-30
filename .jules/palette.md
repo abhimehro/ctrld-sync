@@ -69,3 +69,8 @@
 ## 2025-03-03 - CLI Plan Details Alignment Fix
 **Learning:** Python's standard `len()` and format alignment (`:<`) calculate widths by raw character count, causing visual misalignment in CLI tables when strings contain emojis or full-width characters (which take 2 visual columns but count as 1).
 **Action:** When printing structured CLI output like dry-run plan details, use a custom display width calculation (like `_display_len` via `unicodedata`) and custom padding logic (like `_pad_string`) instead of relying on standard f-string formatting.
+
+## 2025-10-25 - [Terminal Residue in Non-Interactive Mode]
+
+**Learning:** When handling `KeyboardInterrupt` or `EOFError` during long operations, explicitly clearing the terminal line using ANSI sequences (`\r\033[K`) without checking if the environment is a TTY (`sys.stderr.isatty()`) leaks visible ANSI garbage into non-interactive execution logs (like CI or piped output).
+**Action:** Always guard terminal clearance codes and carriage returns with a `sys.stderr.isatty()` check, even if global color settings (`USE_COLORS`) are theoretically supposed to cover it, as `USE_COLORS` might be overridden or misused in edge cases.

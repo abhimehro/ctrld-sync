@@ -3224,7 +3224,7 @@ def main() -> bool:
             )
     except KeyboardInterrupt:
         duration = time.time() - start_time
-        if USE_COLORS:
+        if USE_COLORS and sys.stderr.isatty():
             sys.stderr.write("\r\033[K")
             sys.stderr.flush()
         print(
