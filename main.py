@@ -1919,16 +1919,15 @@ def warm_up_cache(urls: Sequence[str]) -> None:
                 # Restore progress bar after warning
                 render_progress_bar(completed, total, "Warming up cache", prefix="⏳")
 
-    if USE_COLORS:
-        if sys.stderr.isatty():
-            sys.stderr.write(
-                f"\r\033[K{Colors.GREEN}✅ Warming up cache: Done!{Colors.ENDC}\n"
-            )
-            sys.stderr.flush()
-        else:
-            print(f"{Colors.GREEN}✅ Warming up cache: Done!{Colors.ENDC}", file=sys.stderr)
-    else:
+    if not USE_COLORS:
         log.info("✅ Warming up cache: Done!")
+    elif sys.stderr.isatty():
+        sys.stderr.write(
+            f"\r\033[K{Colors.GREEN}✅ Warming up cache: Done!{Colors.ENDC}\n"
+        )
+        sys.stderr.flush()
+    else:
+        print(f"{Colors.GREEN}✅ Warming up cache: Done!{Colors.ENDC}", file=sys.stderr)
 
 
 def delete_folder(
@@ -2261,19 +2260,18 @@ def _push_rule_batches(
                 )
 
     if successful_batches == total_batches:
-        if USE_COLORS:
-            if sys.stderr.isatty():
-                sys.stderr.write(
-                    f"\r\033[K{Colors.GREEN}✅ Folder {sanitized_folder_name}: Finished ({len(filtered_hostnames):,} {pluralize(len(filtered_hostnames), 'rule')}){Colors.ENDC}\n"
-                )
-                sys.stderr.flush()
-            else:
-                print(
-                    f"{Colors.GREEN}✅ Folder {sanitized_folder_name}: Finished ({len(filtered_hostnames):,} {pluralize(len(filtered_hostnames), 'rule')}){Colors.ENDC}"
-                )
-        else:
+        if not USE_COLORS:
             log.info(
                 f"✅ Folder {sanitized_folder_name} – finished ({len(filtered_hostnames):,} new {pluralize(len(filtered_hostnames), 'rule')} added)"
+            )
+        elif sys.stderr.isatty():
+            sys.stderr.write(
+                f"\r\033[K{Colors.GREEN}✅ Folder {sanitized_folder_name}: Finished ({len(filtered_hostnames):,} {pluralize(len(filtered_hostnames), 'rule')}){Colors.ENDC}\n"
+            )
+            sys.stderr.flush()
+        else:
+            print(
+                f"{Colors.GREEN}✅ Folder {sanitized_folder_name}: Finished ({len(filtered_hostnames):,} {pluralize(len(filtered_hostnames), 'rule')}){Colors.ENDC}"
             )
         return True
     if USE_COLORS and sys.stderr.isatty():
