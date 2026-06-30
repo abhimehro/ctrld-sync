@@ -2179,6 +2179,55 @@ def _push_single_batch(
         return None
 
 
+def _push_batches_parallel(
+    ctx: SyncContext,
+    batches: list[list[str]],
+    sanitized_folder_name: str,
+    str_do: str,
+    str_status: str,
+    str_group: str,
+    progress_label: str,
+    total_batches: int,
+) -> int:
+    successful_batches = 0
+    # Use provided executor or create a local one (fallback)
+    if ctx.batch_executor:
+        executor_ctx: contextlib.AbstractContextManager[concurrent.futures.Executor] = (
+            contextlib.nullcontext(ctx.batch_executor)
+        )
+    else:
+        executor_ctx = concurrent.futures.ThreadPoolExecutor(max_workers=3)
+
+    with executor_ctx as executor:
+        futures = {
+            executor.submit(
+                _push_single_batch,
+                ctx.client,
+                ctx.profile_id,
+                sanitized_folder_name,
+                str_do,
+                str_status,
+                str_group,
+                i,
+                batch,
+            ): i
+            for i, batch in enumerate(batches, 1)
+        }
+
+        for future in concurrent.futures.as_completed(futures):
+            result = future.result()
+            if result:
+                successful_batches += 1
+                ctx.existing_rules.update(result)
+
+            render_progress_bar(
+                successful_batches,
+                total_batches,
+                progress_label,
+            )
+    return successful_batches
+
+
 def _push_rule_batches(
     ctx: SyncContext,
     folder_name: str,
@@ -2225,41 +2274,16 @@ def _push_rule_batches(
             progress_label,
         )
     else:
-        # Use provided executor or create a local one (fallback)
-        if ctx.batch_executor:
-            executor_ctx: contextlib.AbstractContextManager[
-                concurrent.futures.Executor
-            ] = contextlib.nullcontext(ctx.batch_executor)
-        else:
-            executor_ctx = concurrent.futures.ThreadPoolExecutor(max_workers=3)
-
-        with executor_ctx as executor:
-            futures = {
-                executor.submit(
-                    _push_single_batch,
-                    ctx.client,
-                    ctx.profile_id,
-                    sanitized_folder_name,
-                    str_do,
-                    str_status,
-                    str_group,
-                    i,
-                    batch,
-                ): i
-                for i, batch in enumerate(batches, 1)
-            }
-
-            for future in concurrent.futures.as_completed(futures):
-                result = future.result()
-                if result:
-                    successful_batches += 1
-                    ctx.existing_rules.update(result)
-
-                render_progress_bar(
-                    successful_batches,
-                    total_batches,
-                    progress_label,
-                )
+        successful_batches += _push_batches_parallel(
+            ctx,
+            batches,
+            sanitized_folder_name,
+            str_do,
+            str_status,
+            str_group,
+            progress_label,
+            total_batches,
+        )
 
     if successful_batches == total_batches:
         if USE_COLORS:
