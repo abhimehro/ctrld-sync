@@ -214,8 +214,30 @@ class TestRenderProgressBar:
             "get_terminal_size",
             lambda fallback=(80, 24): os.terminal_size((80, 24)),
         )
+
+        # Monkeypatch sys.stderr directly to a dummy that records output,
+        # but also provides isatty() returning True.
+        import sys
+
+        class DummyStderr:
+            def __init__(self):
+                self.out = []
+
+            def write(self, text):
+                self.out.append(text)
+
+            def flush(self):
+                pass
+
+            def isatty(self):
+                return True
+
+        dummy = DummyStderr()
+        monkeypatch.setattr(sys, "stderr", dummy)
+
         main.render_progress_bar(5, 10, "Loading")
-        err = capsys.readouterr().err
+
+        err = "".join(dummy.out)
         assert "Loading" in err
         assert "█" in err
         assert "\r\033[K" in err
