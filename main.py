@@ -707,7 +707,8 @@ def render_progress_bar(
     current: int, total: int, label: str, prefix: str = "🚀"
 ) -> None:
     """Renders a progress bar to stderr if USE_COLORS is True."""
-    if not USE_COLORS or not sys.stderr.isatty() or total == 0:
+    should_skip = not USE_COLORS or not sys.stderr.isatty()
+    if should_skip or total == 0:
         return
 
     width = _get_progress_bar_width()
@@ -1868,6 +1869,45 @@ def fetch_folder_data(url: str) -> FolderData:
     return js
 
 
+def _validate_and_fetch(url: str) -> dict | None:
+    if validate_folder_url(url):
+        return _gh_get(url)
+    return None
+
+
+def _handle_warmup_future(
+    future: concurrent.futures.Future,
+    url: str,
+    completed: int,
+    total: int,
+) -> None:
+    try:
+        future.result()
+    except Exception as e:
+        if USE_COLORS and sys.stderr.isatty():
+            sys.stderr.write("\r\033[K")
+            sys.stderr.flush()
+
+        log.warning(
+            f"Failed to pre-fetch {sanitize_for_log(url)}: "
+            f"{sanitize_for_log(e)}"
+        )
+        # Restore progress bar after warning
+        render_progress_bar(completed, total, "Warming up cache", prefix="⏳")
+
+
+def _print_cache_done() -> None:
+    if not USE_COLORS:
+        log.info("✅ Warming up cache: Done!")
+    elif sys.stderr.isatty():
+        sys.stderr.write(
+            f"\r\033[K{Colors.GREEN}✅ Warming up cache: Done!{Colors.ENDC}\n"
+        )
+        sys.stderr.flush()
+    else:
+        print(f"{Colors.GREEN}✅ Warming up cache: Done!{Colors.ENDC}", file=sys.stderr)
+
+
 def warm_up_cache(urls: Sequence[str]) -> None:
     """
     Pre-fetches and caches folder data from multiple URLs in parallel.
@@ -1886,13 +1926,6 @@ def warm_up_cache(urls: Sequence[str]) -> None:
     if not USE_COLORS:
         log.info(f"⏳ Warming up cache for {total:,} {pluralize(total, 'URL')}...")
 
-    # OPTIMIZATION: Combine validation (DNS) and fetching (HTTP) in one task
-    # to allow validation latency to be parallelized.
-    def _validate_and_fetch(url: str):
-        if validate_folder_url(url):
-            return _gh_get(url)
-        return None
-
     completed = 0
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = {
@@ -1904,30 +1937,9 @@ def warm_up_cache(urls: Sequence[str]) -> None:
         for future in concurrent.futures.as_completed(futures):
             completed += 1
             render_progress_bar(completed, total, "Warming up cache", prefix="⏳")
-            try:
-                future.result()
-            except Exception as e:
-                if USE_COLORS and sys.stderr.isatty():
-                    # Clear line to print warning cleanly
-                    sys.stderr.write("\r\033[K")
-                    sys.stderr.flush()
+            _handle_warmup_future(future, futures[future], completed, total)
 
-                log.warning(
-                    f"Failed to pre-fetch {sanitize_for_log(futures[future])}: "
-                    f"{sanitize_for_log(e)}"
-                )
-                # Restore progress bar after warning
-                render_progress_bar(completed, total, "Warming up cache", prefix="⏳")
-
-    if not USE_COLORS:
-        log.info("✅ Warming up cache: Done!")
-    elif sys.stderr.isatty():
-        sys.stderr.write(
-            f"\r\033[K{Colors.GREEN}✅ Warming up cache: Done!{Colors.ENDC}\n"
-        )
-        sys.stderr.flush()
-    else:
-        print(f"{Colors.GREEN}✅ Warming up cache: Done!{Colors.ENDC}", file=sys.stderr)
+    _print_cache_done()
 
 
 def delete_folder(
@@ -2074,6 +2086,22 @@ def create_folder(ctx: SyncContext, name: str, action: RuleAction) -> str | None
         return None
 
 
+def _log_unsafe_rules(
+    unique_hostnames_dict: dict[str, None],
+    is_safe: Callable[[str], bool],
+    sanitized_folder: str,
+    skipped_unsafe: int,
+) -> None:
+    for h in unique_hostnames_dict:
+        if not (h and is_safe(h)):
+            log.warning(
+                f"Skipping unsafe rule in {sanitized_folder}: {sanitize_for_log(h)}"
+            )
+    log.warning(
+        f"Folder {sanitized_folder}: skipped {skipped_unsafe} unsafe {pluralize(skipped_unsafe, 'rule')}"
+    )
+
+
 def _filter_rules_for_folder(
     existing_rules: set[str],
     hostnames: list[str],
@@ -2105,14 +2133,11 @@ def _filter_rules_for_folder(
 
     if skipped_unsafe > 0:
         # SLOW PATH: Only iterate again to log if we actually found unsafe rules
-        sanitized_folder = sanitize_for_log(folder_name)
-        for h in unique_hostnames_dict:
-            if not (h and is_safe(h)):
-                log.warning(
-                    f"Skipping unsafe rule in {sanitized_folder}: {sanitize_for_log(h)}"
-                )
-        log.warning(
-            f"Folder {sanitized_folder}: skipped {skipped_unsafe} unsafe {pluralize(skipped_unsafe, 'rule')}"
+        _log_unsafe_rules(
+            unique_hostnames_dict,
+            is_safe,
+            sanitize_for_log(folder_name),
+            skipped_unsafe,
         )
 
     duplicates_count = original_count - len(filtered_hostnames) - skipped_unsafe
@@ -2123,6 +2148,25 @@ def _filter_rules_for_folder(
         )
 
     return filtered_hostnames
+
+
+def _handle_push_batch_error(
+    e: httpx.HTTPError, batch_idx: int, sanitized_folder_name: str
+) -> None:
+    if USE_COLORS and sys.stderr.isatty():
+        sys.stderr.write("\r\033[K")
+        sys.stderr.flush()
+    hint = ""
+    if isinstance(e, httpx.HTTPStatusError):
+        # Use a more specific name to avoid confusion with the rule "status" payload
+        status_code = e.response.status_code
+        hint = f" ({_STATUS_HINTS.get(status_code, f'HTTP {status_code}')})"
+    log.error(
+        f"Failed to push batch {batch_idx} for folder {sanitized_folder_name}{hint}: {sanitize_for_log(e)}"
+    )
+    has_response = hasattr(e, "response") and e.response is not None
+    if has_response and log.isEnabledFor(logging.DEBUG):
+        log.debug(f"Response content: {sanitize_for_log(e.response.text)}")
 
 
 def _push_single_batch(
@@ -2157,24 +2201,78 @@ def _push_single_batch(
             )
         return batch_data
     except httpx.HTTPError as e:
-        if USE_COLORS and sys.stderr.isatty():
-            sys.stderr.write("\r\033[K")
-            sys.stderr.flush()
-        hint = ""
-        if isinstance(e, httpx.HTTPStatusError):
-            # Use a more specific name to avoid confusion with the rule "status" payload
-            status_code = e.response.status_code
-            hint = f" ({_STATUS_HINTS.get(status_code, f'HTTP {status_code}')})"
-        log.error(
-            f"Failed to push batch {batch_idx} for folder {sanitized_folder_name}{hint}: {sanitize_for_log(e)}"
-        )
-        if (
-            hasattr(e, "response")
-            and e.response is not None
-            and log.isEnabledFor(logging.DEBUG)
-        ):
-            log.debug(f"Response content: {sanitize_for_log(e.response.text)}")
+        _handle_push_batch_error(e, batch_idx, sanitized_folder_name)
         return None
+
+
+def _push_multi_batches(
+    ctx: SyncContext,
+    action: RuleAction,
+    folder_info: tuple[str, str],  # (sanitized_folder_name, folder_id)
+    batches: list[list[str]],
+) -> int:
+    successful_batches = 0
+    if ctx.batch_executor:
+        executor_ctx: contextlib.AbstractContextManager[
+            concurrent.futures.Executor
+        ] = contextlib.nullcontext(ctx.batch_executor)
+    else:
+        executor_ctx = concurrent.futures.ThreadPoolExecutor(max_workers=3)
+
+    sanitized_folder_name, folder_id = folder_info
+    str_do = str(action.do)
+    str_status = str(action.status)
+    str_group = str(folder_id)
+    total_batches = len(batches)
+    progress_label = f"Folder {sanitized_folder_name}"
+
+    with executor_ctx as executor:
+        futures = {
+            executor.submit(
+                _push_single_batch,
+                ctx.client,
+                ctx.profile_id,
+                sanitized_folder_name,
+                str_do,
+                str_status,
+                str_group,
+                i,
+                batch,
+            ): i
+            for i, batch in enumerate(batches, 1)
+        }
+
+        for future in concurrent.futures.as_completed(futures):
+            result = future.result()
+            if result:
+                successful_batches += 1
+                ctx.existing_rules.update(result)
+
+            render_progress_bar(
+                successful_batches,
+                total_batches,
+                progress_label,
+            )
+    return successful_batches
+
+
+def _log_push_batches_success(
+    sanitized_folder_name: str, total_rules: int
+) -> None:
+    if not USE_COLORS:
+        log.info(
+            f"✅ Folder {sanitized_folder_name} – finished ({total_rules:,} new {pluralize(total_rules, 'rule')} added)"
+        )
+    elif sys.stderr.isatty():
+        sys.stderr.write(
+            f"\r\033[K{Colors.GREEN}✅ Folder {sanitized_folder_name}: Finished ({total_rules:,} {pluralize(total_rules, 'rule')}){Colors.ENDC}\n"
+        )
+        sys.stderr.flush()
+    else:
+        print(
+            f"{Colors.GREEN}✅ Folder {sanitized_folder_name}: Finished ({total_rules:,} {pluralize(total_rules, 'rule')}){Colors.ENDC}",
+            file=sys.stderr,
+        )
 
 
 def _push_rule_batches(
@@ -2223,41 +2321,12 @@ def _push_rule_batches(
             progress_label,
         )
     else:
-        # Use provided executor or create a local one (fallback)
-        if ctx.batch_executor:
-            executor_ctx: contextlib.AbstractContextManager[
-                concurrent.futures.Executor
-            ] = contextlib.nullcontext(ctx.batch_executor)
-        else:
-            executor_ctx = concurrent.futures.ThreadPoolExecutor(max_workers=3)
-
-        with executor_ctx as executor:
-            futures = {
-                executor.submit(
-                    _push_single_batch,
-                    ctx.client,
-                    ctx.profile_id,
-                    sanitized_folder_name,
-                    str_do,
-                    str_status,
-                    str_group,
-                    i,
-                    batch,
-                ): i
-                for i, batch in enumerate(batches, 1)
-            }
-
-            for future in concurrent.futures.as_completed(futures):
-                result = future.result()
-                if result:
-                    successful_batches += 1
-                    ctx.existing_rules.update(result)
-
-                render_progress_bar(
-                    successful_batches,
-                    total_batches,
-                    progress_label,
-                )
+        successful_batches = _push_multi_batches(
+            ctx,
+            action,
+            (sanitized_folder_name, folder_id),
+            batches,
+        )
 
     if successful_batches != total_batches:
         if USE_COLORS and sys.stderr.isatty():
@@ -2271,20 +2340,7 @@ def _push_rule_batches(
         )
         return False
 
-    if not USE_COLORS:
-        log.info(
-            f"✅ Folder {sanitized_folder_name} – finished ({len(filtered_hostnames):,} new {pluralize(len(filtered_hostnames), 'rule')} added)"
-        )
-    elif sys.stderr.isatty():
-        sys.stderr.write(
-            f"\r\033[K{Colors.GREEN}✅ Folder {sanitized_folder_name}: Finished ({len(filtered_hostnames):,} {pluralize(len(filtered_hostnames), 'rule')}){Colors.ENDC}\n"
-        )
-        sys.stderr.flush()
-    else:
-        print(
-            f"{Colors.GREEN}✅ Folder {sanitized_folder_name}: Finished ({len(filtered_hostnames):,} {pluralize(len(filtered_hostnames), 'rule')}){Colors.ENDC}",
-            file=sys.stderr,
-        )
+    _log_push_batches_success(sanitized_folder_name, len(filtered_hostnames))
     return True
 
 
