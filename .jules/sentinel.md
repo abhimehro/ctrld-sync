@@ -7,7 +7,7 @@
 **Learning:** Even internal exception strings can leak sensitive context or allow log injection if the exception resulted from processing untrusted input.
 **Prevention:** Always explicitly wrap dynamic values and caught exceptions `e` in a sanitization function like `sanitize_for_log(e)` before embedding them into any log statements, including `log.debug`.
 
-## $(date +%Y-%m-%d) - [Sanitize Exception Messages]
+## 2026-06-30 - [Sanitize Exception Messages]
 **Vulnerability:** HTTP client error exception strings contained un-sanitized values (URLs with auth, or tokens in query parameters) when re-raised.
 **Learning:** Re-raising an exception like `raise e` without reconstructing it with a sanitized string propagates sensitive data up the call stack, which could leak into tracebacks or uncaught exception handlers.
 **Prevention:** Always reconstruct explicitly logged/re-raised `HTTPStatusError` objects using the `sanitize_for_log` equivalent, e.g., `raise httpx.HTTPStatusError(sanitize_fn(str(e)), ...) from e`.
@@ -27,3 +27,7 @@
 **Vulnerability:** In `_handle_rate_limit`, a bare `raise e` was used when the maximum retries were exceeded. This caused the `httpx.HTTPStatusError` exception chain to leak sensitive data (e.g., tokens in query parameters or auth headers) in the traceback because it was not explicitly reconstructed and raised `from None`.
 **Learning:** Rate limit handling functions that re-raise exceptions after exhausting retries must also sanitize exceptions to avoid leaking data in tracebacks.
 **Prevention:** Use `_raise_sanitized_status_error(e)` before a fallback `raise e` statement in rate limit and retry handlers to explicitly sanitize HTTP errors and break the exception chain using `from None`.
+## 2026-06-30 - Input Length Validation Bypass in Rule Filtering
+**Vulnerability:** In `_filter_rules_for_folder`, the code was performing strict safety validation by manually checking `_ALLOWED_RULE_CHARS.issuperset(h)`. However, it did not check the maximum rule length (`MAX_RULE_LENGTH`), which is typically done by the `is_valid_rule` function. By bypassing `is_valid_rule`, an attacker could supply extremely long hostnames that passed the character whitelist check, leading to excessive memory consumption and triggering 413 Payload Too Large errors at the API layer, effectively causing a Denial of Service (DoS) for the batch push operation.
+**Learning:** Hot-path performance optimizations (like manually inline checking conditions) can easily overlook secondary safety checks (like length constraints) that are present in dedicated validation functions.
+**Prevention:** Consistently use the dedicated validation function (`is_valid_rule`) for input sanitization and validation, even in hot-path loops, unless the full set of checks is rigorously duplicated or proven unnecessary.
