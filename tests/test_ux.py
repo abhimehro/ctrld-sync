@@ -209,6 +209,7 @@ class TestRenderProgressBar:
     def test_writes_progress_bar_to_stderr(self, monkeypatch, capsys):
         """render_progress_bar writes a formatted bar to stderr when enabled."""
         monkeypatch.setattr(main, "USE_COLORS", True)
+        monkeypatch.setattr(sys.stderr, "isatty", lambda: True)
         monkeypatch.setattr(
             main.shutil,
             "get_terminal_size",
