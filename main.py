@@ -667,7 +667,7 @@ def countdown_timer(seconds: int, message: str = "Waiting") -> None:
     """Show a countdown in interactive/color mode; in no-color/non-interactive
     mode, sleep silently for short waits and log periodic heartbeat messages
     for longer waits."""
-    if not USE_COLORS:
+    if not USE_COLORS or not sys.stderr.isatty():
         # UX Improvement: For long waits in non-interactive/no-color mode (e.g. CI),
         # log periodic updates instead of sleeping silently.
         if seconds > 10:
@@ -707,7 +707,7 @@ def render_progress_bar(
     current: int, total: int, label: str, prefix: str = "🚀"
 ) -> None:
     """Renders a progress bar to stderr if USE_COLORS is True."""
-    if not USE_COLORS or total == 0:
+    if not USE_COLORS or not sys.stderr.isatty() or total == 0:
         return
 
     width = _get_progress_bar_width()
