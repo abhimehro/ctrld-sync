@@ -6,6 +6,7 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review - 2026-07-02 [\#971](https://github.com/abhimehro/ctrld-sync/issues/971)
 - Daily QA & Agentic Review - 2026-07-01 [\#968](https://github.com/abhimehro/ctrld-sync/issues/968)
 - Daily QA & Agentic Review - 2026-06-30 [\#964](https://github.com/abhimehro/ctrld-sync/issues/964)
 - Daily QA & Agentic Review - 2026-06-29 [\#959](https://github.com/abhimehro/ctrld-sync/issues/959)
@@ -23,6 +24,7 @@
 
 **Merged pull requests:**
 
+- chore\(deps\): bump ruby/setup-ruby from 1.315.0 to 1.316.0 [\#972](https://github.com/abhimehro/ctrld-sync/pull/972) ([dependabot[bot]](https://github.com/apps/dependabot))
 - 🛡️ Sentinel: \[security improvement\] [\#969](https://github.com/abhimehro/ctrld-sync/pull/969) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[MEDIUM\] Fix input length validation bypass in rule filtering [\#967](https://github.com/abhimehro/ctrld-sync/pull/967) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump ruby/setup-ruby from 1.314.0 to 1.315.0 [\#966](https://github.com/abhimehro/ctrld-sync/pull/966) ([dependabot[bot]](https://github.com/apps/dependabot))
