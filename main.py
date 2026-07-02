@@ -2257,17 +2257,34 @@ def _push_rule_batches(
                     progress_label,
                 )
 
+    _log_batch_results(
+        successful_batches,
+        total_batches,
+        sanitized_folder_name,
+        len(filtered_hostnames),
+    )
+
+    return successful_batches == total_batches
+
+
+def _log_batch_results(
+    successful_batches: int,
+    total_batches: int,
+    sanitized_folder_name: str,
+    num_rules: int,
+) -> None:
     if successful_batches == total_batches:
         if USE_COLORS and sys.stderr.isatty():
             sys.stderr.write(
-                f"\r\033[K{Colors.GREEN}✅ Folder {sanitized_folder_name}: Finished ({len(filtered_hostnames):,} {pluralize(len(filtered_hostnames), 'rule')}){Colors.ENDC}\n"
+                f"\r\033[K{Colors.GREEN}✅ Folder {sanitized_folder_name}: Finished ({num_rules:,} {pluralize(num_rules, 'rule')}){Colors.ENDC}\n"
             )
             sys.stderr.flush()
         else:
             log.info(
-                f"✅ Folder {sanitized_folder_name} – finished ({len(filtered_hostnames):,} new {pluralize(len(filtered_hostnames), 'rule')} added)"
+                f"✅ Folder {sanitized_folder_name} – finished ({num_rules:,} new {pluralize(num_rules, 'rule')} added)"
             )
-        return True
+        return
+
     if USE_COLORS and sys.stderr.isatty():
         sys.stderr.write("\r\033[K")
         sys.stderr.flush()
@@ -2277,7 +2294,6 @@ def _push_rule_batches(
         successful_batches,
         total_batches,
     )
-    return False
 
 
 def push_rules(
