@@ -603,7 +603,7 @@ def _get_action_text(folder: PlanFolderEntry) -> str:
 
 
 def print_plan_details(plan_entry: PlanEntry) -> None:
-    """Pretty-print the folder-level breakdown during a dry-run."""
+    """Pretty-print thefolder-level breakdown during a dry-run."""
     profile = sanitize_for_log(plan_entry.get("profile", "unknown"))
     if profile == "dry-run-placeholder":
         profile = "(Unspecified)"
@@ -1084,35 +1084,34 @@ def _is_safe_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
     return ip.is_global
 
 
-def _resolve_and_validate_domain(hostname: str) -> bool:
-    try:
-        # Resolve hostname to IPs (IPv4 and IPv6)
-        # We filter for AF_INET/AF_INET6 to ensure we get IP addresses
-        addr_info = socket.getaddrinfo(hostname, None, proto=socket.IPPROTO_TCP)
-        for res in addr_info:
-            # res is (family, type, proto, canonname, sockaddr)
-            # sockaddr is (address, port) for AF_INET/AF_INET6
-            ip_str = res[4][0]
-            ip = ipaddress.ip_address(ip_str)
-            if not _is_safe_ip(ip):
-                log.warning(
-                    f"Skipping unsafe hostname {sanitize_for_log(hostname)} (resolves to non-global/multicast IP {ip})"
-                )
-                return False
-        return True
-    except (socket.gaierror, ValueError, OSError) as e:
-        log.warning(
-            f"Failed to resolve/validate domain {sanitize_for_log(hostname)}: {sanitize_for_log(e)}"
-        )
-        return False
-
-
 @lru_cache(maxsize=128)
 def validate_hostname(hostname: str) -> bool:
     """
     Validates a hostname (DNS resolution and IP checks).
     Cached to prevent redundant DNS lookups for the same host across different URLs.
     """
+    def _resolve_and_validate_domain(hostname: str) -> bool:
+        try:
+            # Resolve hostname to IPs (IPv4 and IPv6)
+            # We filter for AF_INET/AF_INET6 to ensure we get IP addresses
+            addr_info = socket.getaddrinfo(hostname, None, proto=socket.IPPROTO_TCP)
+            for res in addr_info:
+                # res is (family, type, proto, canonname, sockaddr)
+                # sockaddr is (address, port) for AF_INET/AF_INET6
+                ip_str = res[4][0]
+                ip = ipaddress.ip_address(ip_str)
+                if not _is_safe_ip(ip):
+                    log.warning(
+                        f"Skipping unsafe hostname {sanitize_for_log(hostname)} (resolves to non-global/multicast IP {ip})"
+                    )
+                    return False
+            return True
+        except (socket.gaierror, ValueError, OSError) as e:
+            log.warning(
+                f"Failed to resolve/validate domain {sanitize_for_log(hostname)}: {sanitize_for_log(e)}"
+            )
+            return False
+
     if len(hostname) > MAX_HOSTNAME_LENGTH:
         log.warning(
             f"Skipping unsafe hostname (exceeds {MAX_HOSTNAME_LENGTH} chars): {sanitize_for_log(hostname)}"
@@ -1663,35 +1662,6 @@ def list_existing_folders(client: httpx.Client, profile_id: str) -> dict[str, st
         return {}
 
 
-def _parse_folders_response(data: dict) -> dict[str, str] | None:
-    """Parse folders response."""
-    if not isinstance(data, dict):
-        log.error("Failed to parse folders data: response is not a JSON object")
-        return None
-    body = data.get("body")
-    if not isinstance(body, dict):
-        log.error("Failed to parse folders data: 'body' is not a JSON object")
-        return None
-    folders = body.get("groups", [])
-    if not isinstance(folders, list):
-        log.error("Failed to parse folders data: 'body[\"groups\"]' is not a list")
-        return None
-
-    result: dict[str, str] = {}
-    for f in folders:
-        if not isinstance(f, dict):
-            continue
-        name = f.get("group")
-        pk = f.get("PK")
-        if not name or not pk:
-            continue
-        pk_str = str(pk)
-        if validate_folder_id(pk_str):
-            result[str(name).strip()] = pk_str
-
-    return result
-
-
 def verify_access_and_get_folders(
     client: httpx.Client, profile_id: str
 ) -> dict[str, str] | None:
@@ -1701,6 +1671,34 @@ def verify_access_and_get_folders(
         Dict of {folder_name: folder_id} on success.
         None if access is denied or the request fails after retries.
     """
+    def _parse_folders_response(data: dict) -> dict[str, str] | None:
+        """Parse folders response."""
+        if not isinstance(data, dict):
+            log.error("Failed to parse folders data: response is not a JSON object")
+            return None
+        body = data.get("body")
+        if not isinstance(body, dict):
+            log.error("Failed to parse folders data: 'body' is not a JSON object")
+            return None
+        folders = body.get("groups", [])
+        if not isinstance(folders, list):
+            log.error("Failed to parse folders data: 'body[\"groups\"]' is not a list")
+            return None
+
+        result: dict[str, str] = {}
+        for f in folders:
+            if not isinstance(f, dict):
+                continue
+            name = f.get("group")
+            pk = f.get("PK")
+            if not name or not pk:
+                continue
+            pk_str = str(pk)
+            if validate_folder_id(pk_str):
+                result[str(name).strip()] = pk_str
+
+        return result
+
     url = f"{API_BASE}/{profile_id}/groups"
 
     for attempt in range(MAX_RETRIES):
@@ -1869,45 +1867,6 @@ def fetch_folder_data(url: str) -> FolderData:
     return js
 
 
-def _validate_and_fetch(url: str) -> dict | None:
-    if validate_folder_url(url):
-        return _gh_get(url)
-    return None
-
-
-def _handle_warmup_future(
-    future: concurrent.futures.Future,
-    url: str,
-    completed: int,
-    total: int,
-) -> None:
-    try:
-        future.result()
-    except Exception as e:
-        if USE_COLORS and sys.stderr.isatty():
-            sys.stderr.write("\r\033[K")
-            sys.stderr.flush()
-
-        log.warning(
-            f"Failed to pre-fetch {sanitize_for_log(url)}: "
-            f"{sanitize_for_log(e)}"
-        )
-        # Restore progress bar after warning
-        render_progress_bar(completed, total, "Warming up cache", prefix="⏳")
-
-
-def _print_cache_done() -> None:
-    if not USE_COLORS:
-        log.info("✅ Warming up cache: Done!")
-    elif sys.stderr.isatty():
-        sys.stderr.write(
-            f"\r\033[K{Colors.GREEN}✅ Warming up cache: Done!{Colors.ENDC}\n"
-        )
-        sys.stderr.flush()
-    else:
-        print(f"{Colors.GREEN}✅ Warming up cache: Done!{Colors.ENDC}", file=sys.stderr)
-
-
 def warm_up_cache(urls: Sequence[str]) -> None:
     """
     Pre-fetches and caches folder data from multiple URLs in parallel.
@@ -1925,6 +1884,42 @@ def warm_up_cache(urls: Sequence[str]) -> None:
     total = len(urls_to_process)
     if not USE_COLORS:
         log.info(f"⏳ Warming up cache for {total:,} {pluralize(total, 'URL')}...")
+
+    def _validate_and_fetch(url: str) -> dict | None:
+        if validate_folder_url(url):
+            return _gh_get(url)
+        return None
+
+    def _handle_warmup_future(
+        future: concurrent.futures.Future,
+        url: str,
+        completed: int,
+        total: int,
+    ) -> None:
+        try:
+            future.result()
+        except Exception as e:
+            if USE_COLORS and sys.stderr.isatty():
+                sys.stderr.write("\r\033[K")
+                sys.stderr.flush()
+
+            log.warning(
+                f"Failed to pre-fetch {sanitize_for_log(url)}: "
+                f"{sanitize_for_log(e)}"
+            )
+            # Restore progress bar after warning
+            render_progress_bar(completed, total, "Warming up cache", prefix="⏳")
+
+    def _print_cache_done() -> None:
+        if not USE_COLORS:
+            log.info("✅ Warming up cache: Done!")
+        elif sys.stderr.isatty():
+            sys.stderr.write(
+                f"\r\033[K{Colors.GREEN}✅ Warming up cache: Done!{Colors.ENDC}\n"
+            )
+            sys.stderr.flush()
+        else:
+            print(f"{Colors.GREEN}✅ Warming up cache: Done!{Colors.ENDC}", file=sys.stderr)
 
     completed = 0
     with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -1985,21 +1980,20 @@ def _process_new_folder_pk(pk: str, name: str, source: str) -> str | None:
     return pk
 
 
-def _extract_from_groups_list(groups: list, name: str) -> str | None:
-    """Extract folder ID from groups list."""
-    for grp in groups:
-        if not isinstance(grp, dict):
-            continue
-        if grp.get("group", "").strip() != name.strip():
-            continue
-        if "PK" in grp:
-            pk = _process_new_folder_pk(str(grp["PK"]), name, "Direct")
-            if pk:
-                return pk
-    return None
-
-
 def _extract_folder_id_from_response(response: httpx.Response, name: str) -> str | None:
+    def _extract_from_groups_list(groups: list, name: str) -> str | None:
+        """Extract folder ID from groups list."""
+        for grp in groups:
+            if not isinstance(grp, dict):
+                continue
+            if grp.get("group", "").strip() != name.strip():
+                continue
+            if "PK" in grp:
+                pk = _process_new_folder_pk(str(grp["PK"]), name, "Direct")
+                if pk:
+                    return pk
+        return None
+
     try:
         body = response.json().get("body")
     except Exception as e:
@@ -2086,22 +2080,6 @@ def create_folder(ctx: SyncContext, name: str, action: RuleAction) -> str | None
         return None
 
 
-def _log_unsafe_rules(
-    unique_hostnames_dict: dict[str, None],
-    is_safe: Callable[[str], bool],
-    sanitized_folder: str,
-    skipped_unsafe: int,
-) -> None:
-    for h in unique_hostnames_dict:
-        if not (h and is_safe(h)):
-            log.warning(
-                f"Skipping unsafe rule in {sanitized_folder}: {sanitize_for_log(h)}"
-            )
-    log.warning(
-        f"Folder {sanitized_folder}: skipped {skipped_unsafe} unsafe {pluralize(skipped_unsafe, 'rule')}"
-    )
-
-
 def _filter_rules_for_folder(
     existing_rules: set[str],
     hostnames: list[str],
@@ -2112,16 +2090,24 @@ def _filter_rules_for_folder(
     """
     original_count = len(hostnames)
 
-    # Optimization 1: Deduplicate and filter existing rules efficiently.
-    if not existing_rules:
-        unique_hostnames_dict = dict.fromkeys(hostnames)
-    else:
-        # Filter first using itertools.filterfalse (C-speed), then deduplicate with dict.fromkeys.
-        # This prevents redundant dictionary insertions for rules already in existing_rules,
-        # and avoids materializing a large intermediate list before deduplication.
-        unique_hostnames_dict = dict.fromkeys(
-            itertools.filterfalse(existing_rules.__contains__, hostnames)
+    def _log_unsafe_rules(
+        unique_hostnames_dict: dict[str, None],
+        is_safe: Callable[[str], bool],
+        sanitized_folder: str,
+        skipped_unsafe: int,
+    ) -> None:
+        for h in unique_hostnames_dict:
+            if not (h and is_safe(h)):
+                log.warning(
+                    f"Skipping unsafe rule in {sanitized_folder}: {sanitize_for_log(h)}"
+                )
+        log.warning(
+            f"Folder {sanitized_folder}: skipped {skipped_unsafe} unsafe {pluralize(skipped_unsafe, 'rule')}"
         )
+
+    # Optimization 1: Deduplicate and filter existing rules efficiently.
+    it = hostnames if not existing_rules else itertools.filterfalse(existing_rules.__contains__, hostnames)
+    unique_hostnames_dict = dict.fromkeys(it)
 
     # Optimization 2: Inline method references for hot loop performance
     is_safe = _ALLOWED_RULE_CHARS.issuperset
@@ -2150,25 +2136,6 @@ def _filter_rules_for_folder(
     return filtered_hostnames
 
 
-def _handle_push_batch_error(
-    e: httpx.HTTPError, batch_idx: int, sanitized_folder_name: str
-) -> None:
-    if USE_COLORS and sys.stderr.isatty():
-        sys.stderr.write("\r\033[K")
-        sys.stderr.flush()
-    hint = ""
-    if isinstance(e, httpx.HTTPStatusError):
-        # Use a more specific name to avoid confusion with the rule "status" payload
-        status_code = e.response.status_code
-        hint = f" ({_STATUS_HINTS.get(status_code, f'HTTP {status_code}')})"
-    log.error(
-        f"Failed to push batch {batch_idx} for folder {sanitized_folder_name}{hint}: {sanitize_for_log(e)}"
-    )
-    has_response = hasattr(e, "response") and e.response is not None
-    if has_response and log.isEnabledFor(logging.DEBUG):
-        log.debug(f"Response content: {sanitize_for_log(e.response.text)}")
-
-
 def _push_single_batch(
     client: httpx.Client,
     profile_id: str,
@@ -2180,6 +2147,24 @@ def _push_single_batch(
     batch_data: list[str],
 ) -> list[str] | None:
     """Processes a single batch of rules by sending API request."""
+    def _handle_push_batch_error(
+        e: httpx.HTTPError, batch_idx: int, sanitized_folder_name: str
+    ) -> None:
+        if USE_COLORS and sys.stderr.isatty():
+            sys.stderr.write("\r\033[K")
+            sys.stderr.flush()
+        hint = ""
+        if isinstance(e, httpx.HTTPStatusError):
+            # Use a more specific name to avoid confusion with the rule "status" payload
+            status_code = e.response.status_code
+            hint = f" ({_STATUS_HINTS.get(status_code, f'HTTP {status_code}')})"
+        log.error(
+            f"Failed to push batch {batch_idx} for folder {sanitized_folder_name}{hint}: {sanitize_for_log(e)}"
+        )
+        has_response = hasattr(e, "response") and e.response is not None
+        if has_response and log.isEnabledFor(logging.DEBUG):
+            log.debug(f"Response content: {sanitize_for_log(e.response.text)}")
+
     data = {
         "do": str_do,
         "status": str_status,
@@ -2256,25 +2241,6 @@ def _push_multi_batches(
     return successful_batches
 
 
-def _log_push_batches_success(
-    sanitized_folder_name: str, total_rules: int
-) -> None:
-    if not USE_COLORS:
-        log.info(
-            f"✅ Folder {sanitized_folder_name} – finished ({total_rules:,} new {pluralize(total_rules, 'rule')} added)"
-        )
-    elif sys.stderr.isatty():
-        sys.stderr.write(
-            f"\r\033[K{Colors.GREEN}✅ Folder {sanitized_folder_name}: Finished ({total_rules:,} {pluralize(total_rules, 'rule')}){Colors.ENDC}\n"
-        )
-        sys.stderr.flush()
-    else:
-        print(
-            f"{Colors.GREEN}✅ Folder {sanitized_folder_name}: Finished ({total_rules:,} {pluralize(total_rules, 'rule')}){Colors.ENDC}",
-            file=sys.stderr,
-        )
-
-
 def _push_rule_batches(
     ctx: SyncContext,
     folder_name: str,
@@ -2285,6 +2251,24 @@ def _push_rule_batches(
     """
     Splits rules into batches and pushes them to the API in parallel.
     """
+    def _log_push_batches_success(
+        sanitized_folder_name: str, total_rules: int
+    ) -> None:
+        if not USE_COLORS:
+            log.info(
+                f"✅ Folder {sanitized_folder_name} – finished ({total_rules:,} new {pluralize(total_rules, 'rule')} added)"
+            )
+        elif sys.stderr.isatty():
+            sys.stderr.write(
+                f"\r\033[K{Colors.GREEN}✅ Folder {sanitized_folder_name}: Finished ({total_rules:,} {pluralize(total_rules, 'rule')}){Colors.ENDC}\n"
+            )
+            sys.stderr.flush()
+        else:
+            print(
+                f"{Colors.GREEN}✅ Folder {sanitized_folder_name}: Finished ({total_rules:,} {pluralize(total_rules, 'rule')}){Colors.ENDC}",
+                file=sys.stderr,
+            )
+
     successful_batches = 0
     batches = [
         filtered_hostnames[start : start + BATCH_SIZE]
