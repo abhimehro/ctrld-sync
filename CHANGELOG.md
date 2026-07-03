@@ -25,6 +25,7 @@
 **Merged pull requests:**
 
 - chore\(deps\): bump ruby/setup-ruby from 1.315.0 to 1.316.0 [\#972](https://github.com/abhimehro/ctrld-sync/pull/972) ([dependabot[bot]](https://github.com/apps/dependabot))
+- fix\(ux\): guard ANSI progress output with stderr.isatty\(\) \(salvages \#965\) [\#970](https://github.com/abhimehro/ctrld-sync/pull/970) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[security improvement\] [\#969](https://github.com/abhimehro/ctrld-sync/pull/969) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[MEDIUM\] Fix input length validation bypass in rule filtering [\#967](https://github.com/abhimehro/ctrld-sync/pull/967) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump ruby/setup-ruby from 1.314.0 to 1.315.0 [\#966](https://github.com/abhimehro/ctrld-sync/pull/966) ([dependabot[bot]](https://github.com/apps/dependabot))
