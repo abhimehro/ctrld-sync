@@ -1903,7 +1903,7 @@ def warm_up_cache(urls: Sequence[str]) -> None:
             try:
                 future.result()
             except Exception as e:
-                if USE_COLORS:
+                if USE_COLORS and sys.stderr.isatty():
                     # Clear line to print warning cleanly
                     sys.stderr.write("\r\033[K")
                     sys.stderr.flush()
@@ -1915,7 +1915,7 @@ def warm_up_cache(urls: Sequence[str]) -> None:
                 # Restore progress bar after warning
                 render_progress_bar(completed, total, "Warming up cache", prefix="⏳")
 
-    if USE_COLORS:
+    if USE_COLORS and sys.stderr.isatty():
         sys.stderr.write(
             f"\r\033[K{Colors.GREEN}✅ Warming up cache: Done!{Colors.ENDC}\n"
         )
@@ -2151,7 +2151,7 @@ def _push_single_batch(
             )
         return batch_data
     except httpx.HTTPError as e:
-        if USE_COLORS:
+        if USE_COLORS and sys.stderr.isatty():
             sys.stderr.write("\r\033[K")
             sys.stderr.flush()
         hint = ""
@@ -2254,7 +2254,7 @@ def _push_rule_batches(
                 )
 
     if successful_batches == total_batches:
-        if USE_COLORS:
+        if USE_COLORS and sys.stderr.isatty():
             sys.stderr.write(
                 f"\r\033[K{Colors.GREEN}✅ Folder {sanitized_folder_name}: Finished ({len(filtered_hostnames):,} {pluralize(len(filtered_hostnames), 'rule')}){Colors.ENDC}\n"
             )
@@ -2264,7 +2264,7 @@ def _push_rule_batches(
                 f"✅ Folder {sanitized_folder_name} – finished ({len(filtered_hostnames):,} new {pluralize(len(filtered_hostnames), 'rule')} added)"
             )
         return True
-    if USE_COLORS:
+    if USE_COLORS and sys.stderr.isatty():
         sys.stderr.write("\r\033[K")
         sys.stderr.flush()
     log.error(
@@ -2641,7 +2641,7 @@ def _get_interactive_restart_confirmation() -> bool:
     """Helper to prompt for and validate interactive restart confirmation."""
     prompt_initial = f"\n{Colors.BOLD}🚀 Ready to launch? {Colors.ENDC}Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
     prompt_reprompt = f"{Colors.BOLD}🚀 Ready to launch? {Colors.ENDC}Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
-    cancel_msg = f"\n{Colors.WARNING}⚠️  Cancelled.{Colors.ENDC}"
+    cancel_msg = f"{Colors.WARNING}⚠️  Cancelled.{Colors.ENDC}"
     err_msg = f"{Colors.FAIL}❌ Unrecognized input. Please press Enter to continue, or 'n' to cancel.{Colors.ENDC}"
 
     prompt = prompt_initial
@@ -2656,7 +2656,7 @@ def _get_interactive_restart_confirmation() -> bool:
             if sys.stderr.isatty():
                 sys.stderr.write("\r\033[K")
                 sys.stderr.flush()
-            print(cancel_msg.lstrip("\n"))
+            print(cancel_msg)
             return False
 
         if user_response in ("", "y", "yes"):
@@ -3225,11 +3225,11 @@ def main() -> bool:
             )
     except KeyboardInterrupt:
         duration = time.time() - start_time
-        if USE_COLORS and sys.stderr.isatty():
+        if sys.stderr.isatty():
             sys.stderr.write("\r\033[K")
             sys.stderr.flush()
         print(
-            f"\n{Colors.WARNING}⚠️  Sync cancelled by user. Finishing current task...{Colors.ENDC}"
+            f"{Colors.WARNING}⚠️  Sync cancelled by user. Finishing current task...{Colors.ENDC}"
         )
 
         # Try to recover stats for the interrupted profile
