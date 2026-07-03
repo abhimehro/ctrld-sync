@@ -14,6 +14,7 @@ def test_countdown_timer_visuals(monkeypatch):
 
     # Mock stderr
     mock_stderr = MagicMock()
+    mock_stderr.isatty.return_value = True
     monkeypatch.setattr(sys, "stderr", mock_stderr)
 
     # Mock time.sleep to run instantly
@@ -40,6 +41,7 @@ def test_countdown_timer_no_colors_short(monkeypatch):
     """Verify that short countdowns sleep silently without writing to stderr if NO_COLOR."""
     monkeypatch.setattr(main, "USE_COLORS", False)
     mock_stderr = MagicMock()
+    mock_stderr.isatty.return_value = False
     monkeypatch.setattr(sys, "stderr", mock_stderr)
     mock_sleep = MagicMock()
     monkeypatch.setattr(main.time, "sleep", mock_sleep)
@@ -214,11 +216,40 @@ class TestRenderProgressBar:
             "get_terminal_size",
             lambda fallback=(80, 24): os.terminal_size((80, 24)),
         )
+
+        class DummyStderr:
+            def __init__(self):
+                self.out: list[str] = []
+
+            def write(self, text: str) -> None:
+                self.out.append(text)
+
+            def flush(self) -> None:
+                pass
+
+            def isatty(self) -> bool:
+                return True
+
+        dummy = DummyStderr()
+        monkeypatch.setattr(main.sys, "stderr", dummy)
+
         main.render_progress_bar(5, 10, "Loading")
-        err = capsys.readouterr().err
+        err = "".join(dummy.out)
         assert "Loading" in err
         assert "█" in err
         assert "\r\033[K" in err
+
+    def test_no_output_when_stderr_not_tty(self, monkeypatch, capsys):
+        """render_progress_bar skips ANSI output when stderr is not a TTY."""
+        monkeypatch.setattr(main, "USE_COLORS", True)
+
+        class DummyStderr:
+            def isatty(self) -> bool:
+                return False
+
+        monkeypatch.setattr(main.sys, "stderr", DummyStderr())
+        main.render_progress_bar(5, 10, "Loading")
+        assert capsys.readouterr().err == ""
 
 
 class TestMakeColSeparator:
