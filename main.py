@@ -668,24 +668,17 @@ def countdown_timer(seconds: int, message: str = "Waiting") -> None:
     mode, sleep silently for short waits and log periodic heartbeat messages
     for longer waits."""
     if not USE_COLORS or not sys.stderr.isatty():
-        # UX Improvement: For long waits in non-interactive/no-color mode (e.g. CI),
-        # log periodic updates instead of sleeping silently.
+        # Non-interactive countdown
         if seconds > 10:
-            step = 10
-            for remaining in range(seconds, 0, -step):
+            for remaining in range(seconds, 0, -10):
                 # Don't log the first one if we already logged "Waiting..." before calling this
                 if remaining < seconds:
                     log.info(f"{sanitize_for_log(message)}: {remaining}s remaining...")
-
-                sleep_time = min(step, remaining)
-                time.sleep(sleep_time)
-            log.info(f"✅ {sanitize_for_log(message)}: Done!")
-            return
-
-        time.sleep(seconds)
+                time.sleep(min(10, remaining))
+        else:
+            time.sleep(seconds)
         log.info(f"✅ {sanitize_for_log(message)}: Done!")
         return
-
     width = _get_progress_bar_width()
     max_len = len(str(seconds))
 
@@ -713,7 +706,6 @@ def render_progress_bar(
         return
     if total == 0:
         return
-
     width = _get_progress_bar_width()
 
     progress = min(1.0, current / total)
@@ -2717,11 +2709,6 @@ def prompt_for_interactive_restart(profile_ids: list[str]) -> bool:
     return True
 
 
-def print_line(left_char: str, mid_char: str, right_char: str, w: list[int]) -> str:
-    """Format a horizontal table separator line."""
-    return f"{Colors.BOLD}{left_char}{mid_char.join('─' * (x + 2) for x in w)}{right_char}{Colors.ENDC}"
-
-
 _ANSI_ESCAPE_PATTERN = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 
 
@@ -2755,6 +2742,11 @@ def _pad_string(s: str, width: int, align: str = "<") -> str:
         right = pad_len - left
         return " " * left + s + " " * right
     return s
+
+
+def print_line(left_char: str, mid_char: str, right_char: str, w: list[int]) -> str:
+    """Format a horizontal table separator line."""
+    return f"{Colors.BOLD}{left_char}{mid_char.join('─' * (x + 2) for x in w)}{right_char}{Colors.ENDC}"
 
 
 def print_row(cols: list[str], w: list[int]) -> str:
