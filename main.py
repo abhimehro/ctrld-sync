@@ -2253,27 +2253,28 @@ def _push_rule_batches(
                     progress_label,
                 )
 
-    if successful_batches == total_batches:
+    if successful_batches != total_batches:
         if USE_COLORS and sys.stderr.isatty():
-            sys.stderr.write(
-                f"\r\033[K{Colors.GREEN}✅ Folder {sanitized_folder_name}: Finished ({len(filtered_hostnames):,} {pluralize(len(filtered_hostnames), 'rule')}){Colors.ENDC}\n"
-            )
+            sys.stderr.write("\r\033[K")
             sys.stderr.flush()
-        else:
-            log.info(
-                f"✅ Folder {sanitized_folder_name} – finished ({len(filtered_hostnames):,} new {pluralize(len(filtered_hostnames), 'rule')} added)"
-            )
-        return True
+        log.error(
+            "Folder %s – only %d/%d batches succeeded",
+            sanitized_folder_name,
+            successful_batches,
+            total_batches,
+        )
+        return False
+
     if USE_COLORS and sys.stderr.isatty():
-        sys.stderr.write("\r\033[K")
+        sys.stderr.write(
+            f"\r\033[K{Colors.GREEN}✅ Folder {sanitized_folder_name}: Finished ({len(filtered_hostnames):,} {pluralize(len(filtered_hostnames), 'rule')}){Colors.ENDC}\n"
+        )
         sys.stderr.flush()
-    log.error(
-        "Folder %s – only %d/%d batches succeeded",
-        sanitized_folder_name,
-        successful_batches,
-        total_batches,
-    )
-    return False
+    else:
+        log.info(
+            f"✅ Folder {sanitized_folder_name} – finished ({len(filtered_hostnames):,} new {pluralize(len(filtered_hostnames), 'rule')} added)"
+        )
+    return True
 
 
 def push_rules(
