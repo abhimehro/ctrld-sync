@@ -3229,7 +3229,7 @@ def main() -> bool:
             sys.stderr.write("\r\033[K")
             sys.stderr.flush()
         print(
-            f"\n{Colors.WARNING}⚠️  Sync cancelled by user. Finishing current task...{Colors.ENDC}"
+            f"{Colors.WARNING}⚠️  Sync cancelled by user. Finishing current task...{Colors.ENDC}"
         )
 
         # Try to recover stats for the interrupted profile

@@ -77,3 +77,8 @@
 
 **Learning:** When handling `KeyboardInterrupt` or `EOFError` during long operations, explicitly clearing the terminal line using ANSI sequences (`\r\033[K`) without checking if the environment is a TTY (`sys.stderr.isatty()`) leaks visible ANSI garbage into non-interactive execution logs (like CI or piped output).
 **Action:** Always guard terminal clearance codes and carriage returns with a `sys.stderr.isatty()` check, even if global color settings (`USE_COLORS`) are theoretically supposed to cover it, as `USE_COLORS` might be overridden or misused in edge cases.
+
+## 2025-10-25 - [Extraneous Blank Lines from ^C Cleanup]
+
+**Learning:** When handling `KeyboardInterrupt` or `EOFError` during interactive CLI flows (like prompts or main loops), outputting a cancellation message with a leading newline (`\n`) directly after writing the terminal clearance sequence (`\r\033[K`) will leave an awkward extraneous blank line where the user's `^C` input residue used to be.
+**Action:** Always ensure that cancellation messages do not contain leading newlines when they are intended to overwrite `^C` residue on the same line, preserving vertical layout spacing consistency.
