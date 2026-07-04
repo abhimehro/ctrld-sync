@@ -1882,14 +1882,15 @@ def _validate_and_fetch_url(url: str) -> Any:
 def _print_completion(msg: str) -> None:
     """Helper to print completion message to stderr or log."""
     _clear_current_line()
-    if sys.stderr.isatty():
-        if USE_COLORS:
-            sys.stderr.write(f"{Colors.GREEN}✅ {msg}{Colors.ENDC}\n")
-        else:
-            sys.stderr.write(f"✅ {msg}\n")
-        sys.stderr.flush()
-    else:
+    if not sys.stderr.isatty():
         log.info(f"✅ {msg}")
+        return
+
+    if USE_COLORS:
+        sys.stderr.write(f"{Colors.GREEN}✅ {msg}{Colors.ENDC}\n")
+    else:
+        sys.stderr.write(f"✅ {msg}\n")
+    sys.stderr.flush()
 
 
 def warm_up_cache(urls: Sequence[str]) -> None:
