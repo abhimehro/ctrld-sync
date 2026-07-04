@@ -77,3 +77,8 @@
 
 **Learning:** When handling `KeyboardInterrupt` or `EOFError` during long operations, explicitly clearing the terminal line using ANSI sequences (`\r\033[K`) without checking if the environment is a TTY (`sys.stderr.isatty()`) leaks visible ANSI garbage into non-interactive execution logs (like CI or piped output).
 **Action:** Always guard terminal clearance codes and carriage returns with a `sys.stderr.isatty()` check, even if global color settings (`USE_COLORS`) are theoretically supposed to cover it, as `USE_COLORS` might be overridden or misused in edge cases.
+
+## 2025-10-25 - [Terminal Residue in Non-Interactive Mode]
+
+**Learning:** When handling `KeyboardInterrupt` or `EOFError` during long operations, tying the terminal line clearance using ANSI sequences (`\r\033[K`) strictly to a color configuration flag (`USE_COLORS`) instead of just TTY detection (`sys.stderr.isatty()`) means that disabling colors leaves visible ghost characters (`^C`) in the interactive shell.
+**Action:** Always base terminal clearance codes on TTY detection (`sys.stderr.isatty()`), regardless of whether global color output is enabled or disabled.
