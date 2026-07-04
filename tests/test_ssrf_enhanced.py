@@ -47,7 +47,7 @@ class TestSSRFEnhanced(unittest.TestCase):
         with patch("socket.getaddrinfo") as mock_getaddrinfo:
             # Simulate resolving to 0.0.0.0
             mock_getaddrinfo.return_value = [
-                (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("0.0.0.0", 443))
+                (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("0.0.0.0", 443))  # nosec B104
             ]
 
             url = "https://zero.example.com/config.json"
