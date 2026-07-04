@@ -1903,7 +1903,7 @@ def warm_up_cache(urls: Sequence[str]) -> None:
             try:
                 future.result()
             except Exception as e:
-                if USE_COLORS:
+                if USE_COLORS and sys.stderr.isatty():
                     # Clear line to print warning cleanly
                     sys.stderr.write("\r\033[K")
                     sys.stderr.flush()
@@ -1915,7 +1915,7 @@ def warm_up_cache(urls: Sequence[str]) -> None:
                 # Restore progress bar after warning
                 render_progress_bar(completed, total, "Warming up cache", prefix="⏳")
 
-    if USE_COLORS:
+    if USE_COLORS and sys.stderr.isatty():
         sys.stderr.write(
             f"\r\033[K{Colors.GREEN}✅ Warming up cache: Done!{Colors.ENDC}\n"
         )
@@ -2151,7 +2151,7 @@ def _push_single_batch(
             )
         return batch_data
     except httpx.HTTPError as e:
-        if USE_COLORS:
+        if USE_COLORS and sys.stderr.isatty():
             sys.stderr.write("\r\033[K")
             sys.stderr.flush()
         hint = ""
@@ -2253,27 +2253,28 @@ def _push_rule_batches(
                     progress_label,
                 )
 
-    if successful_batches == total_batches:
-        if USE_COLORS:
-            sys.stderr.write(
-                f"\r\033[K{Colors.GREEN}✅ Folder {sanitized_folder_name}: Finished ({len(filtered_hostnames):,} {pluralize(len(filtered_hostnames), 'rule')}){Colors.ENDC}\n"
-            )
+    if successful_batches != total_batches:
+        if USE_COLORS and sys.stderr.isatty():
+            sys.stderr.write("\r\033[K")
             sys.stderr.flush()
-        else:
-            log.info(
-                f"✅ Folder {sanitized_folder_name} – finished ({len(filtered_hostnames):,} new {pluralize(len(filtered_hostnames), 'rule')} added)"
-            )
-        return True
-    if USE_COLORS:
-        sys.stderr.write("\r\033[K")
+        log.error(
+            "Folder %s – only %d/%d batches succeeded",
+            sanitized_folder_name,
+            successful_batches,
+            total_batches,
+        )
+        return False
+
+    if USE_COLORS and sys.stderr.isatty():
+        sys.stderr.write(
+            f"\r\033[K{Colors.GREEN}✅ Folder {sanitized_folder_name}: Finished ({len(filtered_hostnames):,} {pluralize(len(filtered_hostnames), 'rule')}){Colors.ENDC}\n"
+        )
         sys.stderr.flush()
-    log.error(
-        "Folder %s – only %d/%d batches succeeded",
-        sanitized_folder_name,
-        successful_batches,
-        total_batches,
-    )
-    return False
+    else:
+        log.info(
+            f"✅ Folder {sanitized_folder_name} – finished ({len(filtered_hostnames):,} new {pluralize(len(filtered_hostnames), 'rule')} added)"
+        )
+    return True
 
 
 def push_rules(
