@@ -738,6 +738,13 @@ def _clean_env_kv(value: str | None, key: str) -> str | None:
     return v
 
 
+def _clear_current_line() -> None:
+    """Helper to clear the current line on stderr if using colors and in a TTY."""
+    if USE_COLORS and sys.stderr.isatty():
+        sys.stderr.write("\r\033[K")
+        sys.stderr.flush()
+
+
 def _print_hint(hint: str) -> None:
     """Helper to cleanly print input hints while respecting USE_COLORS to reduce cyclomatic complexity."""
     if USE_COLORS:
@@ -761,9 +768,7 @@ def get_validated_input(
             sys.stderr.flush()
             value = input(prompt).strip()
         except (KeyboardInterrupt, EOFError):
-            if USE_COLORS and sys.stderr.isatty():
-                sys.stderr.write("\r\033[K")
-                sys.stderr.flush()
+            _clear_current_line()
             print(f"{Colors.WARNING}⚠️  Input cancelled.{Colors.ENDC}")
             sys.exit(130)
 
@@ -777,6 +782,15 @@ def get_validated_input(
 
         print(f"{Colors.FAIL}❌ {error_msg}{Colors.ENDC}")
         _print_hint(INVALID_INPUT_HINT)
+
+
+def _format_password_prompt(prompt: str) -> str:
+    """Formats the password prompt to ensure it contains standard hints and spaces."""
+    if "(typing will be hidden)" not in prompt:
+        prompt = f"{prompt.rstrip()} (typing will be hidden) "
+    if not prompt.endswith(" "):
+        prompt += " "
+    return prompt
 
 
 def get_password(
@@ -793,10 +807,7 @@ def get_password(
     out by including the literal substring "(typing will be hidden)" in
     the prompt they pass.
     """
-    if "(typing will be hidden)" not in prompt:
-        prompt = f"{prompt.rstrip()} (typing will be hidden) "
-    if not prompt.endswith(" "):
-        prompt += " "
+    prompt = _format_password_prompt(prompt)
 
     while True:
         try:
@@ -804,9 +815,7 @@ def get_password(
             sys.stderr.flush()
             value = getpass.getpass(prompt).strip()
         except (KeyboardInterrupt, EOFError):
-            if USE_COLORS and sys.stderr.isatty():
-                sys.stderr.write("\r\033[K")
-                sys.stderr.flush()
+            _clear_current_line()
             print(f"{Colors.WARNING}⚠️  Input cancelled.{Colors.ENDC}")
             sys.exit(130)
 
@@ -1864,6 +1873,22 @@ def fetch_folder_data(url: str) -> FolderData:
     return js
 
 
+def _validate_and_fetch_url(url: str) -> Any:
+    if validate_folder_url(url):
+        return _gh_get(url)
+    return None
+
+
+def _print_completion(msg: str) -> None:
+    """Helper to print completion message to stderr or log."""
+    _clear_current_line()
+    if USE_COLORS and sys.stderr.isatty():
+        sys.stderr.write(f"{Colors.GREEN}✅ {msg}{Colors.ENDC}\n")
+        sys.stderr.flush()
+    else:
+        log.info(f"✅ {msg}")
+
+
 def warm_up_cache(urls: Sequence[str]) -> None:
     """
     Pre-fetches and caches folder data from multiple URLs in parallel.
@@ -1882,36 +1907,10 @@ def warm_up_cache(urls: Sequence[str]) -> None:
     if not USE_COLORS:
         log.info(f"⏳ Warming up cache for {total:,} {pluralize(total, 'URL')}...")
 
-    # OPTIMIZATION: Combine validation (DNS) and fetching (HTTP) in one task
-    # to allow validation latency to be parallelized.
-    def _validate_and_fetch(url: str):
-        if validate_folder_url(url):
-            return _gh_get(url)
-        return None
-
-    def _log_cache_warmup_error(e: Exception, url: str) -> None:
-        if USE_COLORS and sys.stderr.isatty():
-            sys.stderr.write("\r\033[K")
-            sys.stderr.flush()
-
-        log.warning(
-            f"Failed to pre-fetch {sanitize_for_log(url)}: "
-            f"{sanitize_for_log(e)}"
-        )
-
-    def _finalize_cache_warmup() -> None:
-        if USE_COLORS and sys.stderr.isatty():
-            sys.stderr.write(
-                f"\r\033[K{Colors.GREEN}✅ Warming up cache: Done!{Colors.ENDC}\n"
-            )
-            sys.stderr.flush()
-        else:
-            log.info("✅ Warming up cache: Done!")
-
     completed = 0
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = {
-            executor.submit(_validate_and_fetch, url): url for url in urls_to_process
+            executor.submit(_validate_and_fetch_url, url): url for url in urls_to_process
         }
 
         render_progress_bar(0, total, "Warming up cache", prefix="⏳")
@@ -1922,11 +1921,15 @@ def warm_up_cache(urls: Sequence[str]) -> None:
             try:
                 future.result()
             except Exception as e:
-                _log_cache_warmup_error(e, futures[future])
+                _clear_current_line()
+                log.warning(
+                    f"Failed to pre-fetch {sanitize_for_log(futures[future])}: "
+                    f"{sanitize_for_log(e)}"
+                )
                 # Restore progress bar after warning
                 render_progress_bar(completed, total, "Warming up cache", prefix="⏳")
 
-    _finalize_cache_warmup()
+    _print_completion("Warming up cache: Done!")
 
 
 def delete_folder(
@@ -2156,9 +2159,7 @@ def _push_single_batch(
             )
         return batch_data
     except httpx.HTTPError as e:
-        if USE_COLORS and sys.stderr.isatty():
-            sys.stderr.write("\r\033[K")
-            sys.stderr.flush()
+        _clear_current_line()
         hint = ""
         if isinstance(e, httpx.HTTPStatusError):
             # Use a more specific name to avoid confusion with the rule "status" payload
@@ -2167,12 +2168,9 @@ def _push_single_batch(
         log.error(
             f"Failed to push batch {batch_idx} for folder {sanitized_folder_name}{hint}: {sanitize_for_log(e)}"
         )
-        if (
-            hasattr(e, "response")
-            and e.response is not None
-            and log.isEnabledFor(logging.DEBUG)
-        ):
-            log.debug(f"Response content: {sanitize_for_log(e.response.text)}")
+        response = getattr(e, "response", None)
+        if response is not None and log.isEnabledFor(logging.DEBUG):
+            log.debug(f"Response content: {sanitize_for_log(response.text)}")
         return None
 
 
@@ -2199,7 +2197,10 @@ def _push_rule_batches(
     sanitized_folder_name = sanitize_for_log(folder_name)
     progress_label = f"Folder {sanitized_folder_name}"
 
-    def _push_batches_single(batch: list[str]) -> int:
+    successful_batches = 0
+
+    # Optimization 3: Parallelize batch processing
+    if total_batches == 1:
         result = _push_single_batch(
             ctx.client,
             ctx.profile_id,
@@ -2208,19 +2209,13 @@ def _push_rule_batches(
             str_status,
             str_group,
             1,
-            batch,
+            batches[0],
         )
-        successful_batches = 0
         if result:
             successful_batches = 1
             ctx.existing_rules.update(result)
-
         render_progress_bar(successful_batches, 1, progress_label)
-        return successful_batches
-
-    def _push_batches_parallel() -> int:
-        successful_batches = 0
-
+    else:
         # Use provided executor or create a local one (fallback)
         if ctx.batch_executor:
             executor_ctx: contextlib.AbstractContextManager[
@@ -2253,40 +2248,28 @@ def _push_rule_batches(
 
                 render_progress_bar(successful_batches, total_batches, progress_label)
 
-        return successful_batches
-
-    def _log_batch_results(successful_batches: int) -> bool:
-        total_rules = len(filtered_hostnames)
-        if successful_batches == total_batches:
-            if USE_COLORS and sys.stderr.isatty():
-                sys.stderr.write(
-                    f"\r\033[K{Colors.GREEN}✅ Folder {sanitized_folder_name}: Finished ({total_rules:,} {pluralize(total_rules, 'rule')}){Colors.ENDC}\n"
-                )
-                sys.stderr.flush()
-            else:
-                log.info(
-                    f"✅ Folder {sanitized_folder_name} – finished ({total_rules:,} new {pluralize(total_rules, 'rule')} added)"
-                )
-            return True
-
+    total_rules = len(filtered_hostnames)
+    if successful_batches == total_batches:
+        _clear_current_line()
         if USE_COLORS and sys.stderr.isatty():
-            sys.stderr.write("\r\033[K")
+            sys.stderr.write(
+                f"{Colors.GREEN}✅ Folder {sanitized_folder_name}: Finished ({total_rules:,} {pluralize(total_rules, 'rule')}){Colors.ENDC}\n"
+            )
             sys.stderr.flush()
-        log.error(
-            "Folder %s – only %d/%d batches succeeded",
-            sanitized_folder_name,
-            successful_batches,
-            total_batches,
-        )
-        return False
+        else:
+            log.info(
+                f"✅ Folder {sanitized_folder_name} – finished ({total_rules:,} new {pluralize(total_rules, 'rule')} added)"
+            )
+        return True
 
-    # Optimization 3: Parallelize batch processing
-    if total_batches == 1:
-        successful_batches = _push_batches_single(batches[0])
-    else:
-        successful_batches = _push_batches_parallel()
-
-    return _log_batch_results(successful_batches)
+    _clear_current_line()
+    log.error(
+        "Folder %s – only %d/%d batches succeeded",
+        sanitized_folder_name,
+        successful_batches,
+        total_batches,
+    )
+    return False
 
 
 def push_rules(
