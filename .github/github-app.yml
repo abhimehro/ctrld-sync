@@ -1,3 +1,5 @@
+# Keep Copilot issue sessions enabled so issue-driven work can retain agent context.
+# Keep remote control enabled so maintainers can steer or stop long-running app tasks.
 automation:
   auto_issue_session: true
   remote_control: true
