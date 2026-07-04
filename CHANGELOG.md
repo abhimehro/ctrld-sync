@@ -26,6 +26,7 @@
 **Merged pull requests:**
 
 - 🎨 Palette: Fix ANSI escape sequence residue in non-interactive CI [\#975](https://github.com/abhimehro/ctrld-sync/pull/975) ([abhimehro](https://github.com/abhimehro))
+- fix\(ux\): extend stderr.isatty\(\) guards and clean cancel output \(salvages \#973\) [\#974](https://github.com/abhimehro/ctrld-sync/pull/974) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump ruby/setup-ruby from 1.315.0 to 1.316.0 [\#972](https://github.com/abhimehro/ctrld-sync/pull/972) ([dependabot[bot]](https://github.com/apps/dependabot))
 - fix\(ux\): guard ANSI progress output with stderr.isatty\(\) \(salvages \#965\) [\#970](https://github.com/abhimehro/ctrld-sync/pull/970) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[security improvement\] [\#969](https://github.com/abhimehro/ctrld-sync/pull/969) ([abhimehro](https://github.com/abhimehro))
