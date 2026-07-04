@@ -761,7 +761,7 @@ def get_validated_input(
             sys.stderr.flush()
             value = input(prompt).strip()
         except (KeyboardInterrupt, EOFError):
-            if sys.stderr.isatty():
+            if USE_COLORS and sys.stderr.isatty():
                 sys.stderr.write("\r\033[K")
                 sys.stderr.flush()
             print(f"{Colors.WARNING}⚠️  Input cancelled.{Colors.ENDC}")
@@ -804,7 +804,7 @@ def get_password(
             sys.stderr.flush()
             value = getpass.getpass(prompt).strip()
         except (KeyboardInterrupt, EOFError):
-            if sys.stderr.isatty():
+            if USE_COLORS and sys.stderr.isatty():
                 sys.stderr.write("\r\033[K")
                 sys.stderr.flush()
             print(f"{Colors.WARNING}⚠️  Input cancelled.{Colors.ENDC}")
@@ -1864,29 +1864,6 @@ def fetch_folder_data(url: str) -> FolderData:
     return js
 
 
-def _log_cache_warmup_error(e: Exception, url: str) -> None:
-    """Helper to log cache warm-up error while clearing CLI line if needed."""
-    if USE_COLORS and sys.stderr.isatty():
-        sys.stderr.write("\r\033[K")
-        sys.stderr.flush()
-
-    log.warning(
-        f"Failed to pre-fetch {sanitize_for_log(url)}: "
-        f"{sanitize_for_log(e)}"
-    )
-
-
-def _finalize_cache_warmup() -> None:
-    """Helper to print cache warm-up finalization status."""
-    if USE_COLORS and sys.stderr.isatty():
-        sys.stderr.write(
-            f"\r\033[K{Colors.GREEN}✅ Warming up cache: Done!{Colors.ENDC}\n"
-        )
-        sys.stderr.flush()
-    else:
-        log.info("✅ Warming up cache: Done!")
-
-
 def warm_up_cache(urls: Sequence[str]) -> None:
     """
     Pre-fetches and caches folder data from multiple URLs in parallel.
@@ -1911,6 +1888,25 @@ def warm_up_cache(urls: Sequence[str]) -> None:
         if validate_folder_url(url):
             return _gh_get(url)
         return None
+
+    def _log_cache_warmup_error(e: Exception, url: str) -> None:
+        if USE_COLORS and sys.stderr.isatty():
+            sys.stderr.write("\r\033[K")
+            sys.stderr.flush()
+
+        log.warning(
+            f"Failed to pre-fetch {sanitize_for_log(url)}: "
+            f"{sanitize_for_log(e)}"
+        )
+
+    def _finalize_cache_warmup() -> None:
+        if USE_COLORS and sys.stderr.isatty():
+            sys.stderr.write(
+                f"\r\033[K{Colors.GREEN}✅ Warming up cache: Done!{Colors.ENDC}\n"
+            )
+            sys.stderr.flush()
+        else:
+            log.info("✅ Warming up cache: Done!")
 
     completed = 0
     with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -2128,31 +2124,6 @@ def _filter_rules_for_folder(
     return filtered_hostnames
 
 
-def _handle_batch_push_error(
-    e: httpx.HTTPError,
-    batch_idx: int,
-    sanitized_folder_name: str,
-) -> None:
-    """Helper to handle and log HTTP errors during batch push."""
-    if USE_COLORS and sys.stderr.isatty():
-        sys.stderr.write("\r\033[K")
-        sys.stderr.flush()
-    hint = ""
-    if isinstance(e, httpx.HTTPStatusError):
-        # Use a more specific name to avoid confusion with the rule "status" payload
-        status_code = e.response.status_code
-        hint = f" ({_STATUS_HINTS.get(status_code, f'HTTP {status_code}')})"
-    log.error(
-        f"Failed to push batch {batch_idx} for folder {sanitized_folder_name}{hint}: {sanitize_for_log(e)}"
-    )
-    if (
-        hasattr(e, "response")
-        and e.response is not None
-        and log.isEnabledFor(logging.DEBUG)
-    ):
-        log.debug(f"Response content: {sanitize_for_log(e.response.text)}")
-
-
 def _push_single_batch(
     client: httpx.Client,
     profile_id: str,
@@ -2185,124 +2156,24 @@ def _push_single_batch(
             )
         return batch_data
     except httpx.HTTPError as e:
-        _handle_batch_push_error(e, batch_idx, sanitized_folder_name)
-        return None
-
-
-def _push_batches_single(
-    ctx: SyncContext,
-    sanitized_folder_name: str,
-    str_do: str,
-    str_status: str,
-    str_group: str,
-    batch: list[str],
-    progress_label: str,
-) -> int:
-    """Helper to push a single batch, updating the progress bar and returning successful count (0 or 1)."""
-    result = _push_single_batch(
-        ctx.client,
-        ctx.profile_id,
-        sanitized_folder_name,
-        str_do,
-        str_status,
-        str_group,
-        1,
-        batch,
-    )
-    successful_batches = 0
-    if result:
-        successful_batches = 1
-        ctx.existing_rules.update(result)
-
-    render_progress_bar(
-        successful_batches,
-        1,
-        progress_label,
-    )
-    return successful_batches
-
-
-def _push_batches_parallel(
-    ctx: SyncContext,
-    sanitized_folder_name: str,
-    str_do: str,
-    str_status: str,
-    str_group: str,
-    batches: list[list[str]],
-    progress_label: str,
-) -> int:
-    """Helper to push multiple batches in parallel, updating progress and returning successful count."""
-    successful_batches = 0
-    total_batches = len(batches)
-
-    # Use provided executor or create a local one (fallback)
-    if ctx.batch_executor:
-        executor_ctx: contextlib.AbstractContextManager[
-            concurrent.futures.Executor
-        ] = contextlib.nullcontext(ctx.batch_executor)
-    else:
-        executor_ctx = concurrent.futures.ThreadPoolExecutor(max_workers=3)
-
-    with executor_ctx as executor:
-        futures = {
-            executor.submit(
-                _push_single_batch,
-                ctx.client,
-                ctx.profile_id,
-                sanitized_folder_name,
-                str_do,
-                str_status,
-                str_group,
-                i,
-                batch,
-            ): i
-            for i, batch in enumerate(batches, 1)
-        }
-
-        for future in concurrent.futures.as_completed(futures):
-            result = future.result()
-            if result:
-                successful_batches += 1
-                ctx.existing_rules.update(result)
-
-            render_progress_bar(
-                successful_batches,
-                total_batches,
-                progress_label,
-            )
-
-    return successful_batches
-
-
-def _log_batch_results(
-    sanitized_folder_name: str,
-    successful_batches: int,
-    total_batches: int,
-    total_rules: int,
-) -> bool:
-    """Helper to print final batch push results."""
-    if successful_batches == total_batches:
         if USE_COLORS and sys.stderr.isatty():
-            sys.stderr.write(
-                f"\r\033[K{Colors.GREEN}✅ Folder {sanitized_folder_name}: Finished ({total_rules:,} {pluralize(total_rules, 'rule')}){Colors.ENDC}\n"
-            )
+            sys.stderr.write("\r\033[K")
             sys.stderr.flush()
-        else:
-            log.info(
-                f"✅ Folder {sanitized_folder_name} – finished ({total_rules:,} new {pluralize(total_rules, 'rule')} added)"
-            )
-        return True
-
-    if USE_COLORS and sys.stderr.isatty():
-        sys.stderr.write("\r\033[K")
-        sys.stderr.flush()
-    log.error(
-        "Folder %s – only %d/%d batches succeeded",
-        sanitized_folder_name,
-        successful_batches,
-        total_batches,
-    )
-    return False
+        hint = ""
+        if isinstance(e, httpx.HTTPStatusError):
+            # Use a more specific name to avoid confusion with the rule "status" payload
+            status_code = e.response.status_code
+            hint = f" ({_STATUS_HINTS.get(status_code, f'HTTP {status_code}')})"
+        log.error(
+            f"Failed to push batch {batch_idx} for folder {sanitized_folder_name}{hint}: {sanitize_for_log(e)}"
+        )
+        if (
+            hasattr(e, "response")
+            and e.response is not None
+            and log.isEnabledFor(logging.DEBUG)
+        ):
+            log.debug(f"Response content: {sanitize_for_log(e.response.text)}")
+        return None
 
 
 def _push_rule_batches(
@@ -2328,34 +2199,94 @@ def _push_rule_batches(
     sanitized_folder_name = sanitize_for_log(folder_name)
     progress_label = f"Folder {sanitized_folder_name}"
 
+    def _push_batches_single(batch: list[str]) -> int:
+        result = _push_single_batch(
+            ctx.client,
+            ctx.profile_id,
+            sanitized_folder_name,
+            str_do,
+            str_status,
+            str_group,
+            1,
+            batch,
+        )
+        successful_batches = 0
+        if result:
+            successful_batches = 1
+            ctx.existing_rules.update(result)
+
+        render_progress_bar(successful_batches, 1, progress_label)
+        return successful_batches
+
+    def _push_batches_parallel() -> int:
+        successful_batches = 0
+
+        # Use provided executor or create a local one (fallback)
+        if ctx.batch_executor:
+            executor_ctx: contextlib.AbstractContextManager[
+                concurrent.futures.Executor
+            ] = contextlib.nullcontext(ctx.batch_executor)
+        else:
+            executor_ctx = concurrent.futures.ThreadPoolExecutor(max_workers=3)
+
+        with executor_ctx as executor:
+            futures = {
+                executor.submit(
+                    _push_single_batch,
+                    ctx.client,
+                    ctx.profile_id,
+                    sanitized_folder_name,
+                    str_do,
+                    str_status,
+                    str_group,
+                    i,
+                    batch,
+                ): i
+                for i, batch in enumerate(batches, 1)
+            }
+
+            for future in concurrent.futures.as_completed(futures):
+                result = future.result()
+                if result:
+                    successful_batches += 1
+                    ctx.existing_rules.update(result)
+
+                render_progress_bar(successful_batches, total_batches, progress_label)
+
+        return successful_batches
+
+    def _log_batch_results(successful_batches: int) -> bool:
+        total_rules = len(filtered_hostnames)
+        if successful_batches == total_batches:
+            if USE_COLORS and sys.stderr.isatty():
+                sys.stderr.write(
+                    f"\r\033[K{Colors.GREEN}✅ Folder {sanitized_folder_name}: Finished ({total_rules:,} {pluralize(total_rules, 'rule')}){Colors.ENDC}\n"
+                )
+                sys.stderr.flush()
+            else:
+                log.info(
+                    f"✅ Folder {sanitized_folder_name} – finished ({total_rules:,} new {pluralize(total_rules, 'rule')} added)"
+                )
+            return True
+
+        if USE_COLORS and sys.stderr.isatty():
+            sys.stderr.write("\r\033[K")
+            sys.stderr.flush()
+        log.error(
+            "Folder %s – only %d/%d batches succeeded",
+            sanitized_folder_name,
+            successful_batches,
+            total_batches,
+        )
+        return False
+
     # Optimization 3: Parallelize batch processing
     if total_batches == 1:
-        successful_batches = _push_batches_single(
-            ctx,
-            sanitized_folder_name,
-            str_do,
-            str_status,
-            str_group,
-            batches[0],
-            progress_label,
-        )
+        successful_batches = _push_batches_single(batches[0])
     else:
-        successful_batches = _push_batches_parallel(
-            ctx,
-            sanitized_folder_name,
-            str_do,
-            str_status,
-            str_group,
-            batches,
-            progress_label,
-        )
+        successful_batches = _push_batches_parallel()
 
-    return _log_batch_results(
-        sanitized_folder_name,
-        successful_batches,
-        total_batches,
-        len(filtered_hostnames),
-    )
+    return _log_batch_results(successful_batches)
 
 
 def push_rules(
@@ -2735,7 +2666,7 @@ def _get_interactive_restart_confirmation() -> bool:
         try:
             user_response = input(prompt).strip().lower()
         except (KeyboardInterrupt, EOFError):
-            if sys.stderr.isatty():
+            if USE_COLORS and sys.stderr.isatty():
                 sys.stderr.write("\r\033[K")
                 sys.stderr.flush()
             print(cancel_msg)
@@ -3521,7 +3452,7 @@ if __name__ == "__main__":
         while main():
             pass
     except KeyboardInterrupt:
-        if sys.stderr.isatty():
+        if USE_COLORS and sys.stderr.isatty():
             sys.stderr.write("\r\033[K")
             sys.stderr.flush()
         print(f"{Colors.WARNING}⚠️  Cancelled by user.{Colors.ENDC}")
