@@ -738,6 +738,13 @@ def _clean_env_kv(value: str | None, key: str) -> str | None:
     return v
 
 
+def _clear_current_line() -> None:
+    """Helper to clear the current line on stderr if using colors and in a TTY."""
+    if USE_COLORS and sys.stderr.isatty():
+        sys.stderr.write("\r\033[K")
+        sys.stderr.flush()
+
+
 def _print_hint(hint: str) -> None:
     """Helper to cleanly print input hints while respecting USE_COLORS to reduce cyclomatic complexity."""
     if USE_COLORS:
@@ -761,9 +768,7 @@ def get_validated_input(
             sys.stderr.flush()
             value = input(prompt).strip()
         except (KeyboardInterrupt, EOFError):
-            if sys.stderr.isatty():
-                sys.stderr.write("\r\033[K")
-                sys.stderr.flush()
+            _clear_current_line()
             print(f"{Colors.WARNING}⚠️  Input cancelled.{Colors.ENDC}")
             sys.exit(130)
 
@@ -777,6 +782,15 @@ def get_validated_input(
 
         print(f"{Colors.FAIL}❌ {error_msg}{Colors.ENDC}")
         _print_hint(INVALID_INPUT_HINT)
+
+
+def _format_password_prompt(prompt: str) -> str:
+    """Formats the password prompt to ensure it contains standard hints and spaces."""
+    if "(typing will be hidden)" not in prompt:
+        prompt = f"{prompt.rstrip()} (typing will be hidden) "
+    if not prompt.endswith(" "):
+        prompt += " "
+    return prompt
 
 
 def get_password(
@@ -793,10 +807,7 @@ def get_password(
     out by including the literal substring "(typing will be hidden)" in
     the prompt they pass.
     """
-    if "(typing will be hidden)" not in prompt:
-        prompt = f"{prompt.rstrip()} (typing will be hidden) "
-    if not prompt.endswith(" "):
-        prompt += " "
+    prompt = _format_password_prompt(prompt)
 
     while True:
         try:
@@ -804,9 +815,7 @@ def get_password(
             sys.stderr.flush()
             value = getpass.getpass(prompt).strip()
         except (KeyboardInterrupt, EOFError):
-            if sys.stderr.isatty():
-                sys.stderr.write("\r\033[K")
-                sys.stderr.flush()
+            _clear_current_line()
             print(f"{Colors.WARNING}⚠️  Input cancelled.{Colors.ENDC}")
             sys.exit(130)
 
@@ -1864,6 +1873,22 @@ def fetch_folder_data(url: str) -> FolderData:
     return js
 
 
+def _validate_and_fetch_url(url: str) -> Any:
+    if validate_folder_url(url):
+        return _gh_get(url)
+    return None
+
+
+def _print_completion(msg: str) -> None:
+    """Helper to print completion message to stderr or log."""
+    _clear_current_line()
+    if USE_COLORS and sys.stderr.isatty():
+        sys.stderr.write(f"{Colors.GREEN}✅ {msg}{Colors.ENDC}\n")
+        sys.stderr.flush()
+    else:
+        log.info(f"✅ {msg}")
+
+
 def warm_up_cache(urls: Sequence[str]) -> None:
     """
     Pre-fetches and caches folder data from multiple URLs in parallel.
@@ -1882,17 +1907,10 @@ def warm_up_cache(urls: Sequence[str]) -> None:
     if not USE_COLORS:
         log.info(f"⏳ Warming up cache for {total:,} {pluralize(total, 'URL')}...")
 
-    # OPTIMIZATION: Combine validation (DNS) and fetching (HTTP) in one task
-    # to allow validation latency to be parallelized.
-    def _validate_and_fetch(url: str):
-        if validate_folder_url(url):
-            return _gh_get(url)
-        return None
-
     completed = 0
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = {
-            executor.submit(_validate_and_fetch, url): url for url in urls_to_process
+            executor.submit(_validate_and_fetch_url, url): url for url in urls_to_process
         }
 
         render_progress_bar(0, total, "Warming up cache", prefix="⏳")
@@ -1903,11 +1921,7 @@ def warm_up_cache(urls: Sequence[str]) -> None:
             try:
                 future.result()
             except Exception as e:
-                if USE_COLORS and sys.stderr.isatty():
-                    # Clear line to print warning cleanly
-                    sys.stderr.write("\r\033[K")
-                    sys.stderr.flush()
-
+                _clear_current_line()
                 log.warning(
                     f"Failed to pre-fetch {sanitize_for_log(futures[future])}: "
                     f"{sanitize_for_log(e)}"
@@ -1915,13 +1929,7 @@ def warm_up_cache(urls: Sequence[str]) -> None:
                 # Restore progress bar after warning
                 render_progress_bar(completed, total, "Warming up cache", prefix="⏳")
 
-    if USE_COLORS and sys.stderr.isatty():
-        sys.stderr.write(
-            f"\r\033[K{Colors.GREEN}✅ Warming up cache: Done!{Colors.ENDC}\n"
-        )
-        sys.stderr.flush()
-    else:
-        log.info("✅ Warming up cache: Done!")
+    _print_completion("Warming up cache: Done!")
 
 
 def delete_folder(
@@ -2151,9 +2159,7 @@ def _push_single_batch(
             )
         return batch_data
     except httpx.HTTPError as e:
-        if USE_COLORS and sys.stderr.isatty():
-            sys.stderr.write("\r\033[K")
-            sys.stderr.flush()
+        _clear_current_line()
         hint = ""
         if isinstance(e, httpx.HTTPStatusError):
             # Use a more specific name to avoid confusion with the rule "status" payload
@@ -2162,12 +2168,9 @@ def _push_single_batch(
         log.error(
             f"Failed to push batch {batch_idx} for folder {sanitized_folder_name}{hint}: {sanitize_for_log(e)}"
         )
-        if (
-            hasattr(e, "response")
-            and e.response is not None
-            and log.isEnabledFor(logging.DEBUG)
-        ):
-            log.debug(f"Response content: {sanitize_for_log(e.response.text)}")
+        response = getattr(e, "response", None)
+        if response is not None and log.isEnabledFor(logging.DEBUG):
+            log.debug(f"Response content: {sanitize_for_log(response.text)}")
         return None
 
 
@@ -2181,7 +2184,6 @@ def _push_rule_batches(
     """
     Splits rules into batches and pushes them to the API in parallel.
     """
-    successful_batches = 0
     batches = [
         filtered_hostnames[start : start + BATCH_SIZE]
         for start in range(0, len(filtered_hostnames), BATCH_SIZE)
@@ -2194,6 +2196,8 @@ def _push_rule_batches(
     str_group = str(folder_id)
     sanitized_folder_name = sanitize_for_log(folder_name)
     progress_label = f"Folder {sanitized_folder_name}"
+
+    successful_batches = 0
 
     # Optimization 3: Parallelize batch processing
     if total_batches == 1:
@@ -2208,14 +2212,9 @@ def _push_rule_batches(
             batches[0],
         )
         if result:
-            successful_batches += 1
+            successful_batches = 1
             ctx.existing_rules.update(result)
-
-        render_progress_bar(
-            successful_batches,
-            total_batches,
-            progress_label,
-        )
+        render_progress_bar(successful_batches, 1, progress_label)
     else:
         # Use provided executor or create a local one (fallback)
         if ctx.batch_executor:
@@ -2247,34 +2246,30 @@ def _push_rule_batches(
                     successful_batches += 1
                     ctx.existing_rules.update(result)
 
-                render_progress_bar(
-                    successful_batches,
-                    total_batches,
-                    progress_label,
-                )
+                render_progress_bar(successful_batches, total_batches, progress_label)
 
-    if successful_batches != total_batches:
+    total_rules = len(filtered_hostnames)
+    if successful_batches == total_batches:
+        _clear_current_line()
         if USE_COLORS and sys.stderr.isatty():
-            sys.stderr.write("\r\033[K")
+            sys.stderr.write(
+                f"{Colors.GREEN}✅ Folder {sanitized_folder_name}: Finished ({total_rules:,} {pluralize(total_rules, 'rule')}){Colors.ENDC}\n"
+            )
             sys.stderr.flush()
-        log.error(
-            "Folder %s – only %d/%d batches succeeded",
-            sanitized_folder_name,
-            successful_batches,
-            total_batches,
-        )
-        return False
+        else:
+            log.info(
+                f"✅ Folder {sanitized_folder_name} – finished ({total_rules:,} new {pluralize(total_rules, 'rule')} added)"
+            )
+        return True
 
-    if USE_COLORS and sys.stderr.isatty():
-        sys.stderr.write(
-            f"\r\033[K{Colors.GREEN}✅ Folder {sanitized_folder_name}: Finished ({len(filtered_hostnames):,} {pluralize(len(filtered_hostnames), 'rule')}){Colors.ENDC}\n"
-        )
-        sys.stderr.flush()
-    else:
-        log.info(
-            f"✅ Folder {sanitized_folder_name} – finished ({len(filtered_hostnames):,} new {pluralize(len(filtered_hostnames), 'rule')} added)"
-        )
-    return True
+    _clear_current_line()
+    log.error(
+        "Folder %s – only %d/%d batches succeeded",
+        sanitized_folder_name,
+        successful_batches,
+        total_batches,
+    )
+    return False
 
 
 def push_rules(
@@ -2642,7 +2637,7 @@ def _get_interactive_restart_confirmation() -> bool:
     """Helper to prompt for and validate interactive restart confirmation."""
     prompt_initial = f"\n{Colors.BOLD}🚀 Ready to launch? {Colors.ENDC}Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
     prompt_reprompt = f"{Colors.BOLD}🚀 Ready to launch? {Colors.ENDC}Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
-    cancel_msg = f"\n{Colors.WARNING}⚠️  Cancelled.{Colors.ENDC}"
+    cancel_msg = f"{Colors.WARNING}⚠️  Cancelled.{Colors.ENDC}"
     err_msg = f"{Colors.FAIL}❌ Unrecognized input. Please press Enter to continue, or 'n' to cancel.{Colors.ENDC}"
 
     prompt = prompt_initial
@@ -2654,10 +2649,10 @@ def _get_interactive_restart_confirmation() -> bool:
         try:
             user_response = input(prompt).strip().lower()
         except (KeyboardInterrupt, EOFError):
-            if sys.stderr.isatty():
+            if USE_COLORS and sys.stderr.isatty():
                 sys.stderr.write("\r\033[K")
                 sys.stderr.flush()
-            print(cancel_msg.lstrip("\n"))
+            print(cancel_msg)
             return False
 
         if user_response in ("", "y", "yes"):
@@ -3230,7 +3225,7 @@ def main() -> bool:
             sys.stderr.write("\r\033[K")
             sys.stderr.flush()
         print(
-            f"\n{Colors.WARNING}⚠️  Sync cancelled by user. Finishing current task...{Colors.ENDC}"
+            f"{Colors.WARNING}⚠️  Sync cancelled by user. Finishing current task...{Colors.ENDC}"
         )
 
         # Try to recover stats for the interrupted profile
@@ -3440,7 +3435,7 @@ if __name__ == "__main__":
         while main():
             pass
     except KeyboardInterrupt:
-        if sys.stderr.isatty():
+        if USE_COLORS and sys.stderr.isatty():
             sys.stderr.write("\r\033[K")
             sys.stderr.flush()
         print(f"{Colors.WARNING}⚠️  Cancelled by user.{Colors.ENDC}")
