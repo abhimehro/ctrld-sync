@@ -77,3 +77,8 @@
 
 **Learning:** When handling `KeyboardInterrupt` or `EOFError` during long operations, explicitly clearing the terminal line using ANSI sequences (`\r\033[K`) without checking if the environment is a TTY (`sys.stderr.isatty()`) leaks visible ANSI garbage into non-interactive execution logs (like CI or piped output).
 **Action:** Always guard terminal clearance codes and carriage returns with a `sys.stderr.isatty()` check, even if global color settings (`USE_COLORS`) are theoretically supposed to cover it, as `USE_COLORS` might be overridden or misused in edge cases.
+
+## 2025-10-25 - [Cyclomatic Complexity from Nested Formatting Checks]
+
+**Learning:** When separating formatting logic (like TTY vs colors) within complex, hot paths (like rule pushing), introducing deeply nested `if/else` conditionals rapidly increments cyclomatic complexity and triggers CodeScene `Complex Method` failures.
+**Action:** Always favor early guard clauses (e.g., `if not sys.stderr.isatty(): return`) and flatten text assignment blocks before output to reduce branching depth and keep logic clean.
