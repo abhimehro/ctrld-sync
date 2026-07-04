@@ -2254,20 +2254,18 @@ def _push_rule_batches(
     total_rules = len(filtered_hostnames)
     if successful_batches == total_batches:
         _clear_current_line()
-        if sys.stderr.isatty():
-            if USE_COLORS:
-                sys.stderr.write(
-                    f"{Colors.GREEN}✅ Folder {sanitized_folder_name}: Finished ({total_rules:,} {pluralize(total_rules, 'rule')}){Colors.ENDC}\n"
-                )
-            else:
-                sys.stderr.write(
-                    f"✅ Folder {sanitized_folder_name}: Finished ({total_rules:,} {pluralize(total_rules, 'rule')})\n"
-                )
-            sys.stderr.flush()
-        else:
+        if not sys.stderr.isatty():
             log.info(
                 f"✅ Folder {sanitized_folder_name} – finished ({total_rules:,} new {pluralize(total_rules, 'rule')} added)"
             )
+            return True
+
+        msg = f"✅ Folder {sanitized_folder_name}: Finished ({total_rules:,} {pluralize(total_rules, 'rule')})"
+        if USE_COLORS:
+            sys.stderr.write(f"{Colors.GREEN}{msg}{Colors.ENDC}\n")
+        else:
+            sys.stderr.write(f"{msg}\n")
+        sys.stderr.flush()
         return True
 
     _clear_current_line()
