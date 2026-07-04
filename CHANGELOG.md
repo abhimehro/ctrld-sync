@@ -2,26 +2,11 @@
 
 ## [Unreleased](https://github.com/abhimehro/ctrld-sync/tree/HEAD)
 
-[Full Changelog](https://github.com/abhimehro/ctrld-sync/compare/v0.1.0...HEAD)
+[Full Changelog](https://github.com/abhimehro/ctrld-sync/compare/v0.1.1...HEAD)
 
 **Closed issues:**
 
-- Daily QA & Agentic Review - 2026-07-03 [\#976](https://github.com/abhimehro/ctrld-sync/issues/976)
-- Daily QA & Agentic Review - 2026-07-02 [\#971](https://github.com/abhimehro/ctrld-sync/issues/971)
-- Daily QA & Agentic Review - 2026-07-01 [\#968](https://github.com/abhimehro/ctrld-sync/issues/968)
-- Daily QA & Agentic Review - 2026-06-30 [\#964](https://github.com/abhimehro/ctrld-sync/issues/964)
-- Daily QA & Agentic Review - 2026-06-29 [\#959](https://github.com/abhimehro/ctrld-sync/issues/959)
-- Daily QA & Agentic Review - 2026-06-28 [\#957](https://github.com/abhimehro/ctrld-sync/issues/957)
-- \[repo-automation\] Weekly Retrospective - 2026-06-28 [\#955](https://github.com/abhimehro/ctrld-sync/issues/955)
-- Daily QA & Agentic Review - 2026-06-27 [\#954](https://github.com/abhimehro/ctrld-sync/issues/954)
-- Daily QA & Agentic Review - 2026-06-26 [\#952](https://github.com/abhimehro/ctrld-sync/issues/952)
-- Daily QA & Agentic Review - 2026-06-25 [\#949](https://github.com/abhimehro/ctrld-sync/issues/949)
-- Daily QA & Agentic Review — 2026-06-24 [\#948](https://github.com/abhimehro/ctrld-sync/issues/948)
-- Daily QA & Agentic Review — 2026-06-23 [\#945](https://github.com/abhimehro/ctrld-sync/issues/945)
-- Daily QA & Agentic Review — 2026-06-22 [\#937](https://github.com/abhimehro/ctrld-sync/issues/937)
-- Daily QA & Agentic Review — 2026-06-21 [\#933](https://github.com/abhimehro/ctrld-sync/issues/933)
-- \[repo-automation\] Weekly Retrospective - 2026-06-21 [\#931](https://github.com/abhimehro/ctrld-sync/issues/931)
-- Daily QA & Agentic Review — 2026-06-20 [\#929](https://github.com/abhimehro/ctrld-sync/issues/929)
+- Daily QA & Agentic Review - 2026-07-04 [\#980](https://github.com/abhimehro/ctrld-sync/issues/980)
 
 **Merged pull requests:**
 
@@ -53,6 +38,29 @@
 - 🎨 Palette: Add graceful exit for interactive restart prompt [\#930](https://github.com/abhimehro/ctrld-sync/pull/930) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[MEDIUM\] Prevent data leakage in exception chaining [\#922](https://github.com/abhimehro/ctrld-sync/pull/922) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Fix plan details table alignment for wide characters [\#919](https://github.com/abhimehro/ctrld-sync/pull/919) ([abhimehro](https://github.com/abhimehro))
+
+## [v0.1.1](https://github.com/abhimehro/ctrld-sync/tree/v0.1.1) (2026-07-04)
+
+[Full Changelog](https://github.com/abhimehro/ctrld-sync/compare/v0.1.0...v0.1.1)
+
+**Closed issues:**
+
+- Daily QA & Agentic Review - 2026-07-03 [\#976](https://github.com/abhimehro/ctrld-sync/issues/976)
+- Daily QA & Agentic Review - 2026-07-02 [\#971](https://github.com/abhimehro/ctrld-sync/issues/971)
+- Daily QA & Agentic Review - 2026-07-01 [\#968](https://github.com/abhimehro/ctrld-sync/issues/968)
+- Daily QA & Agentic Review - 2026-06-30 [\#964](https://github.com/abhimehro/ctrld-sync/issues/964)
+- Daily QA & Agentic Review - 2026-06-29 [\#959](https://github.com/abhimehro/ctrld-sync/issues/959)
+- Daily QA & Agentic Review - 2026-06-28 [\#957](https://github.com/abhimehro/ctrld-sync/issues/957)
+- \[repo-automation\] Weekly Retrospective - 2026-06-28 [\#955](https://github.com/abhimehro/ctrld-sync/issues/955)
+- Daily QA & Agentic Review - 2026-06-27 [\#954](https://github.com/abhimehro/ctrld-sync/issues/954)
+- Daily QA & Agentic Review - 2026-06-26 [\#952](https://github.com/abhimehro/ctrld-sync/issues/952)
+- Daily QA & Agentic Review - 2026-06-25 [\#949](https://github.com/abhimehro/ctrld-sync/issues/949)
+- Daily QA & Agentic Review — 2026-06-24 [\#948](https://github.com/abhimehro/ctrld-sync/issues/948)
+- Daily QA & Agentic Review — 2026-06-23 [\#945](https://github.com/abhimehro/ctrld-sync/issues/945)
+- Daily QA & Agentic Review — 2026-06-22 [\#937](https://github.com/abhimehro/ctrld-sync/issues/937)
+- Daily QA & Agentic Review — 2026-06-21 [\#933](https://github.com/abhimehro/ctrld-sync/issues/933)
+- \[repo-automation\] Weekly Retrospective - 2026-06-21 [\#931](https://github.com/abhimehro/ctrld-sync/issues/931)
+- Daily QA & Agentic Review — 2026-06-20 [\#929](https://github.com/abhimehro/ctrld-sync/issues/929)
 
 ## [v0.1.0](https://github.com/abhimehro/ctrld-sync/tree/v0.1.0) (2026-06-20)
 
