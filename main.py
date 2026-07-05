@@ -3399,7 +3399,8 @@ def main() -> bool:
                 print(f"   {cmd_str}")
 
             # Offer interactive restart if appropriate
-            print() # Move spacing before prompt instead of inside it
+            if sys.stdin.isatty():
+                print() # Move spacing before prompt instead of inside it
             if prompt_for_interactive_restart(profile_ids):
                 return True
 
