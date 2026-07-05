@@ -10,6 +10,7 @@
 
 **Merged pull requests:**
 
+- 🎨 Palette: Add TTY guards for terminal clearance codes [\#981](https://github.com/abhimehro/ctrld-sync/pull/981) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Fix terminal residue cleanup for NO\_COLOR environments [\#979](https://github.com/abhimehro/ctrld-sync/pull/979) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[MEDIUM\] Fix Bandit security warnings \(B108, B104\) [\#978](https://github.com/abhimehro/ctrld-sync/pull/978) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Fix ANSI escape sequence residue in non-interactive CI [\#975](https://github.com/abhimehro/ctrld-sync/pull/975) ([abhimehro](https://github.com/abhimehro))
