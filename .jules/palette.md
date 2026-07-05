@@ -91,4 +91,5 @@
 ## 2025-10-25 - [Terminal Residue Clean-Up on Cancellation]
 
 **Learning:** In interactive CLI flows where input is cancelled (e.g. `input()` raising `KeyboardInterrupt`), printing a cancellation message directly leaves awkward extraneous blank lines if the cancellation message contains a leading newline or if the `^C` symbol isn't correctly wiped first. Additionally, the cancellation message shouldn't introduce extra vertical space that disrupts the terminal flow.
-**Action:** When handling `KeyboardInterrupt` or `EOFError`, clear the line using `[K` (guarded by `sys.stderr.isatty()`), and print a concise cancellation message without leading newlines to maintain a clean terminal state.
+**Action:** When handling `KeyboardInterrupt` or `EOFError`, clear the line using `\r\033[K` (guarded by `sys.stderr.isatty()`), and print a concise cancellation message without leading newlines to maintain a clean terminal state.
+[K` (guarded by `sys.stderr.isatty()`), and print a concise cancellation message without leading newlines to maintain a clean terminal state.
