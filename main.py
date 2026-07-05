@@ -739,8 +739,8 @@ def _clean_env_kv(value: str | None, key: str) -> str | None:
 
 
 def _clear_current_line() -> None:
-    """Helper to clear the current line on stderr if using colors and in a TTY."""
-    if USE_COLORS and sys.stderr.isatty():
+    """Helper to clear the current line on stderr in a TTY."""
+    if sys.stderr.isatty():
         sys.stderr.write("\r\033[K")
         sys.stderr.flush()
 
@@ -2649,9 +2649,7 @@ def _get_interactive_restart_confirmation() -> bool:
         try:
             user_response = input(prompt).strip().lower()
         except (KeyboardInterrupt, EOFError):
-            if USE_COLORS and sys.stderr.isatty():
-                sys.stderr.write("\r\033[K")
-                sys.stderr.flush()
+            _clear_current_line()
             print(cancel_msg)
             return False
 
@@ -3221,9 +3219,7 @@ def main() -> bool:
             )
     except KeyboardInterrupt:
         duration = time.time() - start_time
-        if USE_COLORS and sys.stderr.isatty():
-            sys.stderr.write("\r\033[K")
-            sys.stderr.flush()
+        _clear_current_line()
         print(
             f"{Colors.WARNING}⚠️  Sync cancelled by user. Finishing current task...{Colors.ENDC}"
         )
@@ -3435,8 +3431,6 @@ if __name__ == "__main__":
         while main():
             pass
     except KeyboardInterrupt:
-        if USE_COLORS and sys.stderr.isatty():
-            sys.stderr.write("\r\033[K")
-            sys.stderr.flush()
+        _clear_current_line()
         print(f"{Colors.WARNING}⚠️  Cancelled by user.{Colors.ENDC}")
         sys.exit(130)
