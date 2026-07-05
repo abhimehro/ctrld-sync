@@ -409,7 +409,8 @@ class TestPromptForInteractiveRestart:
 
         assert main.prompt_for_interactive_restart(["123"]) is False
         captured = capsys.readouterr()
-        assert "Cancelled" in captured.err or "Cancelled" in captured.out
+        assert "Cancelled" in captured.err
+        assert "Cancelled" not in captured.out
 
     def test_handles_text_cancellation(self, monkeypatch, capsys):
         """Should handle typing 'n', 'no', 'quit' gracefully."""
