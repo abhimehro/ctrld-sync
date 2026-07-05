@@ -58,7 +58,9 @@ def test_refactoring_agent_retries_failed_push_once():
 
 def test_prepare_command_extracts_first_cs_agent_line_from_multiline_comment(tmp_path):
     steps = load_workflow()["jobs"]["refactor"]["steps"]
-    prepare_command_step = next(step for step in steps if step.get("id") == "prepare-command")
+    prepare_command_step = next(
+        step for step in steps if step.get("id") == "prepare-command"
+    )
     github_output = tmp_path / "github-output.txt"
     home_dir = tmp_path / "home"
     home_dir.mkdir()
@@ -86,18 +88,20 @@ def test_prepare_command_extracts_first_cs_agent_line_from_multiline_comment(tmp
     )
 
     assert result.returncode == 0, result.stderr  # nosec B101
-    assert "Final command: /cs-agent skill:fix-code-health-degradations" in result.stdout  # nosec B101
+    assert (
+        "Final command: /cs-agent skill:fix-code-health-degradations" in result.stdout
+    )  # nosec B101
     assert "second-command-should-be-ignored" not in result.stdout  # nosec B101
     assert github_output.read_text(encoding="utf-8") == (  # nosec B101
-        "command<<EOF\n"
-        "/cs-agent skill:fix-code-health-degradations\n"
-        "EOF\n"
+        "command<<EOF\n/cs-agent skill:fix-code-health-degradations\nEOF\n"
     )
 
 
 def test_prepare_command_fails_when_no_cs_agent_line_present(tmp_path):
     steps = load_workflow()["jobs"]["refactor"]["steps"]
-    prepare_command_step = next(step for step in steps if step.get("id") == "prepare-command")
+    prepare_command_step = next(
+        step for step in steps if step.get("id") == "prepare-command"
+    )
     home_dir = tmp_path / "home"
     home_dir.mkdir()
     github_output = tmp_path / "github-output.txt"

@@ -1914,7 +1914,8 @@ def warm_up_cache(urls: Sequence[str]) -> None:
     completed = 0
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = {
-            executor.submit(_validate_and_fetch_url, url): url for url in urls_to_process
+            executor.submit(_validate_and_fetch_url, url): url
+            for url in urls_to_process
         }
 
         render_progress_bar(0, total, "Warming up cache", prefix="⏳")
