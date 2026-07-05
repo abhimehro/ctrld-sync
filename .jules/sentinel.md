@@ -35,3 +35,8 @@
 **Vulnerability:** The bandit tool flagged `random.choice(success_msgs)` as low severity since it uses standard pseudo-random generators instead of cryptographic ones.
 **Learning:** Using `random` instead of `secrets` triggers security linting errors (B311) even in non-cryptographic contexts. Standardizing on `secrets` across the codebase ensures we satisfy security tools and never accidentally use an insecure PRNG in a sensitive context.
 **Prevention:** Always use the `secrets` module instead of `random` when performing randomized selections or number generation.
+
+## 2026-07-05 - TOCTOU Vulnerability in Cache Directory Creation
+**Vulnerability:** The cache directory was created using `mkdir()` without specifying the mode, and then `chmod(0o700)` was applied afterward. This creates a Time-Of-Check to Time-Of-Use (TOCTOU) race condition where the directory exists with default (potentially broader) permissions for a brief window before being secured.
+**Learning:** Securing file system objects requires applying the restrictive permissions at the exact moment of creation, not as a subsequent operation.
+**Prevention:** Always pass the required restrictive mode (e.g., `mode=0o700`) directly to the creation function like `mkdir()` or `open()` to ensure atomic application of security boundaries.
