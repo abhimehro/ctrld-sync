@@ -82,3 +82,8 @@
 
 **Learning:** When separating formatting logic (like TTY vs colors) within complex, hot paths (like rule pushing), introducing deeply nested `if/else` conditionals rapidly increments cyclomatic complexity and triggers CodeScene `Complex Method` failures.
 **Action:** Always favor early guard clauses (e.g., `if not sys.stderr.isatty(): return`) and flatten text assignment blocks before output to reduce branching depth and keep logic clean.
+
+## 2025-10-25 - [Terminal Residue When Colors Disabled]
+
+**Learning:** When handling `KeyboardInterrupt` or `EOFError` during long operations, tying the terminal line clearance using ANSI sequences (`\r\033[K`) strictly to a color configuration flag (`USE_COLORS`) instead of just TTY detection (`sys.stderr.isatty()`) means that disabling colors leaves visible ghost characters (`^C`) in the interactive shell.
+**Action:** Always base terminal clearance codes on TTY detection (`sys.stderr.isatty()`), regardless of whether global color output is enabled or disabled.
