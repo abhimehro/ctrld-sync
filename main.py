@@ -769,7 +769,7 @@ def get_validated_input(
             value = input(prompt).strip()
         except (KeyboardInterrupt, EOFError):
             _clear_current_line()
-            print(f"{Colors.WARNING}⚠️  Input cancelled.{Colors.ENDC}")
+            print(f"{Colors.WARNING}⚠️  Input cancelled.{Colors.ENDC}", file=sys.stderr)
             sys.exit(130)
 
         if not value:
@@ -816,7 +816,7 @@ def get_password(
             value = getpass.getpass(prompt).strip()
         except (KeyboardInterrupt, EOFError):
             _clear_current_line()
-            print(f"{Colors.WARNING}⚠️  Input cancelled.{Colors.ENDC}")
+            print(f"{Colors.WARNING}⚠️  Input cancelled.{Colors.ENDC}", file=sys.stderr)
             sys.exit(130)
 
         if not value:
@@ -2632,7 +2632,7 @@ def sync_profile(
 # --------------------------------------------------------------------------- #
 def _get_interactive_restart_confirmation() -> bool:
     """Helper to prompt for and validate interactive restart confirmation."""
-    prompt_initial = f"\n{Colors.BOLD}🚀 Ready to launch? {Colors.ENDC}Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
+    prompt_initial = f"{Colors.BOLD}🚀 Ready to launch? {Colors.ENDC}Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
     prompt_reprompt = f"{Colors.BOLD}🚀 Ready to launch? {Colors.ENDC}Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
     cancel_msg = f"{Colors.WARNING}⚠️  Cancelled.{Colors.ENDC}"
     err_msg = f"{Colors.FAIL}❌ Unrecognized input. Please press Enter to continue, or 'n' to cancel.{Colors.ENDC}"
@@ -2647,14 +2647,14 @@ def _get_interactive_restart_confirmation() -> bool:
             user_response = input(prompt).strip().lower()
         except (KeyboardInterrupt, EOFError):
             _clear_current_line()
-            print(cancel_msg)
+            print(cancel_msg, file=sys.stderr)
             return False
 
         if user_response in ("", "y", "yes"):
             return True
 
         if user_response in ("n", "no", "q", "quit", "exit", "cancel"):
-            print(cancel_msg)
+            print(cancel_msg, file=sys.stderr)
             return False
 
         print(err_msg)
@@ -3218,7 +3218,8 @@ def main() -> bool:
         duration = time.time() - start_time
         _clear_current_line()
         print(
-            f"{Colors.WARNING}⚠️  Sync cancelled by user. Finishing current task...{Colors.ENDC}"
+            f"{Colors.WARNING}⚠️  Sync cancelled by user. Finishing current task...{Colors.ENDC}",
+            file=sys.stderr,
         )
 
         # Try to recover stats for the interrupted profile
@@ -3398,6 +3399,7 @@ def main() -> bool:
                 print(f"   {cmd_str}")
 
             # Offer interactive restart if appropriate
+            print() # Move spacing before prompt instead of inside it
             if prompt_for_interactive_restart(profile_ids):
                 return True
 
@@ -3429,5 +3431,5 @@ if __name__ == "__main__":
             pass
     except KeyboardInterrupt:
         _clear_current_line()
-        print(f"{Colors.WARNING}⚠️  Cancelled by user.{Colors.ENDC}")
+        print(f"{Colors.WARNING}⚠️  Cancelled by user.{Colors.ENDC}", file=sys.stderr)
         sys.exit(130)

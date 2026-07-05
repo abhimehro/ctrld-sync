@@ -87,3 +87,7 @@
 
 **Learning:** When handling `KeyboardInterrupt` or `EOFError` during long operations, tying the terminal line clearance using ANSI sequences (`\r\033[K`) strictly to a color configuration flag (`USE_COLORS`) instead of just TTY detection (`sys.stderr.isatty()`) means that disabling colors leaves visible ghost characters (`^C`) in the interactive shell.
 **Action:** Always base terminal clearance codes on TTY detection (`sys.stderr.isatty()`), regardless of whether global color output is enabled or disabled.
+## 2025-10-25 - [Terminal Residue Clean-Up on Cancellation]
+
+**Learning:** In interactive CLI flows where input is cancelled (e.g. `input()` raising `KeyboardInterrupt`), printing a cancellation message directly leaves awkward extraneous blank lines if the cancellation message contains a leading newline or if the `^C` symbol isn't correctly wiped first. Additionally, the cancellation message shouldn't introduce extra vertical space that disrupts the terminal flow.
+**Action:** When handling `KeyboardInterrupt` or `EOFError`, clear the line using `[K` (guarded by `sys.stderr.isatty()`), and print a concise cancellation message without leading newlines to maintain a clean terminal state.
