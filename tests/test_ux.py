@@ -455,7 +455,8 @@ class TestPromptForInteractiveRestart:
         if should_execute:
             assert result is True
         else:
-            assert "Cancelled" in captured.err or "Cancelled" in captured.out
+            assert "Cancelled" in captured.err
+            assert "Cancelled" not in captured.out
             assert result is False
 
 
