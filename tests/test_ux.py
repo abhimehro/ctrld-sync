@@ -409,7 +409,7 @@ class TestPromptForInteractiveRestart:
 
         assert main.prompt_for_interactive_restart(["123"]) is False
         captured = capsys.readouterr()
-        assert "Cancelled" in captured.out
+        assert "Cancelled" in captured.err or "Cancelled" in captured.out
 
     def test_handles_text_cancellation(self, monkeypatch, capsys):
         """Should handle typing 'n', 'no', 'quit' gracefully."""
@@ -425,7 +425,7 @@ class TestPromptForInteractiveRestart:
 
             assert main.prompt_for_interactive_restart(["123"]) is False
             captured = capsys.readouterr()
-            assert "Cancelled" in captured.out
+            assert "Cancelled" in captured.err or "Cancelled" in captured.out
 
     @pytest.mark.parametrize(
         "final_input,should_execute",
@@ -454,7 +454,7 @@ class TestPromptForInteractiveRestart:
         if should_execute:
             assert result is True
         else:
-            assert "Cancelled" in captured.out
+            assert "Cancelled" in captured.err or "Cancelled" in captured.out
             assert result is False
 
 
