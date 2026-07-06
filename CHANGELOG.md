@@ -14,6 +14,10 @@
 
 - Add blocklist domain allowlisting with `allowed_blocklist_domains` and GitHub-host defaults for blocklist fetches.
 
+**Changed:**
+
+- Keep the direct `push_rules()` fallback conservative when no executor is supplied; normal sync runs still use the shared executor path.
+
 **Merged pull requests:**
 
 - fix\(ux\): route cancellation messages to stderr and trim prompt spacing \(salvages \#983\) [\#984](https://github.com/abhimehro/ctrld-sync/pull/984) ([abhimehro](https://github.com/abhimehro))
