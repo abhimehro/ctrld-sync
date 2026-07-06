@@ -1071,15 +1071,7 @@ def _load_allowed_blocklist_domains(config_path: str | None = None) -> None:
     set_allowed_blocklist_domains(loaded.get("allowed_blocklist_domains"))
 
 
-        if not isinstance(loaded, dict):
-            print(
-                f"{Colors.FAIL}✗ Configuration file {p} is not a YAML mapping.{Colors.ENDC}",
-                file=sys.stderr,
-            )
-            sys.exit(1)
-
-        try:
-            _validate_allowed_blocklist_domains(loaded.get("allowed_blocklist_domains"))
+def _validate_allowed_blocklist_domains(allowed_domains: list[str] | None) -> None:
     if allowed_domains is None:
         return
     if not isinstance(allowed_domains, list):
