@@ -2291,7 +2291,9 @@ def _push_rule_batches(
                 concurrent.futures.Executor
             ] = contextlib.nullcontext(ctx.batch_executor)
         else:
-            executor_ctx = concurrent.futures.ThreadPoolExecutor(max_workers=3)
+            executor_ctx = concurrent.futures.ThreadPoolExecutor(
+                max_workers=min(10, total_batches)
+            )
 
         with executor_ctx as executor:
             futures = {
