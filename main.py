@@ -2632,11 +2632,12 @@ def sync_profile(
 # --------------------------------------------------------------------------- #
 def _get_interactive_restart_confirmation() -> bool:
     """Helper to prompt for and validate interactive restart confirmation."""
-    prompt_initial = f"\n{Colors.BOLD}🚀 Ready to launch? {Colors.ENDC}Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
+    prompt_initial = f"{Colors.BOLD}🚀 Ready to launch? {Colors.ENDC}Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
     prompt_reprompt = f"{Colors.BOLD}🚀 Ready to launch? {Colors.ENDC}Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
     cancel_msg = f"{Colors.WARNING}⚠️  Cancelled.{Colors.ENDC}"
     err_msg = f"{Colors.FAIL}❌ Unrecognized input. Please press Enter to continue, or 'n' to cancel.{Colors.ENDC}"
 
+    print()  # Add vertical space structurally to avoid terminal clearing issues on KeyboardInterrupt
     prompt = prompt_initial
 
     while True:
