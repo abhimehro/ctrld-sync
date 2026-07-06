@@ -518,6 +518,18 @@ _BIDI_CONTROL_CHARS = {
 _ALL_FORBIDDEN_FOLDER_CHARS = frozenset(_DANGEROUS_FOLDER_CHARS | _BIDI_CONTROL_CHARS)
 _UNSAFE_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
 
+# Security: Default allowed domains for blocklist URLs (SSRF protection)
+# Only HTTPS URLs with hostnames matching these domains will be fetched.
+DEFAULT_ALLOWED_BLOCKLIST_DOMAINS: frozenset[str] = frozenset(
+    {
+        "raw.githubusercontent.com",
+        "github.com",
+    }
+)
+
+# Runtime-configurable allowed domains (initialized with defaults)
+_ALLOWED_BLOCKLIST_DOMAINS: frozenset[str] = DEFAULT_ALLOWED_BLOCKLIST_DOMAINS
+
 # Pre-compiled patterns for log sanitization
 _BASIC_AUTH_PATTERN = re.compile(r"://[^/@]+@")
 _SENSITIVE_PARAM_PATTERN = re.compile(
@@ -890,6 +902,7 @@ def get_default_config() -> dict:
     """Return the built-in default configuration (mirrors DEFAULT_FOLDER_URLS)."""
     return {
         "folders": [{"url": u} for u in DEFAULT_FOLDER_URLS],
+        "allowed_blocklist_domains": list(DEFAULT_ALLOWED_BLOCKLIST_DOMAINS),
         "settings": {
             "batch_size": BATCH_SIZE,
             "delete_workers": 3,
@@ -934,6 +947,16 @@ def _validate_config(config: dict) -> None:
             raise ValueError(
                 f"folders[{i}]: 'action' must be 'block' or 'allow' (got {action!r})."
             )
+
+    allowed_domains = config.get("allowed_blocklist_domains")
+    if allowed_domains is not None:
+        if not isinstance(allowed_domains, list):
+            raise ValueError("'allowed_blocklist_domains' must be a list.")
+        for i, domain in enumerate(allowed_domains):
+            if not isinstance(domain, str) or not domain.strip():
+                raise ValueError(
+                    f"allowed_blocklist_domains[{i}]: must be a non-empty string (got {domain!r})."
+                )
 
     settings = config.get("settings", {})
     if not isinstance(settings, dict):
@@ -1004,6 +1027,7 @@ def load_config(config_path: str | None = None) -> dict:
             sys.exit(1)
 
         log.info("Loaded configuration from %s", p)
+        set_allowed_blocklist_domains(loaded.get("allowed_blocklist_domains"))
         return cast(dict, loaded)
 
     if config_path:
@@ -1015,6 +1039,7 @@ def load_config(config_path: str | None = None) -> dict:
         sys.exit(1)
 
     # No config file found; use built-in defaults silently
+    set_allowed_blocklist_domains(None)
     return get_default_config()
 
 
@@ -1141,8 +1166,19 @@ def validate_hostname(hostname: str) -> bool:
         return _resolve_and_validate_domain(hostname)
 
 
+def _is_allowed_blocklist_domain(
+    hostname: str, allowed_domains: frozenset[str]
+) -> bool:
+    return any(
+        hostname == domain or hostname.endswith(f".{domain}")
+        for domain in allowed_domains
+    )
+
+
 @lru_cache(maxsize=128)
-def validate_folder_url(url: str) -> bool:
+def validate_folder_url(
+    url: str, allowed_domains: frozenset[str] | None = None
+) -> bool:
     """
     Validates a folder URL.
     Cached to avoid repeated URL parsing for the same URL.
@@ -1165,6 +1201,21 @@ def validate_folder_url(url: str) -> bool:
         if not hostname:
             return False
 
+        domains_to_check = (
+            allowed_domains
+            if allowed_domains is not None
+            else _ALLOWED_BLOCKLIST_DOMAINS
+        )
+        hostname = hostname.lower()
+        if domains_to_check and not _is_allowed_blocklist_domain(
+            hostname, domains_to_check
+        ):
+            log.warning(
+                f"Skipping URL with non-allowlisted domain {sanitize_for_log(hostname)}: "
+                f"{sanitize_for_log(url)}"
+            )
+            return False
+
         return validate_hostname(hostname)
 
     except Exception as e:
@@ -1172,6 +1223,16 @@ def validate_folder_url(url: str) -> bool:
             f"Failed to validate URL {sanitize_for_log(url)}: {sanitize_for_log(e)}"
         )
         return False
+
+
+def set_allowed_blocklist_domains(domains: list[str] | None) -> None:
+    """Set the runtime allowed blocklist domains for SSRF protection."""
+    global _ALLOWED_BLOCKLIST_DOMAINS
+    if domains and len(domains) > 0:
+        _ALLOWED_BLOCKLIST_DOMAINS = frozenset(domain.lower() for domain in domains)
+    else:
+        _ALLOWED_BLOCKLIST_DOMAINS = DEFAULT_ALLOWED_BLOCKLIST_DOMAINS
+    validate_folder_url.cache_clear()
 
 
 def extract_profile_id(text: str) -> str:
@@ -3060,6 +3121,7 @@ def main() -> bool:
 
     # --folder-url flags take highest precedence; otherwise use config file or defaults
     if args.folder_url:
+        set_allowed_blocklist_domains(None)
         folder_urls = args.folder_url
     else:
         cfg = load_config(args.config)
