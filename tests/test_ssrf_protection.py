@@ -52,12 +52,18 @@ def test_folder_url_uses_config_allowlist(tmp_path, monkeypatch):
     main.set_allowed_blocklist_domains(None)
 
     urls, cfg = main._resolve_folder_urls(
-        argparse.Namespace(folder_url=["https://custom.example.com/file.json"], config=None)
+        argparse.Namespace(
+            folder_url=["https://custom.example.com/file.json"], config=None
+        )
     )
 
     assert urls == ["https://custom.example.com/file.json"]
     assert cfg is None
-    assert main.validate_folder_url("https://custom.example.com/file.json") is True
+    with patch("main.socket.getaddrinfo") as mock_getaddrinfo:
+        mock_getaddrinfo.return_value = [
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 443))
+        ]
+        assert main.validate_folder_url("https://custom.example.com/file.json") is True
 
 
 def test_folder_url_explicit_missing_config_path_exits(tmp_path):

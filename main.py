@@ -530,9 +530,6 @@ DEFAULT_ALLOWED_BLOCKLIST_DOMAINS: frozenset[str] = frozenset(
 # Runtime-configurable allowed domains (initialized with defaults)
 _ALLOWED_BLOCKLIST_DOMAINS: frozenset[str] = DEFAULT_ALLOWED_BLOCKLIST_DOMAINS
 
-_INLINE_BATCH_EXECUTOR: concurrent.futures.ThreadPoolExecutor | None = None
-_INLINE_BATCH_EXECUTOR_LOCK = threading.Lock()
-
 # Pre-compiled patterns for log sanitization
 _BASIC_AUTH_PATTERN = re.compile(r"://[^/@]+@")
 _SENSITIVE_PARAM_PATTERN = re.compile(
@@ -1055,12 +1052,18 @@ def _load_allowed_blocklist_domains(config_path: str | None = None) -> None:
         set_allowed_blocklist_domains(None)
         return
 
-    _, loaded = loaded_config
+    p, loaded = loaded_config
+    if not isinstance(loaded, dict):
+        print(
+            f"{Colors.FAIL}✗ Configuration file {p} is not a YAML mapping.{Colors.ENDC}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
     try:
         _validate_allowed_blocklist_domains(loaded.get("allowed_blocklist_domains"))
     except ValueError as exc:
         print(
-            f"{Colors.FAIL}✗ Configuration error in {config_path or 'config'}: {exc}{Colors.ENDC}",
+            f"{Colors.FAIL}✗ Configuration error in {p}: {exc}{Colors.ENDC}",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -1271,29 +1274,6 @@ def set_allowed_blocklist_domains(domains: list[str] | None) -> None:
         _ALLOWED_BLOCKLIST_DOMAINS = DEFAULT_ALLOWED_BLOCKLIST_DOMAINS
     # validate_folder_url() is cached, so any allowlist change must clear it.
     validate_folder_url.cache_clear()
-
-
-def _get_inline_batch_executor() -> concurrent.futures.ThreadPoolExecutor:
-    global _INLINE_BATCH_EXECUTOR
-    if _INLINE_BATCH_EXECUTOR is None:
-        with _INLINE_BATCH_EXECUTOR_LOCK:
-            if _INLINE_BATCH_EXECUTOR is None:
-                executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-
-                def _inline_submit(
-                    fn: Callable[..., Any], /, *args: Any, **kwargs: Any
-                ) -> concurrent.futures.Future[Any]:
-                    future: concurrent.futures.Future[Any] = concurrent.futures.Future()
-                    if future.set_running_or_notify_cancel():
-                        try:
-                            future.set_result(fn(*args, **kwargs))
-                        except BaseException as exc:  # pragma: no cover - future API contract
-                            future.set_exception(exc)
-                    return future
-
-                executor.submit = _inline_submit  # type: ignore[assignment]
-                _INLINE_BATCH_EXECUTOR = executor
-    return _INLINE_BATCH_EXECUTOR
 
 
 def extract_profile_id(text: str) -> str:
@@ -2347,7 +2327,7 @@ def _push_rule_batches(
                 concurrent.futures.Executor
             ] = contextlib.nullcontext(ctx.batch_executor)
         else:
-            executor_ctx = contextlib.nullcontext(_get_inline_batch_executor())
+            executor_ctx = concurrent.futures.ThreadPoolExecutor(max_workers=3)
 
         with executor_ctx as executor:
             futures = {
