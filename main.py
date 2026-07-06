@@ -948,15 +948,7 @@ def _validate_config(config: dict) -> None:
                 f"folders[{i}]: 'action' must be 'block' or 'allow' (got {action!r})."
             )
 
-    allowed_domains = config.get("allowed_blocklist_domains")
-    if allowed_domains is not None:
-        if not isinstance(allowed_domains, list):
-            raise ValueError("'allowed_blocklist_domains' must be a list.")
-        for i, domain in enumerate(allowed_domains):
-            if not isinstance(domain, str) or not domain.strip():
-                raise ValueError(
-                    f"allowed_blocklist_domains[{i}]: must be a non-empty string (got {domain!r})."
-                )
+    _validate_allowed_blocklist_domains(config.get("allowed_blocklist_domains"))
 
     settings = config.get("settings", {})
     if not isinstance(settings, dict):
@@ -1041,6 +1033,18 @@ def load_config(config_path: str | None = None) -> dict:
     # No config file found; use built-in defaults silently
     set_allowed_blocklist_domains(None)
     return get_default_config()
+
+
+def _validate_allowed_blocklist_domains(allowed_domains: object) -> None:
+    if allowed_domains is None:
+        return
+    if not isinstance(allowed_domains, list):
+        raise ValueError("'allowed_blocklist_domains' must be a list.")
+    for i, domain in enumerate(allowed_domains):
+        if not isinstance(domain, str) or not domain.strip():
+            raise ValueError(
+                f"allowed_blocklist_domains[{i}]: must be a non-empty string (got {domain!r})."
+            )
 
 
 # --------------------------------------------------------------------------- #
@@ -3070,6 +3074,15 @@ def display_statistics() -> None:
     display_rate_limit_status()
 
 
+def _resolve_folder_urls(args: argparse.Namespace) -> tuple[list[str], dict | None]:
+    if args.folder_url:
+        set_allowed_blocklist_domains(None)
+        return args.folder_url, None
+
+    cfg = load_config(args.config)
+    return [entry["url"] for entry in cfg["folders"]], cfg
+
+
 def main() -> bool:
     """
     Main entry point for Control D Sync.
@@ -3120,12 +3133,9 @@ def main() -> bool:
     profile_ids = [extract_profile_id(p) for p in profiles_arg.split(",") if p.strip()]
 
     # --folder-url flags take highest precedence; otherwise use config file or defaults
-    if args.folder_url:
-        set_allowed_blocklist_domains(None)
-        folder_urls = args.folder_url
-    else:
-        cfg = load_config(args.config)
+    folder_urls, cfg = _resolve_folder_urls(args)
 
+    if cfg is not None:
         # Apply optional runtime tuning from config["settings"], if present.
         # We deliberately:
         #   * Keep CLI flags and environment variables as the highest-precedence sources.
@@ -3161,8 +3171,6 @@ def main() -> bool:
                 and "MAX_RETRIES" in globals()
             ):
                 globals()["MAX_RETRIES"] = max_retries
-        folder_urls = [entry["url"] for entry in cfg.get("folders", [])]
-
     # Interactive prompts for missing config
     if not args.dry_run and sys.stdin.isatty():
         if not profile_ids:
