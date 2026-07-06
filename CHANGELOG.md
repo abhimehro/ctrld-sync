@@ -16,7 +16,7 @@
 
 **Changed:**
 
-- Keep the direct `push_rules()` fallback conservative when no executor is supplied; normal sync runs still use the shared executor path.
+- Keep the direct `push_rules()` fallback small when no executor is supplied; normal sync runs still use the shared executor path.
 
 **Merged pull requests:**
 
