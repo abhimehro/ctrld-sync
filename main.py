@@ -530,6 +530,9 @@ DEFAULT_ALLOWED_BLOCKLIST_DOMAINS: frozenset[str] = frozenset(
 # Runtime-configurable allowed domains (initialized with defaults)
 _ALLOWED_BLOCKLIST_DOMAINS: frozenset[str] = DEFAULT_ALLOWED_BLOCKLIST_DOMAINS
 
+_INLINE_BATCH_EXECUTOR: concurrent.futures.ThreadPoolExecutor | None = None
+_INLINE_BATCH_EXECUTOR_LOCK = threading.Lock()
+
 # Pre-compiled patterns for log sanitization
 _BASIC_AUTH_PATTERN = re.compile(r"://[^/@]+@")
 _SENSITIVE_PARAM_PATTERN = re.compile(
@@ -961,20 +964,9 @@ def _validate_config(config: dict) -> None:
             )
 
 
-def load_config(config_path: str | None = None) -> dict:
-    """
-    Load and validate configuration from a YAML file.
-
-    Resolution order (first found wins):
-    1. Explicit *config_path* argument (e.g. from --config CLI flag)
-    2. config.yaml / config.yml in the current working directory
-    3. ~/.ctrld-sync/config.yaml / ~/.ctrld-sync/config.yml
-    4. Built-in defaults (get_default_config())
-
-    Raises SystemExit on invalid YAML or schema violations so the operator
-    sees a clear error message rather than a cryptic traceback.
-    """
-
+def _read_config_yaml(
+    config_path: str | None = None,
+) -> tuple[Path, dict] | None:
     paths_to_try: list[str] = (
         [config_path] if config_path else list(_DEFAULT_CONFIG_PATHS)
     )
@@ -1009,77 +1001,71 @@ def load_config(config_path: str | None = None) -> dict:
             )
             sys.exit(1)
 
-        try:
-            _validate_config(loaded)
-        except ValueError as exc:
-            print(
-                f"{Colors.FAIL}✗ Configuration error in {p}: {exc}{Colors.ENDC}",
-                file=sys.stderr,
-            )
-            sys.exit(1)
-
-        log.info("Loaded configuration from %s", p)
-        set_allowed_blocklist_domains(loaded.get("allowed_blocklist_domains"))
-        return cast(dict, loaded)
+        return p, cast(dict, loaded)
 
     if config_path:
-        # Explicit path was given but not found — this is always an error
         print(
             f"{Colors.FAIL}✗ Config file not found: {config_path}{Colors.ENDC}",
             file=sys.stderr,
         )
         sys.exit(1)
 
-    # No config file found; use built-in defaults silently
-    set_allowed_blocklist_domains(None)
-    return get_default_config()
+    return None
+
+
+def load_config(config_path: str | None = None) -> dict:
+    """
+    Load and validate configuration from a YAML file.
+
+    Resolution order (first found wins):
+    1. Explicit *config_path* argument (e.g. from --config CLI flag)
+    2. config.yaml / config.yml in the current working directory
+    3. ~/.ctrld-sync/config.yaml / ~/.ctrld-sync/config.yml
+    4. Built-in defaults (get_default_config())
+
+    Raises SystemExit on invalid YAML or schema violations so the operator
+    sees a clear error message rather than a cryptic traceback.
+    """
+
+    loaded_config = _read_config_yaml(config_path)
+    if loaded_config is None:
+        # No config file found; use built-in defaults silently
+        set_allowed_blocklist_domains(None)
+        return get_default_config()
+
+    p, loaded = loaded_config
+
+    try:
+        _validate_config(loaded)
+    except ValueError as exc:
+        print(
+            f"{Colors.FAIL}✗ Configuration error in {p}: {exc}{Colors.ENDC}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    log.info("Loaded configuration from %s", p)
+    set_allowed_blocklist_domains(loaded.get("allowed_blocklist_domains"))
+    return loaded
 
 
 def _load_allowed_blocklist_domains(config_path: str | None = None) -> None:
-    paths_to_try: list[str] = (
-        [config_path] if config_path else list(_DEFAULT_CONFIG_PATHS)
-    )
-
-    for raw_path in paths_to_try:
-        p = Path(raw_path).expanduser()
-        if not p.exists():
-            continue
-        try:
-            with open(p, encoding="utf-8") as fh:
-                loaded = yaml.safe_load(fh)
-        except OSError as exc:
-            print(
-                f"{Colors.FAIL}✗ Failed to read configuration file {p}: {exc}{Colors.ENDC}",
-                file=sys.stderr,
-            )
-            sys.exit(1)
-        except yaml.YAMLError as exc:
-            print(
-                f"{Colors.FAIL}✗ Invalid YAML in {p}: {exc}{Colors.ENDC}",
-                file=sys.stderr,
-            )
-            sys.exit(1)
-
-        if loaded is None:
-            print(
-                f"{Colors.FAIL}✗ Configuration file {p} is empty.{Colors.ENDC}",
-                file=sys.stderr,
-            )
-            sys.exit(1)
-
-        try:
-            _validate_allowed_blocklist_domains(loaded.get("allowed_blocklist_domains"))
-        except ValueError as exc:
-            print(
-                f"{Colors.FAIL}✗ Configuration error in {p}: {exc}{Colors.ENDC}",
-                file=sys.stderr,
-            )
-            sys.exit(1)
-
-        set_allowed_blocklist_domains(loaded.get("allowed_blocklist_domains"))
+    loaded_config = _read_config_yaml(config_path)
+    if loaded_config is None:
+        set_allowed_blocklist_domains(None)
         return
 
-    set_allowed_blocklist_domains(None)
+    _, loaded = loaded_config
+    try:
+        _validate_allowed_blocklist_domains(loaded.get("allowed_blocklist_domains"))
+    except ValueError as exc:
+        print(
+            f"{Colors.FAIL}✗ Configuration error in {config_path or 'config'}: {exc}{Colors.ENDC}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    set_allowed_blocklist_domains(loaded.get("allowed_blocklist_domains"))
 
 
 def _validate_allowed_blocklist_domains(allowed_domains: object) -> None:
@@ -1283,7 +1269,31 @@ def set_allowed_blocklist_domains(domains: list[str] | None) -> None:
         _ALLOWED_BLOCKLIST_DOMAINS = frozenset(domain.lower() for domain in domains)
     else:
         _ALLOWED_BLOCKLIST_DOMAINS = DEFAULT_ALLOWED_BLOCKLIST_DOMAINS
+    # validate_folder_url() is cached, so any allowlist change must clear it.
     validate_folder_url.cache_clear()
+
+
+def _get_inline_batch_executor() -> concurrent.futures.ThreadPoolExecutor:
+    global _INLINE_BATCH_EXECUTOR
+    if _INLINE_BATCH_EXECUTOR is None:
+        with _INLINE_BATCH_EXECUTOR_LOCK:
+            if _INLINE_BATCH_EXECUTOR is None:
+                executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+
+                def _inline_submit(
+                    fn: Callable[..., Any], /, *args: Any, **kwargs: Any
+                ) -> concurrent.futures.Future[Any]:
+                    future: concurrent.futures.Future[Any] = concurrent.futures.Future()
+                    if future.set_running_or_notify_cancel():
+                        try:
+                            future.set_result(fn(*args, **kwargs))
+                        except BaseException as exc:  # pragma: no cover - future API contract
+                            future.set_exception(exc)
+                    return future
+
+                executor.submit = _inline_submit  # type: ignore[assignment]
+                _INLINE_BATCH_EXECUTOR = executor
+    return _INLINE_BATCH_EXECUTOR
 
 
 def extract_profile_id(text: str) -> str:
@@ -2332,13 +2342,12 @@ def _push_rule_batches(
             ctx.existing_rules.update(result)
         render_progress_bar(successful_batches, 1, progress_label)
     else:
-        # Use provided executor or create a local one (fallback)
         if ctx.batch_executor:
             executor_ctx: contextlib.AbstractContextManager[
                 concurrent.futures.Executor
             ] = contextlib.nullcontext(ctx.batch_executor)
         else:
-            executor_ctx = concurrent.futures.ThreadPoolExecutor(max_workers=2)
+            executor_ctx = contextlib.nullcontext(_get_inline_batch_executor())
 
         with executor_ctx as executor:
             futures = {

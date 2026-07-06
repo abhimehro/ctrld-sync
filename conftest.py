@@ -12,6 +12,10 @@ def pytest_configure(config):
 
 @pytest.fixture(autouse=True)
 def _default_test_blocklist_allowlist():
+    inline_executor = getattr(main, "_INLINE_BATCH_EXECUTOR", None)
+    if inline_executor is not None:
+        inline_executor.shutdown(wait=False, cancel_futures=True)
+        main._INLINE_BATCH_EXECUTOR = None
     main.set_allowed_blocklist_domains(
         [
             "raw.githubusercontent.com",
@@ -20,4 +24,8 @@ def _default_test_blocklist_allowlist():
         ]
     )
     yield
+    inline_executor = getattr(main, "_INLINE_BATCH_EXECUTOR", None)
+    if inline_executor is not None:
+        inline_executor.shutdown(wait=False, cancel_futures=True)
+        main._INLINE_BATCH_EXECUTOR = None
     main.set_allowed_blocklist_domains(None)

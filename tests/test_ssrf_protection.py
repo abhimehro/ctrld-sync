@@ -4,6 +4,8 @@ import argparse
 import socket
 from unittest.mock import patch
 
+import pytest
+
 import main
 
 
@@ -56,3 +58,13 @@ def test_folder_url_uses_config_allowlist(tmp_path, monkeypatch):
     assert urls == ["https://custom.example.com/file.json"]
     assert cfg is None
     assert main.validate_folder_url("https://custom.example.com/file.json") is True
+
+
+def test_folder_url_explicit_missing_config_path_exits(tmp_path):
+    with pytest.raises(SystemExit):
+        main._resolve_folder_urls(
+            argparse.Namespace(
+                folder_url=["https://custom.example.com/file.json"],
+                config=str(tmp_path / "missing.yaml"),
+            )
+        )
