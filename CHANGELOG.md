@@ -10,6 +10,10 @@
 - \[repo-automation\] Weekly Retrospective - 2026-07-05 [\#982](https://github.com/abhimehro/ctrld-sync/issues/982)
 - Daily QA & Agentic Review - 2026-07-04 [\#980](https://github.com/abhimehro/ctrld-sync/issues/980)
 
+**Security:**
+
+- Add blocklist domain allowlisting with `allowed_blocklist_domains` and GitHub-host defaults for blocklist fetches.
+
 **Merged pull requests:**
 
 - fix\(ux\): route cancellation messages to stderr and trim prompt spacing \(salvages \#983\) [\#984](https://github.com/abhimehro/ctrld-sync/pull/984) ([abhimehro](https://github.com/abhimehro))

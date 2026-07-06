@@ -1035,6 +1035,53 @@ def load_config(config_path: str | None = None) -> dict:
     return get_default_config()
 
 
+def _load_allowed_blocklist_domains(config_path: str | None = None) -> None:
+    paths_to_try: list[str] = (
+        [config_path] if config_path else list(_DEFAULT_CONFIG_PATHS)
+    )
+
+    for raw_path in paths_to_try:
+        p = Path(raw_path).expanduser()
+        if not p.exists():
+            continue
+        try:
+            with open(p, encoding="utf-8") as fh:
+                loaded = yaml.safe_load(fh)
+        except OSError as exc:
+            print(
+                f"{Colors.FAIL}✗ Failed to read configuration file {p}: {exc}{Colors.ENDC}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        except yaml.YAMLError as exc:
+            print(
+                f"{Colors.FAIL}✗ Invalid YAML in {p}: {exc}{Colors.ENDC}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
+        if loaded is None:
+            print(
+                f"{Colors.FAIL}✗ Configuration file {p} is empty.{Colors.ENDC}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
+        try:
+            _validate_allowed_blocklist_domains(loaded.get("allowed_blocklist_domains"))
+        except ValueError as exc:
+            print(
+                f"{Colors.FAIL}✗ Configuration error in {p}: {exc}{Colors.ENDC}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
+        set_allowed_blocklist_domains(loaded.get("allowed_blocklist_domains"))
+        return
+
+    set_allowed_blocklist_domains(None)
+
+
 def _validate_allowed_blocklist_domains(allowed_domains: object) -> None:
     if allowed_domains is None:
         return
@@ -2291,7 +2338,7 @@ def _push_rule_batches(
                 concurrent.futures.Executor
             ] = contextlib.nullcontext(ctx.batch_executor)
         else:
-            executor_ctx = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+            executor_ctx = concurrent.futures.ThreadPoolExecutor(max_workers=3)
 
         with executor_ctx as executor:
             futures = {
@@ -3076,7 +3123,7 @@ def display_statistics() -> None:
 
 def _resolve_folder_urls(args: argparse.Namespace) -> tuple[list[str], dict | None]:
     if args.folder_url:
-        set_allowed_blocklist_domains(None)
+        _load_allowed_blocklist_domains(args.config)
         return args.folder_url, None
 
     cfg = load_config(args.config)

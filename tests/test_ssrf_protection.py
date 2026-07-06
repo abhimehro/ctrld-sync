@@ -1,5 +1,6 @@
 """Tests for SSRF protection via the blocklist domain allowlist."""
 
+import argparse
 import socket
 from unittest.mock import patch
 
@@ -39,3 +40,19 @@ def test_custom_allowlist_overrides_defaults():
         main.validate_folder_url("https://raw.githubusercontent.com/test/file.json")
         is False
     )
+
+
+def test_folder_url_uses_config_allowlist(tmp_path, monkeypatch):
+    (tmp_path / "config.yaml").write_text(
+        "allowed_blocklist_domains:\n  - custom.example.com\n"
+    )
+    monkeypatch.chdir(tmp_path)
+    main.set_allowed_blocklist_domains(None)
+
+    urls, cfg = main._resolve_folder_urls(
+        argparse.Namespace(folder_url=["https://custom.example.com/file.json"], config=None)
+    )
+
+    assert urls == ["https://custom.example.com/file.json"]
+    assert cfg is None
+    assert main.validate_folder_url("https://custom.example.com/file.json") is True
