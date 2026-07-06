@@ -1,6 +1,6 @@
 {
-  "title": "🎨 Palette: Fix terminal residue cleanup for NO_COLOR environments",
-  "head": "jules-12988657735329617174-c85629af",
-  "base": "main",
-  "body": "💡 What: Detached the terminal line clearance logic (`\\r\\033[K`) from the `USE_COLORS` configuration flag, relying strictly on `sys.stderr.isatty()` instead. Refactored the inline clearance logic scattered across exception handlers to use the single `_clear_current_line()` helper function.\n\n🎯 Why: When global color output is disabled (e.g., via `NO_COLOR=1`), hitting `Ctrl+C` during an interactive session leaves ugly `^C` ghost characters on the terminal line. The terminal clearance sequence works independently of color configurations and should be executed whenever running in an interactive TTY.\n\n📸 Before/After: Visual ghost characters (`^C`) no longer linger on the screen when canceling prompts in uncolored mode.\n\n♿ Accessibility: Improves the clarity and cleanliness of the CLI fallback mode."
+  "title": "🎨 Palette: Fix leading newline in interactive prompt",
+  "body": "💡 What: Extracted the leading newline `\\n` from `prompt_initial` into a standalone `print()` call within `_get_interactive_restart_confirmation` in `main.py`.\n\n🎯 Why: Embedding a leading newline in `input()` prompt strings confuses the terminal's cursor positioning. When a user cancelled the prompt (e.g., via `KeyboardInterrupt` / Ctrl+C), the terminal clearing logic (`\\r\\033[K`) would fail to clear the `^C` residue and instead displace the cursor, leaving awkward extraneous blank lines. Structurally printing the vertical space before invoking the prompt keeps the terminal state clean.\n\n📸 Before/After: Visual changes affect CLI output formatting on interrupt.\n\n♿ Accessibility: Improves the resilience of the terminal UI to interrupts, ensuring a clean and consistent empty state when actions are cancelled.",
+  "head": "jules-ux-prompt-fix",
+  "base": "main"
 }

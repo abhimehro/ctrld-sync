@@ -204,7 +204,7 @@ def save_disk_cache() -> None:
     """
     try:
         cache_dir = get_cache_dir()
-        cache_dir.mkdir(parents=True, exist_ok=True)
+        cache_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
 
         # Set directory permissions to user-only (rwx------).
         if platform.system() != "Windows":

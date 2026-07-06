@@ -243,9 +243,7 @@ def test_parse_args_config_default_is_none(monkeypatch):
 
 
 def test_parse_args_config_long_flag(monkeypatch):
-    monkeypatch.setattr(
-        sys, "argv", ["main.py", "--config", "cfg.yaml", "--dry-run"]
-    )
+    monkeypatch.setattr(sys, "argv", ["main.py", "--config", "cfg.yaml", "--dry-run"])
     args = main.parse_args()
     assert args.config == "cfg.yaml"
 

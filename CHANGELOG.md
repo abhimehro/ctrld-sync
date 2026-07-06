@@ -20,6 +20,9 @@
 
 **Merged pull requests:**
 
+- 🛡️ Sentinel: \[MEDIUM\] Fix TOCTOU vulnerability in cache.py [\#989](https://github.com/abhimehro/ctrld-sync/pull/989) ([abhimehro](https://github.com/abhimehro))
+- 🎨 Palette: Fix leading newline in interactive prompt [\#988](https://github.com/abhimehro/ctrld-sync/pull/988) ([abhimehro](https://github.com/abhimehro))
+- chore: formatting and whitespace fixes via pre-commit [\#986](https://github.com/abhimehro/ctrld-sync/pull/986) ([abhimehro](https://github.com/abhimehro))
 - fix\(ux\): route cancellation messages to stderr and trim prompt spacing \(salvages \#983\) [\#984](https://github.com/abhimehro/ctrld-sync/pull/984) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Add TTY guards for terminal clearance codes [\#981](https://github.com/abhimehro/ctrld-sync/pull/981) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Fix terminal residue cleanup for NO\_COLOR environments [\#979](https://github.com/abhimehro/ctrld-sync/pull/979) ([abhimehro](https://github.com/abhimehro))
