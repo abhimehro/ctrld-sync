@@ -2739,7 +2739,7 @@ def _pad_string(s: str, width: int, align: str = "<") -> str:
 
 def print_line(left_char: str, mid_char: str, right_char: str, w: list[int]) -> str:
     """Format a horizontal table separator line."""
-    return f"{Colors.BOLD}{left_char}{mid_char.join('─' * (x + 2) for x in w)}{right_char}{Colors.ENDC}"
+    return f"{Colors.BOLD}{make_col_separator(left_char, mid_char, right_char, Box.H, w)}{Colors.ENDC}"
 
 
 def print_row(cols: list[str], w: list[int]) -> str:
