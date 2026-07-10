@@ -16,6 +16,7 @@
 
 **Merged pull requests:**
 
+- 🎨 Palette: Fix CLI table alignment by using \_display\_len for profile names [\#997](https://github.com/abhimehro/ctrld-sync/pull/997) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump codescene-oss/pr-refactoring-agent from 841e34c7ddd7a8ec887d632ac51432d6c71e2fe1 to bbc72fbfb8e514ed2dd0a1ba2dda2e0083abac73 [\#992](https://github.com/abhimehro/ctrld-sync/pull/992) ([dependabot[bot]](https://github.com/apps/dependabot))
 - 🛡️ Sentinel: \[MEDIUM\] Fix TOCTOU vulnerability in cache.py [\#989](https://github.com/abhimehro/ctrld-sync/pull/989) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Fix leading newline in interactive prompt [\#988](https://github.com/abhimehro/ctrld-sync/pull/988) ([abhimehro](https://github.com/abhimehro))
