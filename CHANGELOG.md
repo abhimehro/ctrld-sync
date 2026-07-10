@@ -6,6 +6,9 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review - 2026-07-09 [\#998](https://github.com/abhimehro/ctrld-sync/issues/998)
+- Daily QA & Agentic Review - 2026-07-08 [\#996](https://github.com/abhimehro/ctrld-sync/issues/996)
+- Daily QA & Agentic Review - 2026-07-07 [\#995](https://github.com/abhimehro/ctrld-sync/issues/995)
 - Daily QA & Agentic Review - 2026-07-06 [\#991](https://github.com/abhimehro/ctrld-sync/issues/991)
 - Daily QA & Agentic Review - 2026-07-05 [\#985](https://github.com/abhimehro/ctrld-sync/issues/985)
 - \[repo-automation\] Weekly Retrospective - 2026-07-05 [\#982](https://github.com/abhimehro/ctrld-sync/issues/982)
