@@ -759,7 +759,7 @@ def get_validated_input(
     error_msg: str,
 ) -> str:
     """Prompts for input until the validator returns True."""
-    if not prompt.endswith(" "):
+    if not _ANSI_ESCAPE_PATTERN.sub("", prompt).endswith(" "):
         prompt += " "
 
     while True:
@@ -788,7 +788,7 @@ def _format_password_prompt(prompt: str) -> str:
     """Formats the password prompt to ensure it contains standard hints and spaces."""
     if "(typing will be hidden)" not in prompt:
         prompt = f"{prompt.rstrip()} (typing will be hidden) "
-    if not prompt.endswith(" "):
+    if not _ANSI_ESCAPE_PATTERN.sub("", prompt).endswith(" "):
         prompt += " "
     return prompt
 
