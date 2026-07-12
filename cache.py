@@ -208,7 +208,16 @@ def save_disk_cache() -> None:
 
         # Set directory permissions to user-only (rwx------).
         if platform.system() != "Windows":
-            cache_dir.chmod(0o700)
+            # Security: Securely pin the directory using a file descriptor and apply fchmod
+            # to prevent Time-Of-Check to Time-Of-Use (TOCTOU) symlink attacks.
+            fd = os.open(
+                str(cache_dir),
+                os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0),
+            )
+            try:
+                os.fchmod(fd, 0o700)
+            finally:
+                os.close(fd)
 
         cache_file = cache_dir / "blocklists.json"
 
