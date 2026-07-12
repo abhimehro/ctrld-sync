@@ -290,8 +290,9 @@ class TestMakeColSeparator:
         assert result == expected
 
 
-def test_print_line():
+def test_print_line(monkeypatch):
     """Verify print_line produces correct unicode table borders."""
+    monkeypatch.setattr(main.Box, "H", "─")
     w = [2, 3]
     result = main.print_line("[", "*", "]", w)
     assert result.startswith(main.Colors.BOLD)
@@ -316,6 +317,17 @@ def test_print_summary_table_unicode_print_line(monkeypatch, capsys):
     when USE_COLORS is True (unicode table mode).
     """
     monkeypatch.setattr(main, "USE_COLORS", True)
+    monkeypatch.setattr(main.Box, "H", "─")
+    monkeypatch.setattr(main.Box, "V", "│")
+    monkeypatch.setattr(main.Box, "TL", "┌")
+    monkeypatch.setattr(main.Box, "TR", "┐")
+    monkeypatch.setattr(main.Box, "BL", "└")
+    monkeypatch.setattr(main.Box, "BR", "┘")
+    monkeypatch.setattr(main.Box, "T", "┬")
+    monkeypatch.setattr(main.Box, "B", "┴")
+    monkeypatch.setattr(main.Box, "L", "├")
+    monkeypatch.setattr(main.Box, "R", "┤")
+    monkeypatch.setattr(main.Box, "X", "┼")
     from main import SyncResult
 
     sync_results = [

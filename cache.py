@@ -212,7 +212,9 @@ def save_disk_cache() -> None:
             # to prevent Time-Of-Check to Time-Of-Use (TOCTOU) symlink attacks.
             fd = os.open(
                 str(cache_dir),
-                os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0),
+                os.O_RDONLY
+                | getattr(os, "O_DIRECTORY", 0)
+                | getattr(os, "O_NOFOLLOW", 0),
             )
             try:
                 os.fchmod(fd, 0o700)
