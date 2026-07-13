@@ -98,3 +98,8 @@
 
 **Learning:** In interactive CLI flows where input is cancelled (e.g. `input()` raising `KeyboardInterrupt`), printing a cancellation message directly leaves awkward extraneous blank lines if the prompt string contains a leading newline, which breaks terminal clearing logic (`\r\033[K`) by displacing the cursor.
 **Action:** When printing vertical spacing before interactive prompts, print it structurally using an explicit `print()` rather than embedding a leading newline (`\n`) directly in the prompt string.
+
+## YYYY-MM-DD - [Structural Prompt Spacing in Generic Inputs]
+
+**Learning:** When using generic wrappers like `get_validated_input()` or `get_password()`, adding a leading newline to the prompt string causes terminal clearing logic (`\r\033[K`) on `KeyboardInterrupt` to break, leaving awkward extraneous blank lines.
+**Action:** In generic input wrappers, if a prompt starts with a newline, strip it from the prompt string and print a blank line structurally (using an explicit `print()`) before executing the input loop to maintain a clean terminal state.

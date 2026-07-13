@@ -759,6 +759,10 @@ def get_validated_input(
     error_msg: str,
 ) -> str:
     """Prompts for input until the validator returns True."""
+    if prompt.startswith("\n"):
+        print()
+        prompt = prompt[1:]
+
     if not _ANSI_ESCAPE_PATTERN.sub("", prompt).endswith(" "):
         prompt += " "
 
@@ -807,6 +811,10 @@ def get_password(
     out by including the literal substring "(typing will be hidden)" in
     the prompt they pass.
     """
+    if prompt.startswith("\n"):
+        print()
+        prompt = prompt[1:]
+
     prompt = _format_password_prompt(prompt)
 
     while True:
