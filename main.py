@@ -529,9 +529,6 @@ DEFAULT_ALLOWED_BLOCKLIST_DOMAINS: frozenset[str] = frozenset(
 
 # Runtime-configurable allowed domains (initialized with defaults)
 _ALLOWED_BLOCKLIST_DOMAINS: frozenset[str] = DEFAULT_ALLOWED_BLOCKLIST_DOMAINS
-_REAL_THREAD_POOL_EXECUTOR = concurrent.futures.ThreadPoolExecutor
-_DEFAULT_BATCH_EXECUTOR: concurrent.futures.ThreadPoolExecutor | None = None
-_DEFAULT_BATCH_EXECUTOR_LOCK = threading.Lock()
 
 # Pre-compiled patterns for log sanitization
 _BASIC_AUTH_PATTERN = re.compile(r"://[^/@]+@")
@@ -1278,17 +1275,6 @@ def set_allowed_blocklist_domains(domains: list[str] | None) -> None:
         _ALLOWED_BLOCKLIST_DOMAINS = DEFAULT_ALLOWED_BLOCKLIST_DOMAINS
     # validate_folder_url() is cached, so any allowlist change must clear it.
     validate_folder_url.cache_clear()
-
-
-def _get_default_batch_executor() -> concurrent.futures.ThreadPoolExecutor:
-    global _DEFAULT_BATCH_EXECUTOR
-    if _DEFAULT_BATCH_EXECUTOR is None:
-        with _DEFAULT_BATCH_EXECUTOR_LOCK:
-            if _DEFAULT_BATCH_EXECUTOR is None:
-                _DEFAULT_BATCH_EXECUTOR = concurrent.futures.ThreadPoolExecutor(
-                    max_workers=8
-                )
-    return _DEFAULT_BATCH_EXECUTOR
 
 
 def extract_profile_id(text: str) -> str:
@@ -2365,12 +2351,8 @@ def _push_rule_batches(
                         successful_batches, total_batches, progress_label
                     )
         else:
-            if concurrent.futures.ThreadPoolExecutor is not _REAL_THREAD_POOL_EXECUTOR:
-                concurrent.futures.ThreadPoolExecutor()
-            executor = _get_default_batch_executor()
-            futures = {
-                executor.submit(
-                    _push_single_batch,
+            for i, batch in enumerate(batches, 1):
+                result = _push_single_batch(
                     ctx.client,
                     ctx.profile_id,
                     sanitized_folder_name,
@@ -2379,12 +2361,7 @@ def _push_rule_batches(
                     str_group,
                     i,
                     batch,
-                ): i
-                for i, batch in enumerate(batches, 1)
-            }
-
-            for future in concurrent.futures.as_completed(futures):
-                result = future.result()
+                )
                 if result:
                     successful_batches += 1
                     ctx.existing_rules.update(result)

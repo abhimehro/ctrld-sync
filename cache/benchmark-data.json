@@ -60,14 +60,14 @@
           },
           {
             "name": "tests/test_benchmarks.py::test_push_rules_benchmark_10k[no_overlap]",
-            "value": 3136.7942116876366,
+            "value": 2690.415772295065,
             "unit": "iter/sec",
             "range": "stddev: 3.4750504447563396e-05",
             "extra": "mean: 371.6840000 usec\nrounds: 64"
           },
           {
             "name": "tests/test_benchmarks.py::test_push_rules_benchmark_10k[high_overlap]",
-            "value": 2224.8954172207414,
+            "value": 2199.255694066113,
             "unit": "iter/sec",
             "range": "stddev: 6.375383750180986e-05",
             "extra": "mean: 454.7000000 usec\nrounds: 419"
