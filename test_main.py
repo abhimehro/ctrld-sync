@@ -574,7 +574,7 @@ def test_get_validated_input_interrupt(monkeypatch, capsys):
 
     # Check friendly message
     captured = capsys.readouterr()
-    assert "Input cancelled" in captured.out
+    assert "Input cancelled" in captured.err
 
 
 def test_get_password_interrupt(monkeypatch, capsys):
@@ -591,7 +591,7 @@ def test_get_password_interrupt(monkeypatch, capsys):
 
     # Check friendly message
     captured = capsys.readouterr()
-    assert "Input cancelled" in captured.out
+    assert "Input cancelled" in captured.err
 
 
 # Case 15: get_validated_input and get_password handle both KeyboardInterrupt and EOFError
@@ -611,7 +611,7 @@ def test_get_validated_input_graceful_exit(monkeypatch, capsys, exception):
 
     # Check friendly cancellation message is displayed
     captured = capsys.readouterr()
-    assert "Input cancelled" in captured.out
+    assert "Input cancelled" in captured.err
 
 
 @pytest.mark.parametrize("exception", [KeyboardInterrupt, EOFError])
@@ -630,7 +630,7 @@ def test_get_password_graceful_exit(monkeypatch, capsys, exception):
 
     # Check friendly cancellation message is displayed
     captured = capsys.readouterr()
-    assert "Input cancelled" in captured.out
+    assert "Input cancelled" in captured.err
 
 
 # Case 16: _get_progress_bar_width returns correct values based on terminal size
