@@ -21,6 +21,9 @@
 **Merged pull requests:**
 
 - Docs: Review log for PR \#990 [\#1010](https://github.com/abhimehro/ctrld-sync/pull/1010) ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: optimize urls\_to\_process deduplication with filterfalse [\#1009](https://github.com/abhimehro/ctrld-sync/pull/1009) ([abhimehro](https://github.com/abhimehro))
+- 🎨 Palette: Extract leading newlines from interactive prompts [\#1008](https://github.com/abhimehro/ctrld-sync/pull/1008) ([abhimehro](https://github.com/abhimehro))
+- fix: update test assertions for cli output streams [\#1007](https://github.com/abhimehro/ctrld-sync/pull/1007) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[MEDIUM\] Fix directory permissions TOCTOU vulnerability [\#1005](https://github.com/abhimehro/ctrld-sync/pull/1005) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Fix ANSI sequences breaking interactive prompt alignment [\#1004](https://github.com/abhimehro/ctrld-sync/pull/1004) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Fix CLI table alignment by using \_display\_len for profile names [\#997](https://github.com/abhimehro/ctrld-sync/pull/997) ([abhimehro](https://github.com/abhimehro))
