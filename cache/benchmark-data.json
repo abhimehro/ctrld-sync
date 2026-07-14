@@ -60,7 +60,7 @@
           },
           {
             "name": "tests/test_benchmarks.py::test_push_rules_benchmark_10k[no_overlap]",
-            "value": 2853.0657504388796,
+            "value": 3136.7942116876366,
             "unit": "iter/sec",
             "range": "stddev: 3.4750504447563396e-05",
             "extra": "mean: 371.6840000 usec\nrounds: 64"
