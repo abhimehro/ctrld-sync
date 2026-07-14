@@ -31,3 +31,6 @@
 ## 2026-11-12 - Fast-path for early return in expensive string processing
 **Learning:** Performance Optimization Pattern: When a function performs expensive string manipulation (e.g., regex stripping and Unicode property lookups) on console output, introducing an early-return fast path for standard ASCII strings (`if s.isascii() and '\x1b' not in s: return len(s)`) bypasses Python overhead and leverages C-level execution for the vast majority of standard text.
 **Action:** Use early return checks with `.isascii()` to bypass expensive unicode or regex checks when processing standard ASCII text.
+## YYYY-MM-DD - itertools.filterfalse with set deduplication
+**Learning:** Using `list(itertools.filterfalse(cache.__contains__, list(set(urls))))` is faster than `[u for u in list(set(urls)) if u not in cache]`, avoiding python loop overhead.
+**Action:** Use `itertools.filterfalse` for filtering lists.

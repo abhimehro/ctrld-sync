@@ -1903,7 +1903,7 @@ def warm_up_cache(urls: Sequence[str]) -> None:
     """
     urls = list(set(urls))
     with _cache_lock:
-        urls_to_process = [u for u in urls if u not in _cache]
+        urls_to_process = list(itertools.filterfalse(_cache.__contains__, urls))
     if not urls_to_process:
         return
 
