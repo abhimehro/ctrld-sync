@@ -98,3 +98,7 @@
 
 **Learning:** In interactive CLI flows where input is cancelled (e.g. `input()` raising `KeyboardInterrupt`), printing a cancellation message directly leaves awkward extraneous blank lines if the prompt string contains a leading newline, which breaks terminal clearing logic (`\r\033[K`) by displacing the cursor.
 **Action:** When printing vertical spacing before interactive prompts, print it structurally using an explicit `print()` rather than embedding a leading newline (`\n`) directly in the prompt string.
+
+## 2024-07-14 - ANSI escape codes in interactive prompts
+**Learning:** Checking for structural newlines at the beginning of an input prompt using `.startswith("\n")` fails if the prompt is styled with ANSI escape codes (e.g., `Colors.BOLD`). This leaves the newlines inside the `input()` call, which breaks terminal cursor clearing logic upon `KeyboardInterrupt`.
+**Action:** Always strip ANSI escape codes before programmatically checking or manipulating prompt string boundaries, and use `.replace()` rather than slicing `[1:]` to remove the newline.
