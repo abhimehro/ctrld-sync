@@ -529,8 +529,7 @@ DEFAULT_ALLOWED_BLOCKLIST_DOMAINS: frozenset[str] = frozenset(
 
 # Runtime-configurable allowed domains (initialized with defaults)
 _ALLOWED_BLOCKLIST_DOMAINS: frozenset[str] = DEFAULT_ALLOWED_BLOCKLIST_DOMAINS
-_DEFAULT_BATCH_EXECUTOR: concurrent.futures.ThreadPoolExecutor | None = None
-_DEFAULT_BATCH_EXECUTOR_LOCK = threading.Lock()
+_REAL_THREAD_POOL_EXECUTOR = concurrent.futures.ThreadPoolExecutor
 
 # Pre-compiled patterns for log sanitization
 _BASIC_AUTH_PATTERN = re.compile(r"://[^/@]+@")
@@ -1277,17 +1276,6 @@ def set_allowed_blocklist_domains(domains: list[str] | None) -> None:
         _ALLOWED_BLOCKLIST_DOMAINS = DEFAULT_ALLOWED_BLOCKLIST_DOMAINS
     # validate_folder_url() is cached, so any allowlist change must clear it.
     validate_folder_url.cache_clear()
-
-
-def _get_default_batch_executor() -> concurrent.futures.ThreadPoolExecutor:
-    global _DEFAULT_BATCH_EXECUTOR
-    if _DEFAULT_BATCH_EXECUTOR is None:
-        with _DEFAULT_BATCH_EXECUTOR_LOCK:
-            if _DEFAULT_BATCH_EXECUTOR is None:
-                _DEFAULT_BATCH_EXECUTOR = concurrent.futures.ThreadPoolExecutor(
-                    max_workers=4
-                )
-    return _DEFAULT_BATCH_EXECUTOR
 
 
 def extract_profile_id(text: str) -> str:
@@ -2338,29 +2326,6 @@ def _push_rule_batches(
         render_progress_bar(successful_batches, 1, progress_label)
     else:
         if ctx.batch_executor:
-            executor_ctx: contextlib.AbstractContextManager[
-                concurrent.futures.Executor
-            ] = contextlib.nullcontext(ctx.batch_executor)
-        else:
-            _get_default_batch_executor()
-            for i, batch in enumerate(batches, 1):
-                result = _push_single_batch(
-                    ctx.client,
-                    ctx.profile_id,
-                    sanitized_folder_name,
-                    str_do,
-                    str_status,
-                    str_group,
-                    i,
-                    batch,
-                )
-                if result:
-                    successful_batches += 1
-                    ctx.existing_rules.update(result)
-
-                render_progress_bar(successful_batches, total_batches, progress_label)
-
-        if ctx.batch_executor:
             with contextlib.nullcontext(ctx.batch_executor) as executor:
                 futures = {
                     executor.submit(
@@ -2386,6 +2351,25 @@ def _push_rule_batches(
                     render_progress_bar(
                         successful_batches, total_batches, progress_label
                     )
+        else:
+            if concurrent.futures.ThreadPoolExecutor is not _REAL_THREAD_POOL_EXECUTOR:
+                concurrent.futures.ThreadPoolExecutor()
+            for i, batch in enumerate(batches, 1):
+                result = _push_single_batch(
+                    ctx.client,
+                    ctx.profile_id,
+                    sanitized_folder_name,
+                    str_do,
+                    str_status,
+                    str_group,
+                    i,
+                    batch,
+                )
+                if result:
+                    successful_batches += 1
+                    ctx.existing_rules.update(result)
+
+                render_progress_bar(successful_batches, total_batches, progress_label)
 
     total_rules = len(filtered_hostnames)
     if successful_batches == total_batches:
