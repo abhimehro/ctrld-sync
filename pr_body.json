@@ -1,6 +1,3 @@
 {
-  "title": "🎨 Palette: Fix leading newline in interactive prompt",
-  "body": "💡 What: Extracted the leading newline `\\n` from `prompt_initial` into a standalone `print()` call within `_get_interactive_restart_confirmation` in `main.py`.\n\n🎯 Why: Embedding a leading newline in `input()` prompt strings confuses the terminal's cursor positioning. When a user cancelled the prompt (e.g., via `KeyboardInterrupt` / Ctrl+C), the terminal clearing logic (`\\r\\033[K`) would fail to clear the `^C` residue and instead displace the cursor, leaving awkward extraneous blank lines. Structurally printing the vertical space before invoking the prompt keeps the terminal state clean.\n\n📸 Before/After: Visual changes affect CLI output formatting on interrupt.\n\n♿ Accessibility: Improves the resilience of the terminal UI to interrupts, ensuring a clean and consistent empty state when actions are cancelled.",
-  "head": "jules-ux-prompt-fix",
-  "base": "main"
+  "body": "💡 What: Replaced `len(r[\"profile\"])` with `_display_len(r[\"profile\"])` when calculating `max_profile_len` in `print_summary_table` within `main.py`.\n\n🎯 Why: If a profile name contains emojis or full-width characters, `len()` calculates the raw character count, which causes the column width to be misaligned because terminal emulators render emojis across two columns. `_display_len` accurately counts these characters as 2 visual columns.\n\n📸 Before/After: Visual changes affect CLI table output formatting.\n\n♿ Accessibility: N/A"
 }

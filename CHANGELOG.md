@@ -6,6 +6,13 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review - 2026-07-12 [\#1003](https://github.com/abhimehro/ctrld-sync/issues/1003)
+- Daily QA & Agentic Review - 2026-07-11 [\#1000](https://github.com/abhimehro/ctrld-sync/issues/1000)
+- Daily QA & Agentic Review - 2026-07-10 [\#999](https://github.com/abhimehro/ctrld-sync/issues/999)
+- Daily QA & Agentic Review - 2026-07-09 [\#998](https://github.com/abhimehro/ctrld-sync/issues/998)
+- Daily QA & Agentic Review - 2026-07-08 [\#996](https://github.com/abhimehro/ctrld-sync/issues/996)
+- Daily QA & Agentic Review - 2026-07-07 [\#995](https://github.com/abhimehro/ctrld-sync/issues/995)
+- Daily QA & Agentic Review - 2026-07-06 [\#991](https://github.com/abhimehro/ctrld-sync/issues/991)
 - Daily QA & Agentic Review - 2026-07-05 [\#985](https://github.com/abhimehro/ctrld-sync/issues/985)
 - \[repo-automation\] Weekly Retrospective - 2026-07-05 [\#982](https://github.com/abhimehro/ctrld-sync/issues/982)
 - Daily QA & Agentic Review - 2026-07-04 [\#980](https://github.com/abhimehro/ctrld-sync/issues/980)
@@ -20,6 +27,10 @@
 
 **Merged pull requests:**
 
+- 🛡️ Sentinel: \[MEDIUM\] Fix directory permissions TOCTOU vulnerability [\#1005](https://github.com/abhimehro/ctrld-sync/pull/1005) ([abhimehro](https://github.com/abhimehro))
+- 🎨 Palette: Fix ANSI sequences breaking interactive prompt alignment [\#1004](https://github.com/abhimehro/ctrld-sync/pull/1004) ([abhimehro](https://github.com/abhimehro))
+- 🎨 Palette: Fix CLI table alignment by using \_display\_len for profile names [\#997](https://github.com/abhimehro/ctrld-sync/pull/997) ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump codescene-oss/pr-refactoring-agent from 841e34c7ddd7a8ec887d632ac51432d6c71e2fe1 to bbc72fbfb8e514ed2dd0a1ba2dda2e0083abac73 [\#992](https://github.com/abhimehro/ctrld-sync/pull/992) ([dependabot[bot]](https://github.com/apps/dependabot))
 - 🛡️ Sentinel: \[MEDIUM\] Fix TOCTOU vulnerability in cache.py [\#989](https://github.com/abhimehro/ctrld-sync/pull/989) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Fix leading newline in interactive prompt [\#988](https://github.com/abhimehro/ctrld-sync/pull/988) ([abhimehro](https://github.com/abhimehro))
 - chore: formatting and whitespace fixes via pre-commit [\#986](https://github.com/abhimehro/ctrld-sync/pull/986) ([abhimehro](https://github.com/abhimehro))

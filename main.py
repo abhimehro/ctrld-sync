@@ -771,7 +771,7 @@ def get_validated_input(
     error_msg: str,
 ) -> str:
     """Prompts for input until the validator returns True."""
-    if not prompt.endswith(" "):
+    if not _ANSI_ESCAPE_PATTERN.sub("", prompt).endswith(" "):
         prompt += " "
 
     while True:
@@ -800,7 +800,7 @@ def _format_password_prompt(prompt: str) -> str:
     """Formats the password prompt to ensure it contains standard hints and spaces."""
     if "(typing will be hidden)" not in prompt:
         prompt = f"{prompt.rstrip()} (typing will be hidden) "
-    if not prompt.endswith(" "):
+    if not _ANSI_ESCAPE_PATTERN.sub("", prompt).endswith(" "):
         prompt += " "
     return prompt
 
@@ -2863,7 +2863,7 @@ def _pad_string(s: str, width: int, align: str = "<") -> str:
 
 def print_line(left_char: str, mid_char: str, right_char: str, w: list[int]) -> str:
     """Format a horizontal table separator line."""
-    return f"{Colors.BOLD}{left_char}{mid_char.join('─' * (x + 2) for x in w)}{right_char}{Colors.ENDC}"
+    return f"{Colors.BOLD}{make_col_separator(left_char, mid_char, right_char, Box.H, w)}{Colors.ENDC}"
 
 
 def print_row(cols: list[str], w: list[int]) -> str:
@@ -2880,7 +2880,7 @@ def print_summary_table(
     sync_results: list[SyncResult], success_count: int, total: int, dry_run: bool
 ) -> None:
     # 1. Setup Data
-    max_p = max((len(r["profile"]) for r in sync_results), default=25)
+    max_p = max((_display_len(r["profile"]) for r in sync_results), default=25)
     w = [max(25, max_p), 10, 12, 10, 15]
 
     t_f, t_r, t_d = (
@@ -3349,7 +3349,8 @@ def main() -> bool:
         duration = time.time() - start_time
         _clear_current_line()
         print(
-            f"{Colors.WARNING}⚠️  Sync cancelled by user. Finishing current task...{Colors.ENDC}", file=sys.stderr,
+            f"{Colors.WARNING}⚠️  Sync cancelled by user. Finishing current task...{Colors.ENDC}",
+            file=sys.stderr,
         )
 
         # Try to recover stats for the interrupted profile
@@ -3374,126 +3375,15 @@ def main() -> bool:
             json.dump(plan, f, indent=2)
         log.info("Plan written to %s", args.plan_json)
 
-    # Print Summary Table
-    # Determine the width for the Profile ID column (min 25)
-    max_profile_len = max((len(r["profile"]) for r in sync_results), default=25)
-    profile_col_width = max(25, max_profile_len)
-
-    # Column widths
-    w_profile = profile_col_width
-    w_folders = 10
-    w_rules = 12
-    w_duration = 10
-    w_status = 15
-
-    col_widths = [w_profile, w_folders, w_rules, w_duration, w_status]
-
-    # Calculate table width using a dummy separator
-    dummy_sep = make_col_separator(Box.TL, Box.T, Box.TR, Box.H, col_widths)
-    table_width = len(dummy_sep)
-
-    title_text = " 🧪 DRY RUN SUMMARY " if args.dry_run else " 🚀 SYNC SUMMARY "
-    title_color = Colors.CYAN if args.dry_run else Colors.HEADER
-
-    # Top Border (Single Cell for Title)
-    print("\n" + Box.TL + Box.H * (table_width - 2) + Box.TR)
-
-    # Title Row
-    visible_title = title_text.strip()
-    inner_width = table_width - 2
-    pad_left = (inner_width - _display_len(visible_title)) // 2
-    pad_right = inner_width - _display_len(visible_title) - pad_left
-    print(
-        f"{Box.V}{' ' * pad_left}{title_color}{visible_title}{Colors.ENDC}{' ' * pad_right}{Box.V}"
-    )
-
-    # Separator between Title and Headers (introduces columns)
-    print(make_col_separator(Box.L, Box.T, Box.R, Box.H, col_widths))
-
-    # Header Row
-    print(
-        f"{Box.V} {Colors.BOLD}{'Profile ID':<{w_profile}}{Colors.ENDC} "
-        f"{Box.V} {Colors.BOLD}{'Folders':>{w_folders}}{Colors.ENDC} "
-        f"{Box.V} {Colors.BOLD}{'Rules':>{w_rules}}{Colors.ENDC} "
-        f"{Box.V} {Colors.BOLD}{'Duration':>{w_duration}}{Colors.ENDC} "
-        f"{Box.V} {Colors.BOLD}{'Status':<{w_status}}{Colors.ENDC} {Box.V}"
-    )
-
-    # Separator between Header and Body
-    print(make_col_separator(Box.L, Box.X, Box.R, Box.H, col_widths))
-
-    # Rows
-    total_folders = 0
-    total_rules = 0
-    total_duration = 0.0
-
-    for res in sync_results:
-        # Use boolean success field for color logic
-        status_color = Colors.GREEN if res["success"] else Colors.FAIL
-
-        s_folders = f"{res['folders']:,}"
-        s_rules = f"{res['rules']:,}"
-        s_duration = f"{res['duration']:.1f}s"
-
-        display_profile = (
-            "(Unspecified)"
-            if res["profile"] == "dry-run-placeholder"
-            else res["profile"]
-        )
-        status_text = f"{status_color}{res['status_label']}{Colors.ENDC}"
-        padded_status = status_text + " " * max(
-            0, w_status - _display_len(res["status_label"])
-        )
-
-        print(
-            f"{Box.V} {_pad_string(display_profile, w_profile, '<')} "
-            f"{Box.V} {_pad_string(s_folders, w_folders, '>')} "
-            f"{Box.V} {_pad_string(s_rules, w_rules, '>')} "
-            f"{Box.V} {_pad_string(s_duration, w_duration, '>')} "
-            f"{Box.V} {padded_status} {Box.V}"
-        )
-        total_folders += res["folders"]
-        total_rules += res["rules"]
-        total_duration += res["duration"]
-
-    # Separator between Body and Total
-    print(make_col_separator(Box.L, Box.X, Box.R, Box.H, col_widths))
-
-    # Total Row
     total = len(profile_ids or ["dry-run-placeholder"])
     all_success = success_count == total
 
-    if args.dry_run:
-        total_status_text = "✅ Ready" if all_success else "❌ Errors"
-    else:
-        total_status_text = "✅ All Good" if all_success else "❌ Errors"
-
-    total_status_color = Colors.GREEN if all_success else Colors.FAIL
-
-    s_total_folders = f"{total_folders:,}"
-    s_total_rules = f"{total_rules:,}"
-    s_total_duration = f"{total_duration:.1f}s"
-
-    total_status = f"{total_status_color}{total_status_text}{Colors.ENDC}"
-    padded_total_status = total_status + " " * max(
-        0, w_status - _display_len(total_status_text)
+    print_summary_table(
+        sync_results=sync_results,
+        success_count=success_count,
+        total=total,
+        dry_run=args.dry_run,
     )
-
-    print(
-        f"{Box.V} {Colors.BOLD}{_pad_string('TOTAL', w_profile, '<')}{Colors.ENDC} "
-        f"{Box.V} {_pad_string(s_total_folders, w_folders, '>')} "
-        f"{Box.V} {_pad_string(s_total_rules, w_rules, '>')} "
-        f"{Box.V} {_pad_string(s_total_duration, w_duration, '>')} "
-        f"{Box.V} {padded_total_status} {Box.V}"
-    )
-    # Bottom Border
-    print(make_col_separator(Box.BL, Box.B, Box.BR, Box.H, col_widths))
-
-    if total_folders == 0:
-        print()  # Spacer
-        _print_hint(
-            "  💡 Hint: Add folder URLs using --folder-url or in your config.yaml"
-        )
 
     # Success Delight
     if all_success and not args.dry_run:
