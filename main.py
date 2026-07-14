@@ -2351,22 +2351,31 @@ def _push_rule_batches(
                         successful_batches, total_batches, progress_label
                     )
         else:
-            for i, batch in enumerate(batches, 1):
-                result = _push_single_batch(
-                    ctx.client,
-                    ctx.profile_id,
-                    sanitized_folder_name,
-                    str_do,
-                    str_status,
-                    str_group,
-                    i,
-                    batch,
-                )
-                if result:
-                    successful_batches += 1
-                    ctx.existing_rules.update(result)
+            with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+                futures = {
+                    executor.submit(
+                        _push_single_batch,
+                        ctx.client,
+                        ctx.profile_id,
+                        sanitized_folder_name,
+                        str_do,
+                        str_status,
+                        str_group,
+                        i,
+                        batch,
+                    ): i
+                    for i, batch in enumerate(batches, 1)
+                }
 
-                render_progress_bar(successful_batches, total_batches, progress_label)
+                for future in concurrent.futures.as_completed(futures):
+                    result = future.result()
+                    if result:
+                        successful_batches += 1
+                        ctx.existing_rules.update(result)
+
+                    render_progress_bar(
+                        successful_batches, total_batches, progress_label
+                    )
 
     total_rules = len(filtered_hostnames)
     if successful_batches == total_batches:
