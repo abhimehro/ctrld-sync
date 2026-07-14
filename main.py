@@ -2290,6 +2290,41 @@ def _push_single_batch(
         return None
 
 
+def _process_batches_with_executor(
+    executor: concurrent.futures.Executor,
+    ctx: SyncContext,
+    batch_config: tuple[tuple[str, str, str, str], list[list[str]], str],
+) -> int:
+    """Process batches using the provided executor and return successful batch count."""
+    batch_params, batches, progress_label = batch_config
+    str_do, str_status, str_group, sanitized_folder_name = batch_params
+    successful_batches = 0
+    futures = {
+        executor.submit(
+            _push_single_batch,
+            ctx.client,
+            ctx.profile_id,
+            sanitized_folder_name,
+            str_do,
+            str_status,
+            str_group,
+            i,
+            batch,
+        ): i
+        for i, batch in enumerate(batches, 1)
+    }
+
+    for future in concurrent.futures.as_completed(futures):
+        result = future.result()
+        if result:
+            successful_batches += 1
+            ctx.existing_rules.update(result)
+
+        render_progress_bar(successful_batches, len(batches), progress_label)
+
+    return successful_batches
+
+
 def _push_rule_batches(
     ctx: SyncContext,
     folder_name: str,
@@ -2313,9 +2348,10 @@ def _push_rule_batches(
     sanitized_folder_name = sanitize_for_log(folder_name)
     progress_label = f"Folder {sanitized_folder_name}"
 
-    successful_batches = 0
-
     # Optimization 3: Parallelize batch processing
+    batch_params = (str_do, str_status, str_group, sanitized_folder_name)
+    batch_config = (batch_params, batches, progress_label)
+    
     if total_batches == 1:
         result = _push_single_batch(
             ctx.client,
@@ -2327,63 +2363,21 @@ def _push_rule_batches(
             1,
             batches[0],
         )
+        successful_batches = 1 if result else 0
         if result:
-            successful_batches = 1
             ctx.existing_rules.update(result)
         render_progress_bar(successful_batches, 1, progress_label)
     else:
         if ctx.batch_executor:
             with contextlib.nullcontext(ctx.batch_executor) as executor:
-                futures = {
-                    executor.submit(
-                        _push_single_batch,
-                        ctx.client,
-                        ctx.profile_id,
-                        sanitized_folder_name,
-                        str_do,
-                        str_status,
-                        str_group,
-                        i,
-                        batch,
-                    ): i
-                    for i, batch in enumerate(batches, 1)
-                }
-
-                for future in concurrent.futures.as_completed(futures):
-                    result = future.result()
-                    if result:
-                        successful_batches += 1
-                        ctx.existing_rules.update(result)
-
-                    render_progress_bar(
-                        successful_batches, total_batches, progress_label
-                    )
+                successful_batches = _process_batches_with_executor(
+                    executor, ctx, batch_config
+                )
         else:
             with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-                futures = {
-                    executor.submit(
-                        _push_single_batch,
-                        ctx.client,
-                        ctx.profile_id,
-                        sanitized_folder_name,
-                        str_do,
-                        str_status,
-                        str_group,
-                        i,
-                        batch,
-                    ): i
-                    for i, batch in enumerate(batches, 1)
-                }
-
-                for future in concurrent.futures.as_completed(futures):
-                    result = future.result()
-                    if result:
-                        successful_batches += 1
-                        ctx.existing_rules.update(result)
-
-                    render_progress_bar(
-                        successful_batches, total_batches, progress_label
-                    )
+                successful_batches = _process_batches_with_executor(
+                    executor, ctx, batch_config
+                )
 
     total_rules = len(filtered_hostnames)
     if successful_batches == total_batches:
