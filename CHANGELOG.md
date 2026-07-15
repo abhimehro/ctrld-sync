@@ -6,8 +6,10 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review - 2026-07-14 [\#1012](https://github.com/abhimehro/ctrld-sync/issues/1012)
 - Daily QA & Agentic Review - 2026-07-12 [\#1003](https://github.com/abhimehro/ctrld-sync/issues/1003)
 - Daily QA & Agentic Review - 2026-07-12 [\#1002](https://github.com/abhimehro/ctrld-sync/issues/1002)
+- \[repo-automation\] Weekly Retrospective - 2026-07-12 [\#1001](https://github.com/abhimehro/ctrld-sync/issues/1001)
 - Daily QA & Agentic Review - 2026-07-11 [\#1000](https://github.com/abhimehro/ctrld-sync/issues/1000)
 - Daily QA & Agentic Review - 2026-07-10 [\#999](https://github.com/abhimehro/ctrld-sync/issues/999)
 - Daily QA & Agentic Review - 2026-07-09 [\#998](https://github.com/abhimehro/ctrld-sync/issues/998)
@@ -20,6 +22,9 @@
 
 **Merged pull requests:**
 
+- chore\(deps\): bump ruby/setup-ruby from 1.316.0 to 1.318.0 [\#1015](https://github.com/abhimehro/ctrld-sync/pull/1015) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump actions/setup-node from 6.4.0 to 7.0.0 [\#1014](https://github.com/abhimehro/ctrld-sync/pull/1014) ([dependabot[bot]](https://github.com/apps/dependabot))
+- 🎨 Palette: Fix leading newlines in prompts with ANSI codes [\#1011](https://github.com/abhimehro/ctrld-sync/pull/1011) ([abhimehro](https://github.com/abhimehro))
 - Docs: Review log for PR \#990 [\#1010](https://github.com/abhimehro/ctrld-sync/pull/1010) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: optimize urls\_to\_process deduplication with filterfalse [\#1009](https://github.com/abhimehro/ctrld-sync/pull/1009) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Extract leading newlines from interactive prompts [\#1008](https://github.com/abhimehro/ctrld-sync/pull/1008) ([abhimehro](https://github.com/abhimehro))
