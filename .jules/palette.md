@@ -98,3 +98,7 @@
 
 **Learning:** In interactive CLI flows where input is cancelled (e.g. `input()` raising `KeyboardInterrupt`), printing a cancellation message directly leaves awkward extraneous blank lines if the prompt string contains a leading newline, which breaks terminal clearing logic (`\r\033[K`) by displacing the cursor.
 **Action:** When printing vertical spacing before interactive prompts, print it structurally using an explicit `print()` rather than embedding a leading newline (`\n`) directly in the prompt string.
+
+## 2023-11-09 - [Safe Substring Removal in ANSI Strings]
+**Learning:** Using index slicing (`string[:idx] + string[idx+1:]`) to remove substrings (like newlines) from strings that contain ANSI escape codes is fragile and can lead to unintended removals if the string structure changes or is miscalculated, potentially breaking the prompt output or corrupting the escape codes.
+**Action:** When removing specific characters from strings that may contain ANSI escape sequences, use `.replace(char, "", 1)` to safely and precisely target the first occurrence of the character without relying on hardcoded indices.
