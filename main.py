@@ -77,7 +77,6 @@ class RuleAction:
     status: int
 
 
-@dataclass
 class SyncContext:
     """Context for syncing rules and folders."""
 
@@ -85,6 +84,17 @@ class SyncContext:
     client: httpx.Client
     existing_rules: set[str]
     batch_executor: concurrent.futures.Executor | None = None
+
+
+@dataclass
+class BatchContext:
+    """Context for batch processing operations."""
+
+    client: httpx.Client
+    profile_id: str
+    folder_name: str
+    folder_id: str
+    action: RuleAction
 
 
 # --------------------------------------------------------------------------- #
@@ -2187,6 +2197,77 @@ def _push_single_batch(
         return None
 
 
+def _get_executor_context(
+    ctx: SyncContext,
+) -> contextlib.AbstractContextManager[concurrent.futures.Executor]:
+    """Get the appropriate executor context based on available batch executor."""
+    if ctx.batch_executor:
+        return contextlib.nullcontext(ctx.batch_executor)
+    return concurrent.futures.ThreadPoolExecutor(max_workers=3)
+
+
+def _process_single_batch(
+    batch_ctx: BatchContext, batch_index: int, batch: list[str], progress_label: str
+) -> tuple[int, set[str]]:
+    """Process a single batch and return count of successful batches and rules."""
+    str_do = str(batch_ctx.action.do)
+    str_status = str(batch_ctx.action.status)
+    str_group = str(batch_ctx.folder_id)
+    sanitized_folder_name = sanitize_for_log(batch_ctx.folder_name)
+
+    result = _push_single_batch(
+        batch_ctx.client,
+        batch_ctx.profile_id,
+        sanitized_folder_name,
+        str_do,
+        str_status,
+        str_group,
+        batch_index,
+        batch,
+    )
+    if result:
+        return 1, result
+    return 0, set()
+
+
+def _process_parallel_batches(
+    sync_ctx: SyncContext, batch_ctx: BatchContext, batches: list[list[str]], progress_label: str
+) -> tuple[int, set[str]]:
+    """Process multiple batches in parallel and return total successful and rules."""
+    str_do = str(batch_ctx.action.do)
+    str_status = str(batch_ctx.action.status)
+    str_group = str(batch_ctx.folder_id)
+    sanitized_folder_name = sanitize_for_log(batch_ctx.folder_name)
+    successful_batches = 0
+    all_rules: set[str] = set()
+
+    executor_ctx = _get_executor_context(sync_ctx)
+    with executor_ctx as executor:
+        futures = {
+            executor.submit(
+                _push_single_batch,
+                batch_ctx.client,
+                batch_ctx.profile_id,
+                sanitized_folder_name,
+                str_do,
+                str_status,
+                str_group,
+                i,
+                batch,
+            ): i
+            for i, batch in enumerate(batches, 1)
+        }
+
+        for future in concurrent.futures.as_completed(futures):
+            result = future.result()
+            if result:
+                successful_batches += 1
+                all_rules.update(result)
+            render_progress_bar(successful_batches, len(batches), progress_label)
+
+    return successful_batches, all_rules
+
+
 def _push_rule_batches(
     ctx: SyncContext,
     folder_name: str,
@@ -2202,64 +2283,20 @@ def _push_rule_batches(
         for start in range(0, len(filtered_hostnames), BATCH_SIZE)
     ]
     total_batches = len(batches)
-
-    # Optimization: Hoist loop invariants to avoid redundant computations
-    str_do = str(action.do)
-    str_status = str(action.status)
-    str_group = str(folder_id)
     sanitized_folder_name = sanitize_for_log(folder_name)
     progress_label = f"Folder {sanitized_folder_name}"
+    batch_ctx = BatchContext(ctx.client, ctx.profile_id, folder_name, folder_id, action)
 
-    successful_batches = 0
-
-    # Optimization 3: Parallelize batch processing
     if total_batches == 1:
-        result = _push_single_batch(
-            ctx.client,
-            ctx.profile_id,
-            sanitized_folder_name,
-            str_do,
-            str_status,
-            str_group,
-            1,
-            batches[0],
+        successful_batches, rules = _process_single_batch(
+            batch_ctx, 1, batches[0], progress_label
         )
-        if result:
-            successful_batches = 1
-            ctx.existing_rules.update(result)
-        render_progress_bar(successful_batches, 1, progress_label)
+        ctx.existing_rules.update(rules)
     else:
-        # Use provided executor or create a local one (fallback)
-        if ctx.batch_executor:
-            executor_ctx: contextlib.AbstractContextManager[
-                concurrent.futures.Executor
-            ] = contextlib.nullcontext(ctx.batch_executor)
-        else:
-            executor_ctx = concurrent.futures.ThreadPoolExecutor(max_workers=3)
-
-        with executor_ctx as executor:
-            futures = {
-                executor.submit(
-                    _push_single_batch,
-                    ctx.client,
-                    ctx.profile_id,
-                    sanitized_folder_name,
-                    str_do,
-                    str_status,
-                    str_group,
-                    i,
-                    batch,
-                ): i
-                for i, batch in enumerate(batches, 1)
-            }
-
-            for future in concurrent.futures.as_completed(futures):
-                result = future.result()
-                if result:
-                    successful_batches += 1
-                    ctx.existing_rules.update(result)
-
-                render_progress_bar(successful_batches, total_batches, progress_label)
+        successful_batches, rules = _process_parallel_batches(
+            ctx, batch_ctx, batches, progress_label
+        )
+        ctx.existing_rules.update(rules)
 
     total_rules = len(filtered_hostnames)
     if successful_batches == total_batches:
@@ -3019,48 +3056,56 @@ def display_statistics() -> None:
     display_rate_limit_status()
 
 
+def _build_sync_command(profile_ids: list[str], args: argparse.Namespace) -> str:
+    """Build the command string for syncing."""
+    cmd_parts = ["python", "main.py"]
+    p_str = (
+        ",".join(profile_ids)
+        if profile_ids and profile_ids[0] != "dry-run-placeholder"
+        else "<your-profile-id>"
+    )
+    cmd_parts.append(f"--profiles {p_str}")
+
+    if args.folder_url:
+        cmd_parts.extend(f"--folder-url {url}" for url in args.folder_url)
+
+    return " ".join(cmd_parts)
+
+
+def _print_success_message(cmd_str: str) -> None:
+    """Print success message with appropriate color formatting."""
+    if USE_COLORS:
+        print(
+            f"{Colors.BOLD}👉 Ready to sync? Run the following command:{Colors.ENDC}"
+        )
+        print(f"   {Colors.CYAN}{cmd_str}{Colors.ENDC}")
+    else:
+        print("👉 Ready to sync? Run the following command:")
+        print(f"   {cmd_str}")
+
+
+def _print_error_message() -> None:
+    """Print error message with appropriate color formatting."""
+    msg = "⚠️  Dry run encountered errors. Please check the logs above."
+    if USE_COLORS:
+        print(f"{Colors.FAIL}{msg}{Colors.ENDC}")
+    else:
+        print(msg)
+
+
 def _print_dry_run_summary(
     all_success: bool, profile_ids: list[str], args: argparse.Namespace
 ) -> bool:
     """Handles displaying dry run summary and interactive restart prompt."""
     print()  # Spacer
     if all_success:
-        # Build the suggested command once so it stays consistent between
-        # color and non-color output modes.
-        cmd_parts = ["python", "main.py"]
-        p_str = (
-            ",".join(profile_ids)
-            if profile_ids and profile_ids[0] != "dry-run-placeholder"
-            else "<your-profile-id>"
-        )
-        cmd_parts.append(f"--profiles {p_str}")
+        cmd_str = _build_sync_command(profile_ids, args)
+        _print_success_message(cmd_str)
 
-        # Reconstruct other args if they were used (optional but helpful)
-        if args.folder_url:
-            cmd_parts.extend(f"--folder-url {url}" for url in args.folder_url)
-
-        cmd_str = " ".join(cmd_parts)
-
-        if USE_COLORS:
-            print(
-                f"{Colors.BOLD}👉 Ready to sync? Run the following command:{Colors.ENDC}"
-            )
-            print(f"   {Colors.CYAN}{cmd_str}{Colors.ENDC}")
-        else:
-            print("👉 Ready to sync? Run the following command:")
-            print(f"   {cmd_str}")
-
-        # Offer interactive restart if appropriate
         if prompt_for_interactive_restart(profile_ids):
             return True
-
     else:
-        if USE_COLORS:
-            print(
-                f"{Colors.FAIL}⚠️  Dry run encountered errors. Please check the logs above.{Colors.ENDC}"
-            )
-        else:
-            print("⚠️  Dry run encountered errors. Please check the logs above.")
+        _print_error_message()
     return False
 
 
