@@ -518,18 +518,6 @@ _BIDI_CONTROL_CHARS = {
 _ALL_FORBIDDEN_FOLDER_CHARS = frozenset(_DANGEROUS_FOLDER_CHARS | _BIDI_CONTROL_CHARS)
 _UNSAFE_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
 
-# Security: Default allowed domains for blocklist URLs (SSRF protection)
-# Only HTTPS URLs with hostnames matching these domains will be fetched.
-DEFAULT_ALLOWED_BLOCKLIST_DOMAINS: frozenset[str] = frozenset(
-    {
-        "raw.githubusercontent.com",
-        "github.com",
-    }
-)
-
-# Runtime-configurable allowed domains (initialized with defaults)
-_ALLOWED_BLOCKLIST_DOMAINS: frozenset[str] = DEFAULT_ALLOWED_BLOCKLIST_DOMAINS
-
 # Pre-compiled patterns for log sanitization
 _BASIC_AUTH_PATTERN = re.compile(r"://[^/@]+@")
 _SENSITIVE_PARAM_PATTERN = re.compile(
@@ -910,7 +898,6 @@ def get_default_config() -> dict:
     """Return the built-in default configuration (mirrors DEFAULT_FOLDER_URLS)."""
     return {
         "folders": [{"url": u} for u in DEFAULT_FOLDER_URLS],
-        "allowed_blocklist_domains": list(DEFAULT_ALLOWED_BLOCKLIST_DOMAINS),
         "settings": {
             "batch_size": BATCH_SIZE,
             "delete_workers": 3,
@@ -956,8 +943,6 @@ def _validate_config(config: dict) -> None:
                 f"folders[{i}]: 'action' must be 'block' or 'allow' (got {action!r})."
             )
 
-    _validate_allowed_blocklist_domains(config.get("allowed_blocklist_domains"))
-
     settings = config.get("settings", {})
     if not isinstance(settings, dict):
         raise ValueError("'settings' must be a mapping.")
@@ -969,9 +954,20 @@ def _validate_config(config: dict) -> None:
             )
 
 
-def _read_config_yaml(
-    config_path: str | None = None,
-) -> tuple[Path, dict] | None:
+def load_config(config_path: str | None = None) -> dict:
+    """
+    Load and validate configuration from a YAML file.
+
+    Resolution order (first found wins):
+    1. Explicit *config_path* argument (e.g. from --config CLI flag)
+    2. config.yaml / config.yml in the current working directory
+    3. ~/.ctrld-sync/config.yaml / ~/.ctrld-sync/config.yml
+    4. Built-in defaults (get_default_config())
+
+    Raises SystemExit on invalid YAML or schema violations so the operator
+    sees a clear error message rather than a cryptic traceback.
+    """
+
     paths_to_try: list[str] = (
         [config_path] if config_path else list(_DEFAULT_CONFIG_PATHS)
     )
@@ -1006,90 +1002,28 @@ def _read_config_yaml(
             )
             sys.exit(1)
 
-        if not isinstance(loaded, dict):
+        try:
+            _validate_config(loaded)
+        except ValueError as exc:
             print(
-                f"{Colors.FAIL}✗ Configuration file {p} is not a YAML mapping.{Colors.ENDC}",
+                f"{Colors.FAIL}✗ Configuration error in {p}: {exc}{Colors.ENDC}",
                 file=sys.stderr,
             )
             sys.exit(1)
 
-        return p, cast(dict, loaded)
+        log.info("Loaded configuration from %s", p)
+        return cast(dict, loaded)
 
     if config_path:
+        # Explicit path was given but not found — this is always an error
         print(
             f"{Colors.FAIL}✗ Config file not found: {config_path}{Colors.ENDC}",
             file=sys.stderr,
         )
         sys.exit(1)
 
-    return None
-
-
-def load_config(config_path: str | None = None) -> dict:
-    """
-    Load and validate configuration from a YAML file.
-
-    Resolution order (first found wins):
-    1. Explicit *config_path* argument (e.g. from --config CLI flag)
-    2. config.yaml / config.yml in the current working directory
-    3. ~/.ctrld-sync/config.yaml / ~/.ctrld-sync/config.yml
-    4. Built-in defaults (get_default_config())
-
-    Raises SystemExit on invalid YAML or schema violations so the operator
-    sees a clear error message rather than a cryptic traceback.
-    """
-
-    loaded_config = _read_config_yaml(config_path)
-    if loaded_config is None:
-        # No config file found; use built-in defaults silently
-        set_allowed_blocklist_domains(None)
-        return get_default_config()
-
-    p, loaded = loaded_config
-
-    try:
-        _validate_config(loaded)
-    except ValueError as exc:
-        print(
-            f"{Colors.FAIL}✗ Configuration error in {p}: {exc}{Colors.ENDC}",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
-    log.info("Loaded configuration from %s", p)
-    set_allowed_blocklist_domains(loaded.get("allowed_blocklist_domains"))
-    return loaded
-
-
-def _load_allowed_blocklist_domains(config_path: str | None = None) -> None:
-    loaded_config = _read_config_yaml(config_path)
-    if loaded_config is None:
-        set_allowed_blocklist_domains(None)
-        return
-
-    p, loaded = loaded_config
-    try:
-        _validate_allowed_blocklist_domains(loaded.get("allowed_blocklist_domains"))
-    except ValueError as exc:
-        print(
-            f"{Colors.FAIL}✗ Configuration error in {p}: {exc}{Colors.ENDC}",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
-    set_allowed_blocklist_domains(loaded.get("allowed_blocklist_domains"))
-
-
-def _validate_allowed_blocklist_domains(allowed_domains: list[str] | None) -> None:
-    if allowed_domains is None:
-        return
-    if not isinstance(allowed_domains, list):
-        raise ValueError("'allowed_blocklist_domains' must be a list.")
-    for i, domain in enumerate(allowed_domains):
-        if not isinstance(domain, str) or not domain.strip():
-            raise ValueError(
-                f"allowed_blocklist_domains[{i}]: must be a non-empty string (got {domain!r})."
-            )
+    # No config file found; use built-in defaults silently
+    return get_default_config()
 
 
 # --------------------------------------------------------------------------- #
@@ -1215,19 +1149,8 @@ def validate_hostname(hostname: str) -> bool:
         return _resolve_and_validate_domain(hostname)
 
 
-def _is_allowed_blocklist_domain(
-    hostname: str, allowed_domains: frozenset[str]
-) -> bool:
-    return any(
-        hostname == domain or hostname.endswith(f".{domain}")
-        for domain in allowed_domains
-    )
-
-
 @lru_cache(maxsize=128)
-def validate_folder_url(
-    url: str, allowed_domains: frozenset[str] | None = None
-) -> bool:
+def validate_folder_url(url: str) -> bool:
     """
     Validates a folder URL.
     Cached to avoid repeated URL parsing for the same URL.
@@ -1250,21 +1173,6 @@ def validate_folder_url(
         if not hostname:
             return False
 
-        domains_to_check = (
-            allowed_domains
-            if allowed_domains is not None
-            else _ALLOWED_BLOCKLIST_DOMAINS
-        )
-        hostname = hostname.lower()
-        if domains_to_check and not _is_allowed_blocklist_domain(
-            hostname, domains_to_check
-        ):
-            log.warning(
-                f"Skipping URL with non-allowlisted domain {sanitize_for_log(hostname)}: "
-                f"{sanitize_for_log(url)}"
-            )
-            return False
-
         return validate_hostname(hostname)
 
     except Exception as e:
@@ -1272,17 +1180,6 @@ def validate_folder_url(
             f"Failed to validate URL {sanitize_for_log(url)}: {sanitize_for_log(e)}"
         )
         return False
-
-
-def set_allowed_blocklist_domains(domains: list[str] | None) -> None:
-    """Set the runtime allowed blocklist domains for SSRF protection."""
-    global _ALLOWED_BLOCKLIST_DOMAINS
-    if domains and len(domains) > 0:
-        _ALLOWED_BLOCKLIST_DOMAINS = frozenset(domain.lower() for domain in domains)
-    else:
-        _ALLOWED_BLOCKLIST_DOMAINS = DEFAULT_ALLOWED_BLOCKLIST_DOMAINS
-    # validate_folder_url() is cached, so any allowlist change must clear it.
-    validate_folder_url.cache_clear()
 
 
 def extract_profile_id(text: str) -> str:
@@ -2290,41 +2187,6 @@ def _push_single_batch(
         return None
 
 
-def _process_batches_with_executor(
-    executor: concurrent.futures.Executor,
-    ctx: SyncContext,
-    batch_config: tuple[tuple[str, str, str, str], list[list[str]], str],
-) -> int:
-    """Process batches using the provided executor and return successful batch count."""
-    batch_params, batches, progress_label = batch_config
-    str_do, str_status, str_group, sanitized_folder_name = batch_params
-    successful_batches = 0
-    futures = {
-        executor.submit(
-            _push_single_batch,
-            ctx.client,
-            ctx.profile_id,
-            sanitized_folder_name,
-            str_do,
-            str_status,
-            str_group,
-            i,
-            batch,
-        ): i
-        for i, batch in enumerate(batches, 1)
-    }
-
-    for future in concurrent.futures.as_completed(futures):
-        result = future.result()
-        if result:
-            successful_batches += 1
-            ctx.existing_rules.update(result)
-
-        render_progress_bar(successful_batches, len(batches), progress_label)
-
-    return successful_batches
-
-
 def _push_rule_batches(
     ctx: SyncContext,
     folder_name: str,
@@ -2348,10 +2210,9 @@ def _push_rule_batches(
     sanitized_folder_name = sanitize_for_log(folder_name)
     progress_label = f"Folder {sanitized_folder_name}"
 
-    # Optimization 3: Parallelize batch processing
-    batch_params = (str_do, str_status, str_group, sanitized_folder_name)
-    batch_config = (batch_params, batches, progress_label)
+    successful_batches = 0
 
+    # Optimization 3: Parallelize batch processing
     if total_batches == 1:
         result = _push_single_batch(
             ctx.client,
@@ -2363,21 +2224,42 @@ def _push_rule_batches(
             1,
             batches[0],
         )
-        successful_batches = 1 if result else 0
         if result:
+            successful_batches = 1
             ctx.existing_rules.update(result)
         render_progress_bar(successful_batches, 1, progress_label)
     else:
+        # Use provided executor or create a local one (fallback)
         if ctx.batch_executor:
-            with contextlib.nullcontext(ctx.batch_executor) as executor:
-                successful_batches = _process_batches_with_executor(
-                    executor, ctx, batch_config
-                )
+            executor_ctx: contextlib.AbstractContextManager[
+                concurrent.futures.Executor
+            ] = contextlib.nullcontext(ctx.batch_executor)
         else:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-                successful_batches = _process_batches_with_executor(
-                    executor, ctx, batch_config
-                )
+            executor_ctx = concurrent.futures.ThreadPoolExecutor(max_workers=3)
+
+        with executor_ctx as executor:
+            futures = {
+                executor.submit(
+                    _push_single_batch,
+                    ctx.client,
+                    ctx.profile_id,
+                    sanitized_folder_name,
+                    str_do,
+                    str_status,
+                    str_group,
+                    i,
+                    batch,
+                ): i
+                for i, batch in enumerate(batches, 1)
+            }
+
+            for future in concurrent.futures.as_completed(futures):
+                result = future.result()
+                if result:
+                    successful_batches += 1
+                    ctx.existing_rules.update(result)
+
+                render_progress_bar(successful_batches, total_batches, progress_label)
 
     total_rules = len(filtered_hostnames)
     if successful_batches == total_batches:
@@ -3137,28 +3019,6 @@ def display_statistics() -> None:
     display_rate_limit_status()
 
 
-def _resolve_folder_urls(args: argparse.Namespace) -> tuple[list[str], dict | None]:
-    if args.folder_url:
-        # When explicit URLs are given, only the blocklist allowlist is needed.
-        # A broken auto-discovered config.yaml must not block --folder-url usage,
-        # so we warn and fall back to the default allowlist instead of exiting.
-        # An explicit --config path that is missing/invalid stays fatal.
-        try:
-            _load_allowed_blocklist_domains(args.config)
-        except SystemExit:
-            if args.config:
-                raise
-            log.warning(
-                "Could not load allowed_blocklist_domains from a discovered config; "
-                "falling back to default allowlisted domains."
-            )
-            set_allowed_blocklist_domains(None)
-        return args.folder_url, None
-
-    cfg = load_config(args.config)
-    return [entry["url"] for entry in cfg["folders"]], cfg
-
-
 def main() -> bool:
     """
     Main entry point for Control D Sync.
@@ -3209,9 +3069,11 @@ def main() -> bool:
     profile_ids = [extract_profile_id(p) for p in profiles_arg.split(",") if p.strip()]
 
     # --folder-url flags take highest precedence; otherwise use config file or defaults
-    folder_urls, cfg = _resolve_folder_urls(args)
+    if args.folder_url:
+        folder_urls = args.folder_url
+    else:
+        cfg = load_config(args.config)
 
-    if cfg is not None:
         # Apply optional runtime tuning from config["settings"], if present.
         # We deliberately:
         #   * Keep CLI flags and environment variables as the highest-precedence sources.
@@ -3247,6 +3109,8 @@ def main() -> bool:
                 and "MAX_RETRIES" in globals()
             ):
                 globals()["MAX_RETRIES"] = max_retries
+        folder_urls = [entry["url"] for entry in cfg.get("folders", [])]
+
     # Interactive prompts for missing config
     if not args.dry_run and sys.stdin.isatty():
         if not profile_ids:
@@ -3342,8 +3206,7 @@ def main() -> bool:
             # RESTORED STATS LOGIC: Calculate actual counts from the plan
             entry = next((p for p in plan if p["profile"] == profile_id), None)
             folder_count = len(entry["folders"]) if entry else 0
-            # OPTIMIZATION: C-speed list comprehension avoids Python loop overhead, benchmarking ~20% faster than sum(generator)
-            rule_count = sum([f["rules"] for f in entry["folders"]]) if entry else 0
+            rule_count = sum(f["rules"] for f in entry["folders"]) if entry else 0
 
             if args.dry_run:
                 status_text = "✅ Planned" if status else "❌ Failed (Dry)"
@@ -3371,8 +3234,7 @@ def main() -> bool:
         # Try to recover stats for the interrupted profile
         entry = next((p for p in plan if p["profile"] == profile_id), None)
         folder_count = len(entry["folders"]) if entry else 0
-        # OPTIMIZATION: C-speed list comprehension avoids Python loop overhead, benchmarking ~20% faster than sum(generator)
-        rule_count = sum([f["rules"] for f in entry["folders"]]) if entry else 0
+        rule_count = sum(f["rules"] for f in entry["folders"]) if entry else 0
 
         sync_results.append(
             {

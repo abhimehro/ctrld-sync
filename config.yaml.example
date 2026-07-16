@@ -22,19 +22,11 @@
 # Required fields per entry:
 #   url    – HTTPS URL to the Control D JSON folder file
 #
-# Optional top-level security setting:
-#   allowed_blocklist_domains – allowlist for blocklist hostnames. Defaults to
-#                                raw.githubusercontent.com and github.com.
-#
 # Optional fields per entry:
 #   name   – human-readable label (informational only; the actual folder name
 #            comes from the JSON file itself)
 #   action – "block" or "allow" (informational only; the action is defined
 #            inside the JSON file)
-allowed_blocklist_domains:
-  - raw.githubusercontent.com
-  - github.com
-
 folders:
   # ── Native-tracker block lists ──────────────────────────────────────────
   - name: "Native Tracker – Amazon"
