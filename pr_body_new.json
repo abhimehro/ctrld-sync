@@ -1,0 +1,6 @@
+{
+  "title": "🎨 Palette: Improve ANSI string newline removal",
+  "body": "💡 What: Replaced index slicing `prompt = prompt[:idx] + prompt[idx+1:]` with `.replace('\\n', '', 1)` when removing newlines from ANSI-colored prompts.\n\n🎯 Why: The previous hardcoded index slicing method was fragile when applied to strings containing ANSI escape codes, potentially corrupting the prompt or the ANSI codes themselves. Using `.replace` targets the exact character safely.\n\n📸 Before/After: Visual changes affect CLI prompts formatting.\n\n♿ Accessibility: Improves the reliability of interactive prompts, ensuring hints like '(typing will be hidden)' remain intact and visible.",
+  "head": "jules-10245812643533762893-809d546a",
+  "base": "main"
+}
