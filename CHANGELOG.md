@@ -6,6 +6,7 @@
 
 **Security fixes:**
 
+- P1: SSRF - User-Controlled URLs with Outbound Requests [\#993](https://github.com/abhimehro/ctrld-sync/issues/993)
 - 🚨 P0: Critical SSRF Vulnerability in Blocklist URL Fetching [\#987](https://github.com/abhimehro/ctrld-sync/issues/987)
 
 **Closed issues:**
@@ -20,6 +21,7 @@
 - Daily QA & Agentic Review - 2026-07-09 [\#998](https://github.com/abhimehro/ctrld-sync/issues/998)
 - Daily QA & Agentic Review - 2026-07-08 [\#996](https://github.com/abhimehro/ctrld-sync/issues/996)
 - Daily QA & Agentic Review - 2026-07-07 [\#995](https://github.com/abhimehro/ctrld-sync/issues/995)
+- P2: Supply Chain - Unpinned Dependencies [\#994](https://github.com/abhimehro/ctrld-sync/issues/994)
 - Daily QA & Agentic Review - 2026-07-06 [\#991](https://github.com/abhimehro/ctrld-sync/issues/991)
 - Daily QA & Agentic Review - 2026-07-05 [\#985](https://github.com/abhimehro/ctrld-sync/issues/985)
 - \[repo-automation\] Weekly Retrospective - 2026-07-05 [\#982](https://github.com/abhimehro/ctrld-sync/issues/982)
@@ -27,6 +29,7 @@
 
 **Merged pull requests:**
 
+- 🎨 Palette: Improve ANSI string newline removal [\#1017](https://github.com/abhimehro/ctrld-sync/pull/1017) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump ruby/setup-ruby from 1.316.0 to 1.318.0 [\#1015](https://github.com/abhimehro/ctrld-sync/pull/1015) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump actions/setup-node from 6.4.0 to 7.0.0 [\#1014](https://github.com/abhimehro/ctrld-sync/pull/1014) ([dependabot[bot]](https://github.com/apps/dependabot))
 - 🎨 Palette: Fix leading newlines in prompts with ANSI codes [\#1011](https://github.com/abhimehro/ctrld-sync/pull/1011) ([abhimehro](https://github.com/abhimehro))
