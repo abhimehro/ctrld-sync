@@ -2351,7 +2351,7 @@ def _push_rule_batches(
     # Optimization 3: Parallelize batch processing
     batch_params = (str_do, str_status, str_group, sanitized_folder_name)
     batch_config = (batch_params, batches, progress_label)
-    
+
     if total_batches == 1:
         result = _push_single_batch(
             ctx.client,
@@ -3139,7 +3139,20 @@ def display_statistics() -> None:
 
 def _resolve_folder_urls(args: argparse.Namespace) -> tuple[list[str], dict | None]:
     if args.folder_url:
-        _load_allowed_blocklist_domains(args.config)
+        # When explicit URLs are given, only the blocklist allowlist is needed.
+        # A broken auto-discovered config.yaml must not block --folder-url usage,
+        # so we warn and fall back to the default allowlist instead of exiting.
+        # An explicit --config path that is missing/invalid stays fatal.
+        try:
+            _load_allowed_blocklist_domains(args.config)
+        except SystemExit:
+            if args.config:
+                raise
+            log.warning(
+                "Could not load allowed_blocklist_domains from a discovered config; "
+                "falling back to default allowlisted domains."
+            )
+            set_allowed_blocklist_domains(None)
         return args.folder_url, None
 
     cfg = load_config(args.config)

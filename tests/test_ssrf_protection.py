@@ -74,3 +74,23 @@ def test_folder_url_explicit_missing_config_path_exits(tmp_path):
                 config=str(tmp_path / "missing.yaml"),
             )
         )
+
+
+def test_folder_url_broken_discovered_config_falls_back(tmp_path, monkeypatch):
+    # A broken auto-discovered config.yaml must not block --folder-url usage:
+    # it should warn and fall back to the default allowlist rather than exit.
+    (tmp_path / "config.yaml").write_text("just a bare string, not a mapping\n")
+    monkeypatch.chdir(tmp_path)
+    main.set_allowed_blocklist_domains(None)
+
+    urls, cfg = main._resolve_folder_urls(
+        argparse.Namespace(
+            folder_url=["https://raw.githubusercontent.com/test/file.json"],
+            config=None,
+        )
+    )
+
+    assert urls == ["https://raw.githubusercontent.com/test/file.json"]
+    assert cfg is None
+    # Fallback to defaults means the GitHub-only allowlist is active again.
+    assert main._ALLOWED_BLOCKLIST_DOMAINS == main.DEFAULT_ALLOWED_BLOCKLIST_DOMAINS
