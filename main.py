@@ -2,9 +2,6 @@
 """
 Control D Sync
 ----------------------
-[!NOTE]
-Consider using [0x11DFE/controld-hagezi-sync](https://github.com/0x11DFE/controld-hagezi-sync), as it currently has more features.
-
 A tiny helper that keeps your Control D folders in sync with a set of
 remote block-lists.
 
