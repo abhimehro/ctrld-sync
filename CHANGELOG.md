@@ -20,6 +20,14 @@
 - \[repo-automation\] Weekly Retrospective - 2026-07-05 [\#982](https://github.com/abhimehro/ctrld-sync/issues/982)
 - Daily QA & Agentic Review - 2026-07-04 [\#980](https://github.com/abhimehro/ctrld-sync/issues/980)
 
+**Security:**
+
+- Add blocklist domain allowlisting with `allowed_blocklist_domains` and GitHub-host defaults for blocklist fetches.
+
+**Changed:**
+
+- Keep the direct `push_rules()` fallback in place when no executor is supplied; normal sync runs still use the shared executor path.
+
 **Merged pull requests:**
 
 - chore\(deps\): bump ruby/setup-ruby from 1.316.0 to 1.318.0 [\#1015](https://github.com/abhimehro/ctrld-sync/pull/1015) ([dependabot[bot]](https://github.com/apps/dependabot))

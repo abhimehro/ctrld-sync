@@ -17,6 +17,7 @@ def test_get_default_config_returns_dict():
     cfg = main.get_default_config()
     assert isinstance(cfg, dict)
     assert "folders" in cfg
+    assert "allowed_blocklist_domains" in cfg
     assert "settings" in cfg
 
 
@@ -24,6 +25,14 @@ def test_get_default_config_folders_match_default_urls():
     cfg = main.get_default_config()
     urls = [entry["url"] for entry in cfg["folders"]]
     assert urls == main.DEFAULT_FOLDER_URLS
+
+
+def test_get_default_config_allowed_domains_match_defaults():
+    cfg = main.get_default_config()
+    assert set(cfg["allowed_blocklist_domains"]) == {
+        "raw.githubusercontent.com",
+        "github.com",
+    }
 
 
 def test_get_default_config_settings_are_positive_ints():
