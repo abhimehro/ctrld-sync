@@ -4,8 +4,13 @@
 
 [Full Changelog](https://github.com/abhimehro/ctrld-sync/compare/v0.1.1...HEAD)
 
+**Security fixes:**
+
+- 🚨 P0: Critical SSRF Vulnerability in Blocklist URL Fetching [\#987](https://github.com/abhimehro/ctrld-sync/issues/987)
+
 **Closed issues:**
 
+- Daily QA & Agentic Review - 2026-07-15 [\#1016](https://github.com/abhimehro/ctrld-sync/issues/1016)
 - Daily QA & Agentic Review - 2026-07-14 [\#1012](https://github.com/abhimehro/ctrld-sync/issues/1012)
 - Daily QA & Agentic Review - 2026-07-12 [\#1003](https://github.com/abhimehro/ctrld-sync/issues/1003)
 - Daily QA & Agentic Review - 2026-07-12 [\#1002](https://github.com/abhimehro/ctrld-sync/issues/1002)
@@ -20,14 +25,6 @@
 - \[repo-automation\] Weekly Retrospective - 2026-07-05 [\#982](https://github.com/abhimehro/ctrld-sync/issues/982)
 - Daily QA & Agentic Review - 2026-07-04 [\#980](https://github.com/abhimehro/ctrld-sync/issues/980)
 
-**Security:**
-
-- Add blocklist domain allowlisting with `allowed_blocklist_domains` and GitHub-host defaults for blocklist fetches.
-
-**Changed:**
-
-- Keep the direct `push_rules()` fallback in place when no executor is supplied; normal sync runs still use the shared executor path.
-
 **Merged pull requests:**
 
 - chore\(deps\): bump ruby/setup-ruby from 1.316.0 to 1.318.0 [\#1015](https://github.com/abhimehro/ctrld-sync/pull/1015) ([dependabot[bot]](https://github.com/apps/dependabot))
@@ -41,6 +38,7 @@
 - 🎨 Palette: Fix ANSI sequences breaking interactive prompt alignment [\#1004](https://github.com/abhimehro/ctrld-sync/pull/1004) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Fix CLI table alignment by using \_display\_len for profile names [\#997](https://github.com/abhimehro/ctrld-sync/pull/997) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump codescene-oss/pr-refactoring-agent from 841e34c7ddd7a8ec887d632ac51432d6c71e2fe1 to bbc72fbfb8e514ed2dd0a1ba2dda2e0083abac73 [\#992](https://github.com/abhimehro/ctrld-sync/pull/992) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Add blocklist domain allowlist for SSRF protection [\#990](https://github.com/abhimehro/ctrld-sync/pull/990) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[MEDIUM\] Fix TOCTOU vulnerability in cache.py [\#989](https://github.com/abhimehro/ctrld-sync/pull/989) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Fix leading newline in interactive prompt [\#988](https://github.com/abhimehro/ctrld-sync/pull/988) ([abhimehro](https://github.com/abhimehro))
 - chore: formatting and whitespace fixes via pre-commit [\#986](https://github.com/abhimehro/ctrld-sync/pull/986) ([abhimehro](https://github.com/abhimehro))
