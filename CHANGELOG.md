@@ -30,6 +30,7 @@
 
 **Merged pull requests:**
 
+- chore\(deps\): bump ruby/setup-ruby from 1.318.0 to 1.319.0 [\#1020](https://github.com/abhimehro/ctrld-sync/pull/1020) ([dependabot[bot]](https://github.com/apps/dependabot))
 - 🎨 Palette: Improve ANSI string newline removal [\#1017](https://github.com/abhimehro/ctrld-sync/pull/1017) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump ruby/setup-ruby from 1.316.0 to 1.318.0 [\#1015](https://github.com/abhimehro/ctrld-sync/pull/1015) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump actions/setup-node from 6.4.0 to 7.0.0 [\#1014](https://github.com/abhimehro/ctrld-sync/pull/1014) ([dependabot[bot]](https://github.com/apps/dependabot))
