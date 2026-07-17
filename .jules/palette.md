@@ -102,3 +102,8 @@
 ## 2023-11-09 - [Safe Substring Removal in ANSI Strings]
 **Learning:** Using index slicing (`string[:idx] + string[idx+1:]`) to remove substrings (like newlines) from strings that contain ANSI escape codes is fragile and can lead to unintended removals if the string structure changes or is miscalculated, potentially breaking the prompt output or corrupting the escape codes.
 **Action:** When removing specific characters from strings that may contain ANSI escape sequences, use `.replace(char, "", 1)` to safely and precisely target the first occurrence of the character without relying on hardcoded indices.
+
+## 2026-08-01 - [Visual Hierarchy in Terminal Output]
+
+**Learning:** When displaying multiple blocks of statistical data in the terminal (like API calls, cache hits, rate limits), using bold text alone for section headers isn't enough to make the data quickly scannable, especially when the surrounding text is dense.
+**Action:** Always add semantic emojis (like 📊, ⚡, 🚦) to the start of statistical or categorical section headers. Emojis act as strong visual anchors, allowing users to instantly locate the information they need in a dense CLI output.
