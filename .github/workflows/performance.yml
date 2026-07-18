@@ -57,9 +57,9 @@ jobs:
         id: benchmark-cache
         with:
           path: ./cache
-          key: ${{ runner.os }}-benchmark-v3
+          key: ${{ runner.os }}-benchmark-v4
           restore-keys: |
-            ${{ runner.os }}-benchmark-v3
+            ${{ runner.os }}-benchmark-v4
 
       - name: Run structured benchmark suite
         run: |
