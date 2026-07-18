@@ -32,6 +32,7 @@
 
 **Merged pull requests:**
 
+- 🎨 Palette: Add emojis to statistics headers [\#1023](https://github.com/abhimehro/ctrld-sync/pull/1023) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump ruby/setup-ruby from 1.318.0 to 1.319.0 [\#1020](https://github.com/abhimehro/ctrld-sync/pull/1020) ([dependabot[bot]](https://github.com/apps/dependabot))
 - 🎨 Palette: Improve ANSI string newline removal [\#1017](https://github.com/abhimehro/ctrld-sync/pull/1017) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump ruby/setup-ruby from 1.316.0 to 1.318.0 [\#1015](https://github.com/abhimehro/ctrld-sync/pull/1015) ([dependabot[bot]](https://github.com/apps/dependabot))
