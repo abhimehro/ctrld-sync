@@ -274,6 +274,7 @@ def _log_debug_response_content(e: Exception) -> None:
     if response is not None:
         log.debug(f"Response content: {_sanitize_fn(response.text)}")
 
+
 def _handle_rate_limit(
     e: httpx.HTTPStatusError, attempt: int, max_retries: int
 ) -> bool:
