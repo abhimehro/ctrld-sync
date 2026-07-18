@@ -143,6 +143,32 @@ def _log_rate_limit_warning(limit: int, remaining: int, reset: int | None) -> No
         log.warning(f"Approaching rate limit: {remaining}/{limit} requests remaining")
 
 
+def _has_any_rate_limit_headers(
+    new_limit: int | None, new_remaining: int | None, new_reset: int | None
+) -> bool:
+    """Check if any rate limit header was successfully parsed."""
+    return new_limit is not None or new_remaining is not None or new_reset is not None
+
+
+def _update_rate_limit_info(
+    new_limit: int | None, new_remaining: int | None, new_reset: int | None
+) -> tuple[int | None, int | None, int | None]:
+    """Update global rate limit info under lock and return snapshot."""
+    with _rate_limit_lock:
+        if new_limit is not None:
+            _rate_limit_info["limit"] = new_limit
+        if new_remaining is not None:
+            _rate_limit_info["remaining"] = new_remaining
+        if new_reset is not None:
+            _rate_limit_info["reset"] = new_reset
+
+        return (
+            _rate_limit_info["limit"],
+            _rate_limit_info["remaining"],
+            _rate_limit_info["reset"],
+        )
+
+
 def _parse_rate_limit_headers(response: httpx.Response) -> None:
     """
     Parse rate limit headers from API response and update global tracking.
@@ -170,20 +196,12 @@ def _parse_rate_limit_headers(response: httpx.Response) -> None:
         new_remaining = _extract_int_header(headers, "X-RateLimit-Remaining")
         new_reset = _extract_int_header(headers, "X-RateLimit-Reset")
 
-        if new_limit is None and new_remaining is None and new_reset is None:
+        if not _has_any_rate_limit_headers(new_limit, new_remaining, new_reset):
             return
 
-        with _rate_limit_lock:
-            if new_limit is not None:
-                _rate_limit_info["limit"] = new_limit
-            if new_remaining is not None:
-                _rate_limit_info["remaining"] = new_remaining
-            if new_reset is not None:
-                _rate_limit_info["reset"] = new_reset
-
-            limit_snapshot = _rate_limit_info["limit"]
-            remaining_snapshot = _rate_limit_info["remaining"]
-            reset_snapshot = _rate_limit_info["reset"]
+        limit_snapshot, remaining_snapshot, reset_snapshot = _update_rate_limit_info(
+            new_limit, new_remaining, new_reset
+        )
 
         # Log warnings when approaching rate limits
         if limit_snapshot is not None and remaining_snapshot is not None:
@@ -221,29 +239,35 @@ def retry_with_jitter(
     return exponential_delay * random.random()
 
 
+def _is_server_error(e: Exception) -> bool:
+    """Check if exception is a 5xx server error."""
+    return (
+        isinstance(e, httpx.HTTPStatusError)
+        and hasattr(e, "response")
+        and e.response is not None
+        and e.response.status_code >= 500
+    )
+
+
 def _get_error_hint(e: Exception) -> str:
     """Generate actionable error hints for logged exceptions."""
     if isinstance(e, httpx.TimeoutException):
         return f" | hint: {_TIMEOUT_HINT}"
     if isinstance(e, httpx.ConnectError):
         return f" | hint: {_CONNECT_ERROR_HINT}"
-    if (
-        isinstance(e, httpx.HTTPStatusError)
-        and hasattr(e, "response")
-        and e.response is not None
-        and e.response.status_code >= 500
-    ):
+    if _is_server_error(e):
         return f" | hint: {_SERVER_ERROR_HINT}"
     return ""
 
 
+def _has_response(e: Exception) -> bool:
+    """Check if exception has a valid response attribute."""
+    return hasattr(e, "response") and getattr(e, "response", None) is not None
+
+
 def _log_debug_response_content(e: Exception) -> None:
     """Log response content at debug level if available."""
-    if (
-        hasattr(e, "response")
-        and getattr(e, "response", None) is not None
-        and log.isEnabledFor(logging.DEBUG)
-    ):
+    if _has_response(e) and log.isEnabledFor(logging.DEBUG):
         log.debug(f"Response content: {_sanitize_fn(e.response.text)}")
 
 
