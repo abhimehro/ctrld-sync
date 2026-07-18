@@ -773,8 +773,7 @@ def get_validated_input(
     """Prompts for input until the validator returns True."""
     while _ANSI_ESCAPE_PATTERN.sub("", prompt).startswith("\n"):
         print()
-        first_newline_idx = prompt.find("\n")
-        prompt = prompt[:first_newline_idx] + prompt[first_newline_idx + 1:]
+        prompt = prompt.replace("\n", "", 1)
 
     if not _ANSI_ESCAPE_PATTERN.sub("", prompt).endswith(" "):
         prompt += " "
@@ -805,8 +804,7 @@ def _format_password_prompt(prompt: str) -> str:
     """Formats the password prompt to ensure it contains standard hints and spaces."""
     while _ANSI_ESCAPE_PATTERN.sub("", prompt).startswith("\n"):
         print()
-        first_newline_idx = prompt.find("\n")
-        prompt = prompt[:first_newline_idx] + prompt[first_newline_idx + 1:]
+        prompt = prompt.replace("\n", "", 1)
 
     if "(typing will be hidden)" not in prompt:
         prompt = f"{prompt.rstrip()} (typing will be hidden) "
@@ -3059,9 +3057,9 @@ def display_api_statistics() -> None:
     )
     if total_api_calls > 0:
         if USE_COLORS:
-            print(f"{Colors.BOLD}API Statistics:{Colors.ENDC}")
+            print(f"{Colors.BOLD}📊 API Statistics:{Colors.ENDC}")
         else:
-            print("API Statistics:")
+            print("📊 API Statistics:")
         print(f"  • Control D API calls: {_api_stats['control_d_api_calls']:>7,}")
         print(f"  • Blocklist fetches:   {_api_stats['blocklist_fetches']:>7,}")
         print(f"  • Total API requests:  {total_api_calls:>7,}")
@@ -3072,9 +3070,9 @@ def display_cache_statistics() -> None:
     """Display cache statistics if any cache activity occurred."""
     if _cache_stats["hits"] + _cache_stats["misses"] + _cache_stats["validations"] > 0:
         if USE_COLORS:
-            print(f"{Colors.BOLD}Cache Statistics:{Colors.ENDC}")
+            print(f"{Colors.BOLD}⚡ Cache Statistics:{Colors.ENDC}")
         else:
-            print("Cache Statistics:")
+            print("⚡ Cache Statistics:")
         print(f"  • Hits (in-memory):    {_cache_stats['hits']:>7,}")
         print(f"  • Misses (downloaded): {_cache_stats['misses']:>7,}")
         print(f"  • Validations (304):   {_cache_stats['validations']:>7,}")
@@ -3102,7 +3100,7 @@ def display_rate_limit_status() -> None:
         if not any(v is not None for v in _rate_limit_info.values()):
             return
 
-        print(f"{Colors.BOLD}API Rate Limit Status:{Colors.ENDC}")
+        print(f"{Colors.BOLD}🚦 API Rate Limit Status:{Colors.ENDC}")
 
         if _rate_limit_info["limit"] is not None:
             print(f"  • Requests limit:       {_rate_limit_info['limit']:>6,}")
