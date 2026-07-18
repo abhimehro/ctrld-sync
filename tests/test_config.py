@@ -29,10 +29,9 @@ def test_get_default_config_folders_match_default_urls():
 
 def test_get_default_config_allowed_domains_match_defaults():
     cfg = main.get_default_config()
-    assert set(cfg["allowed_blocklist_domains"]) == {
-        "raw.githubusercontent.com",
-        "github.com",
-    }
+    assert set(cfg["allowed_blocklist_domains"]) == set(
+        main.DEFAULT_ALLOWED_BLOCKLIST_DOMAINS
+    )
 
 
 def test_get_default_config_settings_are_positive_ints():

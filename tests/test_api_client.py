@@ -301,3 +301,39 @@ class TestRetryRequestGuards:
         with pytest.raises(RuntimeError, match="_retry_request called"):
             mock_response = httpx.Response(200)
             api_client._retry_request(lambda: mock_response, max_retries=-1)
+
+
+class TestApiHostPinning:
+    """SSRF defense: Control D API wrappers must only call api.controld.com over HTTPS."""
+
+    def test_allowed_api_hosts_is_api_controld_only(self):
+        assert frozenset({"api.controld.com"}) == api_client.ALLOWED_API_HOSTS
+
+    def test_assert_api_url_accepts_official_host(self):
+        api_client._assert_api_url("https://api.controld.com/profiles/abc/groups")
+
+    def test_assert_api_url_fast_path_rejects_host_suffix_bypass(self):
+        """Trailing slash on the allowlist prefix blocks api.controld.com.evil.com."""
+        with pytest.raises(ValueError, match="not allowlisted"):
+            api_client._assert_api_url(
+                "https://api.controld.com.evil.com/profiles/abc/groups"
+            )
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "http://api.controld.com/profiles/abc/groups",
+            "https://evil.com/profiles/abc/groups",
+            "https://controld.com/profiles/abc/groups",
+            "https://status.controld.com/health",
+            "https://api.controld.com.evil.com/profiles/abc/groups",
+        ],
+    )
+    def test_assert_api_url_rejects_unsafe_urls(self, url):
+        with pytest.raises(ValueError):
+            api_client._assert_api_url(url)
+
+    def test_api_get_rejects_non_allowlisted_host(self):
+        mock_client = MagicMock()
+        with pytest.raises(ValueError, match="not allowlisted"):
+            api_client._api_get(mock_client, "https://evil.com/x")
+        mock_client.get.assert_not_called()

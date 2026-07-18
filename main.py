@@ -518,12 +518,15 @@ _BIDI_CONTROL_CHARS = {
 _ALL_FORBIDDEN_FOLDER_CHARS = frozenset(_DANGEROUS_FOLDER_CHARS | _BIDI_CONTROL_CHARS)
 _UNSAFE_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
 
-# Security: Default allowed domains for blocklist URLs (SSRF protection)
-# Only HTTPS URLs with hostnames matching these domains will be fetched.
+# SECURITY: Default allowed domains for blocklist URLs (SSRF / CWE-918).
+# Deny-by-default: only HTTPS URLs whose hostname matches these domains (exact
+# or subdomain) are fetched. Do NOT add controld.com here — Control D API
+# traffic is pinned separately to api.controld.com in api_client.py (ABHI-1481).
 DEFAULT_ALLOWED_BLOCKLIST_DOMAINS: frozenset[str] = frozenset(
     {
         "raw.githubusercontent.com",
         "github.com",
+        "yokoffing.github.io",
     }
 )
 

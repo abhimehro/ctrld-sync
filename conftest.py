@@ -16,6 +16,7 @@ def _default_test_blocklist_allowlist():
         [
             "raw.githubusercontent.com",
             "github.com",
+            "yokoffing.github.io",
             "example.com",
         ]
     )

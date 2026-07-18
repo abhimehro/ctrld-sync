@@ -1,76 +1,76 @@
 {
-  "lastUpdate": 1781259865928,
+  "lastUpdate": 1784401760387,
   "repoUrl": "https://github.com/abhimehro/ctrld-sync",
   "entries": {
     "Benchmark": [
       {
         "commit": {
           "author": {
-            "name": "abhimehro",
-            "username": "abhimehro",
-            "email": "84992105+abhimehro@users.noreply.github.com"
+            "name": "Cursor Agent",
+            "username": "cursoragent",
+            "email": "cursoragent@cursor.com"
           },
           "committer": {
-            "name": "abhimehro",
-            "username": "abhimehro",
-            "email": "84992105+abhimehro@users.noreply.github.com"
+            "name": "Cursor Agent",
+            "username": "cursoragent",
+            "email": "cursoragent@cursor.com"
           },
-          "id": "15bb09f56a32672e3d655e034119c7a6c1a07c24",
-          "message": "Re-baseline: last known passing Performance Tests run (2026-06-08)",
-          "timestamp": "2026-06-08T10:57:43Z",
-          "url": "https://github.com/abhimehro/ctrld-sync/commit/15bb09f56a32672e3d655e034119c7a6c1a07c24"
+          "id": "faa0da981b162cf262efb002617696adc19475f5",
+          "message": "Re-baseline: Performance Tests against current ubuntu-latest (PR #1025)",
+          "timestamp": "2026-07-18T19:09:20Z",
+          "url": "https://github.com/abhimehro/ctrld-sync/commit/faa0da981b162cf262efb002617696adc19475f5"
         },
-        "date": 1780916263000,
+        "date": 1784401760387,
         "tool": "pytest",
         "benches": [
           {
             "name": "tests/test_benchmarks.py::test_is_valid_rule_benchmark",
-            "value": 3105874.7033862015,
+            "value": 2245823.0,
             "unit": "iter/sec",
-            "range": "stddev: 1.3210587109928273e-07",
-            "extra": "mean: 321.97048995883284 nsec\nrounds: 110437"
+            "range": "stddev: 2.558886e-07",
+            "extra": "mean: 445.2711 nsec\nrounds: 115527"
           },
           {
             "name": "tests/test_benchmarks.py::test_deduplication_benchmark",
-            "value": 5273.269384256204,
+            "value": 3385.6957450666255,
             "unit": "iter/sec",
-            "range": "stddev: 6.0234296605408985e-06",
-            "extra": "mean: 189.63567516303743 usec\nrounds: 3374"
+            "range": "stddev: 7.9284615e-06",
+            "extra": "mean: 295.3602672 usec\nrounds: 2395"
           },
           {
             "name": "tests/test_benchmarks.py::test_cache_roundtrip_benchmark",
-            "value": 4155.399781736338,
+            "value": 2972.630503443394,
             "unit": "iter/sec",
-            "range": "stddev: 5.786760251730234e-06",
-            "extra": "mean: 240.6507321859051 usec\nrounds: 3312"
+            "range": "stddev: 9.2171361e-06",
+            "extra": "mean: 336.4023880 usec\nrounds: 2825"
           },
           {
             "name": "tests/test_benchmarks.py::test_benchmark_validate_hostname",
-            "value": 6917339.708763206,
+            "value": 5352692.0,
             "unit": "iter/sec",
-            "range": "stddev: 1.4683000785153646e-07",
-            "extra": "mean: 144.5642460978393 nsec\nrounds: 18756"
+            "range": "stddev: 1.354333e-07",
+            "extra": "mean: 186.8219 nsec\nrounds: 17028"
           },
           {
             "name": "tests/test_benchmarks.py::test_benchmark_sanitize_for_log",
-            "value": 474759.15390177397,
+            "value": 359.6094,
             "unit": "iter/sec",
-            "range": "stddev: 4.367312045231657e-07",
-            "extra": "mean: 2.1063311613511226 usec\nrounds: 19951"
+            "range": "stddev: 0.0006276392",
+            "extra": "mean: 2.7807951 usec\nrounds: 18805"
           },
           {
             "name": "tests/test_benchmarks.py::test_push_rules_benchmark_10k[no_overlap]",
-            "value": 2690.415772295065,
+            "value": 2858.5,
             "unit": "iter/sec",
-            "range": "stddev: 3.4750504447563396e-05",
-            "extra": "mean: 371.6840000 usec\nrounds: 64"
+            "range": "stddev: 1.95175682e-05",
+            "extra": "mean: 349.8301772 usec\nrounds: 79"
           },
           {
             "name": "tests/test_benchmarks.py::test_push_rules_benchmark_10k[high_overlap]",
-            "value": 2199.255694066113,
+            "value": 2204.3,
             "unit": "iter/sec",
-            "range": "stddev: 6.375383750180986e-05",
-            "extra": "mean: 454.7000000 usec\nrounds: 419"
+            "range": "stddev: 7.27012965e-05",
+            "extra": "mean: 453.6515350 usec\nrounds: 529"
           }
         ]
       }

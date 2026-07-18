@@ -37,6 +37,7 @@ __all__ = [
     "MAX_RETRIES",
     "RETRY_DELAY",
     "MAX_RETRY_DELAY",
+    "ALLOWED_API_HOSTS",  # SSRF pin for Control D API host
     "retry_with_jitter",
     "_TIMEOUT_HINT",  # imported by main.py for use outside _retry_request
     "_CONNECT_ERROR_HINT",  # exported for reuse outside _retry_request
@@ -47,6 +48,7 @@ __all__ = [
     "_rate_limit_info",
     "_rate_limit_lock",
     "_sanitize_fn",  # injection point for token-aware sanitizer
+    "_assert_api_url",  # host pin enforced before every API call
     "_api_get",  # HTTP wrapper used by main.py
     "_api_delete",  # HTTP wrapper used by main.py
     "_api_post",  # HTTP wrapper used by main.py
@@ -59,6 +61,15 @@ __all__ = [
 MAX_RETRIES = 10
 RETRY_DELAY = 1
 MAX_RETRY_DELAY = 60.0  # Maximum retry delay in seconds (caps exponential growth)
+
+# SECURITY: Pin Control D API outbound requests to the official API host only
+# (ABHI-1481 / CWE-918). Blocklist fetches use a separate domain allowlist in
+# main.py; do not broaden this set without a security review.
+ALLOWED_API_HOSTS: frozenset[str] = frozenset({"api.controld.com"})
+# Fast-path prefix used by _assert_api_url (trailing slash prevents
+# https://api.controld.com.evil.com/ bypasses). Avoids httpx.URL parsing on
+# every batch POST in push_rules.
+_ALLOWED_API_URL_PREFIX = "https://api.controld.com/"
 
 # Actionable guidance for network timeout errors (also imported by main.py for
 # use in functions that don't go through _retry_request).
@@ -136,6 +147,32 @@ def _log_rate_limit_warning(limit: int, remaining: int, reset: int | None) -> No
         log.warning(f"Approaching rate limit: {remaining}/{limit} requests remaining")
 
 
+def _has_any_rate_limit_headers(
+    new_limit: int | None, new_remaining: int | None, new_reset: int | None
+) -> bool:
+    """Check if any rate limit header was successfully parsed."""
+    return new_limit is not None or new_remaining is not None or new_reset is not None
+
+
+def _update_rate_limit_info(
+    new_limit: int | None, new_remaining: int | None, new_reset: int | None
+) -> tuple[int | None, int | None, int | None]:
+    """Update global rate limit info under lock and return snapshot."""
+    with _rate_limit_lock:
+        if new_limit is not None:
+            _rate_limit_info["limit"] = new_limit
+        if new_remaining is not None:
+            _rate_limit_info["remaining"] = new_remaining
+        if new_reset is not None:
+            _rate_limit_info["reset"] = new_reset
+
+        return (
+            _rate_limit_info["limit"],
+            _rate_limit_info["remaining"],
+            _rate_limit_info["reset"],
+        )
+
+
 def _parse_rate_limit_headers(response: httpx.Response) -> None:
     """
     Parse rate limit headers from API response and update global tracking.
@@ -163,20 +200,12 @@ def _parse_rate_limit_headers(response: httpx.Response) -> None:
         new_remaining = _extract_int_header(headers, "X-RateLimit-Remaining")
         new_reset = _extract_int_header(headers, "X-RateLimit-Reset")
 
-        if new_limit is None and new_remaining is None and new_reset is None:
+        if not _has_any_rate_limit_headers(new_limit, new_remaining, new_reset):
             return
 
-        with _rate_limit_lock:
-            if new_limit is not None:
-                _rate_limit_info["limit"] = new_limit
-            if new_remaining is not None:
-                _rate_limit_info["remaining"] = new_remaining
-            if new_reset is not None:
-                _rate_limit_info["reset"] = new_reset
-
-            limit_snapshot = _rate_limit_info["limit"]
-            remaining_snapshot = _rate_limit_info["remaining"]
-            reset_snapshot = _rate_limit_info["reset"]
+        limit_snapshot, remaining_snapshot, reset_snapshot = _update_rate_limit_info(
+            new_limit, new_remaining, new_reset
+        )
 
         # Log warnings when approaching rate limits
         if limit_snapshot is not None and remaining_snapshot is not None:
@@ -214,31 +243,36 @@ def retry_with_jitter(
     return exponential_delay * random.random()
 
 
+def _is_server_error(e: Exception) -> bool:
+    """Check if exception is a 5xx server error."""
+    return (
+        isinstance(e, httpx.HTTPStatusError)
+        and hasattr(e, "response")
+        and e.response is not None
+        and e.response.status_code >= 500
+    )
+
+
 def _get_error_hint(e: Exception) -> str:
     """Generate actionable error hints for logged exceptions."""
     if isinstance(e, httpx.TimeoutException):
         return f" | hint: {_TIMEOUT_HINT}"
     if isinstance(e, httpx.ConnectError):
         return f" | hint: {_CONNECT_ERROR_HINT}"
-    if (
-        isinstance(e, httpx.HTTPStatusError)
-        and hasattr(e, "response")
-        and e.response is not None
-        and e.response.status_code >= 500
-    ):
+    if _is_server_error(e):
         return f" | hint: {_SERVER_ERROR_HINT}"
     return ""
 
 
 def _log_debug_response_content(e: Exception) -> None:
     """Log response content at debug level if available."""
-    if (
-        hasattr(e, "response")
-        and getattr(e, "response", None) is not None
-        and log.isEnabledFor(logging.DEBUG)
-    ):
-        log.debug(f"Response content: {_sanitize_fn(e.response.text)}")
-
+    # NOTE: Use getattr (not e.response) so mypy stays happy — a helper that
+    # only returns bool does not narrow Exception for the type checker.
+    if not log.isEnabledFor(logging.DEBUG):
+        return
+    response = getattr(e, "response", None)
+    if response is not None:
+        log.debug(f"Response content: {_sanitize_fn(response.text)}")
 
 def _handle_rate_limit(
     e: httpx.HTTPStatusError, attempt: int, max_retries: int
@@ -364,8 +398,38 @@ def _retry_request(
     raise RuntimeError("_retry_request called with max_retries=0")
 
 
+def _assert_api_url(url: str) -> None:
+    """
+    SECURITY: Fail closed unless *url* is HTTPS to an allowlisted Control D API host.
+
+    Prevents accidental or injected API traffic to non-Control-D destinations
+    (defense-in-depth SSRF control complementary to the blocklist allowlist).
+
+    Uses a prefix fast-path so batch rule pushes do not pay for full URL parsing
+    on every request; the trailing slash blocks host-suffix bypasses.
+    """
+    if url.startswith(_ALLOWED_API_URL_PREFIX):
+        return
+
+    # Slow path: produce a precise error for non-allowlisted / malformed URLs.
+    try:
+        parsed = httpx.URL(url)
+    except Exception as e:
+        raise ValueError(f"Invalid Control D API URL: {e}") from e
+
+    if parsed.scheme != "https":
+        raise ValueError("Control D API URL must use HTTPS")
+
+    host = (parsed.host or "").lower()
+    raise ValueError(
+        f"Control D API URL host {host!r} is not allowlisted "
+        f"(allowed: {sorted(ALLOWED_API_HOSTS)})"
+    )
+
+
 def _api_get(client: httpx.Client, url: str) -> httpx.Response:
     """Issue a GET request to *url*, tracking the call in _api_stats and retrying on transient errors."""
+    _assert_api_url(url)
     with _api_stats_lock:
         _api_stats["control_d_api_calls"] += 1
     return _retry_request(lambda: client.get(url))
@@ -373,6 +437,7 @@ def _api_get(client: httpx.Client, url: str) -> httpx.Response:
 
 def _api_delete(client: httpx.Client, url: str) -> httpx.Response:
     """Issue a DELETE request to *url*, tracking the call in _api_stats and retrying on transient errors."""
+    _assert_api_url(url)
     with _api_stats_lock:
         _api_stats["control_d_api_calls"] += 1
     return _retry_request(lambda: client.delete(url))
@@ -380,6 +445,7 @@ def _api_delete(client: httpx.Client, url: str) -> httpx.Response:
 
 def _api_post(client: httpx.Client, url: str, data: dict) -> httpx.Response:
     """Issue a POST request with a JSON body to *url*, tracking the call in _api_stats and retrying on transient errors."""
+    _assert_api_url(url)
     with _api_stats_lock:
         _api_stats["control_d_api_calls"] += 1
     return _retry_request(lambda: client.post(url, data=data))
@@ -387,6 +453,7 @@ def _api_post(client: httpx.Client, url: str, data: dict) -> httpx.Response:
 
 def _api_post_form(client: httpx.Client, url: str, data: dict) -> httpx.Response:
     """Issue a POST request with a form-encoded body to *url*, tracking the call in _api_stats and retrying on transient errors."""
+    _assert_api_url(url)
     with _api_stats_lock:
         _api_stats["control_d_api_calls"] += 1
     return _retry_request(

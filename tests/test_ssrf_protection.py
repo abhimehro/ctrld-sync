@@ -23,11 +23,40 @@ def test_default_allowed_blocklist_domains_pass():
         )
         is True
     )
+    with patch("socket.getaddrinfo") as mock_getaddrinfo:
+        mock_getaddrinfo.return_value = [
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("185.199.108.153", 443))
+        ]
+        assert (
+            main.validate_folder_url(
+                "https://yokoffing.github.io/Control-D-Config/folders/example.json"
+            )
+            is True
+        )
 
 
 def test_non_allowlisted_domain_rejected():
     main.set_allowed_blocklist_domains(None)
     assert main.validate_folder_url("https://evil.com/file.json") is False
+
+
+def test_controld_domains_rejected_for_blocklist_fetches():
+    """controld.com is API-only — must not be accepted as a blocklist source."""
+    main.set_allowed_blocklist_domains(None)
+    assert main.validate_folder_url("https://controld.com/blocklist.json") is False
+    assert main.validate_folder_url("https://api.controld.com/blocklist.json") is False
+    assert main.validate_folder_url("https://status.controld.com/blocklist.json") is False
+
+
+def test_default_allowlist_contains_recommended_hosts():
+    expected = {
+        "raw.githubusercontent.com",
+        "github.com",
+        "yokoffing.github.io",
+    }
+    assert expected <= set(main.DEFAULT_ALLOWED_BLOCKLIST_DOMAINS)
+    assert "controld.com" not in main.DEFAULT_ALLOWED_BLOCKLIST_DOMAINS
+    assert "api.controld.com" not in main.DEFAULT_ALLOWED_BLOCKLIST_DOMAINS
 
 
 def test_custom_allowlist_overrides_defaults():
