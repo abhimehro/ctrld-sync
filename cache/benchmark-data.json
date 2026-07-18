@@ -1,5 +1,5 @@
 {
-  "lastUpdate": 1784401730019,
+  "lastUpdate": 1784401760387,
   "repoUrl": "https://github.com/abhimehro/ctrld-sync",
   "entries": {
     "Benchmark": [
@@ -17,59 +17,59 @@
           },
           "id": "faa0da981b162cf262efb002617696adc19475f5",
           "message": "Re-baseline: Performance Tests against current ubuntu-latest (PR #1025)",
-          "timestamp": "2026-07-18T19:08:50Z",
+          "timestamp": "2026-07-18T19:09:20Z",
           "url": "https://github.com/abhimehro/ctrld-sync/commit/faa0da981b162cf262efb002617696adc19475f5"
         },
-        "date": 1784401730019,
+        "date": 1784401760387,
         "tool": "pytest",
         "benches": [
           {
             "name": "tests/test_benchmarks.py::test_is_valid_rule_benchmark",
-            "value": 2245822.8256897875,
+            "value": 2245823.0,
             "unit": "iter/sec",
             "range": "stddev: 2.558886e-07",
             "extra": "mean: 445.2711 nsec\nrounds: 115527"
           },
           {
             "name": "tests/test_benchmarks.py::test_deduplication_benchmark",
-            "value": 3.3856957453348344,
+            "value": 3385.6957450666255,
             "unit": "iter/sec",
-            "range": "stddev: 0.0079284615",
+            "range": "stddev: 7.9284615e-06",
             "extra": "mean: 295.3602672 usec\nrounds: 2395"
           },
           {
             "name": "tests/test_benchmarks.py::test_cache_roundtrip_benchmark",
-            "value": 2.972630503443394,
+            "value": 2972.630503443394,
             "unit": "iter/sec",
-            "range": "stddev: 0.0092171361",
+            "range": "stddev: 9.2171361e-06",
             "extra": "mean: 336.4023880 usec\nrounds: 2825"
           },
           {
             "name": "tests/test_benchmarks.py::test_benchmark_validate_hostname",
-            "value": 5352691.520640781,
+            "value": 5352692.0,
             "unit": "iter/sec",
             "range": "stddev: 1.354333e-07",
             "extra": "mean: 186.8219 nsec\nrounds: 17028"
           },
           {
             "name": "tests/test_benchmarks.py::test_benchmark_sanitize_for_log",
-            "value": 359.6093793462165,
+            "value": 359.6094,
             "unit": "iter/sec",
             "range": "stddev: 0.0006276392",
             "extra": "mean: 2.7807951 usec\nrounds: 18805"
           },
           {
             "name": "tests/test_benchmarks.py::test_push_rules_benchmark_10k[no_overlap]",
-            "value": 2.858529838688828,
+            "value": 2858.5,
             "unit": "iter/sec",
-            "range": "stddev: 0.0195175682",
+            "range": "stddev: 1.95175682e-05",
             "extra": "mean: 349.8301772 usec\nrounds: 79"
           },
           {
             "name": "tests/test_benchmarks.py::test_push_rules_benchmark_10k[high_overlap]",
-            "value": 2.204335096099697,
+            "value": 2204.3,
             "unit": "iter/sec",
-            "range": "stddev: 0.0727012965",
+            "range": "stddev: 7.27012965e-05",
             "extra": "mean: 453.6515350 usec\nrounds: 529"
           }
         ]
