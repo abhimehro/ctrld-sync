@@ -16,5 +16,5 @@
 - [x] Update `config.yaml.example` + README allowlist docs
 - [x] Add/extend SSRF tests (allowlisted + rejected + API host pin)
 - [x] Run pytest SSRF/security suite + ruff
-- [ ] ELIR handoff + commit/push/PR
-- [ ] Update Linear ABHI-1481 (+ related ABHI-1366)
+- [x] ELIR handoff + commit/push/PR (#1025)
+- [x] Update Linear ABHI-1481 (+ related ABHI-1366)
