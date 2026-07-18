@@ -48,18 +48,18 @@ jobs:
           path: .benchmarks/
           include-hidden-files: true
 
-# Stable cache key (no SHA). Bump the version suffix when ubuntu-latest
-# runner noise makes the restored baseline unrealistically fast and causes
-# false 1.5x alerts against otherwise unchanged code (see PR #1025).
-# On cache miss, the committed cache/benchmark-data.json from checkout is used.
-- name: Download previous benchmark data
-  uses: actions/cache@v6.1.0
-  id: benchmark-cache
-  with:
-    path: ./cache
-    key: ${{ runner.os }}-benchmark-v3
-    restore-keys: |
-      ${{ runner.os }}-benchmark-v3
+      # Stable cache key (no SHA). Bump the version suffix when ubuntu-latest
+      # runner noise makes the restored baseline unrealistically fast and causes
+      # false 1.5x alerts against otherwise unchanged code (see PR #1025).
+      # On cache miss, the committed cache/benchmark-data.json from checkout is used.
+      - name: Download previous benchmark data
+        uses: actions/cache@v6.1.0
+        id: benchmark-cache
+        with:
+          path: ./cache
+          key: ${{ runner.os }}-benchmark-v3
+          restore-keys: |
+            ${{ runner.os }}-benchmark-v3
 
       - name: Run structured benchmark suite
         run: |
