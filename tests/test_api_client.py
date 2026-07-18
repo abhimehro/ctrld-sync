@@ -312,6 +312,12 @@ class TestApiHostPinning:
     def test_assert_api_url_accepts_official_host(self):
         api_client._assert_api_url("https://api.controld.com/profiles/abc/groups")
 
+    def test_assert_api_url_fast_path_rejects_host_suffix_bypass(self):
+        """Trailing slash on the allowlist prefix blocks api.controld.com.evil.com."""
+        with pytest.raises(ValueError, match="not allowlisted"):
+            api_client._assert_api_url(
+                "https://api.controld.com.evil.com/profiles/abc/groups"
+            )
     @pytest.mark.parametrize(
         "url",
         [

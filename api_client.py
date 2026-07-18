@@ -66,6 +66,10 @@ MAX_RETRY_DELAY = 60.0  # Maximum retry delay in seconds (caps exponential growt
 # (ABHI-1481 / CWE-918). Blocklist fetches use a separate domain allowlist in
 # main.py; do not broaden this set without a security review.
 ALLOWED_API_HOSTS: frozenset[str] = frozenset({"api.controld.com"})
+# Fast-path prefix used by _assert_api_url (trailing slash prevents
+# https://api.controld.com.evil.com/ bypasses). Avoids httpx.URL parsing on
+# every batch POST in push_rules.
+_ALLOWED_API_URL_PREFIX = "https://api.controld.com/"
 
 # Actionable guidance for network timeout errors (also imported by main.py for
 # use in functions that don't go through _retry_request).
@@ -260,16 +264,15 @@ def _get_error_hint(e: Exception) -> str:
     return ""
 
 
-def _has_response(e: Exception) -> bool:
-    """Check if exception has a valid response attribute."""
-    return hasattr(e, "response") and getattr(e, "response", None) is not None
-
-
 def _log_debug_response_content(e: Exception) -> None:
     """Log response content at debug level if available."""
-    if _has_response(e) and log.isEnabledFor(logging.DEBUG):
-        log.debug(f"Response content: {_sanitize_fn(e.response.text)}")
-
+    # NOTE: Use getattr (not e.response) so mypy stays happy — a helper that
+    # only returns bool does not narrow Exception for the type checker.
+    if not log.isEnabledFor(logging.DEBUG):
+        return
+    response = getattr(e, "response", None)
+    if response is not None:
+        log.debug(f"Response content: {_sanitize_fn(response.text)}")
 
 def _handle_rate_limit(
     e: httpx.HTTPStatusError, attempt: int, max_retries: int
@@ -401,7 +404,14 @@ def _assert_api_url(url: str) -> None:
 
     Prevents accidental or injected API traffic to non-Control-D destinations
     (defense-in-depth SSRF control complementary to the blocklist allowlist).
+
+    Uses a prefix fast-path so batch rule pushes do not pay for full URL parsing
+    on every request; the trailing slash blocks host-suffix bypasses.
     """
+    if url.startswith(_ALLOWED_API_URL_PREFIX):
+        return
+
+    # Slow path: produce a precise error for non-allowlisted / malformed URLs.
     try:
         parsed = httpx.URL(url)
     except Exception as e:
@@ -411,11 +421,10 @@ def _assert_api_url(url: str) -> None:
         raise ValueError("Control D API URL must use HTTPS")
 
     host = (parsed.host or "").lower()
-    if host not in ALLOWED_API_HOSTS:
-        raise ValueError(
-            f"Control D API URL host {host!r} is not allowlisted "
-            f"(allowed: {sorted(ALLOWED_API_HOSTS)})"
-        )
+    raise ValueError(
+        f"Control D API URL host {host!r} is not allowlisted "
+        f"(allowed: {sorted(ALLOWED_API_HOSTS)})"
+    )
 
 
 def _api_get(client: httpx.Client, url: str) -> httpx.Response:
