@@ -6,11 +6,13 @@
 
 **Security fixes:**
 
+- P1: SSRF - User-Controlled URLs with Outbound Requests [\#1024](https://github.com/abhimehro/ctrld-sync/issues/1024)
 - P1: SSRF - User-Controlled URLs with Outbound Requests [\#993](https://github.com/abhimehro/ctrld-sync/issues/993)
 - 🚨 P0: Critical SSRF Vulnerability in Blocklist URL Fetching [\#987](https://github.com/abhimehro/ctrld-sync/issues/987)
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-07-18 [\#1026](https://github.com/abhimehro/ctrld-sync/issues/1026)
 - Daily QA Check - ctrld-sync - 2026-07-17 [\#1022](https://github.com/abhimehro/ctrld-sync/issues/1022)
 - Daily QA & Agentic Review — 2026-07-17 [\#1021](https://github.com/abhimehro/ctrld-sync/issues/1021)
 - Daily QA & Agentic Review — 2026-07-16 [\#1019](https://github.com/abhimehro/ctrld-sync/issues/1019)
@@ -32,6 +34,7 @@
 
 **Merged pull requests:**
 
+- fix\(security\): complete SSRF domain allowlist \(ABHI-1481\) [\#1025](https://github.com/abhimehro/ctrld-sync/pull/1025) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Add emojis to statistics headers [\#1023](https://github.com/abhimehro/ctrld-sync/pull/1023) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump ruby/setup-ruby from 1.318.0 to 1.319.0 [\#1020](https://github.com/abhimehro/ctrld-sync/pull/1020) ([dependabot[bot]](https://github.com/apps/dependabot))
 - 🎨 Palette: Improve ANSI string newline removal [\#1017](https://github.com/abhimehro/ctrld-sync/pull/1017) ([abhimehro](https://github.com/abhimehro))
