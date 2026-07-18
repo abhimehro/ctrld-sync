@@ -37,6 +37,7 @@ __all__ = [
     "MAX_RETRIES",
     "RETRY_DELAY",
     "MAX_RETRY_DELAY",
+    "ALLOWED_API_HOSTS",  # SSRF pin for Control D API host
     "retry_with_jitter",
     "_TIMEOUT_HINT",  # imported by main.py for use outside _retry_request
     "_CONNECT_ERROR_HINT",  # exported for reuse outside _retry_request
@@ -47,6 +48,7 @@ __all__ = [
     "_rate_limit_info",
     "_rate_limit_lock",
     "_sanitize_fn",  # injection point for token-aware sanitizer
+    "_assert_api_url",  # host pin enforced before every API call
     "_api_get",  # HTTP wrapper used by main.py
     "_api_delete",  # HTTP wrapper used by main.py
     "_api_post",  # HTTP wrapper used by main.py
@@ -59,6 +61,11 @@ __all__ = [
 MAX_RETRIES = 10
 RETRY_DELAY = 1
 MAX_RETRY_DELAY = 60.0  # Maximum retry delay in seconds (caps exponential growth)
+
+# SECURITY: Pin Control D API outbound requests to the official API host only
+# (ABHI-1481 / CWE-918). Blocklist fetches use a separate domain allowlist in
+# main.py; do not broaden this set without a security review.
+ALLOWED_API_HOSTS: frozenset[str] = frozenset({"api.controld.com"})
 
 # Actionable guidance for network timeout errors (also imported by main.py for
 # use in functions that don't go through _retry_request).
@@ -364,8 +371,32 @@ def _retry_request(
     raise RuntimeError("_retry_request called with max_retries=0")
 
 
+def _assert_api_url(url: str) -> None:
+    """
+    SECURITY: Fail closed unless *url* is HTTPS to an allowlisted Control D API host.
+
+    Prevents accidental or injected API traffic to non-Control-D destinations
+    (defense-in-depth SSRF control complementary to the blocklist allowlist).
+    """
+    try:
+        parsed = httpx.URL(url)
+    except Exception as e:
+        raise ValueError(f"Invalid Control D API URL: {e}") from e
+
+    if parsed.scheme != "https":
+        raise ValueError("Control D API URL must use HTTPS")
+
+    host = (parsed.host or "").lower()
+    if host not in ALLOWED_API_HOSTS:
+        raise ValueError(
+            f"Control D API URL host {host!r} is not allowlisted "
+            f"(allowed: {sorted(ALLOWED_API_HOSTS)})"
+        )
+
+
 def _api_get(client: httpx.Client, url: str) -> httpx.Response:
     """Issue a GET request to *url*, tracking the call in _api_stats and retrying on transient errors."""
+    _assert_api_url(url)
     with _api_stats_lock:
         _api_stats["control_d_api_calls"] += 1
     return _retry_request(lambda: client.get(url))
@@ -373,6 +404,7 @@ def _api_get(client: httpx.Client, url: str) -> httpx.Response:
 
 def _api_delete(client: httpx.Client, url: str) -> httpx.Response:
     """Issue a DELETE request to *url*, tracking the call in _api_stats and retrying on transient errors."""
+    _assert_api_url(url)
     with _api_stats_lock:
         _api_stats["control_d_api_calls"] += 1
     return _retry_request(lambda: client.delete(url))
@@ -380,6 +412,7 @@ def _api_delete(client: httpx.Client, url: str) -> httpx.Response:
 
 def _api_post(client: httpx.Client, url: str, data: dict) -> httpx.Response:
     """Issue a POST request with a JSON body to *url*, tracking the call in _api_stats and retrying on transient errors."""
+    _assert_api_url(url)
     with _api_stats_lock:
         _api_stats["control_d_api_calls"] += 1
     return _retry_request(lambda: client.post(url, data=data))
@@ -387,6 +420,7 @@ def _api_post(client: httpx.Client, url: str, data: dict) -> httpx.Response:
 
 def _api_post_form(client: httpx.Client, url: str, data: dict) -> httpx.Response:
     """Issue a POST request with a form-encoded body to *url*, tracking the call in _api_stats and retrying on transient errors."""
+    _assert_api_url(url)
     with _api_stats_lock:
         _api_stats["control_d_api_calls"] += 1
     return _retry_request(

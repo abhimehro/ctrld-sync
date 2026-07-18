@@ -86,9 +86,12 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
    3. `~/.ctrld-sync/config.yaml` or `~/.ctrld-sync/config.yml`
    4. Built-in defaults (the `DEFAULT_FOLDER_URLS` list in `main.py`)
 
-   By default, only `raw.githubusercontent.com` and `github.com` are accepted as
-   blocklist hosts. You can override this with `allowed_blocklist_domains` in
-   `config.yaml` if you need to trust additional sources.
+   By default, only `raw.githubusercontent.com`, `github.com`, and
+   `yokoffing.github.io` are accepted as blocklist hosts. Control D hosts
+   (`api.controld.com`) are pinned for API calls only and are not valid
+   blocklist sources. You can override the blocklist allowlist with
+   `allowed_blocklist_domains` in `config.yaml` if you need to trust
+   additional sources.
 
    **Example `config.yaml`:**
 

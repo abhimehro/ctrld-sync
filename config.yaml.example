@@ -24,7 +24,9 @@
 #
 # Optional top-level security setting:
 #   allowed_blocklist_domains – allowlist for blocklist hostnames. Defaults to
-#                                raw.githubusercontent.com and github.com.
+#                                raw.githubusercontent.com, github.com, and
+#                                yokoffing.github.io. Control D (api.controld.com)
+#                                is API-only and is not valid for blocklist URLs.
 #
 # Optional fields per entry:
 #   name   – human-readable label (informational only; the actual folder name
@@ -34,6 +36,7 @@
 allowed_blocklist_domains:
   - raw.githubusercontent.com
   - github.com
+  - yokoffing.github.io
 
 folders:
   # ── Native-tracker block lists ──────────────────────────────────────────

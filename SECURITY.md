@@ -40,3 +40,12 @@ When using this tool:
 - Keep your Python environment and dependencies up to date
 - Review the code before running, especially when syncing to production profiles
 - Use dedicated API tokens with minimal necessary permissions
+
+### Outbound URL controls (SSRF)
+
+Blocklist JSON is fetched only from hostnames on the blocklist domain allowlist
+(default: `raw.githubusercontent.com`, `github.com`, `yokoffing.github.io`).
+Control D API calls are pinned to `api.controld.com` over HTTPS and are not
+valid blocklist sources. Override the blocklist allowlist via
+`allowed_blocklist_domains` in config only when you intentionally trust another
+HTTPS origin.

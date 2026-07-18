@@ -50,7 +50,7 @@ class TestAPITracking(unittest.TestCase):
         mock_client.get.return_value = mock_response
 
         # Call _api_get
-        main._api_get(mock_client, "http://test.url")
+        main._api_get(mock_client, "https://api.controld.com/profiles/test/groups")
 
         # Verify counter was incremented by 1
         self.assertEqual(main._api_stats["control_d_api_calls"], initial_count + 1)
@@ -70,7 +70,9 @@ class TestAPITracking(unittest.TestCase):
         mock_client.post.return_value = mock_response
 
         # Call _api_post
-        main._api_post(mock_client, "http://test.url", {"key": "value"})
+        main._api_post(
+            mock_client, "https://api.controld.com/profiles/test/groups", {"key": "value"}
+        )
 
         # Verify counter was incremented by 1
         self.assertEqual(main._api_stats["control_d_api_calls"], initial_count + 1)
@@ -90,7 +92,7 @@ class TestAPITracking(unittest.TestCase):
         mock_client.delete.return_value = mock_response
 
         # Call _api_delete
-        main._api_delete(mock_client, "http://test.url")
+        main._api_delete(mock_client, "https://api.controld.com/profiles/test/groups/1")
 
         # Verify counter was incremented by 1
         self.assertEqual(main._api_stats["control_d_api_calls"], initial_count + 1)
@@ -110,7 +112,9 @@ class TestAPITracking(unittest.TestCase):
         mock_client.post.return_value = mock_response
 
         # Call _api_post_form
-        main._api_post_form(mock_client, "http://test.url", {"key": "value"})
+        main._api_post_form(
+            mock_client, "https://api.controld.com/profiles/test/rules", {"key": "value"}
+        )
 
         # Verify counter was incremented by 1
         self.assertEqual(main._api_stats["control_d_api_calls"], initial_count + 1)
@@ -128,11 +132,13 @@ class TestAPITracking(unittest.TestCase):
         mock_response.raise_for_status = MagicMock()
         mock_client.post.return_value = mock_response
 
-        main._api_post_form(mock_client, "http://test.url", {"key": "value"})
+        main._api_post_form(
+            mock_client, "https://api.controld.com/profiles/test/rules", {"key": "value"}
+        )
 
         # Verify the post was made with the correct Content-Type header
         mock_client.post.assert_called_once_with(
-            "http://test.url",
+            "https://api.controld.com/profiles/test/rules",
             data={"key": "value"},
             headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
