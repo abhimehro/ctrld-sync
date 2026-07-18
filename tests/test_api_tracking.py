@@ -71,7 +71,9 @@ class TestAPITracking(unittest.TestCase):
 
         # Call _api_post
         main._api_post(
-            mock_client, "https://api.controld.com/profiles/test/groups", {"key": "value"}
+            mock_client,
+            "https://api.controld.com/profiles/test/groups",
+            {"key": "value"},
         )
 
         # Verify counter was incremented by 1
@@ -113,7 +115,9 @@ class TestAPITracking(unittest.TestCase):
 
         # Call _api_post_form
         main._api_post_form(
-            mock_client, "https://api.controld.com/profiles/test/rules", {"key": "value"}
+            mock_client,
+            "https://api.controld.com/profiles/test/rules",
+            {"key": "value"},
         )
 
         # Verify counter was incremented by 1
@@ -133,7 +137,9 @@ class TestAPITracking(unittest.TestCase):
         mock_client.post.return_value = mock_response
 
         main._api_post_form(
-            mock_client, "https://api.controld.com/profiles/test/rules", {"key": "value"}
+            mock_client,
+            "https://api.controld.com/profiles/test/rules",
+            {"key": "value"},
         )
 
         # Verify the post was made with the correct Content-Type header

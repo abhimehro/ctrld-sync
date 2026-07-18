@@ -45,7 +45,9 @@ def test_controld_domains_rejected_for_blocklist_fetches():
     main.set_allowed_blocklist_domains(None)
     assert main.validate_folder_url("https://controld.com/blocklist.json") is False
     assert main.validate_folder_url("https://api.controld.com/blocklist.json") is False
-    assert main.validate_folder_url("https://status.controld.com/blocklist.json") is False
+    assert (
+        main.validate_folder_url("https://status.controld.com/blocklist.json") is False
+    )
 
 
 def test_default_allowlist_contains_recommended_hosts():

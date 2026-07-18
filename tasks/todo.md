@@ -1,6 +1,6 @@
 # ABHI-1481: SSRF domain allowlisting
 
-**Route:** T1+S+H  
+**Route:** T1+S+H
 **Threat model:** User-controlled blocklist URLs (config/CLI) drive outbound HTTPS fetches. Existing IP/hostname checks reduce risk; deny-by-default domain allowlisting shrinks the residual attack surface. Control D API base is hardcoded but should be host-pinned for defense in depth.
 
 **Trust boundaries:**

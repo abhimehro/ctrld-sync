@@ -2153,10 +2153,9 @@ def _poll_for_folder_id(ctx: SyncContext, name: str) -> str | None:
 
         if attempt < MAX_RETRIES:
             wait_time = FOLDER_CREATION_DELAY * (attempt + 1)
-            log.info(
-                f"Folder '{sanitize_for_log(name)}' not found yet. Retrying in {wait_time}s..."
+            countdown_timer(
+                wait_time, f"Waiting for folder '{sanitize_for_log(name)}' to appear"
             )
-            time.sleep(wait_time)
 
     log.error(
         f"Folder {sanitize_for_log(name)} was not found after creation and retries."
