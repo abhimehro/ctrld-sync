@@ -318,6 +318,7 @@ class TestApiHostPinning:
             api_client._assert_api_url(
                 "https://api.controld.com.evil.com/profiles/abc/groups"
             )
+
     @pytest.mark.parametrize(
         "url",
         [
