@@ -2932,9 +2932,10 @@ def print_summary_table(
             f"{sep}\n{'TOTAL':<{w[0]}} | {t_f:>{w[1]}} | {t_r:>{w[2]},} | {t_d:>{w[3] - 1}.1f}s | {t_status:<{w[4]}}\n{sep}\n"
         )
         if t_f == 0:
-            print(
-                "  💡 Hint: Add folder URLs using --folder-url or in your config.yaml\n"
+            _print_hint(
+                "  💡 Hint: Add folder URLs using --folder-url or in your config.yaml"
             )
+            print()
         return
 
     # Unicode Table
