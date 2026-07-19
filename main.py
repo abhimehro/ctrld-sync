@@ -768,6 +768,18 @@ def _print_hint(hint: str) -> None:
         print(hint)
 
 
+def _print_bold_header(text: str) -> None:
+    """Print a bold section header when colors are enabled; plain text otherwise.
+
+    Isolates the USE_COLORS branch so callers (e.g. display_rate_limit_status)
+    do not gain cyclomatic complexity from the NO_COLOR / non-TTY fallback.
+    """
+    if USE_COLORS:
+        print(f"{Colors.BOLD}{text}{Colors.ENDC}")
+    else:
+        print(text)
+
+
 def get_validated_input(
     prompt: str,
     validator: Callable[[str], bool],
@@ -3102,7 +3114,7 @@ def display_rate_limit_status() -> None:
         if not any(v is not None for v in _rate_limit_info.values()):
             return
 
-        print(f"{Colors.BOLD}🚦 API Rate Limit Status:{Colors.ENDC}")
+        _print_bold_header("🚦 API Rate Limit Status:")
 
         if _rate_limit_info["limit"] is not None:
             print(f"  • Requests limit:       {_rate_limit_info['limit']:>6,}")
