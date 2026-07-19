@@ -3102,7 +3102,10 @@ def display_rate_limit_status() -> None:
         if not any(v is not None for v in _rate_limit_info.values()):
             return
 
-        print(f"{Colors.BOLD}🚦 API Rate Limit Status:{Colors.ENDC}")
+        if USE_COLORS:
+            print(f"{Colors.BOLD}🚦 API Rate Limit Status:{Colors.ENDC}")
+        else:
+            print("🚦 API Rate Limit Status:")
 
         if _rate_limit_info["limit"] is not None:
             print(f"  • Requests limit:       {_rate_limit_info['limit']:>6,}")
