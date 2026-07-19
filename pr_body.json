@@ -1,3 +1,0 @@
-{
-  "body": "💡 What: Replaced `len(r[\"profile\"])` with `_display_len(r[\"profile\"])` when calculating `max_profile_len` in `print_summary_table` within `main.py`.\n\n🎯 Why: If a profile name contains emojis or full-width characters, `len()` calculates the raw character count, which causes the column width to be misaligned because terminal emulators render emojis across two columns. `_display_len` accurately counts these characters as 2 visual columns.\n\n📸 Before/After: Visual changes affect CLI table output formatting.\n\n♿ Accessibility: N/A"
-}
