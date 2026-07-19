@@ -1221,10 +1221,13 @@ def validate_hostname(hostname: str) -> bool:
 def _is_allowed_blocklist_domain(
     hostname: str, allowed_domains: frozenset[str]
 ) -> bool:
-    return any(
-        hostname == domain or hostname.endswith(f".{domain}")
-        for domain in allowed_domains
-    )
+    if hostname in allowed_domains:
+        return True
+    parts = hostname.split(".")
+    for i in range(1, len(parts)):  # noqa: SIM110 - optimization: any(generator) is slow
+        if ".".join(parts[i:]) in allowed_domains:
+            return True
+    return False
 
 
 @lru_cache(maxsize=128)

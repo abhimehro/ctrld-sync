@@ -34,3 +34,6 @@
 ## YYYY-MM-DD - itertools.filterfalse with set deduplication
 **Learning:** Using `list(itertools.filterfalse(cache.__contains__, list(set(urls))))` is faster than `[u for u in list(set(urls)) if u not in cache]`, avoiding python loop overhead.
 **Action:** Use `itertools.filterfalse` for filtering lists.
+## YYYY-MM-DD - Linter Warnings vs Performance
+**Learning:** Tools like Ruff might suggest replacing a `for` loop with an early return into an `any(generator)` expression (SIM110). However, doing this defeats optimizations since generator setup is much slower than a plain for loop in hot code paths.
+**Action:** Append a `# noqa: SIM110` to ignore linter warnings when it conflicts with a benchmarked performance optimization (such as avoiding generator overhead).
