@@ -60,7 +60,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@eed4304d8740f0593f2797276cb8299d228ffd9b # v0.81.6
+        uses: github/gh-aw/actions/setup@8b820ae1073f301991aaf2f307f7e271f618bb9f # v0.82.14
         with:
           destination: /opt/gh-aw/actions
 
@@ -105,7 +105,7 @@ jobs:
           persist-credentials: false
 
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@eed4304d8740f0593f2797276cb8299d228ffd9b # v0.81.6
+        uses: github/gh-aw/actions/setup@8b820ae1073f301991aaf2f307f7e271f618bb9f # v0.82.14
         with:
           destination: /opt/gh-aw/actions
 
