@@ -3280,7 +3280,7 @@ def main() -> bool:
                 )
 
             p_input = get_validated_input(
-                f"{Colors.BOLD}Enter Control D Profile ID:{Colors.ENDC} ",
+                f"\n{Colors.BOLD}Enter Control D Profile ID:{Colors.ENDC} ",
                 validate_profile_input,
                 "Invalid ID(s) or URL(s). Must be a valid Profile ID or a Control D Profile URL. Comma-separate for multiple.",
             )
@@ -3295,7 +3295,7 @@ def main() -> bool:
             )
 
             t_input = get_password(
-                f"{Colors.BOLD}Enter Control D API Token {Colors.DIM}(typing will be hidden){Colors.ENDC}: ",
+                f"\n{Colors.BOLD}Enter Control D API Token {Colors.DIM}(typing will be hidden){Colors.ENDC}: ",
                 lambda x: len(x) > 8,
                 "Token seems too short. Please check your API token.",
             )
