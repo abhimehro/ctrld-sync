@@ -2231,15 +2231,21 @@ def _filter_rules_for_folder(
         )
 
     # Optimization 2: Inline method references for hot loop performance
-    is_safe = is_valid_rule
+    allowed = _ALLOWED_RULE_CHARS
+    max_len = MAX_RULE_LENGTH
 
     # Second pass: Strict safety validation
     # FAST PATH: C-speed list comprehension for the 99.9% case where rules are safe
-    filtered_hostnames = [h for h in unique_hostnames_dict if is_safe(h)]
+    filtered_hostnames = [
+        h
+        for h in unique_hostnames_dict
+        if h and len(h) <= max_len and allowed.issuperset(h)
+    ]
     skipped_unsafe = len(unique_hostnames_dict) - len(filtered_hostnames)
 
     if skipped_unsafe > 0:
         # SLOW PATH: Only iterate again to log if we actually found unsafe rules
+        is_safe = is_valid_rule
         sanitized_folder = sanitize_for_log(folder_name)
         for h in unique_hostnames_dict:
             if not is_safe(h):
