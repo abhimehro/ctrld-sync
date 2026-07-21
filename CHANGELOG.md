@@ -36,6 +36,11 @@
 
 **Merged pull requests:**
 
+- chore\(deps\): bump release-drafter/release-drafter from 7.5.1 to 7.6.0 [\#1044](https://github.com/abhimehro/ctrld-sync/pull/1044) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump actions/setup-python from 6 to 7 [\#1043](https://github.com/abhimehro/ctrld-sync/pull/1043) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump github/gh-aw from 0.81.6 to 0.82.14 [\#1042](https://github.com/abhimehro/ctrld-sync/pull/1042) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump actions/checkout from 7.0.0 to 7.0.1 [\#1041](https://github.com/abhimehro/ctrld-sync/pull/1041) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump github/gh-aw/actions/setup from 0.81.6 to 0.82.14 [\#1040](https://github.com/abhimehro/ctrld-sync/pull/1040) ([dependabot[bot]](https://github.com/apps/dependabot))
 - ⚡ Bolt: optimize domain validation [\#1037](https://github.com/abhimehro/ctrld-sync/pull/1037) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Standardize CLI hints using \_print\_hint\(\) for empty states [\#1036](https://github.com/abhimehro/ctrld-sync/pull/1036) ([abhimehro](https://github.com/abhimehro))
 - fix\(deps\): sync requirements floors with pyproject \(dotenv/pytest/ruff\) [\#1034](https://github.com/abhimehro/ctrld-sync/pull/1034) ([abhimehro](https://github.com/abhimehro))
