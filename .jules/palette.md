@@ -107,3 +107,8 @@
 
 **Learning:** When displaying multiple blocks of statistical data in the terminal (like API calls, cache hits, rate limits), using bold text alone for section headers isn't enough to make the data quickly scannable, especially when the surrounding text is dense.
 **Action:** Always add semantic emojis (like 📊, ⚡, 🚦) to the start of statistical or categorical section headers. Emojis act as strong visual anchors, allowing users to instantly locate the information they need in a dense CLI output.
+
+## 2026-07-19 - [Terminal Color Hardcoding]
+
+**Learning:** When displaying data tables or CLI interfaces, hardcoding ANSI escape codes (e.g. `Colors.BOLD`) without checking if `USE_COLORS` is active creates an unpolished and confusing UX in environments where colors are disabled or unsupported (like CI pipelines or when NO_COLOR is set).
+**Action:** Always check `USE_COLORS` before embedding ANSI escape codes in CLI output, and provide a clean fallback string (e.g., maintaining semantic emojis but dropping the `Colors` attributes) to ensure graceful degradation. Prefer a small helper (e.g. `_print_bold_header`) so the call site does not gain cyclomatic complexity.
