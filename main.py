@@ -2209,38 +2209,26 @@ def create_folder(ctx: SyncContext, name: str, action: RuleAction) -> str | None
         return None
 
 
-def _filter_rules_for_folder(
-    existing_rules: set[str],
-    hostnames: list[str],
-    folder_name: str,
-) -> list[str]:
-    """
-    Deduplicates and filters hostnames, logging dropped entries.
-    """
-    original_count = len(hostnames)
-
-    # Optimization 1: Deduplicate and filter existing rules efficiently.
+def _deduplicate_hostnames(
+    existing_rules: set[str], hostnames: list[str]
+) -> dict[str, None]:
+    """Optimization 1: Deduplicate and filter existing rules efficiently."""
     if not existing_rules:
-        unique_hostnames_dict = dict.fromkeys(hostnames)
-    else:
-        # Filter first using itertools.filterfalse (C-speed), then deduplicate with dict.fromkeys.
-        # This prevents redundant dictionary insertions for rules already in existing_rules,
-        # and avoids materializing a large intermediate list before deduplication.
-        unique_hostnames_dict = dict.fromkeys(
-            itertools.filterfalse(existing_rules.__contains__, hostnames)
-        )
+        return dict.fromkeys(hostnames)
 
-    # Optimization 2: Inline method references for hot loop performance
-    allowed = _ALLOWED_RULE_CHARS
-    max_len = MAX_RULE_LENGTH
+    # Filter first using itertools.filterfalse (C-speed), then deduplicate with dict.fromkeys.
+    # This prevents redundant dictionary insertions for rules already in existing_rules,
+    # and avoids materializing a large intermediate list before deduplication.
+    return dict.fromkeys(itertools.filterfalse(existing_rules.__contains__, hostnames))
 
-    # Second pass: Strict safety validation
-    # FAST PATH: C-speed list comprehension for the 99.9% case where rules are safe
-    filtered_hostnames = [
-        h
-        for h in unique_hostnames_dict
-        if h and len(h) <= max_len and allowed.issuperset(h)
-    ]
+
+def _log_filtering_results(
+    original_count: int,
+    unique_hostnames_dict: dict[str, None],
+    filtered_hostnames: list[str],
+    folder_name: str,
+) -> None:
+    """Logs statistics for dropped entries and duplicated rules."""
     skipped_unsafe = len(unique_hostnames_dict) - len(filtered_hostnames)
 
     if skipped_unsafe > 0:
@@ -2262,6 +2250,33 @@ def _filter_rules_for_folder(
         log.info(
             f"Folder {sanitize_for_log(folder_name)}: skipping {duplicates_count} duplicate {pluralize(duplicates_count, 'rule')}"
         )
+
+
+def _filter_rules_for_folder(
+    existing_rules: set[str],
+    hostnames: list[str],
+    folder_name: str,
+) -> list[str]:
+    """
+    Deduplicates and filters hostnames, logging dropped entries.
+    """
+    unique_hostnames_dict = _deduplicate_hostnames(existing_rules, hostnames)
+
+    # Optimization 2: Inline method references for hot loop performance
+    allowed = _ALLOWED_RULE_CHARS
+    max_len = MAX_RULE_LENGTH
+
+    # Second pass: Strict safety validation
+    # FAST PATH: C-speed list comprehension for the 99.9% case where rules are safe
+    filtered_hostnames = [
+        h
+        for h in unique_hostnames_dict
+        if h and len(h) <= max_len and allowed.issuperset(h)
+    ]
+
+    _log_filtering_results(
+        len(hostnames), unique_hostnames_dict, filtered_hostnames, folder_name
+    )
 
     return filtered_hostnames
 
