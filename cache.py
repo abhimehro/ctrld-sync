@@ -237,7 +237,8 @@ def save_disk_cache() -> None:
                 encoding="utf-8",
             ) as f:
                 temp_path = Path(f.name)
-                json.dump(_disk_cache, f, indent=2)
+                # ⚡ Bolt: Compact JSON serialization reduces disk I/O and CPU overhead
+                json.dump(_disk_cache, f, separators=(",", ":"))
 
             # POSIX guarantees rename is atomic.
             temp_path.replace(cache_file)
