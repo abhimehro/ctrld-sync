@@ -2895,49 +2895,48 @@ def print_row(cols: list[str], w: list[int]) -> str:
     return f"{Colors.BOLD}│{Colors.ENDC} {col0} {Colors.BOLD}│{Colors.ENDC} {col1} {Colors.BOLD}│{Colors.ENDC} {col2} {Colors.BOLD}│{Colors.ENDC} {col3} {Colors.BOLD}│{Colors.ENDC} {col4} {Colors.BOLD}│{Colors.ENDC}"
 
 
-def print_summary_table(
-    sync_results: list[SyncResult], success_count: int, total: int, dry_run: bool
+@dataclass
+class _SummaryStats:
+    t_f: int
+    t_r: int
+    t_d: float
+    t_status: str
+    t_col: str
+
+
+def _get_display_profile(profile: str) -> str:
+    return "(Unspecified)" if profile == "dry-run-placeholder" else profile
+
+
+def _print_hint_if_no_folders(t_f: int) -> None:
+    if t_f == 0:
+        _print_hint(
+            "  💡 Hint: Add folder URLs using --folder-url or in your config.yaml"
+        )
+
+
+def _render_ascii_table(
+    sync_results: list[SyncResult], w: list[int], stats: _SummaryStats, dry_run: bool
 ) -> None:
-    # 1. Setup Data
-    max_p = max((_display_len(r["profile"]) for r in sync_results), default=25)
-    w = [max(25, max_p), 10, 12, 10, 15]
-
-    t_f, t_r, t_d = (
-        sum(r["folders"] for r in sync_results),
-        sum(r["rules"] for r in sync_results),
-        sum(r["duration"] for r in sync_results),
+    header = f"{'Profile ID':<{w[0]}} | {'Folders':>{w[1]}} | {'Rules':>{w[2]}} | {'Duration':>{w[3]}} | {'Status':<{w[4]}}"
+    sep = "-" * len(header)
+    print(
+        f"\n{('DRY RUN' if dry_run else 'SYNC') + ' SUMMARY':^{len(header)}}\n{sep}\n{header}\n{sep}"
     )
-    all_ok = success_count == total
-    t_status = ("✅ Ready" if dry_run else "✅ All Good") if all_ok else "❌ Errors"
-    t_col = Colors.GREEN if all_ok else Colors.FAIL
-
-    # 2. Render
-    if not USE_COLORS:
-        # Simple ASCII Fallback
-        header = f"{'Profile ID':<{w[0]}} | {'Folders':>{w[1]}} | {'Rules':>{w[2]}} | {'Duration':>{w[3]}} | {'Status':<{w[4]}}"
-        sep = "-" * len(header)
+    for r in sync_results:
+        display_profile = _get_display_profile(r["profile"])
         print(
-            f"\n{('DRY RUN' if dry_run else 'SYNC') + ' SUMMARY':^{len(header)}}\n{sep}\n{header}\n{sep}"
+            f"{display_profile:<{w[0]}} | {r['folders']:>{w[1]}} | {r['rules']:>{w[2]},} | {r['duration']:>{w[3] - 1}.1f}s | {r['status_label']:<{w[4]}}"
         )
-        for r in sync_results:
-            display_profile = (
-                "(Unspecified)"
-                if r["profile"] == "dry-run-placeholder"
-                else r["profile"]
-            )
-            print(
-                f"{display_profile:<{w[0]}} | {r['folders']:>{w[1]}} | {r['rules']:>{w[2]},} | {r['duration']:>{w[3] - 1}.1f}s | {r['status_label']:<{w[4]}}"
-            )
-        print(
-            f"{sep}\n{'TOTAL':<{w[0]}} | {t_f:>{w[1]}} | {t_r:>{w[2]},} | {t_d:>{w[3] - 1}.1f}s | {t_status:<{w[4]}}\n{sep}\n"
-        )
-        if t_f == 0:
-            print(
-                "  💡 Hint: Add folder URLs using --folder-url or in your config.yaml\n"
-            )
-        return
+    print(
+        f"{sep}\n{'TOTAL':<{w[0]}} | {stats.t_f:>{w[1]}} | {stats.t_r:>{w[2]},} | {stats.t_d:>{w[3] - 1}.1f}s | {stats.t_status:<{w[4]}}\n{sep}\n"
+    )
+    print()
 
-    # Unicode Table
+
+def _render_unicode_table(
+    sync_results: list[SyncResult], w: list[int], stats: _SummaryStats, dry_run: bool
+) -> None:
     print(f"\n{print_line('┌', '─', '┐', w)}")
     title = f"{'DRY RUN' if dry_run else 'SYNC'} SUMMARY"
     print(
@@ -2950,9 +2949,7 @@ def print_summary_table(
 
     for r in sync_results:
         sc = Colors.GREEN if r["success"] else Colors.FAIL
-        display_profile = (
-            "(Unspecified)" if r["profile"] == "dry-run-placeholder" else r["profile"]
-        )
+        display_profile = _get_display_profile(r["profile"])
         print(
             print_row(
                 [
@@ -2967,14 +2964,34 @@ def print_summary_table(
         )
 
     print(
-        f"{print_line('├', '┼', '┤', w)}\n{print_row(['TOTAL', str(t_f), f'{t_r:,}', f'{t_d:.1f}s', f'{t_col}{t_status}{Colors.ENDC}'], w)}"
+        f"{print_line('├', '┼', '┤', w)}\n{print_row(['TOTAL', str(stats.t_f), f'{stats.t_r:,}', f'{stats.t_d:.1f}s', f'{stats.t_col}{stats.t_status}{Colors.ENDC}'], w)}"
     )
     print(f"{print_line('└', '┴', '┘', w)}\n")
 
-    if t_f == 0:
-        _print_hint(
-            "  💡 Hint: Add folder URLs using --folder-url or in your config.yaml"
-        )
+
+def print_summary_table(
+    sync_results: list[SyncResult], success_count: int, total: int, dry_run: bool
+) -> None:
+    max_p = max((_display_len(r["profile"]) for r in sync_results), default=25)
+    w = [max(25, max_p), 10, 12, 10, 15]
+
+    t_f, t_r, t_d = (
+        sum(r["folders"] for r in sync_results),
+        sum(r["rules"] for r in sync_results),
+        sum(r["duration"] for r in sync_results),
+    )
+    all_ok = success_count == total
+    t_status = ("✅ Ready" if dry_run else "✅ All Good") if all_ok else "❌ Errors"
+    t_col = Colors.GREEN if all_ok else Colors.FAIL
+    stats = _SummaryStats(t_f, t_r, t_d, t_status, t_col)
+
+    if not USE_COLORS:
+        _render_ascii_table(sync_results, w, stats, dry_run)
+        _print_hint_if_no_folders(t_f)
+        return
+
+    _render_unicode_table(sync_results, w, stats, dry_run)
+    _print_hint_if_no_folders(t_f)
 
 
 def print_success_message(profile_ids: list[str]) -> None:
