@@ -12,6 +12,7 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-07-20 [\#1038](https://github.com/abhimehro/ctrld-sync/issues/1038)
 - Daily QA & Agentic Review — 2026-07-19 [\#1033](https://github.com/abhimehro/ctrld-sync/issues/1033)
 - Daily QA & Agentic Review — 2026-07-18 [\#1026](https://github.com/abhimehro/ctrld-sync/issues/1026)
 - Daily QA Check - ctrld-sync - 2026-07-17 [\#1022](https://github.com/abhimehro/ctrld-sync/issues/1022)
@@ -36,6 +37,7 @@
 **Merged pull requests:**
 
 - ⚡ Bolt: optimize domain validation [\#1037](https://github.com/abhimehro/ctrld-sync/pull/1037) ([abhimehro](https://github.com/abhimehro))
+- 🎨 Palette: Standardize CLI hints using \_print\_hint\(\) for empty states [\#1036](https://github.com/abhimehro/ctrld-sync/pull/1036) ([abhimehro](https://github.com/abhimehro))
 - fix\(deps\): sync requirements floors with pyproject \(dotenv/pytest/ruff\) [\#1034](https://github.com/abhimehro/ctrld-sync/pull/1034) ([abhimehro](https://github.com/abhimehro))
 - fix\(cli\): USE\_COLORS for rate-limit header \(salvages \#1030\) [\#1031](https://github.com/abhimehro/ctrld-sync/pull/1031) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Add countdown timer for folder polling [\#1028](https://github.com/abhimehro/ctrld-sync/pull/1028) ([abhimehro](https://github.com/abhimehro))
