@@ -37,3 +37,6 @@
 ## YYYY-MM-DD - Linter Warnings vs Performance
 **Learning:** Tools like Ruff might suggest replacing a `for` loop with an early return into an `any(generator)` expression (SIM110). However, doing this defeats optimizations since generator setup is much slower than a plain for loop in hot code paths.
 **Action:** Append a `# noqa: SIM110` to ignore linter warnings when it conflicts with a benchmarked performance optimization (such as avoiding generator overhead).
+## YYYY-MM-DD - Inlining Function Calls in Hot Paths
+**Learning:** When filtering massive collections (e.g., list comprehensions processing >100k items), eliminate Python function call overhead by inlining simple validation logic (such as string length and `set.issuperset()` checks) directly into the comprehension instead of calling a dedicated validation function per item.
+**Action:** Inline simple validation checks like `len()` and `.issuperset()` into list comprehensions when processing massive lists to eliminate function call overhead.

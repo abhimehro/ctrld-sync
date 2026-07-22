@@ -2209,6 +2209,35 @@ def create_folder(ctx: SyncContext, name: str, action: RuleAction) -> str | None
         return None
 
 
+def _log_dropped_rules(
+    unique_hostnames_dict: dict[str, None],
+    filtered_hostnames: list[str],
+    original_count: int,
+    folder_name: str,
+) -> None:
+    skipped_unsafe = len(unique_hostnames_dict) - len(filtered_hostnames)
+
+    if skipped_unsafe > 0:
+        # SLOW PATH: Only iterate again to log if we actually found unsafe rules
+        sanitized_folder = sanitize_for_log(folder_name)
+        is_safe = is_valid_rule
+        for h in unique_hostnames_dict:
+            if not is_safe(h):
+                log.warning(
+                    f"Skipping unsafe rule in {sanitized_folder}: {sanitize_for_log(h)}"
+                )
+        log.warning(
+            f"Folder {sanitized_folder}: skipped {skipped_unsafe} unsafe {pluralize(skipped_unsafe, 'rule')}"
+        )
+
+    duplicates_count = original_count - len(filtered_hostnames) - skipped_unsafe
+
+    if duplicates_count > 0:
+        log.info(
+            f"Folder {sanitize_for_log(folder_name)}: skipping {duplicates_count} duplicate {pluralize(duplicates_count, 'rule')}"
+        )
+
+
 def _filter_rules_for_folder(
     existing_rules: set[str],
     hostnames: list[str],
@@ -2230,32 +2259,19 @@ def _filter_rules_for_folder(
             itertools.filterfalse(existing_rules.__contains__, hostnames)
         )
 
-    # Optimization 2: Inline method references for hot loop performance
-    is_safe = is_valid_rule
+    # Optimization 2: Inline function calls in hot loop performance
+    _allowed_issuperset = _ALLOWED_RULE_CHARS.issuperset
+    _max_len = MAX_RULE_LENGTH
 
     # Second pass: Strict safety validation
     # FAST PATH: C-speed list comprehension for the 99.9% case where rules are safe
-    filtered_hostnames = [h for h in unique_hostnames_dict if is_safe(h)]
-    skipped_unsafe = len(unique_hostnames_dict) - len(filtered_hostnames)
+    # Inlined string length and superset checks to bypass Python function call overhead
+    filtered_hostnames = [
+        h for h in unique_hostnames_dict
+        if h and len(h) <= _max_len and _allowed_issuperset(h)
+    ]
 
-    if skipped_unsafe > 0:
-        # SLOW PATH: Only iterate again to log if we actually found unsafe rules
-        sanitized_folder = sanitize_for_log(folder_name)
-        for h in unique_hostnames_dict:
-            if not is_safe(h):
-                log.warning(
-                    f"Skipping unsafe rule in {sanitized_folder}: {sanitize_for_log(h)}"
-                )
-        log.warning(
-            f"Folder {sanitized_folder}: skipped {skipped_unsafe} unsafe {pluralize(skipped_unsafe, 'rule')}"
-        )
-
-    duplicates_count = original_count - len(filtered_hostnames) - skipped_unsafe
-
-    if duplicates_count > 0:
-        log.info(
-            f"Folder {sanitize_for_log(folder_name)}: skipping {duplicates_count} duplicate {pluralize(duplicates_count, 'rule')}"
-        )
+    _log_dropped_rules(unique_hostnames_dict, filtered_hostnames, original_count, folder_name)
 
     return filtered_hostnames
 
