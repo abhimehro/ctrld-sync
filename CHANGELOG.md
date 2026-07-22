@@ -37,6 +37,8 @@
 
 **Merged pull requests:**
 
+- ⚡ Bolt: inline rule validation in hot path [\#1050](https://github.com/abhimehro/ctrld-sync/pull/1050) ([abhimehro](https://github.com/abhimehro))
+- 🎨 Palette: Add structural newlines and stderr streaming for interactive prompts [\#1049](https://github.com/abhimehro/ctrld-sync/pull/1049) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump ruby/setup-ruby from 1.319.0 to 1.320.0 [\#1048](https://github.com/abhimehro/ctrld-sync/pull/1048) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump actions/labeler from 6 to 7 [\#1047](https://github.com/abhimehro/ctrld-sync/pull/1047) ([dependabot[bot]](https://github.com/apps/dependabot))
 - ⚡ Bolt: Use compact JSON serialization for cache [\#1045](https://github.com/abhimehro/ctrld-sync/pull/1045) ([abhimehro](https://github.com/abhimehro))
