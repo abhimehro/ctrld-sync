@@ -760,12 +760,13 @@ def _clear_current_line() -> None:
         sys.stderr.flush()
 
 
-def _print_hint(hint: str) -> None:
+def _print_hint(hint: str, file=None) -> None:
     """Helper to cleanly print input hints while respecting USE_COLORS to reduce cyclomatic complexity."""
+    file = file or sys.stdout
     if USE_COLORS:
-        print(f"{Colors.DIM}{hint}{Colors.ENDC}")
+        print(f"{Colors.DIM}{hint}{Colors.ENDC}", file=file)
     else:
-        print(hint)
+        print(hint, file=file)
 
 
 def _print_bold_header(text: str) -> None:
@@ -804,15 +805,19 @@ def get_validated_input(
             sys.exit(130)
 
         if not value:
-            print(f"{Colors.FAIL}❌ Value cannot be empty{Colors.ENDC}")
-            _print_hint(EMPTY_INPUT_HINT)
+            print(
+                f"{Colors.FAIL}❌ Value cannot be empty{Colors.ENDC}", file=sys.stderr
+            )
+            _print_hint(EMPTY_INPUT_HINT, file=sys.stderr)
+            print(file=sys.stderr)
             continue
 
         if validator(value):
             return value
 
-        print(f"{Colors.FAIL}❌ {error_msg}{Colors.ENDC}")
-        _print_hint(INVALID_INPUT_HINT)
+        print(f"{Colors.FAIL}❌ {error_msg}{Colors.ENDC}", file=sys.stderr)
+        _print_hint(INVALID_INPUT_HINT, file=sys.stderr)
+        print(file=sys.stderr)
 
 
 def _format_password_prompt(prompt: str) -> str:
@@ -855,15 +860,19 @@ def get_password(
             sys.exit(130)
 
         if not value:
-            print(f"{Colors.FAIL}❌ Value cannot be empty{Colors.ENDC}")
-            _print_hint(EMPTY_INPUT_HINT)
+            print(
+                f"{Colors.FAIL}❌ Value cannot be empty{Colors.ENDC}", file=sys.stderr
+            )
+            _print_hint(EMPTY_INPUT_HINT, file=sys.stderr)
+            print(file=sys.stderr)
             continue
 
         if validator(value):
             return value
 
-        print(f"{Colors.FAIL}❌ {error_msg}{Colors.ENDC}")
-        _print_hint(INVALID_INPUT_HINT)
+        print(f"{Colors.FAIL}❌ {error_msg}{Colors.ENDC}", file=sys.stderr)
+        _print_hint(INVALID_INPUT_HINT, file=sys.stderr)
+        print(file=sys.stderr)
 
 
 TOKEN = _clean_env_kv(os.getenv("TOKEN"), "TOKEN")
@@ -2802,7 +2811,8 @@ def _get_interactive_restart_confirmation() -> bool:
             print(cancel_msg, file=sys.stderr)
             return False
 
-        print(err_msg)
+        print(err_msg, file=sys.stderr)
+        print(file=sys.stderr)
         prompt = prompt_reprompt
 
 

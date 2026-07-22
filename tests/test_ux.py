@@ -464,7 +464,7 @@ class TestPromptForInteractiveRestart:
         result = main.prompt_for_interactive_restart(["123"])
 
         captured = capsys.readouterr()
-        assert "Unrecognized input" in captured.out
+        assert "Unrecognized input" in captured.err
         if should_execute:
             assert result is True
         else:
@@ -496,9 +496,9 @@ class TestGetValidatedInput:
         captured = capsys.readouterr()
 
         # Check that we emitted the uncolored strings for hints
-        assert main.EMPTY_INPUT_HINT in captured.out
-        assert main.INVALID_INPUT_HINT in captured.out
-        assert "\033[2m" not in captured.out  # Colors.DIM should not be there
+        assert main.EMPTY_INPUT_HINT in captured.err
+        assert main.INVALID_INPUT_HINT in captured.err
+        assert "\033[2m" not in captured.err  # Colors.DIM should not be there
 
     def test_get_validated_input_colors(self, monkeypatch, capsys):
         """Verify colored hints are printed if colors are enabled."""
@@ -527,8 +527,8 @@ class TestGetValidatedInput:
         captured = capsys.readouterr()
 
         # Check that we emitted the colored strings for hints
-        assert f"\033[2m{main.EMPTY_INPUT_HINT}\033[0m" in captured.out
-        assert f"\033[2m{main.INVALID_INPUT_HINT}\033[0m" in captured.out
+        assert f"\033[2m{main.EMPTY_INPUT_HINT}\033[0m" in captured.err
+        assert f"\033[2m{main.INVALID_INPUT_HINT}\033[0m" in captured.err
 
 
 def test_print_hint_helper_usage(monkeypatch, capsys):
