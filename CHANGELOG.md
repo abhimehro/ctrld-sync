@@ -12,6 +12,7 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-07-21 [\#1046](https://github.com/abhimehro/ctrld-sync/issues/1046)
 - Daily QA & Agentic Review — 2026-07-20 [\#1038](https://github.com/abhimehro/ctrld-sync/issues/1038)
 - Daily QA & Agentic Review — 2026-07-19 [\#1033](https://github.com/abhimehro/ctrld-sync/issues/1033)
 - Daily QA & Agentic Review — 2026-07-18 [\#1026](https://github.com/abhimehro/ctrld-sync/issues/1026)
@@ -36,6 +37,8 @@
 
 **Merged pull requests:**
 
+- chore\(deps\): bump ruby/setup-ruby from 1.319.0 to 1.320.0 [\#1048](https://github.com/abhimehro/ctrld-sync/pull/1048) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump actions/labeler from 6 to 7 [\#1047](https://github.com/abhimehro/ctrld-sync/pull/1047) ([dependabot[bot]](https://github.com/apps/dependabot))
 - ⚡ Bolt: Use compact JSON serialization for cache [\#1045](https://github.com/abhimehro/ctrld-sync/pull/1045) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump release-drafter/release-drafter from 7.5.1 to 7.6.0 [\#1044](https://github.com/abhimehro/ctrld-sync/pull/1044) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump actions/setup-python from 6 to 7 [\#1043](https://github.com/abhimehro/ctrld-sync/pull/1043) ([dependabot[bot]](https://github.com/apps/dependabot))
