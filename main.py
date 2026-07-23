@@ -3254,9 +3254,11 @@ def main() -> bool:
         cache_file = get_cache_dir() / "blocklists.json"
         if cache_file.exists():
             try:
+                size_bytes = cache_file.stat().st_size
+                size_str = f"{size_bytes / (1024 * 1024):.1f} MB" if size_bytes >= 1024 * 1024 else f"{size_bytes / 1024:.1f} KB"
                 cache_file.unlink()
                 print(
-                    f"{Colors.GREEN}✓ Cleared blocklist cache: {cache_file}{Colors.ENDC}"
+                    f"{Colors.GREEN}✓ Cleared blocklist cache: {cache_file} ({size_str} freed){Colors.ENDC}"
                 )
             except OSError as e:
                 print(f"{Colors.FAIL}✗ Failed to clear cache: {e}{Colors.ENDC}")
