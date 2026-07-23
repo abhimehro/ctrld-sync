@@ -3224,6 +3224,29 @@ def _resolve_folder_urls(args: argparse.Namespace) -> tuple[list[str], dict | No
     return [entry["url"] for entry in cfg["folders"]], cfg
 
 
+def _handle_clear_cache() -> None:
+    """Handles the --clear-cache flag by deleting the cache file and exiting."""
+    cache_file = get_cache_dir() / "blocklists.json"
+    if cache_file.exists():
+        try:
+            size_bytes = cache_file.stat().st_size
+            size_str = f"{size_bytes / (1024 * 1024):.1f} MB" if size_bytes >= 1024 * 1024 else f"{size_bytes / 1024:.1f} KB"
+            cache_file.unlink()
+            print(
+                f"{Colors.GREEN}✓ Cleared blocklist cache: {cache_file} ({size_str} freed){Colors.ENDC}"
+            )
+        except OSError as e:
+            print(f"{Colors.FAIL}✗ Failed to clear cache: {e}{Colors.ENDC}")
+            exit(1)
+    else:
+        print(f"{Colors.CYAN}ℹ No cache file found, nothing to clear{Colors.ENDC}")
+        _print_hint(
+            "💡 Hint: The cache file will be created or updated after a successful sync run without --dry-run"
+        )
+    _disk_cache.clear()
+    exit(0)
+
+
 def main() -> bool:
     """
     Main entry point for Control D Sync.
@@ -3251,25 +3274,7 @@ def main() -> bool:
 
     # Handle --clear-cache: delete cache file and exit immediately
     if args.clear_cache:
-        cache_file = get_cache_dir() / "blocklists.json"
-        if cache_file.exists():
-            try:
-                size_bytes = cache_file.stat().st_size
-                size_str = f"{size_bytes / (1024 * 1024):.1f} MB" if size_bytes >= 1024 * 1024 else f"{size_bytes / 1024:.1f} KB"
-                cache_file.unlink()
-                print(
-                    f"{Colors.GREEN}✓ Cleared blocklist cache: {cache_file} ({size_str} freed){Colors.ENDC}"
-                )
-            except OSError as e:
-                print(f"{Colors.FAIL}✗ Failed to clear cache: {e}{Colors.ENDC}")
-                exit(1)
-        else:
-            print(f"{Colors.CYAN}ℹ No cache file found, nothing to clear{Colors.ENDC}")
-            _print_hint(
-                "💡 Hint: The cache file will be created or updated after a successful sync run without --dry-run"
-            )
-        _disk_cache.clear()
-        exit(0)
+        _handle_clear_cache()
     profiles_arg = (
         _clean_env_kv(args.profiles or os.getenv("PROFILE", ""), "PROFILE") or ""
     )
