@@ -12,6 +12,8 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-07-23 [\#1054](https://github.com/abhimehro/ctrld-sync/issues/1054)
+- Daily QA & Agentic Review — 2026-07-22 [\#1052](https://github.com/abhimehro/ctrld-sync/issues/1052)
 - Daily QA & Agentic Review — 2026-07-21 [\#1046](https://github.com/abhimehro/ctrld-sync/issues/1046)
 - Daily QA & Agentic Review — 2026-07-20 [\#1038](https://github.com/abhimehro/ctrld-sync/issues/1038)
 - Daily QA & Agentic Review — 2026-07-19 [\#1033](https://github.com/abhimehro/ctrld-sync/issues/1033)
@@ -37,6 +39,10 @@
 
 **Merged pull requests:**
 
+- chore\(deps\): bump github/gh-aw/actions/setup from 0.82.14 to 0.83.1 [\#1058](https://github.com/abhimehro/ctrld-sync/pull/1058) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump ruby/setup-ruby from 1.320.0 to 1.321.0 [\#1057](https://github.com/abhimehro/ctrld-sync/pull/1057) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump github/gh-aw from 0.82.14 to 0.83.1 [\#1056](https://github.com/abhimehro/ctrld-sync/pull/1056) ([dependabot[bot]](https://github.com/apps/dependabot))
+- 🎨 Palette: refactor clear-cache to reduce complexity and add freed space feedback [\#1053](https://github.com/abhimehro/ctrld-sync/pull/1053) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: inline rule validation in hot path [\#1050](https://github.com/abhimehro/ctrld-sync/pull/1050) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Add structural newlines and stderr streaming for interactive prompts [\#1049](https://github.com/abhimehro/ctrld-sync/pull/1049) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump ruby/setup-ruby from 1.319.0 to 1.320.0 [\#1048](https://github.com/abhimehro/ctrld-sync/pull/1048) ([dependabot[bot]](https://github.com/apps/dependabot))
