@@ -115,3 +115,6 @@
 ## YYYY-MM-DD - [CLI Table Alignment with Unicode/Emojis]
 **Learning:** Using standard string length formatting (e.g. `:<` or `^`) inside f-strings fails when text contains emojis or full-width characters (like ✅ or 📋) because standard calculations evaluate their width as 1 character while terminals render them as 2 columns.
 **Action:** When printing tables or structured outputs, use custom padding functions (like `_pad_string`) for all table content that could contain emojis or unicode characters to ensure exact column alignment.
+## YYYY-MM-DD - [CLI Partial Success Feedback]
+**Learning:** When performing batch operations (like syncing multiple profiles), grouping a partial success (e.g., 1 out of 2 succeeded) under a generic "❌ Errors" total status creates unnecessary alarm and fails to inform the user of what actually happened.
+**Action:** Always implement a dedicated "⚠️ Partial" status for batch operations where `0 < success_count < total` to provide accurate, nuanced feedback.

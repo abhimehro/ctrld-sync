@@ -2953,9 +2953,7 @@ def _render_ascii_table(
     sep = "-" * len(header)
     title = f"📋 {'DRY RUN' if dry_run else 'SYNC'} SUMMARY"
     padded_title = _pad_string(title, len(header), align="^")
-    print(
-        f"\n{padded_title}\n{sep}\n{header}\n{sep}"
-    )
+    print(f"\n{padded_title}\n{sep}\n{header}\n{sep}")
     for r in sync_results:
         display_profile = _get_display_profile(r["profile"])
         print(
@@ -3015,8 +3013,15 @@ def print_summary_table(
         sum(r["duration"] for r in sync_results),
     )
     all_ok = success_count == total
-    t_status = ("✅ Ready" if dry_run else "✅ All Good") if all_ok else "❌ Errors"
-    t_col = Colors.GREEN if all_ok else Colors.FAIL
+    if all_ok:
+        t_status = "✅ Ready" if dry_run else "✅ All Good"
+        t_col = Colors.GREEN
+    elif success_count > 0:
+        t_status = "⚠️ Partial"
+        t_col = Colors.WARNING
+    else:
+        t_status = "❌ Errors"
+        t_col = Colors.FAIL
     stats = _SummaryStats(t_f, t_r, t_d, t_status, t_col)
 
     if not USE_COLORS:
@@ -3233,7 +3238,11 @@ def _handle_clear_cache() -> None:
     if cache_file.exists():
         try:
             size_bytes = cache_file.stat().st_size
-            size_str = f"{size_bytes / (1024 * 1024):.1f} MB" if size_bytes >= 1024 * 1024 else f"{size_bytes / 1024:.1f} KB"
+            size_str = (
+                f"{size_bytes / (1024 * 1024):.1f} MB"
+                if size_bytes >= 1024 * 1024
+                else f"{size_bytes / 1024:.1f} KB"
+            )
             cache_file.unlink()
             print(
                 f"{Colors.GREEN}✓ Cleared blocklist cache: {cache_file} ({size_str} freed){Colors.ENDC}"
