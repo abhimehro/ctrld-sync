@@ -2951,16 +2951,18 @@ def _render_ascii_table(
 ) -> None:
     header = f"{'Profile ID':<{w[0]}} | {'Folders':>{w[1]}} | {'Rules':>{w[2]}} | {'Duration':>{w[3]}} | {'Status':<{w[4]}}"
     sep = "-" * len(header)
+    title = f"📋 {'DRY RUN' if dry_run else 'SYNC'} SUMMARY"
+    padded_title = _pad_string(title, len(header), align="^")
     print(
-        f"\n{('DRY RUN' if dry_run else 'SYNC') + ' SUMMARY':^{len(header)}}\n{sep}\n{header}\n{sep}"
+        f"\n{padded_title}\n{sep}\n{header}\n{sep}"
     )
     for r in sync_results:
         display_profile = _get_display_profile(r["profile"])
         print(
-            f"{display_profile:<{w[0]}} | {r['folders']:>{w[1]}} | {r['rules']:>{w[2]},} | {r['duration']:>{w[3] - 1}.1f}s | {r['status_label']:<{w[4]}}"
+            f"{display_profile:<{w[0]}} | {r['folders']:>{w[1]}} | {r['rules']:>{w[2]},} | {r['duration']:>{w[3] - 1}.1f}s | {_pad_string(r['status_label'], w[4], align='<')}"
         )
     print(
-        f"{sep}\n{'TOTAL':<{w[0]}} | {stats.t_f:>{w[1]}} | {stats.t_r:>{w[2]},} | {stats.t_d:>{w[3] - 1}.1f}s | {stats.t_status:<{w[4]}}\n{sep}\n"
+        f"{sep}\n{'TOTAL':<{w[0]}} | {stats.t_f:>{w[1]}} | {stats.t_r:>{w[2]},} | {stats.t_d:>{w[3] - 1}.1f}s | {_pad_string(stats.t_status, w[4], align='<')}\n{sep}\n"
     )
     print()
 
@@ -2969,9 +2971,10 @@ def _render_unicode_table(
     sync_results: list[SyncResult], w: list[int], stats: _SummaryStats, dry_run: bool
 ) -> None:
     print(f"\n{print_line('┌', '─', '┐', w)}")
-    title = f"{'DRY RUN' if dry_run else 'SYNC'} SUMMARY"
+    title = f"📋 {'DRY RUN' if dry_run else 'SYNC'} SUMMARY"
+    padded_title = _pad_string(title, sum(w) + 14, align="^")
     print(
-        f"{Colors.BOLD}│{Colors.CYAN if dry_run else Colors.HEADER}{title:^{sum(w) + 14}}{Colors.ENDC}{Colors.BOLD}│{Colors.ENDC}"
+        f"{Colors.BOLD}│{Colors.CYAN if dry_run else Colors.HEADER}{padded_title}{Colors.ENDC}{Colors.BOLD}│{Colors.ENDC}"
     )
     print(
         f"{print_line('├', '┬', '┤', w)}\n{print_row([f'{Colors.HEADER}Profile ID{Colors.ENDC}', f'{Colors.HEADER}Folders{Colors.ENDC}', f'{Colors.HEADER}Rules{Colors.ENDC}', f'{Colors.HEADER}Duration{Colors.ENDC}', f'{Colors.HEADER}Status{Colors.ENDC}'], w)}"
