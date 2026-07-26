@@ -2953,9 +2953,7 @@ def _render_ascii_table(
     sep = "-" * len(header)
     title = f"📋 {'DRY RUN' if dry_run else 'SYNC'} SUMMARY"
     padded_title = _pad_string(title, len(header), align="^")
-    print(
-        f"\n{padded_title}\n{sep}\n{header}\n{sep}"
-    )
+    print(f"\n{padded_title}\n{sep}\n{header}\n{sep}")
     for r in sync_results:
         display_profile = _get_display_profile(r["profile"])
         print(
@@ -3124,10 +3122,7 @@ def display_api_statistics() -> None:
         _api_stats["control_d_api_calls"] + _api_stats["blocklist_fetches"]
     )
     if total_api_calls > 0:
-        if USE_COLORS:
-            print(f"{Colors.BOLD}📊 API Statistics:{Colors.ENDC}")
-        else:
-            print("📊 API Statistics:")
+        _print_bold_header("📊 API Statistics:")
         print(f"  • Control D API calls: {_api_stats['control_d_api_calls']:>7,}")
         print(f"  • Blocklist fetches:   {_api_stats['blocklist_fetches']:>7,}")
         print(f"  • Total API requests:  {total_api_calls:>7,}")
@@ -3137,10 +3132,7 @@ def display_api_statistics() -> None:
 def display_cache_statistics() -> None:
     """Display cache statistics if any cache activity occurred."""
     if _cache_stats["hits"] + _cache_stats["misses"] + _cache_stats["validations"] > 0:
-        if USE_COLORS:
-            print(f"{Colors.BOLD}⚡ Cache Statistics:{Colors.ENDC}")
-        else:
-            print("⚡ Cache Statistics:")
+        _print_bold_header("⚡ Cache Statistics:")
         print(f"  • Hits (in-memory):    {_cache_stats['hits']:>7,}")
         print(f"  • Misses (downloaded): {_cache_stats['misses']:>7,}")
         print(f"  • Validations (304):   {_cache_stats['validations']:>7,}")
@@ -3233,7 +3225,11 @@ def _handle_clear_cache() -> None:
     if cache_file.exists():
         try:
             size_bytes = cache_file.stat().st_size
-            size_str = f"{size_bytes / (1024 * 1024):.1f} MB" if size_bytes >= 1024 * 1024 else f"{size_bytes / 1024:.1f} KB"
+            size_str = (
+                f"{size_bytes / (1024 * 1024):.1f} MB"
+                if size_bytes >= 1024 * 1024
+                else f"{size_bytes / 1024:.1f} KB"
+            )
             cache_file.unlink()
             print(
                 f"{Colors.GREEN}✓ Cleared blocklist cache: {cache_file} ({size_str} freed){Colors.ENDC}"
@@ -3337,8 +3333,9 @@ def main() -> bool:
                     validate_profile_id(pid, log_errors=False) for pid in ids
                 )
 
+            print()
             p_input = get_validated_input(
-                f"\n{Colors.BOLD}Enter Control D Profile ID:{Colors.ENDC} ",
+                f"{Colors.BOLD}👤 Enter Control D Profile ID:{Colors.ENDC} ",
                 validate_profile_input,
                 "Invalid ID(s) or URL(s). Must be a valid Profile ID or a Control D Profile URL. Comma-separate for multiple.",
             )
@@ -3352,8 +3349,9 @@ def main() -> bool:
                 "  💡 Hint: You can generate one at: https://controld.com/account/manage-account"
             )
 
+            print()
             t_input = get_password(
-                f"\n{Colors.BOLD}Enter Control D API Token {Colors.DIM}(typing will be hidden){Colors.ENDC}: ",
+                f"{Colors.BOLD}🔑 Enter Control D API Token {Colors.DIM}(typing will be hidden){Colors.ENDC}: ",
                 lambda x: len(x) > 8,
                 "Token seems too short. Please check your API token.",
             )

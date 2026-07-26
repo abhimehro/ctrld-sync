@@ -115,3 +115,9 @@
 ## YYYY-MM-DD - [CLI Table Alignment with Unicode/Emojis]
 **Learning:** Using standard string length formatting (e.g. `:<` or `^`) inside f-strings fails when text contains emojis or full-width characters (like ✅ or 📋) because standard calculations evaluate their width as 1 character while terminals render them as 2 columns.
 **Action:** When printing tables or structured outputs, use custom padding functions (like `_pad_string`) for all table content that could contain emojis or unicode characters to ensure exact column alignment.
+## 2025-06-25 - [Cyclomatic Complexity vs Graceful Color Degradation]
+**Learning:** Relying on `if USE_COLORS:` blocks in the main code path for things like bold section headers is repetitive and increases cyclomatic complexity. However, standard Python f-string variables cannot conditionally apply format wrappers easily without creating ugly ternary conditionals inside the string.
+**Action:** Use a simple helper function like `_print_bold_header` that handles the `if USE_COLORS:` logic internally, keeping the main CLI printing logic straight-line and readable.
+## 2025-06-25 - [UX Regression on Input Retry]
+**Learning:** When moving a leading newline `\n` from an input prompt string into an explicit preceding `print()` call to avoid terminal clearance bugs, you must carefully consider the loop behavior on invalid inputs. If the loop `continue`s on an error and reprompts, the explicit `print()` outside the prompt call might not be executed again, causing retry prompts to squish together visually.
+**Action:** Verify that error cases inside input loops (e.g., in `get_validated_input`) explicitly print their own newlines or spacing before `continue`, or that the preceding `print()` is positioned inside the retry loop so that it executes on every attempt.
