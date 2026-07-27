@@ -2935,6 +2935,14 @@ class _SummaryStats:
     t_col: str
 
 
+def _get_sync_status(success_count: int, total: int, dry_run: bool) -> tuple[str, str]:
+    if success_count == total:
+        return ("✅ Ready" if dry_run else "✅ All Good"), Colors.GREEN
+    if 0 < success_count < total:
+        return "⚠️ Partial", Colors.WARNING
+    return "❌ Errors", Colors.FAIL
+
+
 def _get_display_profile(profile: str) -> str:
     return "(Unspecified)" if profile == "dry-run-placeholder" else profile
 
@@ -2953,9 +2961,7 @@ def _render_ascii_table(
     sep = "-" * len(header)
     title = f"📋 {'DRY RUN' if dry_run else 'SYNC'} SUMMARY"
     padded_title = _pad_string(title, len(header), align="^")
-    print(
-        f"\n{padded_title}\n{sep}\n{header}\n{sep}"
-    )
+    print(f"\n{padded_title}\n{sep}\n{header}\n{sep}")
     for r in sync_results:
         display_profile = _get_display_profile(r["profile"])
         print(
@@ -3014,17 +3020,7 @@ def print_summary_table(
         sum(r["rules"] for r in sync_results),
         sum(r["duration"] for r in sync_results),
     )
-    all_ok = success_count == total
-    partial_ok = 0 < success_count < total
-    if all_ok:
-        t_status = "✅ Ready" if dry_run else "✅ All Good"
-        t_col = Colors.GREEN
-    elif partial_ok:
-        t_status = "⚠️ Partial"
-        t_col = Colors.WARNING
-    else:
-        t_status = "❌ Errors"
-        t_col = Colors.FAIL
+    t_status, t_col = _get_sync_status(success_count, total, dry_run)
     stats = _SummaryStats(t_f, t_r, t_d, t_status, t_col)
 
     if not USE_COLORS:
@@ -3241,7 +3237,11 @@ def _handle_clear_cache() -> None:
     if cache_file.exists():
         try:
             size_bytes = cache_file.stat().st_size
-            size_str = f"{size_bytes / (1024 * 1024):.1f} MB" if size_bytes >= 1024 * 1024 else f"{size_bytes / 1024:.1f} KB"
+            size_str = (
+                f"{size_bytes / (1024 * 1024):.1f} MB"
+                if size_bytes >= 1024 * 1024
+                else f"{size_bytes / 1024:.1f} KB"
+            )
             cache_file.unlink()
             print(
                 f"{Colors.GREEN}✓ Cleared blocklist cache: {cache_file} ({size_str} freed){Colors.ENDC}"
