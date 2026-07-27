@@ -108,7 +108,7 @@ def test_print_success_message_single_profile(monkeypatch):
     monkeypatch.setattr(sys, "stdout", mock_stdout)
 
     profile_ids = ["123456"]
-    main.print_success_message(profile_ids)
+    main.print_success_message(profile_ids, 1, 1)
 
     # Check calls
     writes = [args[0] for args, _ in mock_stdout.write.call_args_list]
@@ -136,7 +136,7 @@ def test_print_success_message_multiple_profiles(monkeypatch):
     monkeypatch.setattr(sys, "stdout", mock_stdout)
 
     profile_ids = ["123", "456"]
-    main.print_success_message(profile_ids)
+    main.print_success_message(profile_ids, 2, 2)
 
     writes = [args[0] for args, _ in mock_stdout.write.call_args_list]
     combined_output = "".join(writes)
@@ -152,7 +152,7 @@ def test_print_success_message_no_colors(monkeypatch):
     mock_stdout = MagicMock()
     monkeypatch.setattr(sys, "stdout", mock_stdout)
 
-    main.print_success_message(["123"])
+    main.print_success_message(["123"], 1, 1)
 
     assert mock_stdout.write.call_count > 0
     writes = [args[0] for args, _ in mock_stdout.write.call_args_list]

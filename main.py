@@ -3015,8 +3015,15 @@ def print_summary_table(
         sum(r["duration"] for r in sync_results),
     )
     all_ok = success_count == total
-    t_status = ("✅ Ready" if dry_run else "✅ All Good") if all_ok else "❌ Errors"
-    t_col = Colors.GREEN if all_ok else Colors.FAIL
+    if all_ok:
+        t_status = "✅ Ready" if dry_run else "✅ All Good"
+        t_col = Colors.GREEN
+    elif success_count > 0:
+        t_status = "⚠️ Partial"
+        t_col = Colors.WARNING
+    else:
+        t_status = "❌ Errors"
+        t_col = Colors.FAIL
     stats = _SummaryStats(t_f, t_r, t_d, t_status, t_col)
 
     if not USE_COLORS:
@@ -3028,19 +3035,25 @@ def print_summary_table(
     _print_hint_if_no_folders(t_f)
 
 
-def print_success_message(profile_ids: list[str]) -> None:
+def print_success_message(profile_ids: list[str], success_count: int, total: int) -> None:
     """Prints a random success message and a link to the Control D dashboard."""
-    success_msgs = [
-        "✨ All synced!",
-        "🚀 Ready for liftoff!",
-        "🎨 Beautifully done!",
-        "💎 Smooth operation!",
-        "🌈 Perfect harmony!",
-    ]
-    chosen_msg = random.choice(success_msgs)
+    all_success = success_count == total
+
+    if all_success:
+        success_msgs = [
+            "✨ All synced!",
+            "🚀 Ready for liftoff!",
+            "🎨 Beautifully done!",
+            "💎 Smooth operation!",
+            "🌈 Perfect harmony!",
+        ]
+        chosen_msg = random.choice(success_msgs)
+    else:
+        chosen_msg = f"⚠️  Synced {success_count} out of {total} profile(s). Check errors above."
 
     if USE_COLORS:
-        print(f"\n{Colors.GREEN}{chosen_msg}{Colors.ENDC}")
+        color = Colors.GREEN if all_success else Colors.WARNING
+        print(f"\n{color}{chosen_msg}{Colors.ENDC}")
     else:
         print(f"\n{chosen_msg}")
 
@@ -3476,8 +3489,8 @@ def main() -> bool:
     )
 
     # Success Delight
-    if all_success and not args.dry_run:
-        print_success_message(profile_ids)
+    if success_count > 0 and not args.dry_run:
+        print_success_message(profile_ids, success_count, total)
 
     # Dry Run Next Steps
     if args.dry_run:
