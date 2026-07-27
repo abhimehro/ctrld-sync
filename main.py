@@ -3015,8 +3015,16 @@ def print_summary_table(
         sum(r["duration"] for r in sync_results),
     )
     all_ok = success_count == total
-    t_status = ("✅ Ready" if dry_run else "✅ All Good") if all_ok else "❌ Errors"
-    t_col = Colors.GREEN if all_ok else Colors.FAIL
+    partial_ok = 0 < success_count < total
+    if all_ok:
+        t_status = "✅ Ready" if dry_run else "✅ All Good"
+        t_col = Colors.GREEN
+    elif partial_ok:
+        t_status = "⚠️ Partial"
+        t_col = Colors.WARNING
+    else:
+        t_status = "❌ Errors"
+        t_col = Colors.FAIL
     stats = _SummaryStats(t_f, t_r, t_d, t_status, t_col)
 
     if not USE_COLORS:
