@@ -3035,10 +3035,8 @@ def print_summary_table(
     _print_hint_if_no_folders(t_f)
 
 
-def print_success_message(profile_ids: list[str], success_count: int, total: int) -> None:
-    """Prints a random success message and a link to the Control D dashboard."""
-    all_success = success_count == total
-
+def _print_success_text(all_success: bool, success_count: int, total: int) -> None:
+    """Helper to print the success or partial success message."""
     if all_success:
         success_msgs = [
             "✨ All synced!",
@@ -3057,7 +3055,9 @@ def print_success_message(profile_ids: list[str], success_count: int, total: int
     else:
         print(f"\n{chosen_msg}")
 
-    # Construct dashboard URL
+
+def _print_dashboard_url(profile_ids: list[str]) -> None:
+    """Helper to print the dashboard URL."""
     is_single_profile = (
         profile_ids
         and len(profile_ids) == 1
@@ -3080,6 +3080,13 @@ def print_success_message(profile_ids: list[str], success_count: int, total: int
         )
     else:
         print(f"👀 View your changes: {dashboard_url}")
+
+
+def print_success_message(profile_ids: list[str], success_count: int, total: int) -> None:
+    """Prints a random success message and a link to the Control D dashboard."""
+    all_success = success_count == total
+    _print_success_text(all_success, success_count, total)
+    _print_dashboard_url(profile_ids)
 
 
 def parse_args() -> argparse.Namespace:
