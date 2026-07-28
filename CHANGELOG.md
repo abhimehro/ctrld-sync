@@ -44,7 +44,10 @@
 
 **Merged pull requests:**
 
+- chore\(deps\): bump github/gh-aw from 0.83.1 to 0.83.4 [\#1071](https://github.com/abhimehro/ctrld-sync/pull/1071) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump github/gh-aw/actions/setup from 0.83.1 to 0.83.4 [\#1070](https://github.com/abhimehro/ctrld-sync/pull/1070) ([dependabot[bot]](https://github.com/apps/dependabot))
 - Automated Daily QA Review - No changes needed [\#1068](https://github.com/abhimehro/ctrld-sync/pull/1068) ([abhimehro](https://github.com/abhimehro))
+- 🎨 Palette: Add partial success feedback state [\#1067](https://github.com/abhimehro/ctrld-sync/pull/1067) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Improve SUMMARY table UI and alignment [\#1062](https://github.com/abhimehro/ctrld-sync/pull/1062) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump github/gh-aw/actions/setup from 0.82.14 to 0.83.1 [\#1058](https://github.com/abhimehro/ctrld-sync/pull/1058) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump ruby/setup-ruby from 1.320.0 to 1.321.0 [\#1057](https://github.com/abhimehro/ctrld-sync/pull/1057) ([dependabot[bot]](https://github.com/apps/dependabot))
