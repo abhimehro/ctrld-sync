@@ -3144,10 +3144,7 @@ def display_api_statistics() -> None:
         _api_stats["control_d_api_calls"] + _api_stats["blocklist_fetches"]
     )
     if total_api_calls > 0:
-        if USE_COLORS:
-            print(f"{Colors.BOLD}📊 API Statistics:{Colors.ENDC}")
-        else:
-            print("📊 API Statistics:")
+        _print_bold_header("📊 API Statistics:")
         print(f"  • Control D API calls: {_api_stats['control_d_api_calls']:>7,}")
         print(f"  • Blocklist fetches:   {_api_stats['blocklist_fetches']:>7,}")
         print(f"  • Total API requests:  {total_api_calls:>7,}")
@@ -3157,10 +3154,7 @@ def display_api_statistics() -> None:
 def display_cache_statistics() -> None:
     """Display cache statistics if any cache activity occurred."""
     if _cache_stats["hits"] + _cache_stats["misses"] + _cache_stats["validations"] > 0:
-        if USE_COLORS:
-            print(f"{Colors.BOLD}⚡ Cache Statistics:{Colors.ENDC}")
-        else:
-            print("⚡ Cache Statistics:")
+        _print_bold_header("⚡ Cache Statistics:")
         print(f"  • Hits (in-memory):    {_cache_stats['hits']:>7,}")
         print(f"  • Misses (downloaded): {_cache_stats['misses']:>7,}")
         print(f"  • Validations (304):   {_cache_stats['validations']:>7,}")
@@ -3270,6 +3264,49 @@ def _handle_clear_cache() -> None:
     exit(0)
 
 
+
+def _prompt_for_missing_config(profile_ids: list[str]) -> None:
+    """Prompts for missing profile ID and API token interactively."""
+    global TOKEN
+
+    if not profile_ids:
+        print(f"{Colors.CYAN}ℹ Profile ID is missing.{Colors.ENDC}")
+        _print_hint(
+            "  💡 Hint: You can find this in the URL of your profile in the Control D Dashboard (or just paste the URL)."
+        )
+
+        def validate_profile_input(value: str) -> bool:
+            """Validates one or more profile IDs from comma-separated input."""
+            ids = [extract_profile_id(p) for p in value.split(",") if p.strip()]
+            return bool(ids) and all(
+                validate_profile_id(pid, log_errors=False) for pid in ids
+            )
+
+        print()
+        p_input = get_validated_input(
+            f"{Colors.BOLD}👤 Enter Control D Profile ID:{Colors.ENDC} ",
+            validate_profile_input,
+            "Invalid ID(s) or URL(s). Must be a valid Profile ID or a Control D Profile URL. Comma-separate for multiple.",
+        )
+        profile_ids.extend(
+            [extract_profile_id(p) for p in p_input.split(",") if p.strip()]
+        )
+
+    if not TOKEN:
+        print(f"{Colors.CYAN}ℹ API Token is missing.{Colors.ENDC}")
+        _print_hint(
+            "  💡 Hint: You can generate one at: https://controld.com/account/manage-account"
+        )
+
+        print()
+        t_input = get_password(
+            f"{Colors.BOLD}🔑 Enter Control D API Token {Colors.DIM}(typing will be hidden){Colors.ENDC}: ",
+            lambda x: len(x) > 8,
+            "Token seems too short. Please check your API token.",
+        )
+        TOKEN = t_input
+
+
 def main() -> bool:
     """
     Main entry point for Control D Sync.
@@ -3344,41 +3381,7 @@ def main() -> bool:
                 globals()["MAX_RETRIES"] = max_retries
     # Interactive prompts for missing config
     if not args.dry_run and sys.stdin.isatty():
-        if not profile_ids:
-            print(f"{Colors.CYAN}ℹ Profile ID is missing.{Colors.ENDC}")
-            _print_hint(
-                "  💡 Hint: You can find this in the URL of your profile in the Control D Dashboard (or just paste the URL)."
-            )
-
-            def validate_profile_input(value: str) -> bool:
-                """Validates one or more profile IDs from comma-separated input."""
-                ids = [extract_profile_id(p) for p in value.split(",") if p.strip()]
-                return bool(ids) and all(
-                    validate_profile_id(pid, log_errors=False) for pid in ids
-                )
-
-            p_input = get_validated_input(
-                f"\n{Colors.BOLD}Enter Control D Profile ID:{Colors.ENDC} ",
-                validate_profile_input,
-                "Invalid ID(s) or URL(s). Must be a valid Profile ID or a Control D Profile URL. Comma-separate for multiple.",
-            )
-            profile_ids = [
-                extract_profile_id(p) for p in p_input.split(",") if p.strip()
-            ]
-
-        if not TOKEN:
-            print(f"{Colors.CYAN}ℹ API Token is missing.{Colors.ENDC}")
-            _print_hint(
-                "  💡 Hint: You can generate one at: https://controld.com/account/manage-account"
-            )
-
-            t_input = get_password(
-                f"\n{Colors.BOLD}Enter Control D API Token {Colors.DIM}(typing will be hidden){Colors.ENDC}: ",
-                lambda x: len(x) > 8,
-                "Token seems too short. Please check your API token.",
-            )
-            TOKEN = t_input
-
+        _prompt_for_missing_config(profile_ids)
     if not profile_ids and not args.dry_run:
         log.error(
             "PROFILE missing and --dry-run not set. Provide --profiles or set PROFILE env."
