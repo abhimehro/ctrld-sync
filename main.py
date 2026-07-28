@@ -2953,9 +2953,7 @@ def _render_ascii_table(
     sep = "-" * len(header)
     title = f"📋 {'DRY RUN' if dry_run else 'SYNC'} SUMMARY"
     padded_title = _pad_string(title, len(header), align="^")
-    print(
-        f"\n{padded_title}\n{sep}\n{header}\n{sep}"
-    )
+    print(f"\n{padded_title}\n{sep}\n{header}\n{sep}")
     for r in sync_results:
         display_profile = _get_display_profile(r["profile"])
         print(
@@ -3047,7 +3045,9 @@ def _print_success_text(all_success: bool, success_count: int, total: int) -> No
         ]
         chosen_msg = random.choice(success_msgs)
     else:
-        chosen_msg = f"⚠️  Synced {success_count} out of {total} profile(s). Check errors above."
+        chosen_msg = (
+            f"⚠️  Synced {success_count} out of {total} profile(s). Check errors above."
+        )
 
     if USE_COLORS:
         color = Colors.GREEN if all_success else Colors.WARNING
@@ -3082,7 +3082,9 @@ def _print_dashboard_url(profile_ids: list[str]) -> None:
         print(f"👀 View your changes: {dashboard_url}")
 
 
-def print_success_message(profile_ids: list[str], success_count: int, total: int) -> None:
+def print_success_message(
+    profile_ids: list[str], success_count: int, total: int
+) -> None:
     """Prints a random success message and a link to the Control D dashboard."""
     all_success = success_count == total
     _print_success_text(all_success, success_count, total)
@@ -3253,7 +3255,11 @@ def _handle_clear_cache() -> None:
     if cache_file.exists():
         try:
             size_bytes = cache_file.stat().st_size
-            size_str = f"{size_bytes / (1024 * 1024):.1f} MB" if size_bytes >= 1024 * 1024 else f"{size_bytes / 1024:.1f} KB"
+            size_str = (
+                f"{size_bytes / (1024 * 1024):.1f} MB"
+                if size_bytes >= 1024 * 1024
+                else f"{size_bytes / 1024:.1f} KB"
+            )
             cache_file.unlink()
             print(
                 f"{Colors.GREEN}✓ Cleared blocklist cache: {cache_file} ({size_str} freed){Colors.ENDC}"
