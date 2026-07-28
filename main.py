@@ -3033,23 +3033,29 @@ def print_summary_table(
     _print_hint_if_no_folders(t_f)
 
 
-def print_success_message(profile_ids: list[str]) -> None:
-    """Prints a random success message and a link to the Control D dashboard."""
-    success_msgs = [
-        "✨ All synced!",
-        "🚀 Ready for liftoff!",
-        "🎨 Beautifully done!",
-        "💎 Smooth operation!",
-        "🌈 Perfect harmony!",
-    ]
-    chosen_msg = random.choice(success_msgs)
+def _print_success_text(all_success: bool, success_count: int, total: int) -> None:
+    """Helper to print the success or partial success message."""
+    if all_success:
+        success_msgs = [
+            "✨ All synced!",
+            "🚀 Ready for liftoff!",
+            "🎨 Beautifully done!",
+            "💎 Smooth operation!",
+            "🌈 Perfect harmony!",
+        ]
+        chosen_msg = random.choice(success_msgs)
+    else:
+        chosen_msg = f"⚠️  Synced {success_count} out of {total} profile(s). Check errors above."
 
     if USE_COLORS:
-        print(f"\n{Colors.GREEN}{chosen_msg}{Colors.ENDC}")
+        color = Colors.GREEN if all_success else Colors.WARNING
+        print(f"\n{color}{chosen_msg}{Colors.ENDC}")
     else:
         print(f"\n{chosen_msg}")
 
-    # Construct dashboard URL
+
+def _print_dashboard_url(profile_ids: list[str]) -> None:
+    """Helper to print the dashboard URL."""
     is_single_profile = (
         profile_ids
         and len(profile_ids) == 1
@@ -3072,6 +3078,13 @@ def print_success_message(profile_ids: list[str]) -> None:
         )
     else:
         print(f"👀 View your changes: {dashboard_url}")
+
+
+def print_success_message(profile_ids: list[str], success_count: int, total: int) -> None:
+    """Prints a random success message and a link to the Control D dashboard."""
+    all_success = success_count == total
+    _print_success_text(all_success, success_count, total)
+    _print_dashboard_url(profile_ids)
 
 
 def parse_args() -> argparse.Namespace:
@@ -3485,8 +3498,8 @@ def main() -> bool:
     )
 
     # Success Delight
-    if all_success and not args.dry_run:
-        print_success_message(profile_ids)
+    if success_count > 0 and not args.dry_run:
+        print_success_message(profile_ids, success_count, total)
 
     # Dry Run Next Steps
     if args.dry_run:

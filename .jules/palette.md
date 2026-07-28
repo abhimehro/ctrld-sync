@@ -118,3 +118,6 @@
 ## YYYY-MM-DD - [CLI Partial Success Feedback]
 **Learning:** When performing batch operations (like syncing multiple profiles), grouping a partial success (e.g., 1 out of 2 succeeded) under a generic "❌ Errors" total status creates unnecessary alarm and fails to inform the user of what actually happened.
 **Action:** Always implement a dedicated "⚠️ Partial" status for batch operations where `0 < success_count < total` to provide accurate, nuanced feedback.
+## 2025-10-25 - [CLI Batch Operation Feedback]
+**Learning:** When executing batch operations in a CLI tool, grouping partial successes (e.g., where `0 < success_count < total`) under a generic 'Errors' status provides inaccurate feedback and can cause unnecessary user alarm.
+**Action:** Implement a dedicated '⚠️ Partial' status (using `Colors.WARNING` or similar) to provide nuanced feedback for partial successes in batch operations.
