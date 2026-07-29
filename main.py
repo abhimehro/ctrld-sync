@@ -3526,6 +3526,10 @@ def main() -> bool:
             # Reconstruct other args if they were used (optional but helpful)
             if args.folder_url:
                 cmd_parts.extend(f"--folder-url {url}" for url in args.folder_url)
+            if args.config:
+                cmd_parts.append(f"--config {args.config}")
+            if args.no_delete:
+                cmd_parts.append("--no-delete")
 
             cmd_str = " ".join(cmd_parts)
 
