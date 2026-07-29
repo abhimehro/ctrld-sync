@@ -10,52 +10,83 @@ repoprompt_variant: mcp
 
 Investigate: $ARGUMENTS
 
-You are now in deep investigation mode for the issue described above. Follow this protocol rigorously.
+You are now in deep investigation mode for the issue described above. Follow
+this protocol rigorously.
 
 ## Investigation Protocol
 
 This workflow leverages three complementary capabilities:
 
-- **You (the agent)**: Can read any file with exact line numbers, run git commands, search the codebase, run experiments, and produce concrete evidence. You can also **mutate the file selection** to control what the chat sees. You are the hands and eyes.
-- **Context Builder** (`context_builder`): Explores the codebase and **populates the file selection** — choosing full files or slices of files relevant to the task. This is its primary output: a curated selection the chat can analyze.
-- **Chat** (`chat_send`): Deep analytical reasoning over **the current file selection**. It sees selected files **completely** (full content, not summaries), but it **only sees what's in the selection** — nothing else. It excels at synthesizing patterns, spotting architectural issues, and forming hypotheses from the big picture. It is **not** a lookup tool: if a question can be answered by reading files, searching, or running git/tool calls, do that yourself first.
+- **You (the agent)**: Can read any file with exact line numbers, run git
+  commands, search the codebase, run experiments, and produce concrete evidence.
+  You can also **mutate the file selection** to control what the chat sees. You
+  are the hands and eyes.
+- **Context Builder** (`context_builder`): Explores the codebase and **populates
+  the file selection** — choosing full files or slices of files relevant to the
+  task. This is its primary output: a curated selection the chat can analyze.
+- **Chat** (`chat_send`): Deep analytical reasoning over **the current file
+  selection**. It sees selected files **completely** (full content, not
+  summaries), but it **only sees what's in the selection** — nothing else. It
+  excels at synthesizing patterns, spotting architectural issues, and forming
+  hypotheses from the big picture. It is **not** a lookup tool: if a question
+  can be answered by reading files, searching, or running git/tool calls, do
+  that yourself first.
 
 ### How File Selection Drives the Workflow
 
-The **file selection** is the shared context between you, the context builder, and the chat:
-1. `context_builder` populates the selection with relevant files/slices it discovers
-2. The chat analyzes whatever is currently selected — it has no other view of the codebase
-3. You can **add or remove** specific files via `manage_selection` to augment or refine what the chat sees
-4. You can **add slices** of large files to supplement the selection without blowing the token budget
+The **file selection** is the shared context between you, the context builder,
+and the chat:
 
-**Important:** The context builder operates with a large token budget and works hard to maximize useful context. Don't constrain it — build on its selection with targeted `add`/`remove` calls rather than replacing it.
+1. `context_builder` populates the selection with relevant files/slices it
+   discovers
+2. The chat analyzes whatever is currently selected — it has no other view of
+   the codebase
+3. You can **add or remove** specific files via `manage_selection` to augment or
+   refine what the chat sees
+4. You can **add slices** of large files to supplement the selection without
+   blowing the token budget
+
+**Important:** The context builder operates with a large token budget and works
+hard to maximize useful context. Don't constrain it — build on its selection
+with targeted `add`/`remove` calls rather than replacing it.
 
 ### Core Principles
-1. **Don't stop until confident** — pursue every lead until you have solid evidence
-2. **Play to each tool's strengths** — context builder for broad discovery, the chat for deep analysis, your own tools for precise evidence gathering
-3. **You produce the evidence** — the chat analyzes and hypothesizes; you verify with exact file reads, git blame, searches
-4. **Manage the selection actively** — refocus the chat on different files as the investigation narrows
-5. **Use tool calls for facts, chat for synthesis** — resolve straightforward lookups yourself before asking for analytical help
-6. **Document findings as you go** — create/update a report file with observations
+
+1. **Don't stop until confident** — pursue every lead until you have solid
+   evidence
+2. **Play to each tool's strengths** — context builder for broad discovery, the
+   chat for deep analysis, your own tools for precise evidence gathering
+3. **You produce the evidence** — the chat analyzes and hypothesizes; you verify
+   with exact file reads, git blame, searches
+4. **Manage the selection actively** — refocus the chat on different files as
+   the investigation narrows
+5. **Use tool calls for facts, chat for synthesis** — resolve straightforward
+   lookups yourself before asking for analytical help
+6. **Document findings as you go** — create/update a report file with
+   observations
 
 ### Phase 0: Workspace Verification (REQUIRED)
 
 Before any investigation, confirm the target codebase is loaded:
 
 ```json
-{"tool":"list_windows","args":{}}
+{ "tool": "list_windows", "args": {} }
 ```
 
 **Check the output:**
-- If your target root appears in a window → bind to that window with `select_window`
+
+- If your target root appears in a window → bind to that window with
+  `select_window`
 - If not → the codebase isn't loaded
 
 **Bind to the correct window:**
+
 ```json
 {"tool":"select_window","args":{"window_id":<window_id_with_your_root>}}
 ```
 
 **If the root isn't loaded**, find and open the workspace:
+
 ```json
 {"tool":"manage_workspaces","args":{"action":"list"}}
 {"tool":"manage_workspaces","args":{"action":"switch","workspace":"<workspace_name>","open_in_new_window":true}}
@@ -154,22 +185,21 @@ Document:
 - **Eliminated hypotheses** — and what evidence ruled them out
 - **Recommended fixes** — specific, actionable changes with file locations
 - **Preventive measures** — how to avoid this in future
-
 ---
 
 ## Role Summary
 
-| Capability | Agent (you) | Context Builder | Chat (`chat_send`) |
-|------------|-------------|-----------------|--------|
-| Discover relevant files broadly | ❌ Limited | ✅ Primary | ❌ |
-| Populate file selection | ❌ | ✅ Primary | ❌ |
-| Read exact file contents & lines | ✅ Primary | ❌ | Sees full selected files |
-| Run git blame/log/diff | ✅ | ❌ | ❌ |
-| Search across codebase | ✅ | ✅ | ❌ |
-| Synthesize patterns & architecture | ⚠️ OK | ❌ | ✅ Primary |
-| Form & refine hypotheses | ⚠️ OK | ❌ | ✅ Primary |
-| Produce line-number evidence | ✅ Primary | ❌ | ❌ |
-| Mutate selection to refocus chat | ✅ | ❌ | ❌ |
+| Capability                         | Agent (you) | Context Builder | Chat (`chat_send`)       |
+| ---------------------------------- | ----------- | --------------- | ------------------------ |
+| Discover relevant files broadly    | ❌ Limited  | ✅ Primary      | ❌                       |
+| Populate file selection            | ❌          | ✅ Primary      | ❌                       |
+| Read exact file contents & lines   | ✅ Primary  | ❌              | Sees full selected files |
+| Run git blame/log/diff             | ✅          | ❌              | ❌                       |
+| Search across codebase             | ✅          | ✅              | ❌                       |
+| Synthesize patterns & architecture | ⚠️ OK       | ❌              | ✅ Primary               |
+| Form & refine hypotheses           | ⚠️ OK       | ❌              | ✅ Primary               |
+| Produce line-number evidence       | ✅ Primary  | ❌              | ❌                       |
+| Mutate selection to refocus chat   | ✅          | ❌              | ❌                       |
 
 ---
 
@@ -181,28 +211,33 @@ Create a findings report as you investigate:
 # Investigation: [Title]
 
 ## Summary
+
 [1-2 sentence summary of findings]
 
 ## Symptoms
+
 - [Observed symptom 1]
 - [Observed symptom 2]
 
 ## Investigation Log
 
 ### [Phase] - [Area Investigated]
-**Hypothesis:** [What you were testing]
-**Findings:** [What you found]
+
+**Hypothesis:** [What you were testing] **Findings:** [What you found]
 **Evidence:** [Exact file paths, line numbers, code snippets, git commits]
 **Conclusion:** [Confirmed/Eliminated/Needs more investigation]
 
 ## Root Cause
+
 [Detailed explanation with precise evidence]
 
 ## Recommendations
+
 1. [Fix 1 — specific file and location]
 2. [Fix 2 — specific file and location]
 
 ## Preventive Measures
+
 - [How to prevent this in future]
 ```
 
@@ -210,16 +245,28 @@ Create a findings report as you investigate:
 
 ## Anti-patterns to Avoid
 
-- 🚫 **CRITICAL:** Skipping `context_builder` and attempting to investigate by reading files manually — you'll miss critical context
-- 🚫 Skipping Phase 0 (Workspace Verification) — you must confirm the target codebase is loaded first
-- 🚫 Asking the chat to produce exact line numbers — it sees full file content but without reliable line numbering; that's YOUR job
-- 🚫 Doing extensive exploration (5+ tool calls) before calling `context_builder` — initial assessment should be brief
+- 🚫 **CRITICAL:** Skipping `context_builder` and attempting to investigate by
+  reading files manually — you'll miss critical context
+- 🚫 Skipping Phase 0 (Workspace Verification) — you must confirm the target
+  codebase is loaded first
+- 🚫 Asking the chat to produce exact line numbers — it sees full file content
+  but without reliable line numbering; that's YOUR job
+- 🚫 Doing extensive exploration (5+ tool calls) before calling
+  `context_builder` — initial assessment should be brief
 - 🚫 Drawing conclusions before gathering concrete evidence yourself
-- 🚫 Not feeding your evidence back to the chat — it needs your findings to refine its analysis
-- 🚫 Calling the chat repeatedly without doing your own investigation in between — do substantial work between calls
-- 🚫 Invoking the chat for questions you could answer with `read_file`, `file_search`, `git`, or other direct tool calls — reserve it for deep analytical synthesis
-- 🚫 Using `manage_selection` with `op:"clear"` or `op:"set"` — this undoes `context_builder`'s carefully curated selection; use `op:"add"` and `op:"remove"` to build on it
+- 🚫 Not feeding your evidence back to the chat — it needs your findings to
+  refine its analysis
+- 🚫 Calling the chat repeatedly without doing your own investigation in between
+  — do substantial work between calls
+- 🚫 Invoking the chat for questions you could answer with `read_file`,
+  `file_search`, `git`, or other direct tool calls — reserve it for deep
+  analytical synthesis
+- 🚫 Using `manage_selection` with `op:"clear"` or `op:"set"` — this undoes
+  `context_builder`'s carefully curated selection; use `op:"add"` and
+  `op:"remove"` to build on it
 
 ---
 
-Now begin the investigation. Read any provided context, form initial hypotheses, then **immediately** use `context_builder` to gather broad context. After that, alternate between your own evidence gathering and refocused chat deep dives.
+Now begin the investigation. Read any provided context, form initial hypotheses,
+then **immediately** use `context_builder` to gather broad context. After that,
+alternate between your own evidence gathering and refocused chat deep dives.

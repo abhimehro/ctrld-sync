@@ -1,13 +1,12 @@
 import importlib
 import os
 import sys
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import dotenv
 import httpx
 import pytest
-
-from typing import Any
 
 
 def mock_load_dotenv(*args: Any, **kwargs: Any) -> bool:

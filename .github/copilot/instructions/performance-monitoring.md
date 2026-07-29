@@ -2,21 +2,26 @@
 
 ## Overview
 
-This guide covers performance measurement strategies for ctrld-sync, including how to efficiently measure impact, common bottlenecks, and testing approaches.
+This guide covers performance measurement strategies for ctrld-sync, including
+how to efficiently measure impact, common bottlenecks, and testing approaches.
 
 ## Key Performance Metrics
 
 ### User-Facing Metrics
 
-- **Cold start sync time**: First run without cache (baseline: ~10-30s for 23 folders)
+- **Cold start sync time**: First run without cache (baseline: ~10-30s for 23
+  folders)
 - **Warm cache sync time**: Subsequent runs with valid cache (target: <5s)
-- **API calls per sync**: Total API requests made (fewer is better, measure before/after)
+- **API calls per sync**: Total API requests made (fewer is better, measure
+  before/after)
 - **Rules processed per second**: Throughput for large rule sets
 
 ### System Metrics
 
-- **Cache hit rate**: (hits + validations) / total requests (target: >80% on warm runs)
-- **Memory peak usage**: Maximum RSS during sync (baseline: <100MB for typical workloads)
+- **Cache hit rate**: (hits + validations) / total requests (target: >80% on
+  warm runs)
+- **Memory peak usage**: Maximum RSS during sync (baseline: <100MB for typical
+  workloads)
 - **API rate limit headroom**: Distance from 429 errors
 
 ## Critical Constraints
@@ -30,11 +35,14 @@ The Control D API has strict rate limits. Existing safeguards:
 - Conservative DELETE_WORKERS=3 for parallel deletes
 - Batch size of 500 items per request (empirically chosen)
 
-**Never increase parallelism without first implementing rate limit header parsing.**
+**Never increase parallelism without first implementing rate limit header
+parsing.**
 
 ### Batch Size Rationale
 
-The 500-item batch size is not dynamic. It was chosen through production testing to stay under API limits. Rather than smart batching, focus on better retry logic (exponential backoff with jitter).
+The 500-item batch size is not dynamic. It was chosen through production testing
+to stay under API limits. Rather than smart batching, focus on better retry
+logic (exponential backoff with jitter).
 
 ## Measurement Strategies
 
@@ -73,36 +81,30 @@ time python main.py --dry-run  # Second run should be faster
 
 ### 1. Cold Start Downloads
 
-**Symptom**: Slow first run
-**Causes**:
+**Symptom**: Slow first run **Causes**:
 
 - Downloading all blocklists from scratch
-- No persistent cache or stale cache
-  **Solutions**:
+- No persistent cache or stale cache **Solutions**:
 - ✅ Persistent disk cache with ETag/Last-Modified (implemented)
 - ✅ HTTP conditional requests (304 Not Modified) (implemented)
 - Future: Parallel DNS validation (deferred due to complexity)
 
 ### 2. API Request Overhead
 
-**Symptom**: High latency even with small rule sets
-**Causes**:
+**Symptom**: High latency even with small rule sets **Causes**:
 
 - Too many small API calls
-- No request batching
-  **Solutions**:
+- No request batching **Solutions**:
 - Batch rule updates (500 items per request)
 - Track API call counts to identify inefficiencies
 - Connection pooling (httpx already configured)
 
 ### 3. Test Suite Duration
 
-**Symptom**: Slow CI runs
-**Causes**:
+**Symptom**: Slow CI runs **Causes**:
 
 - Sequential test execution
-- No dependency caching
-  **Solutions**:
+- No dependency caching **Solutions**:
 - ✅ pytest-xdist for parallel execution (implemented)
 - ✅ CI pip dependency caching (implemented)
 

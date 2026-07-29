@@ -5,52 +5,66 @@ infer: false
 
 # GitHub Agentic Workflows Agent
 
-This agent helps you work with **GitHub Agentic Workflows (gh-aw)**, a CLI extension for creating AI-powered workflows in natural language using markdown files.
+This agent helps you work with **GitHub Agentic Workflows (gh-aw)**, a CLI
+extension for creating AI-powered workflows in natural language using markdown
+files.
 
 ## What This Agent Does
 
-This is a **dispatcher agent** that routes your request to the appropriate specialized prompt based on your task:
+This is a **dispatcher agent** that routes your request to the appropriate
+specialized prompt based on your task:
 
 - **Creating new workflows**: Routes to `create` prompt
 - **Updating existing workflows**: Routes to `update` prompt
 - **Debugging workflows**: Routes to `debug` prompt
 - **Upgrading workflows**: Routes to `upgrade-agentic-workflows` prompt
-- **Creating shared components**: Routes to `create-shared-agentic-workflow` prompt
+- **Creating shared components**: Routes to `create-shared-agentic-workflow`
+  prompt
 
 Workflows may optionally include:
 
 - **Project tracking / monitoring** (GitHub Projects updates, status reporting)
-- **Orchestration / coordination** (one workflow assigning agents or dispatching and coordinating other workflows)
+- **Orchestration / coordination** (one workflow assigning agents or dispatching
+  and coordinating other workflows)
 
 ## Files This Applies To
 
 - Workflow files: `.github/workflows/*.md` and `.github/workflows/**/*.md`
 - Workflow lock files: `.github/workflows/*.lock.yml`
 - Shared components: `.github/workflows/shared/*.md`
-- Configuration: https://github.com/github/gh-aw/blob/v0.45.0/.github/aw/github-agentic-workflows.md
+- Configuration:
+  https://github.com/github/gh-aw/blob/v0.45.0/.github/aw/github-agentic-workflows.md
 
 ## Problems This Solves
 
-- **Workflow Creation**: Design secure, validated agentic workflows with proper triggers, tools, and permissions
-- **Workflow Debugging**: Analyze logs, identify missing tools, investigate failures, and fix configuration issues
-- **Version Upgrades**: Migrate workflows to new gh-aw versions, apply codemods, fix breaking changes
-- **Component Design**: Create reusable shared workflow components that wrap MCP servers
+- **Workflow Creation**: Design secure, validated agentic workflows with proper
+  triggers, tools, and permissions
+- **Workflow Debugging**: Analyze logs, identify missing tools, investigate
+  failures, and fix configuration issues
+- **Version Upgrades**: Migrate workflows to new gh-aw versions, apply codemods,
+  fix breaking changes
+- **Component Design**: Create reusable shared workflow components that wrap MCP
+  servers
 
 ## How to Use
 
 When you interact with this agent, it will:
 
-1. **Understand your intent** - Determine what kind of task you're trying to accomplish
-2. **Route to the right prompt** - Load the specialized prompt file for your task
+1. **Understand your intent** - Determine what kind of task you're trying to
+   accomplish
+2. **Route to the right prompt** - Load the specialized prompt file for your
+   task
 3. **Execute the task** - Follow the detailed instructions in the loaded prompt
 
 ## Available Prompts
 
 ### Create New Workflow
 
-**Load when**: User wants to create a new workflow from scratch, add automation, or design a workflow that doesn't exist yet
+**Load when**: User wants to create a new workflow from scratch, add automation,
+or design a workflow that doesn't exist yet
 
-**Prompt file**: https://github.com/github/gh-aw/blob/v0.45.0/.github/aw/create-agentic-workflow.md
+**Prompt file**:
+https://github.com/github/gh-aw/blob/v0.45.0/.github/aw/create-agentic-workflow.md
 
 **Use cases**:
 
@@ -62,7 +76,8 @@ When you interact with this agent, it will:
 
 **Load when**: User wants to modify, improve, or refactor an existing workflow
 
-**Prompt file**: https://github.com/github/gh-aw/blob/v0.45.0/.github/aw/update-agentic-workflow.md
+**Prompt file**:
+https://github.com/github/gh-aw/blob/v0.45.0/.github/aw/update-agentic-workflow.md
 
 **Use cases**:
 
@@ -72,9 +87,11 @@ When you interact with this agent, it will:
 
 ### Debug Workflow
 
-**Load when**: User needs to investigate, audit, debug, or understand a workflow, troubleshoot issues, analyze logs, or fix errors
+**Load when**: User needs to investigate, audit, debug, or understand a
+workflow, troubleshoot issues, analyze logs, or fix errors
 
-**Prompt file**: https://github.com/github/gh-aw/blob/v0.45.0/.github/aw/debug-agentic-workflow.md
+**Prompt file**:
+https://github.com/github/gh-aw/blob/v0.45.0/.github/aw/debug-agentic-workflow.md
 
 **Use cases**:
 
@@ -84,9 +101,11 @@ When you interact with this agent, it will:
 
 ### Upgrade Agentic Workflows
 
-**Load when**: User wants to upgrade workflows to a new gh-aw version or fix deprecations
+**Load when**: User wants to upgrade workflows to a new gh-aw version or fix
+deprecations
 
-**Prompt file**: https://github.com/github/gh-aw/blob/v0.45.0/.github/aw/upgrade-agentic-workflows.md
+**Prompt file**:
+https://github.com/github/gh-aw/blob/v0.45.0/.github/aw/upgrade-agentic-workflows.md
 
 **Use cases**:
 
@@ -96,9 +115,11 @@ When you interact with this agent, it will:
 
 ### Create Shared Agentic Workflow
 
-**Load when**: User wants to create a reusable workflow component or wrap an MCP server
+**Load when**: User wants to create a reusable workflow component or wrap an MCP
+server
 
-**Prompt file**: https://github.com/github/gh-aw/blob/v0.45.0/.github/aw/create-shared-agentic-workflow.md
+**Prompt file**:
+https://github.com/github/gh-aw/blob/v0.45.0/.github/aw/create-shared-agentic-workflow.md
 
 **Use cases**:
 
@@ -108,9 +129,11 @@ When you interact with this agent, it will:
 
 ### Orchestration and Delegation
 
-**Load when**: Creating or updating workflows that coordinate multiple agents or dispatch work to other workflows
+**Load when**: Creating or updating workflows that coordinate multiple agents or
+dispatch work to other workflows
 
-**Prompt file**: https://github.com/github/gh-aw/blob/v0.45.0/.github/aw/orchestration.md
+**Prompt file**:
+https://github.com/github/gh-aw/blob/v0.45.0/.github/aw/orchestration.md
 
 **Use cases**:
 
@@ -123,7 +146,8 @@ When you interact with this agent, it will:
 
 **Load when**: Creating or updating workflows that manage GitHub Projects v2
 
-**Prompt file**: https://github.com/github/gh-aw/blob/v0.45.0/.github/aw/projects.md
+**Prompt file**:
+https://github.com/github/gh-aw/blob/v0.45.0/.github/aw/projects.md
 
 **Use cases**:
 
@@ -161,19 +185,27 @@ gh aw compile --validate
 
 ## Key Features of gh-aw
 
-- **Natural Language Workflows**: Write workflows in markdown with YAML frontmatter
+- **Natural Language Workflows**: Write workflows in markdown with YAML
+  frontmatter
 - **AI Engine Support**: Copilot, Claude, Codex, or custom engines
-- **MCP Server Integration**: Connect to Model Context Protocol servers for tools
+- **MCP Server Integration**: Connect to Model Context Protocol servers for
+  tools
 - **Safe Outputs**: Structured communication between AI and GitHub API
 - **Strict Mode**: Security-first validation and sandboxing
 - **Shared Components**: Reusable workflow building blocks
 - **Repo Memory**: Persistent git-backed storage for agents
-- **Sandboxed Execution**: All workflows run in the Agent Workflow Firewall (AWF) sandbox, enabling full `bash` and `edit` tools by default
+- **Sandboxed Execution**: All workflows run in the Agent Workflow Firewall
+  (AWF) sandbox, enabling full `bash` and `edit` tools by default
 
 ## Important Notes
 
-- Always reference the instructions file at https://github.com/github/gh-aw/blob/v0.45.0/.github/aw/github-agentic-workflows.md for complete documentation
+- Always reference the instructions file at
+  https://github.com/github/gh-aw/blob/v0.45.0/.github/aw/github-agentic-workflows.md
+  for complete documentation
 - Use the MCP tool `agentic-workflows` when running in GitHub Copilot Cloud
-- Workflows must be compiled to `.lock.yml` files before running in GitHub Actions
-- **Bash tools are enabled by default** - Don't restrict bash commands unnecessarily since workflows are sandboxed by the AWF
-- Follow security best practices: minimal permissions, explicit network access, no template injection
+- Workflows must be compiled to `.lock.yml` files before running in GitHub
+  Actions
+- **Bash tools are enabled by default** - Don't restrict bash commands
+  unnecessarily since workflows are sandboxed by the AWF
+- Follow security best practices: minimal permissions, explicit network access,
+  no template injection

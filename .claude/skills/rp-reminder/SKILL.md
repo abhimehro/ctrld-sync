@@ -8,15 +8,16 @@ repoprompt_variant: mcp
 
 # RepoPrompt Tools Reminder
 
-Continue your current workflow using RepoPrompt MCP tools instead of built-in alternatives.
+Continue your current workflow using RepoPrompt MCP tools instead of built-in
+alternatives.
 
 ## Primary Tools
 
-| Task | Use This | Not This |
-|------|----------|----------|
-| Find files/content | `file_search` | grep, find, Glob |
-| Read files | `read_file` | cat, Read |
-| Edit files | `apply_edits` | sed, Edit |
+| Task               | Use This       | Not This             |
+| ------------------ | -------------- | -------------------- |
+| Find files/content | `file_search`  | grep, find, Glob     |
+| Read files         | `read_file`    | cat, Read            |
+| Edit files         | `apply_edits`  | sed, Edit            |
 | Create/delete/move | `file_actions` | touch, rm, mv, Write |
 
 ## Quick Reference

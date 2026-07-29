@@ -1,8 +1,15 @@
 # Performance Engineering Guide
 
-This guide documents performance measurement, optimization strategies, and known characteristics for ctrld-sync. Use this to understand how to measure, improve, and maintain performance.
+This guide documents performance measurement, optimization strategies, and known
+characteristics for ctrld-sync. Use this to understand how to measure, improve,
+and maintain performance.
 
-> **Note:** This guide is intentionally placed in the repository root rather than `.github/copilot/instructions/` for better visibility and maintainability. Performance documentation benefits from being easily discoverable by all developers, not just those working with Copilot workflows. A single consolidated guide is more maintainable for a project of this size than multiple separate files.
+> **Note:** This guide is intentionally placed in the repository root rather
+> than `.github/copilot/instructions/` for better visibility and
+> maintainability. Performance documentation benefits from being easily
+> discoverable by all developers, not just those working with Copilot workflows.
+> A single consolidated guide is more maintainable for a project of this size
+> than multiple separate files.
 
 ---
 
@@ -24,7 +31,10 @@ This guide documents performance measurement, optimization strategies, and known
 
 ### Known Constraints
 
-**CRITICAL:** Thread pool sizing (3-5 workers) is constrained by Control D API rate limits, NOT throughput optimization. Increasing worker counts risks 429 (Too Many Requests) errors. Always profile API call patterns before tuning concurrency.
+**CRITICAL:** Thread pool sizing (3-5 workers) is constrained by Control D API
+rate limits, NOT throughput optimization. Increasing worker counts risks 429
+(Too Many Requests) errors. Always profile API call patterns before tuning
+concurrency.
 
 ### Typical Performance
 
@@ -99,13 +109,15 @@ def example_sync_workflow():
     log.info(f"⏱️  TOTAL sync time: {t4-t0:.2f}s")
 ```
 
-**Why this matters:** Without baseline numbers, every optimization is a guess. Start here.
+**Why this matters:** Without baseline numbers, every optimization is a guess.
+Start here.
 
 ---
 
 ## API Call Tracking
 
-Track API calls as a first-class metric. Reducing calls is the fastest path to cutting sync time.
+Track API calls as a first-class metric. Reducing calls is the fastest path to
+cutting sync time.
 
 ### Instrumentation Pattern
 
@@ -146,7 +158,8 @@ log.info(api_tracker.summary())
 
 ### Existing Tests
 
-- `tests/test_push_rules_perf.py`: Validates ThreadPoolExecutor optimization for single vs. multi-batch
+- `tests/test_push_rules_perf.py`: Validates ThreadPoolExecutor optimization for
+  single vs. multi-batch
 
 ### Adding Performance Benchmarks
 
@@ -220,12 +233,16 @@ Keep it simple. Add to `.github/workflows/sync.yml`:
 
 ### What to Profile First
 
-1. **Network I/O** (highest impact): API latency, connection pooling, batch sizes
+1. **Network I/O** (highest impact): API latency, connection pooling, batch
+   sizes
 2. **Concurrency** (medium impact): Worker pool tuning (within rate limits!)
-3. **Validation logic** (low impact unless proven bottleneck): Regex, DNS lookups
-4. **Data structures** (lowest impact): Already optimized with `dict.fromkeys()` and sets
+3. **Validation logic** (low impact unless proven bottleneck): Regex, DNS
+   lookups
+4. **Data structures** (lowest impact): Already optimized with `dict.fromkeys()`
+   and sets
 
-**Don't optimize validation/batching micro-optimizations without profiling data showing they're the bottleneck.**
+**Don't optimize validation/batching micro-optimizations without profiling data
+showing they're the bottleneck.**
 
 ### Profiling Commands
 
@@ -244,14 +261,14 @@ python -m memory_profiler main.py
 
 ### Common Anti-Patterns
 
-❌ **Don't:** Increase thread pool workers without checking API rate limits
-✅ **Do:** Profile API call patterns and latency first
+❌ **Don't:** Increase thread pool workers without checking API rate limits ✅
+**Do:** Profile API call patterns and latency first
 
-❌ **Don't:** Optimize CPU-bound code when network I/O dominates
-✅ **Do:** Measure where time is actually spent (use `@timed` decorator)
+❌ **Don't:** Optimize CPU-bound code when network I/O dominates ✅ **Do:**
+Measure where time is actually spent (use `@timed` decorator)
 
-❌ **Don't:** Add caching without measuring cache hit rates
-✅ **Do:** Log cache effectiveness to validate the optimization
+❌ **Don't:** Add caching without measuring cache hit rates ✅ **Do:** Log cache
+effectiveness to validate the optimization
 
 ---
 
@@ -259,7 +276,8 @@ python -m memory_profiler main.py
 
 ### Primary Metrics
 
-- **End-to-end sync time** (wall clock): Establish baseline, then target meaningful reductions (e.g., 20%+) for typical workloads
+- **End-to-end sync time** (wall clock): Establish baseline, then target
+  meaningful reductions (e.g., 20%+) for typical workloads
 - **API calls per sync**: Track and minimize
 - **Memory footprint**: Maintain or reduce (especially for 50k+ rules)
 
@@ -323,4 +341,5 @@ Compare timing logs before/after changes. Look for:
 4. **Create benchmark tests** for reproducible performance validation
 5. **Document findings** in this guide as you learn more
 
-Remember: **Measure twice, optimize once.** Always validate assumptions with data.
+Remember: **Measure twice, optimize once.** Always validate assumptions with
+data.

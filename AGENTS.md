@@ -4,12 +4,17 @@
 
 ### Project overview
 
-Single-file Python CLI tool (`main.py`) that syncs Control D DNS folders with remote JSON block-lists via the Control D REST API. No frontend, no database, no Docker required.
+Single-file Python CLI tool (`main.py`) that syncs Control D DNS folders with
+remote JSON block-lists via the Control D REST API. No frontend, no database, no
+Docker required.
 
 ### Runtime
 
-- Requires **Python >= 3.13** (uses modern language features). The VM's system Python is 3.12; `uv python install 3.13` provides the right version and `uv sync` picks it up automatically via `requires-python` in `pyproject.toml`.
-- Package manager: **uv** (`uv sync --all-extras` installs runtime + dev deps into `.venv`).
+- Requires **Python >= 3.13** (uses modern language features). The VM's system
+  Python is 3.12; `uv python install 3.13` provides the right version and
+  `uv sync` picks it up automatically via `requires-python` in `pyproject.toml`.
+- Package manager: **uv** (`uv sync --all-extras` installs runtime + dev deps
+  into `.venv`).
 
 ### Common commands
 
@@ -26,15 +31,20 @@ Single-file Python CLI tool (`main.py`) that syncs Control D DNS folders with re
 
 ### Current status
 
-`main.py` compiles cleanly when checked with the project interpreter (`uv run python -m py_compile main.py`). All 30 `test_*.py` modules under `tests/` are importable. Run the full test suite with `uv run pytest tests/ -v`.
+`main.py` compiles cleanly when checked with the project interpreter
+(`uv run python -m py_compile main.py`). All 30 `test_*.py` modules under
+`tests/` are importable. Run the full test suite with `uv run pytest tests/ -v`.
 
 ### Secrets for live runs
 
-A live sync run requires `TOKEN` (Control D API token) and `PROFILE` (profile ID) as environment variables or in a `.env` file. All tests use mocks and do not need these secrets.
+A live sync run requires `TOKEN` (Control D API token) and `PROFILE` (profile
+ID) as environment variables or in a `.env` file. All tests use mocks and do not
+need these secrets.
 
 ### CodeScene review/salvage trigger
 
-During automated PR review or salvage sessions, if CodeScene is red on a PR, post:
+During automated PR review or salvage sessions, if CodeScene is red on a PR,
+post:
 
 ```bash
 /cs-agent skill:fix-code-health-degradations

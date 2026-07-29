@@ -6,7 +6,6 @@ from pathlib import Path
 import pytest
 import yaml
 
-
 WORKFLOW_PATH = (
     Path(__file__).resolve().parents[1]
     / ".github"

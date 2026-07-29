@@ -59,21 +59,23 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
    uv sync --all-extras
    ```
 
-   All CI workflows (including the main sync job) use `uv sync --all-extras`. This is the recommended method for both local development and CI/production.
+   All CI workflows (including the main sync job) use `uv sync --all-extras`.
+   This is the recommended method for both local development and CI/production.
 
-3. **Configure secrets**
-   Create a `.env` file (or set GitHub secrets) with:
+3. **Configure secrets** Create a `.env` file (or set GitHub secrets) with:
 
    ```py
    TOKEN=your_control_d_api_token
    PROFILE=your_profile_id  # or comma-separated list of profile ids (e.g. your_id_1,your_id_2)
    ```
 
-   For GitHub Actions, set `TOKEN` and `PROFILE` secrets to the raw values (not the full `TOKEN=...` / `PROFILE=...` lines).
+   For GitHub Actions, set `TOKEN` and `PROFILE` secrets to the raw values (not
+   the full `TOKEN=...` / `PROFILE=...` lines).
 
 4. **Configure Folders**
 
-   You can configure which folders to sync using a YAML configuration file instead of editing `main.py`:
+   You can configure which folders to sync using a YAML configuration file
+   instead of editing `main.py`:
 
    ```bash
    cp config.yaml.example config.yaml
@@ -90,8 +92,8 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
    `yokoffing.github.io` are accepted as blocklist hosts. Control D hosts
    (`api.controld.com`) are pinned for API calls only and are not valid
    blocklist sources. You can override the blocklist allowlist with
-   `allowed_blocklist_domains` in `config.yaml` if you need to trust
-   additional sources.
+   `allowed_blocklist_domains` in `config.yaml` if you need to trust additional
+   sources.
 
    **Example `config.yaml`:**
 
@@ -116,14 +118,15 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
    python main.py --config /path/to/my-config.yaml
    ```
 
-   The script includes 23 default folder URLs from [hagezi's dns-blocklists](https://github.com/hagezi/dns-blocklists) covering:
+   The script includes 23 default folder URLs from
+   [hagezi's dns-blocklists](https://github.com/hagezi/dns-blocklists) covering:
    - Native tracker blocking (Amazon, Apple, Samsung, etc.)
    - Badware and spam protection
    - Allow lists for common services
 
 > [!NOTE]
-> Currently only Folders with one action are supported.
-> Either "Block" or "Allow" actions are supported.
+> Currently only Folders with one action are supported. Either "Block" or
+> "Allow" actions are supported.
 
 5. **Run locally**
 
@@ -133,15 +136,17 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
    python main.py --profiles your_id                 # live run (requires TOKEN)
    ```
 
-6. **Run in CI**
-   The included GitHub Actions workflow (`.github/workflows/sync.yml`) runs the sync script daily at 02:00 UTC and can also be triggered manually via workflow dispatch.
+6. **Run in CI** The included GitHub Actions workflow
+   (`.github/workflows/sync.yml`) runs the sync script daily at 02:00 UTC and
+   can also be triggered manually via workflow dispatch.
 
 ### Configure GitHub Actions
 
 1. Fork this repo.
 2. Go to the "Actions" Tab and enable actions.
 3. Go to the Repo Settings.
-4. Under "Secrets and variables > Actions" create the following secrets like above, under "Repository secrets":
+4. Under "Secrets and variables > Actions" create the following secrets like
+   above, under "Repository secrets":
    - `TOKEN`: your Control D API token
    - `PROFILE`: your Control D profile ID(s)
 
@@ -187,7 +192,8 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
 
 ## Testing
 
-This project includes a comprehensive test suite to ensure code quality and correctness.
+This project includes a comprehensive test suite to ensure code quality and
+correctness.
 
 ### Running Tests
 
@@ -211,11 +217,16 @@ uv run pytest tests/ -n auto
 uv run pytest tests/ -n 4
 ```
 
-**Note on parallel execution:** The test suite is currently small (~78 tests, <1s execution time), so parallel execution overhead may result in longer wall-clock time compared to sequential execution. However, pytest-xdist is included for:
+**Note on parallel execution:** The test suite is currently small (~78 tests,
+<1s execution time), so parallel execution overhead may result in longer
+wall-clock time compared to sequential execution. However, pytest-xdist is
+included for:
 
 - **Test isolation verification** - Ensures tests don't share state
-- **Future scalability** - As the test suite grows, parallel execution will provide significant speedups
-- **CI optimization** - May benefit from parallelization in CI environments with different characteristics
+- **Future scalability** - As the test suite grows, parallel execution will
+  provide significant speedups
+- **CI optimization** - May benefit from parallelization in CI environments with
+  different characteristics
 
 ### Development Workflow
 
@@ -300,10 +311,12 @@ Then resume verification after the remediation run completes.
 
 ### How Caching Works
 
-The GitHub Actions workflows use automatic dependency caching to speed up CI runs:
+The GitHub Actions workflows use automatic dependency caching to speed up CI
+runs:
 
 - **Cache Key**: Based on `uv.lock` (managed by `astral-sh/setup-uv@v4`)
-- **Cache Location**: uv's shared cache directory (managed by `astral-sh/setup-uv@v4`)
+- **Cache Location**: uv's shared cache directory (managed by
+  `astral-sh/setup-uv@v4`)
 - **Invalidation**: Automatic when `uv.lock` changes
 
 ### Expected Performance
@@ -314,7 +327,8 @@ The GitHub Actions workflows use automatic dependency caching to speed up CI run
 
 ### Maintaining Dependencies
 
-**Important**: `pyproject.toml` is the single source of truth for dependencies. After updating dependencies, regenerate the lockfile with `uv lock`.
+**Important**: `pyproject.toml` is the single source of truth for dependencies.
+After updating dependencies, regenerate the lockfile with `uv lock`.
 
 When updating dependencies:
 

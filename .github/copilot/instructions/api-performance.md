@@ -5,13 +5,15 @@ audience: developers working on API integration, performance optimization, and r
 
 # API Performance Optimization
 
-This guide covers API performance patterns, rate limit management, and optimization strategies specific to ctrld-sync's Control D API integration.
+This guide covers API performance patterns, rate limit management, and
+optimization strategies specific to ctrld-sync's Control D API integration.
 
 ## Rate Limit Management
 
 ### Current Implementation
 
-The codebase implements **proactive rate limit monitoring** through HTTP response header parsing:
+The codebase implements **proactive rate limit monitoring** through HTTP
+response header parsing:
 
 ```python
 # Rate limit info is automatically parsed from all API responses
@@ -60,7 +62,8 @@ API Rate Limit Status:
 
 ### Thread Pool Sizing Constraints
 
-**CRITICAL:** Worker pool sizes are **NOT** performance tuning parameters. They are **API constraint parameters**.
+**CRITICAL:** Worker pool sizes are **NOT** performance tuning parameters. They
+are **API constraint parameters**.
 
 ```python
 DELETE_WORKERS = 3  # Conservative for DELETE operations
@@ -173,7 +176,8 @@ for folder in folders:
 
 ### 3. Retry Strategy Optimization
 
-**Exponential backoff with jitter** (PR #295) prevents synchronized retry storms.
+**Exponential backoff with jitter** (PR #295) prevents synchronized retry
+storms.
 
 **When to customize:**
 
@@ -192,29 +196,30 @@ with _rate_limit_lock:
         time.sleep(1)  # Throttle when critically low
 ```
 
-**Why not implemented yet:** Current workloads don't hit limits. Add only when needed.
+**Why not implemented yet:** Current workloads don't hit limits. Add only when
+needed.
 
 ## Common Pitfalls
 
 ### 1. Ignoring 429 Responses
 
-**Symptom:** Sync fails with "Too Many Requests"
-**Fix:** Check rate limit status in summary, space out syncs
+**Symptom:** Sync fails with "Too Many Requests" **Fix:** Check rate limit
+status in summary, space out syncs
 
 ### 2. Over-Parallelizing
 
-**Symptom:** 429 errors despite low overall request volume
-**Fix:** Reduce worker counts, never exceed API-documented limits
+**Symptom:** 429 errors despite low overall request volume **Fix:** Reduce
+worker counts, never exceed API-documented limits
 
 ### 3. Stale Cache Corruption
 
-**Symptom:** Sync uses outdated rules despite blocklist changes
-**Fix:** Cache invalidation is automatic via ETag/Last-Modified. If issues persist, clear cache: `rm -rf ~/.cache/ctrld-sync`
+**Symptom:** Sync uses outdated rules despite blocklist changes **Fix:** Cache
+invalidation is automatic via ETag/Last-Modified. If issues persist, clear
+cache: `rm -rf ~/.cache/ctrld-sync`
 
 ### 4. Ignoring Summary Statistics
 
-**Symptom:** Unclear why sync is slow
-**Fix:** Always check summary output for:
+**Symptom:** Unclear why sync is slow **Fix:** Always check summary output for:
 
 - Cache effectiveness (should be > 70% for repeated runs)
 - Rate limit remaining (should not drop to < 10%)

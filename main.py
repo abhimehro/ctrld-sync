@@ -32,11 +32,11 @@ import stat
 import sys
 import threading
 import time
+import unicodedata
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-import unicodedata
 from typing import Any, NotRequired, TypedDict, TypeGuard, cast
 
 import httpx
@@ -1245,7 +1245,9 @@ def _is_allowed_blocklist_domain(
     if hostname in allowed_domains:
         return True
     parts = hostname.split(".")
-    for i in range(1, len(parts)):  # noqa: SIM110 - optimization: any(generator) is slow
+    for i in range(
+        1, len(parts)
+    ):  # noqa: SIM110 - optimization: any(generator) is slow
         if ".".join(parts[i:]) in allowed_domains:
             return True
     return False
@@ -2953,9 +2955,7 @@ def _render_ascii_table(
     sep = "-" * len(header)
     title = f"📋 {'DRY RUN' if dry_run else 'SYNC'} SUMMARY"
     padded_title = _pad_string(title, len(header), align="^")
-    print(
-        f"\n{padded_title}\n{sep}\n{header}\n{sep}"
-    )
+    print(f"\n{padded_title}\n{sep}\n{header}\n{sep}")
     for r in sync_results:
         display_profile = _get_display_profile(r["profile"])
         print(
@@ -3047,7 +3047,9 @@ def _print_success_text(all_success: bool, success_count: int, total: int) -> No
         ]
         chosen_msg = random.choice(success_msgs)
     else:
-        chosen_msg = f"⚠️  Synced {success_count} out of {total} profile(s). Check errors above."
+        chosen_msg = (
+            f"⚠️  Synced {success_count} out of {total} profile(s). Check errors above."
+        )
 
     if USE_COLORS:
         color = Colors.GREEN if all_success else Colors.WARNING
@@ -3082,7 +3084,9 @@ def _print_dashboard_url(profile_ids: list[str]) -> None:
         print(f"👀 View your changes: {dashboard_url}")
 
 
-def print_success_message(profile_ids: list[str], success_count: int, total: int) -> None:
+def print_success_message(
+    profile_ids: list[str], success_count: int, total: int
+) -> None:
     """Prints a random success message and a link to the Control D dashboard."""
     all_success = success_count == total
     _print_success_text(all_success, success_count, total)
@@ -3266,7 +3270,6 @@ def _handle_clear_cache() -> None:
         )
     _disk_cache.clear()
     exit(0)
-
 
 
 def _prompt_for_missing_config(profile_ids: list[str]) -> None:

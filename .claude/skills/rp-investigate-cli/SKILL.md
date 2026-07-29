@@ -10,11 +10,13 @@ repoprompt_variant: cli
 
 Investigate: $ARGUMENTS
 
-You are now in deep investigation mode for the issue described above. Follow this protocol rigorously.
+You are now in deep investigation mode for the issue described above. Follow
+this protocol rigorously.
 
 ## Using rp-cli
 
-This workflow uses **rp-cli** (RepoPrompt CLI) instead of MCP tool calls. Run commands via:
+This workflow uses **rp-cli** (RepoPrompt CLI) instead of MCP tool calls. Run
+commands via:
 
 ```bash
 rp-cli -e '<command>'
@@ -22,28 +24,34 @@ rp-cli -e '<command>'
 
 **Quick reference:**
 
-| MCP Tool | CLI Command |
-|----------|-------------|
-| `get_file_tree` | `rp-cli -e 'tree'` |
-| `file_search` | `rp-cli -e 'search "pattern"'` |
-| `get_code_structure` | `rp-cli -e 'structure path/'` |
-| `read_file` | `rp-cli -e 'read path/file.swift'` |
-| `manage_selection` | `rp-cli -e 'select add path/'` |
-| `context_builder` | `rp-cli -e 'builder "instructions" --response-type plan'` |
-| `chat_send` | `rp-cli -e 'chat "message" --mode plan'` |
-| `apply_edits` | `rp-cli -e 'call apply_edits {"path":"...","search":"...","replace":"..."}'` |
-| `file_actions` | `rp-cli -e 'call file_actions {"action":"create","path":"..."}'` |
+| MCP Tool             | CLI Command                                                                  |
+| -------------------- | ---------------------------------------------------------------------------- |
+| `get_file_tree`      | `rp-cli -e 'tree'`                                                           |
+| `file_search`        | `rp-cli -e 'search "pattern"'`                                               |
+| `get_code_structure` | `rp-cli -e 'structure path/'`                                                |
+| `read_file`          | `rp-cli -e 'read path/file.swift'`                                           |
+| `manage_selection`   | `rp-cli -e 'select add path/'`                                               |
+| `context_builder`    | `rp-cli -e 'builder "instructions" --response-type plan'`                    |
+| `chat_send`          | `rp-cli -e 'chat "message" --mode plan'`                                     |
+| `apply_edits`        | `rp-cli -e 'call apply_edits {"path":"...","search":"...","replace":"..."}'` |
+| `file_actions`       | `rp-cli -e 'call file_actions {"action":"create","path":"..."}'`             |
 
 Chain commands with `&&`:
+
 ```bash
 rp-cli -e 'select set src/ && context'
 ```
 
-Use `rp-cli -e 'describe <tool>'` for help on a specific tool, `rp-cli --tools-schema` for machine-readable JSON schemas, or `rp-cli --help` for CLI usage.
+Use `rp-cli -e 'describe <tool>'` for help on a specific tool,
+`rp-cli --tools-schema` for machine-readable JSON schemas, or `rp-cli --help`
+for CLI usage.
 
-JSON args (`-j`) accept inline JSON, file paths (`.json` auto-detected), `@file`, or `@-` (stdin). Raw newlines in strings are auto-repaired.
+JSON args (`-j`) accept inline JSON, file paths (`.json` auto-detected),
+`@file`, or `@-` (stdin). Raw newlines in strings are auto-repaired.
 
-**⚠️ TIMEOUT WARNING:** The `builder` and `chat` commands can take several minutes to complete. When invoking rp-cli, **set your command timeout to at least 2700 seconds (45 minutes)** to avoid premature termination.
+**⚠️ TIMEOUT WARNING:** The `builder` and `chat` commands can take several
+minutes to complete. When invoking rp-cli, **set your command timeout to at
+least 2700 seconds (45 minutes)** to avoid premature termination.
 
 ---
 ## Investigation Protocol
@@ -92,8 +100,8 @@ rp-cli -w <window_id> -e 'tree --type roots'
 - CLI invocations are stateless—you MUST pass `-w <window_id>` to target the correct window
 - Use `rp-cli -e 'windows'` to list all open windows and their workspaces
 - Always include `-w <window_id>` in ALL subsequent commands
-
 ---
+
 ### Phase 1: Initial Assessment (Agent — you)
 
 1. Read any provided files/reports (traces, logs, error reports)
@@ -105,7 +113,9 @@ Keep this short — save deep exploration for after `builder`.
 
 ### Phase 2: Broad Context Gathering (via `builder` — REQUIRED)
 
-⚠️ **Do NOT skip this step.** The context builder discovers relevant files across the codebase that you'd miss with manual searching. It populates the file selection with full files or targeted slices.
+⚠️ **Do NOT skip this step.** The context builder discovers relevant files
+across the codebase that you'd miss with manual searching. It populates the file
+selection with full files or targeted slices.
 
 Use `builder` with detailed instructions describing what to investigate and why:
 
@@ -127,25 +137,32 @@ Areas likely involved:
 " --response-type question'
 ```
 
-Use `response_type: question` so the chat immediately analyzes the gathered context and returns its initial assessment.
+Use `response_type: question` so the chat immediately analyzes the gathered
+context and returns its initial assessment.
 
 ### Phase 3: Agent Verification & Evidence Gathering (Agent — you)
 
-The chat's response will contain hypotheses and analytical pointers. **Your job is to verify them with precision:**
+The chat's response will contain hypotheses and analytical pointers. **Your job
+is to verify them with precision:**
 
-- **Read specific files** the chat mentioned — check exact implementations and line numbers
-- **Search for patterns** the chat identified — confirm they exist where expected
+- **Read specific files** the chat mentioned — check exact implementations and
+  line numbers
+- **Search for patterns** the chat identified — confirm they exist where
+  expected
 - **Run git blame/log** on suspicious areas — find when changes were introduced
 - **Trace data/control flow** through code paths the chat flagged
 - **Check for edge cases** the chat hypothesized about
 
-Build a concrete evidence list: file paths, line numbers, git commits, actual code snippets.
+Build a concrete evidence list: file paths, line numbers, git commits, actual
+code snippets.
 
-If a factual gap can be closed with `read_file`, `file_search`, `git`, or another direct tool call, do that before going back to the chat.
+If a factual gap can be closed with `read_file`, `file_search`, `git`, or
+another direct tool call, do that before going back to the chat.
 
 ### Phase 4: Refocused Chat Deep Dives (Iterate)
 
-Update the selection to focus the chat on what matters now, then ask targeted questions that require synthesis rather than direct lookup:
+Update the selection to focus the chat on what matters now, then ask targeted
+questions that require synthesis rather than direct lookup:
 
 ```bash
 # Add files the chat hasn't seen yet
@@ -164,14 +181,22 @@ Given this evidence, <specific question>" --mode chat'
 
 > Pass `-t <tab_id>` to continue the same chat conversation.
 
-**Repeat Phases 3–4** as needed, but be judicious. The chat is slow and resource-intensive — do substantial reasoning and evidence gathering on your own between calls. Don't invoke it just to ask a quick question you could answer yourself with `read_file`, `file_search`, `git`, or other direct tool calls. Reserve it for moments when you need deep analytical synthesis, competing explanations, or cross-file reasoning across the selected context.
+**Repeat Phases 3–4** as needed, but be judicious. The chat is slow and
+resource-intensive — do substantial reasoning and evidence gathering on your own
+between calls. Don't invoke it just to ask a quick question you could answer
+yourself with `read_file`, `file_search`, `git`, or other direct tool calls.
+Reserve it for moments when you need deep analytical synthesis, competing
+explanations, or cross-file reasoning across the selected context.
 
 ### Phase 5: Conclusions & Report (Agent — you)
 
-You write the final report with precise references. The chat reasons about patterns but can't produce exact line numbers — that's your job.
+You write the final report with precise references. The chat reasons about
+patterns but can't produce exact line numbers — that's your job.
 
 Document:
-- **Root cause** — with exact file paths, line numbers, and code snippets as evidence
+
+- **Root cause** — with exact file paths, line numbers, and code snippets as
+  evidence
 - **Eliminated hypotheses** — and what evidence ruled them out
 - **Recommended fixes** — specific, actionable changes with file locations
 - **Preventive measures** — how to avoid this in future
@@ -180,17 +205,17 @@ Document:
 
 ## Role Summary
 
-| Capability | Agent (you) | Context Builder | Chat (`chat_send`) |
-|------------|-------------|-----------------|--------|
-| Discover relevant files broadly | ❌ Limited | ✅ Primary | ❌ |
-| Populate file selection | ❌ | ✅ Primary | ❌ |
-| Read exact file contents & lines | ✅ Primary | ❌ | Sees full selected files |
-| Run git blame/log/diff | ✅ | ❌ | ❌ |
-| Search across codebase | ✅ | ✅ | ❌ |
-| Synthesize patterns & architecture | ⚠️ OK | ❌ | ✅ Primary |
-| Form & refine hypotheses | ⚠️ OK | ❌ | ✅ Primary |
-| Produce line-number evidence | ✅ Primary | ❌ | ❌ |
-| Mutate selection to refocus chat | ✅ | ❌ | ❌ |
+| Capability                         | Agent (you) | Context Builder | Chat (`chat_send`)       |
+| ---------------------------------- | ----------- | --------------- | ------------------------ |
+| Discover relevant files broadly    | ❌ Limited  | ✅ Primary      | ❌                       |
+| Populate file selection            | ❌          | ✅ Primary      | ❌                       |
+| Read exact file contents & lines   | ✅ Primary  | ❌              | Sees full selected files |
+| Run git blame/log/diff             | ✅          | ❌              | ❌                       |
+| Search across codebase             | ✅          | ✅              | ❌                       |
+| Synthesize patterns & architecture | ⚠️ OK       | ❌              | ✅ Primary               |
+| Form & refine hypotheses           | ⚠️ OK       | ❌              | ✅ Primary               |
+| Produce line-number evidence       | ✅ Primary  | ❌              | ❌                       |
+| Mutate selection to refocus chat   | ✅          | ❌              | ❌                       |
 
 ---
 
@@ -202,28 +227,33 @@ Create a findings report as you investigate:
 # Investigation: [Title]
 
 ## Summary
+
 [1-2 sentence summary of findings]
 
 ## Symptoms
+
 - [Observed symptom 1]
 - [Observed symptom 2]
 
 ## Investigation Log
 
 ### [Phase] - [Area Investigated]
-**Hypothesis:** [What you were testing]
-**Findings:** [What you found]
+
+**Hypothesis:** [What you were testing] **Findings:** [What you found]
 **Evidence:** [Exact file paths, line numbers, code snippets, git commits]
 **Conclusion:** [Confirmed/Eliminated/Needs more investigation]
 
 ## Root Cause
+
 [Detailed explanation with precise evidence]
 
 ## Recommendations
+
 1. [Fix 1 — specific file and location]
 2. [Fix 2 — specific file and location]
 
 ## Preventive Measures
+
 - [How to prevent this in future]
 ```
 
@@ -231,17 +261,31 @@ Create a findings report as you investigate:
 
 ## Anti-patterns to Avoid
 
-- 🚫 **CRITICAL:** Skipping `builder` and attempting to investigate by reading files manually — you'll miss critical context
-- 🚫 Skipping Phase 0 (Workspace Verification) — you must confirm the target codebase is loaded first
-- 🚫 Asking the chat to produce exact line numbers — it sees full file content but without reliable line numbering; that's YOUR job
-- 🚫 Doing extensive exploration (5+ tool calls) before calling `builder` — initial assessment should be brief
+- 🚫 **CRITICAL:** Skipping `builder` and attempting to investigate by reading
+  files manually — you'll miss critical context
+- 🚫 Skipping Phase 0 (Workspace Verification) — you must confirm the target
+  codebase is loaded first
+- 🚫 Asking the chat to produce exact line numbers — it sees full file content
+  but without reliable line numbering; that's YOUR job
+- 🚫 Doing extensive exploration (5+ tool calls) before calling `builder` —
+  initial assessment should be brief
 - 🚫 Drawing conclusions before gathering concrete evidence yourself
-- 🚫 Not feeding your evidence back to the chat — it needs your findings to refine its analysis
-- 🚫 Calling the chat repeatedly without doing your own investigation in between — do substantial work between calls
-- 🚫 Invoking the chat for questions you could answer with `read_file`, `file_search`, `git`, or other direct tool calls — reserve it for deep analytical synthesis
-- 🚫 Using `manage_selection` with `op:"clear"` or `op:"set"` — this undoes `builder`'s carefully curated selection; use `op:"add"` and `op:"remove"` to build on it
-- 🚫 **CLI:** Forgetting to pass `-w <window_id>` — CLI invocations are stateless and require explicit window targeting
+- 🚫 Not feeding your evidence back to the chat — it needs your findings to
+  refine its analysis
+- 🚫 Calling the chat repeatedly without doing your own investigation in between
+  — do substantial work between calls
+- 🚫 Invoking the chat for questions you could answer with `read_file`,
+  `file_search`, `git`, or other direct tool calls — reserve it for deep
+  analytical synthesis
+- 🚫 Using `manage_selection` with `op:"clear"` or `op:"set"` — this undoes
+  `builder`'s carefully curated selection; use `op:"add"` and `op:"remove"` to
+  build on it
+- 🚫 **CLI:** Forgetting to pass `-w <window_id>` — CLI invocations are
+  stateless and require explicit window targeting
 
 ---
 
-Now begin the investigation. First run `rp-cli -e 'windows'` to find the correct window, then Read any provided context, form initial hypotheses, then **immediately** use `builder` to gather broad context. After that, alternate between your own evidence gathering and refocused chat deep dives.
+Now begin the investigation. First run `rp-cli -e 'windows'` to find the correct
+window, then Read any provided context, form initial hypotheses, then
+**immediately** use `builder` to gather broad context. After that, alternate
+between your own evidence gathering and refocused chat deep dives.

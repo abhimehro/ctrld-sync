@@ -1,42 +1,143 @@
 ## 2025-04-04 - Hot Path Dictionary Comprehension vs For-Loops
-**Learning:** Using dictionary comprehension to filter and deduplicate lists (`{h: None for h in lst if valid(h)}`) is up to 2x faster than using `dict.fromkeys()` and a Python `for` loop with `.append()`, especially when combined with a negative check (`not in existing_rules`) against a large set. Dictionary comprehensions operate at C-speed in Python. Additionally, pre-compiling regex (`re.compile`) at the module level provides nearly a 50% performance increase for functions like `extract_profile_id` compared to using inline `re.search()`.
-**Action:** Always prefer dict comprehensions for ordered deduplication combined with filtering, and always hoist regex compilation to the module level when used in functions invoked frequently.
+
+**Learning:** Using dictionary comprehension to filter and deduplicate lists
+(`{h: None for h in lst if valid(h)}`) is up to 2x faster than using
+`dict.fromkeys()` and a Python `for` loop with `.append()`, especially when
+combined with a negative check (`not in existing_rules`) against a large set.
+Dictionary comprehensions operate at C-speed in Python. Additionally,
+pre-compiling regex (`re.compile`) at the module level provides nearly a 50%
+performance increase for functions like `extract_profile_id` compared to using
+inline `re.search()`. **Action:** Always prefer dict comprehensions for ordered
+deduplication combined with filtering, and always hoist regex compilation to the
+module level when used in functions invoked frequently.
+
 ## 2026-04-25 - Native String Methods vs. Dynamically Compiled Regex for KV parsing
-**Learning:** For simple string parsing like extracting `KEY=value` pairs, native string manipulation (e.g., `value.split('=', 1)` and `value.strip()`) is noticeably faster than dynamically formatted and compiled regex (e.g., `re.match(rf'^{re.escape(key)}\s*=\s*(.+)$')`).
-**Action:** When extracting values with a single fixed delimiter, prefer using `.split()` and `.strip()` instead of dynamically interpolating variables into regex patterns inside hot/frequently called functions.
+
+**Learning:** For simple string parsing like extracting `KEY=value` pairs,
+native string manipulation (e.g., `value.split('=', 1)` and `value.strip()`) is
+noticeably faster than dynamically formatted and compiled regex (e.g.,
+`re.match(rf'^{re.escape(key)}\s*=\s*(.+)$')`). **Action:** When extracting
+values with a single fixed delimiter, prefer using `.split()` and `.strip()`
+instead of dynamically interpolating variables into regex patterns inside
+hot/frequently called functions.
+
 ## 2026-05-14 - Extracting functions to improve readability and complexity score
-**Learning:** Monolithic functions such as `push_rules` that handle deduplication, API communication, and batch parallelization increase the cyclomatic complexity and trigger "Brain Method" warnings on tools like CodeScene.
-**Action:** Always decompose monolithic logic into small, modular private helper functions (e.g., `_filter_rules_for_folder`, `_push_rule_batches`) and keep the parent function strictly as an orchestrator.
+
+**Learning:** Monolithic functions such as `push_rules` that handle
+deduplication, API communication, and batch parallelization increase the
+cyclomatic complexity and trigger "Brain Method" warnings on tools like
+CodeScene. **Action:** Always decompose monolithic logic into small, modular
+private helper functions (e.g., `_filter_rules_for_folder`,
+`_push_rule_batches`) and keep the parent function strictly as an orchestrator.
+
 ## 2025-05-26 - itertools.filterfalse vs List Comprehension
-**Learning:** When filtering a list against a large set and deduplicating the result, using a list comprehension (`[h for h in lst if h not in existing_set]`) followed by `dict.fromkeys()` materializes a large intermediate list. Avoid deduplicating the list *before* filtering, as it degrades performance for inputs with zero duplicates. Instead, use `dict.fromkeys(itertools.filterfalse(existing_set.__contains__, lst))` to achieve C-speed filtering while piping directly into the dictionary, minimizing memory footprint and redundant hash insertions.
-**Action:** Use `dict.fromkeys(itertools.filterfalse(existing_set.__contains__, lst))` when filtering and deduplicating lists against large sets to avoid materializing large intermediate lists.
+
+**Learning:** When filtering a list against a large set and deduplicating the
+result, using a list comprehension (`[h for h in lst if h not in existing_set]`)
+followed by `dict.fromkeys()` materializes a large intermediate list. Avoid
+deduplicating the list _before_ filtering, as it degrades performance for inputs
+with zero duplicates. Instead, use
+`dict.fromkeys(itertools.filterfalse(existing_set.__contains__, lst))` to
+achieve C-speed filtering while piping directly into the dictionary, minimizing
+memory footprint and redundant hash insertions. **Action:** Use
+`dict.fromkeys(itertools.filterfalse(existing_set.__contains__, lst))` when
+filtering and deduplicating lists against large sets to avoid materializing
+large intermediate lists.
+
 ## 2026-06-02 - Optimize Root Rule Extraction
-**Learning:** The Performance Optimization Pattern states `str.join([list_comprehension])` is faster than `str.join(generator_expression)`. A similar optimization applies to sets. Using a C-speed list comprehension with `set.update()` (`all_rules.update([pk for rule in rules if (pk := rule.get("PK"))])`) avoids Python-level loop overhead and is measurably faster than iterating and adding items individually (`all_rules.add()`).
-**Action:** When extracting large sets of rule IDs from API JSON bodies, prefer `set.update([list_comp])` over a manual `for` loop with `.add()`.
+
+**Learning:** The Performance Optimization Pattern states
+`str.join([list_comprehension])` is faster than
+`str.join(generator_expression)`. A similar optimization applies to sets. Using
+a C-speed list comprehension with `set.update()`
+(`all_rules.update([pk for rule in rules if (pk := rule.get("PK"))])`) avoids
+Python-level loop overhead and is measurably faster than iterating and adding
+items individually (`all_rules.add()`). **Action:** When extracting large sets
+of rule IDs from API JSON bodies, prefer `set.update([list_comp])` over a manual
+`for` loop with `.add()`.
+
 ## 2026-07-28 - len(list_comprehension) vs sum(generator)
-**Learning:** Using `len([1 for x in lst if condition])` is measurably (~20-30%) faster than `sum(1 for x in lst if condition)` because the list comprehension operates entirely in C, avoiding the overhead of Python's generator iteration.
-**Action:** Always prefer `len()` with a list comprehension over `sum()` with a generator expression when simply counting items matching a condition, even if it materializes a small intermediate list.
+
+**Learning:** Using `len([1 for x in lst if condition])` is measurably (~20-30%)
+faster than `sum(1 for x in lst if condition)` because the list comprehension
+operates entirely in C, avoiding the overhead of Python's generator iteration.
+**Action:** Always prefer `len()` with a list comprehension over `sum()` with a
+generator expression when simply counting items matching a condition, even if it
+materializes a small intermediate list.
+
 ## 2025-06-13 - Direct boolean checks vs any(generator) for tiny sets
-**Learning:** Using `any(x in str for x in small_collection)` introduces Python generator iteration overhead. For very small collections (like checking 2-3 allowed Content-Types), unrolling the check into direct boolean expressions (`"a" not in str and "b" not in str`) is measurably faster and avoids the overhead of creating and consuming a generator.
-**Action:** For tiny, fixed-size checks (like 2-3 items) in hot paths, unroll the `any()` or `all()` generator expressions into direct `or`/`and` boolean checks.
+
+**Learning:** Using `any(x in str for x in small_collection)` introduces Python
+generator iteration overhead. For very small collections (like checking 2-3
+allowed Content-Types), unrolling the check into direct boolean expressions
+(`"a" not in str and "b" not in str`) is measurably faster and avoids the
+overhead of creating and consuming a generator. **Action:** For tiny, fixed-size
+checks (like 2-3 items) in hot paths, unroll the `any()` or `all()` generator
+expressions into direct `or`/`and` boolean checks.
+
 ## 2025-06-13 - Anti-Micro-Optimization
-**Learning:** Do not apply CPU-level micro-optimizations (like unrolling `any(generator)` into direct boolean checks) to inherently I/O-bound functions, such as HTTP response processing. These provide no measurable real-world impact and can introduce maintainability hazards, such as hardcoding string checks while leaving the original configuration list intact.
-**Action:** Avoid micro-optimizations in I/O bound functions.
+
+**Learning:** Do not apply CPU-level micro-optimizations (like unrolling
+`any(generator)` into direct boolean checks) to inherently I/O-bound functions,
+such as HTTP response processing. These provide no measurable real-world impact
+and can introduce maintainability hazards, such as hardcoding string checks
+while leaving the original configuration list intact. **Action:** Avoid
+micro-optimizations in I/O bound functions.
+
 ## 2025-06-16 - len(s) + len(list_comprehension) vs sum(generator) for text widths
-**Learning:** For calculating string display lengths with full-width characters, `len(s) + len([1 for c in s if condition])` is significantly faster than `sum(2 if condition else 1 for c in s)` because it leverages the C-speed list comprehension and avoids generator iteration overhead, matching the performance characteristics learned previously.
-**Action:** Use `len(list_comprehension)` for hot path string character checking where `sum(generator)` was previously used.
+
+**Learning:** For calculating string display lengths with full-width characters,
+`len(s) + len([1 for c in s if condition])` is significantly faster than
+`sum(2 if condition else 1 for c in s)` because it leverages the C-speed list
+comprehension and avoids generator iteration overhead, matching the performance
+characteristics learned previously. **Action:** Use `len(list_comprehension)`
+for hot path string character checking where `sum(generator)` was previously
+used.
+
 ## 2025-10-24 - sum(list_comprehension) vs sum(generator) for data aggregation
-**Learning:** For CPU-bound data parsing paths (like aggregating nested lists in `_build_plan_entry` and `_sync_profiles`), replacing a generator expression inside a `sum()` call with a list comprehension (e.g., `sum([len(...) for ...])`) is measurably faster (~20-30%) as it leverages C-level iteration and avoids Python's generator overhead.
-**Action:** Prefer `sum([list_comprehension])` over `sum(generator_expression)` for CPU-bound data aggregation paths in Python.
+
+**Learning:** For CPU-bound data parsing paths (like aggregating nested lists in
+`_build_plan_entry` and `_sync_profiles`), replacing a generator expression
+inside a `sum()` call with a list comprehension (e.g.,
+`sum([len(...) for ...])`) is measurably faster (~20-30%) as it leverages
+C-level iteration and avoids Python's generator overhead. **Action:** Prefer
+`sum([list_comprehension])` over `sum(generator_expression)` for CPU-bound data
+aggregation paths in Python.
+
 ## 2026-11-12 - Fast-path for early return in expensive string processing
-**Learning:** Performance Optimization Pattern: When a function performs expensive string manipulation (e.g., regex stripping and Unicode property lookups) on console output, introducing an early-return fast path for standard ASCII strings (`if s.isascii() and '\x1b' not in s: return len(s)`) bypasses Python overhead and leverages C-level execution for the vast majority of standard text.
-**Action:** Use early return checks with `.isascii()` to bypass expensive unicode or regex checks when processing standard ASCII text.
+
+**Learning:** Performance Optimization Pattern: When a function performs
+expensive string manipulation (e.g., regex stripping and Unicode property
+lookups) on console output, introducing an early-return fast path for standard
+ASCII strings (`if s.isascii() and '\x1b' not in s: return len(s)`) bypasses
+Python overhead and leverages C-level execution for the vast majority of
+standard text. **Action:** Use early return checks with `.isascii()` to bypass
+expensive unicode or regex checks when processing standard ASCII text.
+
 ## YYYY-MM-DD - itertools.filterfalse with set deduplication
-**Learning:** Using `list(itertools.filterfalse(cache.__contains__, list(set(urls))))` is faster than `[u for u in list(set(urls)) if u not in cache]`, avoiding python loop overhead.
-**Action:** Use `itertools.filterfalse` for filtering lists.
+
+**Learning:** Using
+`list(itertools.filterfalse(cache.__contains__, list(set(urls))))` is faster
+than `[u for u in list(set(urls)) if u not in cache]`, avoiding python loop
+overhead. **Action:** Use `itertools.filterfalse` for filtering lists.
+
 ## YYYY-MM-DD - Linter Warnings vs Performance
-**Learning:** Tools like Ruff might suggest replacing a `for` loop with an early return into an `any(generator)` expression (SIM110). However, doing this defeats optimizations since generator setup is much slower than a plain for loop in hot code paths.
-**Action:** Append a `# noqa: SIM110` to ignore linter warnings when it conflicts with a benchmarked performance optimization (such as avoiding generator overhead).
+
+**Learning:** Tools like Ruff might suggest replacing a `for` loop with an early
+return into an `any(generator)` expression (SIM110). However, doing this defeats
+optimizations since generator setup is much slower than a plain for loop in hot
+code paths. **Action:** Append a `# noqa: SIM110` to ignore linter warnings when
+it conflicts with a benchmarked performance optimization (such as avoiding
+generator overhead).
+
 ## 2026-11-12 - Inlining Function Calls in Hot Paths
-**Learning:** When filtering massive collections (e.g., list comprehensions processing >100k items), the overhead of a Python function call for every item becomes significant. Benchmarks showed that inlining simple validation logic (like `len(h) <= max_len and allowed.issuperset(h)`) directly into the list comprehension is ~15-20% faster than calling a dedicated validation function (e.g., `is_valid_rule(h)`) for each item.
-**Action:** When filtering or processing very large collections in performance-critical paths, consider inlining simple validation checks directly into the comprehension to avoid Python function call overhead.
+
+**Learning:** When filtering massive collections (e.g., list comprehensions
+processing >100k items), the overhead of a Python function call for every item
+becomes significant. Benchmarks showed that inlining simple validation logic
+(like `len(h) <= max_len and allowed.issuperset(h)`) directly into the list
+comprehension is ~15-20% faster than calling a dedicated validation function
+(e.g., `is_valid_rule(h)`) for each item. **Action:** When filtering or
+processing very large collections in performance-critical paths, consider
+inlining simple validation checks directly into the comprehension to avoid
+Python function call overhead.

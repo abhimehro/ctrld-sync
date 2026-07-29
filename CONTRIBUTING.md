@@ -1,10 +1,12 @@
 # Contributing to ctrld-sync
 
-Thank you for your interest in contributing! This guide covers everything you need to get started.
+Thank you for your interest in contributing! This guide covers everything you
+need to get started.
 
 ## Prerequisites
 
-- **Python ≥ 3.13** — the project uses modern language features not available in earlier versions.
+- **Python ≥ 3.13** — the project uses modern language features not available in
+  earlier versions.
   ```bash
   uv python install 3.13   # install via uv if your system Python is older
   ```
@@ -28,7 +30,8 @@ Thank you for your interest in contributing! This guide covers everything you ne
    uv sync --all-extras
    ```
 
-   This creates a `.venv` in the project root and installs everything declared in `pyproject.toml`.
+   This creates a `.venv` in the project root and installs everything declared
+   in `pyproject.toml`.
 
 3. **Configure secrets** — copy the example env file and fill in your values:
    ```bash
@@ -84,7 +87,9 @@ Run against all files manually:
 uv run pre-commit run --all-files
 ```
 
-The pre-commit configuration (`.pre-commit-config.yaml`) runs ruff (lint + format), trailing-whitespace, end-of-file-fixer, YAML check, and merge-conflict check.
+The pre-commit configuration (`.pre-commit-config.yaml`) runs ruff (lint +
+format), trailing-whitespace, end-of-file-fixer, YAML check, and merge-conflict
+check.
 
 ## Dry-run Mode
 
@@ -98,7 +103,9 @@ uv run python main.py --dry-run
 
 ### What to Include in the PR Description
 
-Use the [pull request template](.github/PULL_REQUEST_TEMPLATE.md) provided in the repository. At a minimum, your pull request should meet the following standards:
+Use the [pull request template](.github/PULL_REQUEST_TEMPLATE.md) provided in
+the repository. At a minimum, your pull request should meet the following
+standards:
 
 1. **Branch naming**, use a short, descriptive name:
    - `fix/<short-description>` for bug fixes
@@ -118,21 +125,26 @@ Use the [pull request template](.github/PULL_REQUEST_TEMPLATE.md) provided in th
 
 4. **Update `CHANGELOG.md`** — add an entry under the `[Unreleased]` section
    using [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) categories
-   (`Added`, `Changed`, `Fixed`, `Removed`, `Security`, `Deprecated`).
-   One concise bullet per logical change is enough.
+   (`Added`, `Changed`, `Fixed`, `Removed`, `Security`, `Deprecated`). One
+   concise bullet per logical change is enough.
 
 ## Secrets
 
-`TOKEN` (Control D API token) and `PROFILE` (profile ID) are required only for live runs against the API.
+`TOKEN` (Control D API token) and `PROFILE` (profile ID) are required only for
+live runs against the API.
 
 - **Never commit these values to source control.**
-- Store them in a `.env` file at the project root (this file is listed in `.gitignore`):
+- Store them in a `.env` file at the project root (this file is listed in
+  `.gitignore`):
   ```
   TOKEN=your_control_d_api_token
   PROFILE=your_profile_id
   ```
-- For GitHub Actions, add them as repository secrets under **Settings → Secrets and variables → Actions**.
+- For GitHub Actions, add them as repository secrets under **Settings → Secrets
+  and variables → Actions**.
 
 ## Getting Help
 
-If you run into problems, open a [GitHub Discussion](https://github.com/abhimehro/ctrld-sync/discussions) or check the existing [issues](https://github.com/abhimehro/ctrld-sync/issues).
+If you run into problems, open a
+[GitHub Discussion](https://github.com/abhimehro/ctrld-sync/discussions) or
+check the existing [issues](https://github.com/abhimehro/ctrld-sync/issues).
