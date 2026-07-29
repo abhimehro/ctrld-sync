@@ -416,7 +416,7 @@ def _assert_api_url(url: str) -> None:
     try:
         parsed = httpx.URL(url)
     except Exception as e:
-        raise ValueError(f"Invalid Control D API URL: {e}") from e
+        raise ValueError(f"Invalid Control D API URL: {_sanitize_fn(e)}") from None
 
     if parsed.scheme != "https":
         raise ValueError("Control D API URL must use HTTPS")
