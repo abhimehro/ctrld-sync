@@ -45,6 +45,7 @@
 
 **Merged pull requests:**
 
+- refactor\(cli\): extract missing-config prompt helper \(salvages \#1064\) [\#1072](https://github.com/abhimehro/ctrld-sync/pull/1072) ([cursor[bot]](https://github.com/apps/cursor))
 - chore\(deps\): bump github/gh-aw from 0.83.1 to 0.83.4 [\#1071](https://github.com/abhimehro/ctrld-sync/pull/1071) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump github/gh-aw/actions/setup from 0.83.1 to 0.83.4 [\#1070](https://github.com/abhimehro/ctrld-sync/pull/1070) ([dependabot[bot]](https://github.com/apps/dependabot))
 - Automated Daily QA Review - No changes needed [\#1068](https://github.com/abhimehro/ctrld-sync/pull/1068) ([abhimehro](https://github.com/abhimehro))
