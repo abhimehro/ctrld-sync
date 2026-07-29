@@ -1245,9 +1245,8 @@ def _is_allowed_blocklist_domain(
     if hostname in allowed_domains:
         return True
     parts = hostname.split(".")
-    for i in range(
-        1, len(parts)
-    ):  # noqa: SIM110 - optimization: any(generator) is slow
+    # NOTE: explicit loop beats any(...) here (hot path); keep SIM110 suppressed.
+    for i in range(1, len(parts)):  # noqa: SIM110
         if ".".join(parts[i:]) in allowed_domains:
             return True
     return False
