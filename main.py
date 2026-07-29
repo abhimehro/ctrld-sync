@@ -3253,7 +3253,11 @@ def _handle_clear_cache() -> None:
     if cache_file.exists():
         try:
             size_bytes = cache_file.stat().st_size
-            size_str = f"{size_bytes / (1024 * 1024):.1f} MB" if size_bytes >= 1024 * 1024 else f"{size_bytes / 1024:.1f} KB"
+            size_str = (
+                f"{size_bytes / (1024 * 1024):.1f} MB"
+                if size_bytes >= 1024 * 1024
+                else f"{size_bytes / 1024:.1f} KB"
+            )
             cache_file.unlink()
             print(
                 f"{Colors.GREEN}✓ Cleared blocklist cache: {cache_file} ({size_str} freed){Colors.ENDC}"
