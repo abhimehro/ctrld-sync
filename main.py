@@ -1245,8 +1245,9 @@ def _is_allowed_blocklist_domain(
     if hostname in allowed_domains:
         return True
     parts = hostname.split(".")
-    # NOTE: explicit loop beats any(...) here (hot path); keep SIM110 suppressed.
-    for i in range(1, len(parts)):  # noqa: SIM110
+    for i in range(  # noqa: SIM110 - optimization: any(generator) is slow
+        1, len(parts)
+    ):
         if ".".join(parts[i:]) in allowed_domains:
             return True
     return False
@@ -3313,6 +3314,63 @@ def _prompt_for_missing_config(profile_ids: list[str]) -> None:
         TOKEN = t_input
 
 
+def _build_dry_run_command_str(
+    args: argparse.Namespace, profile_ids: list[str]
+) -> str:
+    """Builds suggested CLI command string for live sync after dry run."""
+    cmd_parts = ["python", "main.py"]
+    if profile_ids and profile_ids[0] != "dry-run-placeholder":
+        p_str = ",".join(profile_ids)
+    else:
+        p_str = "<your-profile-id>"
+    cmd_parts.append(f"--profiles {p_str}")
+
+    if args.folder_url:
+        cmd_parts.extend(f"--folder-url {url}" for url in args.folder_url)
+    if args.config:
+        cmd_parts.append(f"--config {args.config}")
+    if args.no_delete:
+        cmd_parts.append("--no-delete")
+
+    return " ".join(cmd_parts)
+
+
+def _print_dry_run_success(cmd_str: str) -> None:
+    """Prints suggested command after a dry run."""
+    if USE_COLORS:
+        print(
+            f"{Colors.BOLD}👉 Ready to sync? Run the following command:{Colors.ENDC}"
+        )
+        print(f"   {Colors.CYAN}{cmd_str}{Colors.ENDC}")
+    else:
+        print("👉 Ready to sync? Run the following command:")
+        print(f"   {cmd_str}")
+
+
+def _print_dry_run_failure() -> None:
+    """Prints dry run error message."""
+    if USE_COLORS:
+        print(
+            f"{Colors.FAIL}⚠️  Dry run encountered errors. Please check the logs above.{Colors.ENDC}"
+        )
+    else:
+        print("⚠️  Dry run encountered errors. Please check the logs above.")
+
+
+def _print_dry_run_next_steps(
+    args: argparse.Namespace, profile_ids: list[str], all_success: bool
+) -> bool:
+    """Prints suggested next steps after a dry run and handles interactive restart."""
+    print()  # Spacer
+    if not all_success:
+        _print_dry_run_failure()
+        return False
+
+    cmd_str = _build_dry_run_command_str(args, profile_ids)
+    _print_dry_run_success(cmd_str)
+    return prompt_for_interactive_restart(profile_ids)
+
+
 def main() -> bool:
     """
     Main entry point for Control D Sync.
@@ -3509,45 +3567,8 @@ def main() -> bool:
         print_success_message(profile_ids, success_count, total)
 
     # Dry Run Next Steps
-    if args.dry_run:
-        print()  # Spacer
-        if all_success:
-            # Build the suggested command once so it stays consistent between
-            # color and non-color output modes.
-            cmd_parts = ["python", "main.py"]
-            p_str = (
-                ",".join(profile_ids)
-                if profile_ids and profile_ids[0] != "dry-run-placeholder"
-                else "<your-profile-id>"
-            )
-            cmd_parts.append(f"--profiles {p_str}")
-
-            # Reconstruct other args if they were used (optional but helpful)
-            if args.folder_url:
-                cmd_parts.extend(f"--folder-url {url}" for url in args.folder_url)
-
-            cmd_str = " ".join(cmd_parts)
-
-            if USE_COLORS:
-                print(
-                    f"{Colors.BOLD}👉 Ready to sync? Run the following command:{Colors.ENDC}"
-                )
-                print(f"   {Colors.CYAN}{cmd_str}{Colors.ENDC}")
-            else:
-                print("👉 Ready to sync? Run the following command:")
-                print(f"   {cmd_str}")
-
-            # Offer interactive restart if appropriate
-            if prompt_for_interactive_restart(profile_ids):
-                return True
-
-        else:
-            if USE_COLORS:
-                print(
-                    f"{Colors.FAIL}⚠️  Dry run encountered errors. Please check the logs above.{Colors.ENDC}"
-                )
-            else:
-                print("⚠️  Dry run encountered errors. Please check the logs above.")
+    if args.dry_run and _print_dry_run_next_steps(args, profile_ids, all_success):
+        return True
 
     # Display execution statistics and rate limit status
     display_statistics()
