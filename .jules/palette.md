@@ -264,3 +264,8 @@ successes (e.g., where `0 < success_count < total`) under a generic 'Errors'
 status provides inaccurate feedback and can cause unnecessary user alarm.
 **Action:** Implement a dedicated '⚠️ Partial' status (using `Colors.WARNING` or
 similar) to provide nuanced feedback for partial successes in batch operations.
+
+## 2026-10-24 - [CLI Command Suggestions]
+
+**Learning:** When generating and suggesting CLI commands to users for subsequent execution (e.g., 'next steps' after a dry run), omitting custom context-specific flags (such as `--config` or `--no-delete`) that the user initially provided creates a dangerous UX. If the user blindly copy-pastes the suggested command, they might unintentionally run with default settings or execute destructive operations.
+**Action:** Always reconstruct suggested follow-up commands by preserving all relevant user-provided arguments and context flags to ensure safety and predictability.
