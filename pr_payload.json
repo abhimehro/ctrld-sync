@@ -1,0 +1,6 @@
+{
+  "title": "style: apply ruff formatting to test files",
+  "body": "## What\nApplies `ruff-format` to test files to fix whitespace and line continuation formatting, moving assert statements to correctly formatted blocks.\n\n## Why\nTo maintain code quality and ensure adherence to repository formatting standards as part of the daily automated QA review.\n\n## Testing\nAll 364 tests pass successfully via `uv run pytest tests/`.",
+  "head": "jules-15034534435528107157-9b9fe259",
+  "base": "main"
+}
