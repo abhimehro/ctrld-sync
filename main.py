@@ -3314,54 +3314,61 @@ def _prompt_for_missing_config(profile_ids: list[str]) -> None:
         TOKEN = t_input
 
 
+def _build_dry_run_command_str(
+    args: argparse.Namespace, profile_ids: list[str]
+) -> str:
+    """Builds suggested CLI command string for live sync after dry run."""
+    cmd_parts = ["python", "main.py"]
+    if profile_ids and profile_ids[0] != "dry-run-placeholder":
+        p_str = ",".join(profile_ids)
+    else:
+        p_str = "<your-profile-id>"
+    cmd_parts.append(f"--profiles {p_str}")
+
+    if args.folder_url:
+        cmd_parts.extend(f"--folder-url {url}" for url in args.folder_url)
+    if args.config:
+        cmd_parts.append(f"--config {args.config}")
+    if args.no_delete:
+        cmd_parts.append("--no-delete")
+
+    return " ".join(cmd_parts)
+
+
+def _print_dry_run_success(cmd_str: str) -> None:
+    """Prints suggested command after a dry run."""
+    if USE_COLORS:
+        print(
+            f"{Colors.BOLD}👉 Ready to sync? Run the following command:{Colors.ENDC}"
+        )
+        print(f"   {Colors.CYAN}{cmd_str}{Colors.ENDC}")
+    else:
+        print("👉 Ready to sync? Run the following command:")
+        print(f"   {cmd_str}")
+
+
+def _print_dry_run_failure() -> None:
+    """Prints dry run error message."""
+    if USE_COLORS:
+        print(
+            f"{Colors.FAIL}⚠️  Dry run encountered errors. Please check the logs above.{Colors.ENDC}"
+        )
+    else:
+        print("⚠️  Dry run encountered errors. Please check the logs above.")
+
+
 def _print_dry_run_next_steps(
     args: argparse.Namespace, profile_ids: list[str], all_success: bool
 ) -> bool:
     """Prints suggested next steps after a dry run and handles interactive restart."""
     print()  # Spacer
-    if all_success:
-        # Build the suggested command once so it stays consistent between
-        # color and non-color output modes.
-        cmd_parts = ["python", "main.py"]
-        p_str = (
-            ",".join(profile_ids)
-            if profile_ids and profile_ids[0] != "dry-run-placeholder"
-            else "<your-profile-id>"
-        )
-        cmd_parts.append(f"--profiles {p_str}")
+    if not all_success:
+        _print_dry_run_failure()
+        return False
 
-        # Reconstruct other args if they were used (optional but helpful)
-        if args.folder_url:
-            cmd_parts.extend(f"--folder-url {url}" for url in args.folder_url)
-        if args.config:
-            cmd_parts.append(f"--config {args.config}")
-        if args.no_delete:
-            cmd_parts.append("--no-delete")
-
-        cmd_str = " ".join(cmd_parts)
-
-        if USE_COLORS:
-            print(
-                f"{Colors.BOLD}👉 Ready to sync? Run the following command:{Colors.ENDC}"
-            )
-            print(f"   {Colors.CYAN}{cmd_str}{Colors.ENDC}")
-        else:
-            print("👉 Ready to sync? Run the following command:")
-            print(f"   {cmd_str}")
-
-        # Offer interactive restart if appropriate
-        if prompt_for_interactive_restart(profile_ids):
-            return True
-
-    else:
-        if USE_COLORS:
-            print(
-                f"{Colors.FAIL}⚠️  Dry run encountered errors. Please check the logs above.{Colors.ENDC}"
-            )
-        else:
-            print("⚠️  Dry run encountered errors. Please check the logs above.")
-
-    return False
+    cmd_str = _build_dry_run_command_str(args, profile_ids)
+    _print_dry_run_success(cmd_str)
+    return prompt_for_interactive_restart(profile_ids)
 
 
 def main() -> bool:
