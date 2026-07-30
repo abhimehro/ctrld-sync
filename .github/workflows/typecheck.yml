@@ -21,4 +21,4 @@ jobs:
         with:
           python-version: "3.13"
       - run: uv sync --all-extras
-      - run: uv run mypy main.py
+      - run: uv run mypy main.py api_client.py cache.py fix_env.py

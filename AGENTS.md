@@ -4,9 +4,16 @@
 
 ### Project overview
 
-Single-file Python CLI tool (`main.py`) that syncs Control D DNS folders with
-remote JSON block-lists via the Control D REST API. No frontend, no database, no
-Docker required.
+Python CLI that syncs Control D DNS folders with remote JSON block-lists via the
+Control D REST API. Core modules:
+
+- `main.py` — CLI entrypoint and sync orchestration
+- `api_client.py` — Control D REST client helpers
+- `cache.py` — local cache helpers
+- `fix_env.py` — `.env` / environment loading
+
+Optional Docker packaging lives in `Dockerfile` / `docker-compose.yml` (not
+required for local `uv` development). No frontend or database.
 
 ### Runtime
 
@@ -22,7 +29,8 @@ Docker required.
 | -------------------------- | ------------------------------------------------------------------ |
 | Install/update deps        | `uv sync --all-extras`                                             |
 | Run linter                 | `ruff check .` (install via `uv tool install ruff` if not on PATH) |
-| Run all tests              | `uv run pytest tests/ -v`                                          |
+| Run all tests              | `uv run pytest -v`                                                 |
+| Run package tests only     | `uv run pytest tests/ -v`                                          |
 | Run specific test file     | `uv run pytest tests/test_fix_env.py -v`                           |
 | Run app (dry-run)          | `uv run python main.py --dry-run`                                  |
 | Run app (live)             | `TOKEN=xxx PROFILE=yyy uv run python main.py`                      |
@@ -32,8 +40,8 @@ Docker required.
 ### Current status
 
 `main.py` compiles cleanly when checked with the project interpreter
-(`uv run python -m py_compile main.py`). All 30 `test_*.py` modules under
-`tests/` are importable. Run the full test suite with `uv run pytest tests/ -v`.
+(`uv run python -m py_compile main.py`). Pytest `testpaths` cover `tests/` plus
+root `test_main.py`. Prefer `uv run pytest -v` for the full suite.
 
 ### Secrets for live runs
 

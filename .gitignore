@@ -217,3 +217,11 @@ test_data.json
 
 bench7.py
 test_data.json
+
+# Local scratch / editor noise
+.nvimlog
+*.tmp
+log.txt
+pr_body_new.json
+*.bak
+test.py
