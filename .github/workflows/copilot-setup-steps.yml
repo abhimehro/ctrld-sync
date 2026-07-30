@@ -30,6 +30,17 @@ jobs:
         with:
           python-version: "3.13"
 
+      - name: Clear deprecated Copilot model override
+        shell: bash
+        run: |
+          # GitHub retired claude-opus-4.6; when this value is inherited by
+          # github-advanced-security jobs they fail with:
+          # "The requested model is not supported."
+          if [[ "${COPILOT_AGENT_MODEL:-}" == "sweagent-capi:claude-opus-4.6" ]]; then
+            echo "COPILOT_AGENT_MODEL=" >> "$GITHUB_ENV"
+            echo "Cleared deprecated COPILOT_AGENT_MODEL override."
+          fi
+
       - name: Development Partner Session
         uses: actions/github-script@v9
         env:
