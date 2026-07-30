@@ -46,6 +46,7 @@
 
 **Merged pull requests:**
 
+- chore\(deps\): bump release-drafter/release-drafter from 7.6.0 to 7.7.0 [\#1079](https://github.com/abhimehro/ctrld-sync/pull/1079) ([dependabot[bot]](https://github.com/apps/dependabot))
 - fix\(lint\): repair SIM110 noqa so ruff check passes [\#1078](https://github.com/abhimehro/ctrld-sync/pull/1078) ([cursor[bot]](https://github.com/apps/cursor))
 - 🎨 Palette: Preserve user flags in dry-run suggested command [\#1076](https://github.com/abhimehro/ctrld-sync/pull/1076) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump actions/stale from 10 to 11 [\#1075](https://github.com/abhimehro/ctrld-sync/pull/1075) ([dependabot[bot]](https://github.com/apps/dependabot))
