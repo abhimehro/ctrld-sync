@@ -2436,12 +2436,19 @@ def _push_rule_batches(
         return True
 
     _clear_current_line()
-    log.error(
-        "Folder %s – only %d/%d batches succeeded",
-        sanitized_folder_name,
-        successful_batches,
-        total_batches,
-    )
+    if successful_batches > 0:
+        log.warning(
+            "Folder %s – only %d/%d batches succeeded (⚠️ Partial)",
+            sanitized_folder_name,
+            successful_batches,
+            total_batches,
+        )
+    else:
+        log.error(
+            "Folder %s – 0/%d batches succeeded",
+            sanitized_folder_name,
+            total_batches,
+        )
     return False
 
 
