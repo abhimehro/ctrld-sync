@@ -3314,9 +3314,7 @@ def _prompt_for_missing_config(profile_ids: list[str]) -> None:
         TOKEN = t_input
 
 
-def _build_dry_run_command_str(
-    args: argparse.Namespace, profile_ids: list[str]
-) -> str:
+def _build_dry_run_command_str(args: argparse.Namespace, profile_ids: list[str]) -> str:
     """Builds suggested CLI command string for live sync after dry run."""
     cmd_parts = ["python", "main.py"]
     if profile_ids and profile_ids[0] != "dry-run-placeholder":
@@ -3338,9 +3336,7 @@ def _build_dry_run_command_str(
 def _print_dry_run_success(cmd_str: str) -> None:
     """Prints suggested command after a dry run."""
     if USE_COLORS:
-        print(
-            f"{Colors.BOLD}👉 Ready to sync? Run the following command:{Colors.ENDC}"
-        )
+        print(f"{Colors.BOLD}👉 Ready to sync? Run the following command:{Colors.ENDC}")
         print(f"   {Colors.CYAN}{cmd_str}{Colors.ENDC}")
     else:
         print("👉 Ready to sync? Run the following command:")
