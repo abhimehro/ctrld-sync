@@ -2830,8 +2830,8 @@ def sync_profile(
 # --------------------------------------------------------------------------- #
 def _get_interactive_restart_confirmation() -> bool:
     """Helper to prompt for and validate interactive restart confirmation."""
-    prompt_initial = f"{Colors.BOLD}🚀 Ready to launch? {Colors.ENDC}Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
-    prompt_reprompt = f"{Colors.BOLD}🚀 Ready to launch? {Colors.ENDC}Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... "
+    prompt_initial = f"{Colors.BOLD}🚀 Ready to launch? {Colors.ENDC}{Colors.DIM}Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... {Colors.ENDC}"
+    prompt_reprompt = f"{Colors.BOLD}🚀 Ready to launch? {Colors.ENDC}{Colors.DIM}Press [Enter] to run now (or type 'n' / Ctrl+C to cancel)... {Colors.ENDC}"
     cancel_msg = f"{Colors.WARNING}⚠️  Cancelled.{Colors.ENDC}"
     err_msg = f"{Colors.FAIL}❌ Unrecognized input. Please press Enter to continue, or 'n' to cancel.{Colors.ENDC}"
 
