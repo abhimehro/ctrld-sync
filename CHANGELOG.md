@@ -46,7 +46,9 @@
 
 **Merged pull requests:**
 
+- ⚡ Bolt: Optimize domain allowlist checking [\#1089](https://github.com/abhimehro/ctrld-sync/pull/1089) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump actions/ai-inference from 2 to 2.1.1 [\#1085](https://github.com/abhimehro/ctrld-sync/pull/1085) ([dependabot[bot]](https://github.com/apps/dependabot))
+- 🎨 Palette: Add Partial status for batch rule pushes [\#1083](https://github.com/abhimehro/ctrld-sync/pull/1083) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump shundor/python-bandit-scan from ab1d87dfccc5a0ffab88be3aaac6ffe35c10d6cd to 9955228c1cbdc5aeb5e511e0fa232154e2ed2b67 [\#1080](https://github.com/abhimehro/ctrld-sync/pull/1080) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump release-drafter/release-drafter from 7.6.0 to 7.7.0 [\#1079](https://github.com/abhimehro/ctrld-sync/pull/1079) ([dependabot[bot]](https://github.com/apps/dependabot))
 - fix\(lint\): repair SIM110 noqa so ruff check passes [\#1078](https://github.com/abhimehro/ctrld-sync/pull/1078) ([cursor[bot]](https://github.com/apps/cursor))
