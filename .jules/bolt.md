@@ -141,3 +141,8 @@ comprehension is ~15-20% faster than calling a dedicated validation function
 processing very large collections in performance-critical paths, consider
 inlining simple validation checks directly into the comprehension to avoid
 Python function call overhead.
+
+## 2026-07-31 - String Domain Matching
+
+**Learning:** When iteratively checking subdomains against an allowlist, using `str.find('.')` and string slicing avoids the memory allocation overhead of `str.split('.')` and `str.join()`, executing significantly faster.
+**Action:** When extracting or checking domain parts, prefer using string `.find()` and slicing instead of `.split()` inside hot functions.

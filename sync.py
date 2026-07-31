@@ -598,6 +598,36 @@ def _process_batches_with_executor(
 
     return successful_batches
 
+def _log_batch_result(
+    sanitized_folder_name: str,
+    successful_batches: int,
+    total_batches: int,
+    total_rules: int,
+) -> bool:
+    """Helper to evaluate and log the result of a batch rule push."""
+    if successful_batches == total_batches:
+        _print_completion(
+            f"Folder {sanitized_folder_name}: Finished ({total_rules:,} {pluralize(total_rules, 'rule')})"
+        )
+        return True
+
+    _clear_current_line()
+    if successful_batches > 0:
+        log.warning(
+            "Folder %s – only %d/%d batches succeeded (Partial)",
+            sanitized_folder_name,
+            successful_batches,
+            total_batches,
+        )
+    else:
+        log.error(
+            "Folder %s – 0/%d batches succeeded",
+            sanitized_folder_name,
+            total_batches,
+        )
+    return False
+
+
 def _push_rule_batches(
     ctx: SyncContext,
     folder_name: str,
@@ -652,21 +682,13 @@ def _push_rule_batches(
                     executor, ctx, batch_config
                 )
 
-    total_rules = len(filtered_hostnames)
-    if successful_batches == total_batches:
-        _print_completion(
-            f"Folder {sanitized_folder_name}: Finished ({total_rules:,} {pluralize(total_rules, 'rule')})"
-        )
-        return True
-
-    _clear_current_line()
-    log.error(
-        "Folder %s – only %d/%d batches succeeded",
+    return _log_batch_result(
         sanitized_folder_name,
         successful_batches,
         total_batches,
+        len(filtered_hostnames),
     )
-    return False
+
 
 def push_rules(
     ctx: SyncContext,

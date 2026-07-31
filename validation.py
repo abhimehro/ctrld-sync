@@ -192,12 +192,13 @@ def _is_allowed_blocklist_domain(
 ) -> bool:
     if hostname in allowed_domains:
         return True
-    parts = hostname.split(".")
-    for i in range(  # noqa: SIM110 - optimization: any(generator) is slow
-        1, len(parts)
-    ):
-        if ".".join(parts[i:]) in allowed_domains:
+    # Bolt: Using str.find() and slicing instead of str.split() and str.join()
+    # to avoid memory allocation overhead and improve execution speed for subdomain checking.
+    idx = hostname.find(".")
+    while idx != -1:
+        if hostname[idx + 1 :] in allowed_domains:
             return True
+        idx = hostname.find(".", idx + 1)
     return False
 
 @lru_cache(maxsize=128)
