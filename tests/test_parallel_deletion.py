@@ -1,6 +1,7 @@
 """Tests for parallel folder deletion functionality."""
 
 import concurrent.futures
+import secrets
 import sys
 from unittest.mock import MagicMock, patch
 
@@ -8,11 +9,13 @@ import pytest
 
 import sync  # noqa: E402
 
+TEST_TOKEN = "test-token-" + secrets.token_hex(8)
+
 
 @pytest.fixture
 def mock_env(monkeypatch):
     """Set up test environment with required TOKEN."""
-    monkeypatch.setenv("TOKEN", "test-token-123")
+    monkeypatch.setenv("TOKEN", TEST_TOKEN)
     monkeypatch.setenv("NO_COLOR", "1")
     # Use monkeypatch.delitem so sys.modules["main"] is restored after each test.
     # This prevents stale cross-module references (e.g. api_client._sanitize_fn)
@@ -88,7 +91,7 @@ def test_parallel_deletion_uses_threadpool(mock_env, monkeypatch):
             super().__init__(*args, **kwargs)
 
     with patch("concurrent.futures.ThreadPoolExecutor", TrackedExecutor):
-        main.sync_profile("test-profile", ["url1", "url2"], token="test-token-123", no_delete=False)
+        main.sync_profile("test-profile", ["url1", "url2"], token=TEST_TOKEN, no_delete=False)
 
     # Verify ThreadPoolExecutor was called with DELETE_WORKERS
     delete_executor_found = False
@@ -151,7 +154,7 @@ def test_parallel_deletion_handles_exceptions(mock_env, monkeypatch):
     monkeypatch.setattr(main.log, "error", mock_error)
 
     # Should not crash, should log error
-    main.sync_profile("test-profile", ["url"], token="test-token-123", no_delete=False)
+    main.sync_profile("test-profile", ["url"], token=TEST_TOKEN, no_delete=False)
 
     # Verify error was logged
     assert len(log_calls) > 0, "Expected error to be logged"
@@ -178,7 +181,7 @@ def test_parallel_deletion_sanitizes_exception(mock_env, monkeypatch):
 
     # Mock delete_folder to raise exception with potentially dangerous content
     def failing_delete(*args):
-        raise RuntimeError("Error with TOKEN: test-token-123 and control chars\x1b[0m")
+        raise RuntimeError(f"Error with TOKEN: {TEST_TOKEN} and control chars\x1b[0m")
 
     monkeypatch.setattr(sync, "delete_folder", failing_delete)
     monkeypatch.setattr(sync, "get_all_existing_rules", lambda *args: set())
@@ -206,7 +209,7 @@ def test_parallel_deletion_sanitizes_exception(mock_env, monkeypatch):
     monkeypatch.setattr(main.log, "error", mock_error)
 
     # Run sync
-    main.sync_profile("test-profile", ["url"], token="test-token-123", no_delete=False)
+    main.sync_profile("test-profile", ["url"], token=TEST_TOKEN, no_delete=False)
 
     # Verify TOKEN was redacted and control chars were escaped
     assert len(log_calls) > 0
@@ -214,7 +217,7 @@ def test_parallel_deletion_sanitizes_exception(mock_env, monkeypatch):
     logged_str = " ".join(str(arg) for arg in logged_args)
 
     # TOKEN should be redacted
-    assert "test-token-123" not in logged_str, "TOKEN should be redacted"
+    assert TEST_TOKEN not in logged_str, "TOKEN should be redacted"
     assert "[REDACTED]" in logged_str, "TOKEN should be replaced with [REDACTED]"
 
     # Control characters should be escaped

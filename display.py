@@ -7,8 +7,8 @@ import getpass
 import json
 import logging
 import os
-import random
 import re
+import secrets
 import shutil
 import sys
 import time
@@ -654,7 +654,7 @@ def _print_success_text(all_success: bool, success_count: int, total: int) -> No
             "💎 Smooth operation!",
             "🌈 Perfect harmony!",
         ]
-        chosen_msg = random.choice(success_msgs)
+        chosen_msg = secrets.choice(success_msgs)
     else:
         chosen_msg = (
             f"⚠️  Synced {success_count} out of {total} profile(s). Check errors above."
