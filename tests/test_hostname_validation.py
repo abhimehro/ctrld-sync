@@ -58,7 +58,7 @@ def test_validate_folder_url_uses_validate_hostname():
     """
     Verify that validate_folder_url calls validate_hostname.
     """
-    with patch("main.validate_hostname") as mock_validate:
+    with patch("validation.validate_hostname") as mock_validate:
         mock_validate.return_value = True
 
         # Clear cache

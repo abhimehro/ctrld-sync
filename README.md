@@ -13,8 +13,9 @@
 [![CodeScene System Mastery](https://codescene.io/projects/80823/status-badges/system-mastery)](https://codescene.io/projects/80823)
 [![CodeScene Missed Goals](https://codescene.io/projects/80823/status-badges/missed-goals)](https://codescene.io/projects/80823)
 
-A tiny Python script that keeps your Control D Folders in sync with a set of
-remote block-lists.
+A tiny Python CLI that keeps your Control D Folders in sync with a set of
+remote block-lists. The code is split into focused modules; `main.py` is only
+the CLI/bootstrap entry point.
 
 See [CHANGELOG.md](CHANGELOG.md) for a full list of changes between versions.
 
@@ -86,7 +87,7 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
    1. `--config FILE` CLI flag
    2. `config.yaml` or `config.yml` in the current directory
    3. `~/.ctrld-sync/config.yaml` or `~/.ctrld-sync/config.yml`
-   4. Built-in defaults (the `DEFAULT_FOLDER_URLS` list in `main.py`)
+   4. Built-in defaults (the `DEFAULT_FOLDER_URLS` list in `config.py`)
 
    By default, only `raw.githubusercontent.com`, `github.com`, and
    `yokoffing.github.io` are accepted as blocklist hosts. Control D hosts
@@ -203,38 +204,35 @@ correctness.
 # Install dev dependencies first
 uv sync --all-extras
 
-# Run all tests
-uv run pytest tests/
+# Run all tests (includes root test_main.py)
+uv run pytest tests/ test_main.py -v
 ```
 
-**Parallel test execution (recommended):**
+**Parallel test execution:**
 
 ```bash
 # Run tests in parallel using all available CPU cores
-uv run pytest tests/ -n auto
+uv run pytest tests/ test_main.py -n auto
 
 # Run with specific number of workers
-uv run pytest tests/ -n 4
+uv run pytest tests/ test_main.py -n 4
 ```
 
-**Note on parallel execution:** The test suite is currently small (~78 tests,
-<1s execution time), so parallel execution overhead may result in longer
-wall-clock time compared to sequential execution. However, pytest-xdist is
-included for:
+### Linting & Type Checking
 
-- **Test isolation verification** - Ensures tests don't share state
-- **Future scalability** - As the test suite grows, parallel execution will
-  provide significant speedups
-- **CI optimization** - May benefit from parallelization in CI environments with
-  different characteristics
+```bash
+# Run linter
+uv run ruff check .
+
+# Run type checker on all source modules
+uv run mypy main.py models.py validation.py config.py display.py gh_client.py sync.py api_client.py cache.py fix_env.py
+```
 
 ### Development Workflow
 
-For active development with frequent test runs:
-
 ```bash
-# Run tests sequentially (faster for small test suites)
-uv run pytest tests/ -v
+# Run tests sequentially
+uv run pytest tests/ test_main.py -v
 
 # Run specific test file
 uv run pytest tests/test_security.py -v
@@ -251,10 +249,10 @@ This project uses manual releases via GitHub Releases. To create a new release:
 
    ```bash
    # Verify tests pass
-   uv run pytest tests/
+   uv run pytest tests/ test_main.py -v
 
    # Verify security scans pass
-   bandit -r main.py -ll
+   bandit -r main.py models.py validation.py config.py display.py gh_client.py sync.py api_client.py cache.py fix_env.py -ll
    ```
 
 2. **Update version in `pyproject.toml`**

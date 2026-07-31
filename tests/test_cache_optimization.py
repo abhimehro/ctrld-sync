@@ -71,7 +71,7 @@ class TestCacheOptimization(unittest.TestCase):
         self.assertNotIn(test_url, main._cache)
 
         with patch("main.validate_folder_url", return_value=True) as mock_validate:
-            with patch("main._gh_get", return_value=test_data):
+            with patch("gh_client._gh_get", return_value=test_data):
                 # Simulate the _fetch_if_valid logic for non-cached URLs
                 with main._cache_lock:
                     url_in_cache = test_url in main._cache
@@ -190,7 +190,7 @@ class TestCacheOptimization(unittest.TestCase):
 
         # Mock validate_folder_url to track if it's called
         with patch("main.validate_folder_url") as mock_validate:
-            with patch("main._gh_get", return_value=test_data):
+            with patch("gh_client._gh_get", return_value=test_data):
                 from typing import Any
 
                 # Simulate the logic in _fetch_if_valid

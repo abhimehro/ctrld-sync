@@ -6,6 +6,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+import sync  # noqa: E402
+
 
 @pytest.fixture
 def mock_env(monkeypatch):
@@ -48,23 +50,23 @@ def test_parallel_deletion_uses_threadpool(mock_env, monkeypatch):
     mock_client_ctx = MagicMock(
         __enter__=lambda self: mock_client, __exit__=lambda *args: None
     )
-    monkeypatch.setattr(main, "_api_client", lambda: mock_client_ctx)
+    monkeypatch.setattr(sync, "create_client", lambda _token: mock_client_ctx)
     monkeypatch.setattr(
-        main,
+        sync,
         "verify_access_and_get_folders",
         lambda *args: {"FolderA": "id1", "FolderB": "id2"},
     )
-    monkeypatch.setattr(main, "delete_folder", lambda *args: True)
-    monkeypatch.setattr(main, "get_all_existing_rules", lambda *args: set())
-    monkeypatch.setattr(main, "countdown_timer", lambda *args: None)
-    monkeypatch.setattr(main, "_process_single_folder", lambda *args: True)
+    monkeypatch.setattr(sync, "delete_folder", lambda *args: True)
+    monkeypatch.setattr(sync, "get_all_existing_rules", lambda *args: set())
+    monkeypatch.setattr(sync, "countdown_timer", lambda *args: None)
+    monkeypatch.setattr(sync, "_process_single_folder", lambda *args: True)
     # Mock validation functions with cache_clear methods
     mock_validate = MagicMock(return_value=True)
     mock_validate.cache_clear = MagicMock()
-    monkeypatch.setattr(main, "validate_folder_url", mock_validate)
+    monkeypatch.setattr(sync, "validate_folder_url", mock_validate)
     mock_validate_hostname = MagicMock(return_value=True)
     mock_validate_hostname.cache_clear = MagicMock()
-    monkeypatch.setattr(main, "validate_hostname", mock_validate_hostname)
+    monkeypatch.setattr(sync, "validate_hostname", mock_validate_hostname)
 
     def mock_fetch(url):
         if url == "url1":
@@ -73,7 +75,7 @@ def test_parallel_deletion_uses_threadpool(mock_env, monkeypatch):
             return {"group": {"group": "FolderB"}}
         return None
 
-    monkeypatch.setattr(main, "fetch_folder_data", mock_fetch)
+    monkeypatch.setattr(sync, "fetch_folder_data", mock_fetch)
 
     # Track ThreadPoolExecutor calls
     executor_calls: list[dict[str, object]] = []
@@ -86,7 +88,7 @@ def test_parallel_deletion_uses_threadpool(mock_env, monkeypatch):
             super().__init__(*args, **kwargs)
 
     with patch("concurrent.futures.ThreadPoolExecutor", TrackedExecutor):
-        main.sync_profile("test-profile", ["url1", "url2"], no_delete=False)
+        main.sync_profile("test-profile", ["url1", "url2"], token="test-token-123", no_delete=False)
 
     # Verify ThreadPoolExecutor was called with DELETE_WORKERS
     delete_executor_found = False
@@ -110,9 +112,9 @@ def test_parallel_deletion_handles_exceptions(mock_env, monkeypatch):
     mock_client_ctx = MagicMock(
         __enter__=lambda self: mock_client, __exit__=lambda *args: None
     )
-    monkeypatch.setattr(main, "_api_client", lambda: mock_client_ctx)
+    monkeypatch.setattr(sync, "create_client", lambda _token: mock_client_ctx)
     monkeypatch.setattr(
-        main,
+        sync,
         "verify_access_and_get_folders",
         lambda *args: {"Folder1": "id1"},
     )
@@ -121,21 +123,21 @@ def test_parallel_deletion_handles_exceptions(mock_env, monkeypatch):
     def failing_delete(*args):
         raise RuntimeError("API Error")
 
-    monkeypatch.setattr(main, "delete_folder", failing_delete)
-    monkeypatch.setattr(main, "get_all_existing_rules", lambda *args: set())
-    monkeypatch.setattr(main, "countdown_timer", lambda *args: None)
-    monkeypatch.setattr(main, "_process_single_folder", lambda *args: True)
+    monkeypatch.setattr(sync, "delete_folder", failing_delete)
+    monkeypatch.setattr(sync, "get_all_existing_rules", lambda *args: set())
+    monkeypatch.setattr(sync, "countdown_timer", lambda *args: None)
+    monkeypatch.setattr(sync, "_process_single_folder", lambda *args: True)
 
     # Mock validation functions with cache_clear methods
     mock_validate = MagicMock(return_value=True)
     mock_validate.cache_clear = MagicMock()
-    monkeypatch.setattr(main, "validate_folder_url", mock_validate)
+    monkeypatch.setattr(sync, "validate_folder_url", mock_validate)
     mock_validate_hostname = MagicMock(return_value=True)
     mock_validate_hostname.cache_clear = MagicMock()
-    monkeypatch.setattr(main, "validate_hostname", mock_validate_hostname)
+    monkeypatch.setattr(sync, "validate_hostname", mock_validate_hostname)
 
     monkeypatch.setattr(
-        main, "fetch_folder_data", lambda url: {"group": {"group": "Folder1"}}
+        sync, "fetch_folder_data", lambda url: {"group": {"group": "Folder1"}}
     )
 
     # Capture log output
@@ -149,7 +151,7 @@ def test_parallel_deletion_handles_exceptions(mock_env, monkeypatch):
     monkeypatch.setattr(main.log, "error", mock_error)
 
     # Should not crash, should log error
-    main.sync_profile("test-profile", ["url"], no_delete=False)
+    main.sync_profile("test-profile", ["url"], token="test-token-123", no_delete=False)
 
     # Verify error was logged
     assert len(log_calls) > 0, "Expected error to be logged"
@@ -167,9 +169,9 @@ def test_parallel_deletion_sanitizes_exception(mock_env, monkeypatch):
     mock_client_ctx = MagicMock(
         __enter__=lambda self: mock_client, __exit__=lambda *args: None
     )
-    monkeypatch.setattr(main, "_api_client", lambda: mock_client_ctx)
+    monkeypatch.setattr(sync, "create_client", lambda _token: mock_client_ctx)
     monkeypatch.setattr(
-        main,
+        sync,
         "verify_access_and_get_folders",
         lambda *args: {"TestFolder": "id1"},
     )
@@ -178,21 +180,21 @@ def test_parallel_deletion_sanitizes_exception(mock_env, monkeypatch):
     def failing_delete(*args):
         raise RuntimeError("Error with TOKEN: test-token-123 and control chars\x1b[0m")
 
-    monkeypatch.setattr(main, "delete_folder", failing_delete)
-    monkeypatch.setattr(main, "get_all_existing_rules", lambda *args: set())
-    monkeypatch.setattr(main, "countdown_timer", lambda *args: None)
-    monkeypatch.setattr(main, "_process_single_folder", lambda *args: True)
+    monkeypatch.setattr(sync, "delete_folder", failing_delete)
+    monkeypatch.setattr(sync, "get_all_existing_rules", lambda *args: set())
+    monkeypatch.setattr(sync, "countdown_timer", lambda *args: None)
+    monkeypatch.setattr(sync, "_process_single_folder", lambda *args: True)
 
     # Mock validation functions with cache_clear methods
     mock_validate = MagicMock(return_value=True)
     mock_validate.cache_clear = MagicMock()
-    monkeypatch.setattr(main, "validate_folder_url", mock_validate)
+    monkeypatch.setattr(sync, "validate_folder_url", mock_validate)
     mock_validate_hostname = MagicMock(return_value=True)
     mock_validate_hostname.cache_clear = MagicMock()
-    monkeypatch.setattr(main, "validate_hostname", mock_validate_hostname)
+    monkeypatch.setattr(sync, "validate_hostname", mock_validate_hostname)
 
     monkeypatch.setattr(
-        main, "fetch_folder_data", lambda url: {"group": {"group": "TestFolder"}}
+        sync, "fetch_folder_data", lambda url: {"group": {"group": "TestFolder"}}
     )
 
     # Capture log output
@@ -204,7 +206,7 @@ def test_parallel_deletion_sanitizes_exception(mock_env, monkeypatch):
     monkeypatch.setattr(main.log, "error", mock_error)
 
     # Run sync
-    main.sync_profile("test-profile", ["url"], no_delete=False)
+    main.sync_profile("test-profile", ["url"], token="test-token-123", no_delete=False)
 
     # Verify TOKEN was redacted and control chars were escaped
     assert len(log_calls) > 0

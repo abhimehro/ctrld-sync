@@ -27,6 +27,14 @@ def reload_main_with_env(monkeypatch, no_color=None, isatty=True):
     with patch("sys.stderr") as mock_stderr, patch("sys.stdout") as mock_stdout:
         mock_stderr.isatty.return_value = isatty
         mock_stdout.isatty.return_value = isatty
+        # Reload modules whose import-time state depends on the environment/TTY.
+        import display
+        import sync
+        import gh_client
+
+        importlib.reload(display)
+        importlib.reload(gh_client)
+        importlib.reload(sync)
         importlib.reload(main)
         return main
 
@@ -56,7 +64,7 @@ def test_get_all_existing_rules_updates_correctly(monkeypatch):
 
     # Mock helpers
     mock_list_folders = MagicMock(return_value={"FolderA": "id_A", "FolderB": "id_B"})
-    monkeypatch.setattr(m, "list_existing_folders", mock_list_folders)
+    monkeypatch.setattr(m.sync, "list_existing_folders", mock_list_folders)
 
     # Mock _api_get to return different rules for root vs folders
     def side_effect(client, url):
@@ -71,7 +79,7 @@ def test_get_all_existing_rules_updates_correctly(monkeypatch):
             mock_resp.json.return_value = {"body": {"rules": [{"PK": "rule_B1"}]}}
         return mock_resp
 
-    monkeypatch.setattr(m, "_api_get", side_effect)
+    monkeypatch.setattr(m.sync, "_api_get", side_effect)
 
     # Execution
     rules = m.get_all_existing_rules(mock_client, profile_id)
@@ -86,7 +94,7 @@ def test_push_rules_updates_data_with_batch_keys(monkeypatch):
     m = reload_main_with_env(monkeypatch)
     mock_client = MagicMock()
     mock_post_form = MagicMock()
-    monkeypatch.setattr(m, "_api_post_form", mock_post_form)
+    monkeypatch.setattr(m.sync, "_api_post_form", mock_post_form)
 
     # Create enough hostnames for one batch
     batch_size = m.BATCH_SIZE
@@ -119,7 +127,7 @@ def test_push_rules_updates_data_with_batch_keys(monkeypatch):
 def test_push_rules_updates_existing_rules(monkeypatch):
     m = reload_main_with_env(monkeypatch)
     mock_client = MagicMock()
-    monkeypatch.setattr(m, "_api_post_form", MagicMock())
+    monkeypatch.setattr(m.sync, "_api_post_form", MagicMock())
 
     hostnames = ["h1", "h2"]
     existing_rules: set[str] = set()
@@ -189,7 +197,7 @@ def test_push_rules_logs_conditionally_use_colors(monkeypatch):
 # Case 5: push_rules writes colored progress and completion messages to stderr when USE_COLORS is True
 def test_push_rules_writes_colored_stderr(monkeypatch):
     m = reload_main_with_env(monkeypatch, no_color=None, isatty=True)
-    monkeypatch.setattr(m, "_api_post_form", MagicMock())
+    monkeypatch.setattr(m.sync, "_api_post_form", MagicMock())
 
     mock_stderr = MagicMock()
     monkeypatch.setattr(sys, "stderr", mock_stderr)
@@ -363,9 +371,9 @@ def test_verify_access_and_get_folders_500_retry(monkeypatch):
 
     mock_log = MagicMock()
     monkeypatch.setattr(m, "log", mock_log)
-    monkeypatch.setattr(m, "RETRY_DELAY", 0.001)
+    monkeypatch.setattr(m.api_client, "RETRY_DELAY", 0.001)
     monkeypatch.setattr("time.sleep", lambda x: None)
-    monkeypatch.setattr(m, "MAX_RETRIES", 2)
+    monkeypatch.setattr(m.api_client, "MAX_RETRIES", 2)
 
     assert m.verify_access_and_get_folders(mock_client, "profile") is None
     assert mock_client.get.call_count == 2
@@ -384,9 +392,9 @@ def test_verify_access_and_get_folders_network_error(monkeypatch):
 
     mock_log = MagicMock()
     monkeypatch.setattr(m, "log", mock_log)
-    monkeypatch.setattr(m, "RETRY_DELAY", 0.001)
+    monkeypatch.setattr(m.api_client, "RETRY_DELAY", 0.001)
     monkeypatch.setattr("time.sleep", lambda x: None)
-    monkeypatch.setattr(m, "MAX_RETRIES", 2)
+    monkeypatch.setattr(m.api_client, "MAX_RETRIES", 2)
 
     assert m.verify_access_and_get_folders(mock_client, "profile") is None
     assert mock_client.get.call_count == 2
@@ -503,12 +511,12 @@ def test_get_validated_input_retry(monkeypatch, capsys):
 
     # Check output for error messages
     captured = capsys.readouterr()
-    assert "Value cannot be empty" in captured.out
+    assert "Value cannot be empty" in captured.err
     assert (
         "💡 Hint: Please type a value and press Enter, or press Ctrl+C/Ctrl+D to cancel."
-        in captured.out
+        in captured.err
     )
-    assert "Error message" in captured.out
+    assert "Error message" in captured.err
 
 
 # Case 12: get_password works with getpass
@@ -527,10 +535,10 @@ def test_get_password(monkeypatch, capsys):
     assert getpass_mock.call_count == 2
 
     captured = capsys.readouterr()
-    assert "Value cannot be empty" in captured.out
+    assert "Value cannot be empty" in captured.err
     assert (
         "💡 Hint: Please type a value and press Enter, or press Ctrl+C/Ctrl+D to cancel."
-        in captured.out
+        in captured.err
     )
 
 

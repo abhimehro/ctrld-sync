@@ -1,6 +1,8 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
+import api_client
+import config
 import main
 
 
@@ -17,10 +19,10 @@ class TestLogSanitization(unittest.TestCase):
         # It should NOT contain the actual escape character
         self.assertNotIn("\x1b", sanitized)
 
-    @patch("main.log")
+    @patch("sync.log")
     @patch("main.time.sleep")
-    @patch("main._api_post")
-    @patch("main._api_get")
+    @patch("sync._api_post")
+    @patch("sync._api_get")
     def test_create_folder_logs_unsafe_name(
         self, mock_get, mock_post, mock_sleep, mock_log
     ):
@@ -29,8 +31,8 @@ class TestLogSanitization(unittest.TestCase):
         We expect this to FAIL (or show raw usage) before the fix.
         """
         # Setup
-        main.MAX_RETRIES = 1
-        main.FOLDER_CREATION_DELAY = 0
+        api_client.MAX_RETRIES = 1
+        config.FOLDER_CREATION_DELAY = 0
 
         # Mock POST to succeed (returns None, assuming polling needed if direct ID missing)
         mock_post.return_value.json.return_value = {
