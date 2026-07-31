@@ -503,12 +503,12 @@ def test_get_validated_input_retry(monkeypatch, capsys):
 
     # Check output for error messages
     captured = capsys.readouterr()
-    assert "Value cannot be empty" in captured.out
+    assert "Value cannot be empty" in captured.err
     assert (
         "💡 Hint: Please type a value and press Enter, or press Ctrl+C/Ctrl+D to cancel."
-        in captured.out
+        in captured.err
     )
-    assert "Error message" in captured.out
+    assert "Error message" in captured.err
 
 
 # Case 12: get_password works with getpass
@@ -527,10 +527,10 @@ def test_get_password(monkeypatch, capsys):
     assert getpass_mock.call_count == 2
 
     captured = capsys.readouterr()
-    assert "Value cannot be empty" in captured.out
+    assert "Value cannot be empty" in captured.err
     assert (
         "💡 Hint: Please type a value and press Enter, or press Ctrl+C/Ctrl+D to cancel."
-        in captured.out
+        in captured.err
     )
 
 
