@@ -28,11 +28,16 @@ def reload_main_with_env(monkeypatch, no_color=None, isatty=True):
         mock_stderr.isatty.return_value = isatty
         mock_stdout.isatty.return_value = isatty
         # Reload modules whose import-time state depends on the environment/TTY.
+        import config  # noqa: F401
         import display
-        import sync
         import gh_client
+        import sync
 
         importlib.reload(display)
+        importlib.reload(config)
+        # Avoid leaking httpx connection pools when reloading gh_client repeatedly.
+        if hasattr(gh_client, "_gh") and getattr(gh_client._gh, "is_closed", False) is False:
+            gh_client._gh.close()
         importlib.reload(gh_client)
         importlib.reload(sync)
         importlib.reload(main)
