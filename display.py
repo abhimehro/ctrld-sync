@@ -151,6 +151,22 @@ class JsonFormatter(logging.Formatter):
                 payload["exc"] = record.exc_text
         return json.dumps(payload)
 
+def configure_logging() -> None:
+    """Configure the root logger for the CLI.
+
+    Emits coloured text by default and structured JSON lines when ``JSON_LOG``
+    is set.  Also suppresses noisy ``httpx`` library logs.
+    """
+    if os.getenv("JSON_LOG"):
+        formatter: logging.Formatter = JsonFormatter()
+    else:
+        formatter = ColoredFormatter()
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+    logging.basicConfig(level=logging.INFO, handlers=[handler])
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+
+
 class AlertSystem:
     """Handles async enqueue callbacks and structured error logging.
 

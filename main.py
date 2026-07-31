@@ -212,6 +212,9 @@ for _mod in ("api_client", "cache", "config", "display", "gh_client", "sync", "v
     if _mod in sys.modules:
         sys.modules[_mod].log = log  # type: ignore[attr-defined]
 
+# Configure coloured/JSON output and silence noisy library loggers.
+display.configure_logging()
+
 TOKEN: str | None = _clean_env_kv(os.getenv("TOKEN"), "TOKEN")
 
 # Keep the canonical token redaction state in validation in sync with this module
