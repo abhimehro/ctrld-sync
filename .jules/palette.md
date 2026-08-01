@@ -283,3 +283,7 @@ context flags to ensure safety and predictability.
 ## 2026-08-01 - [Visual Hierarchy for Auto-Appended Hints]
 **Learning:** When auto-appending informative hints (like "(typing will be hidden)") to CLI prompts, appending them as plain text can cause them to blend in with the primary instruction, reducing visual hierarchy.
 **Action:** Use `Colors.DIM` (conditionally checking `USE_COLORS`) to style auto-appended secondary instructions, making them visually distinct from the main prompt while remaining accessible.
+
+## 2026-08-01 - [Visual Polish for Progress Bars]
+**Learning:** The unfilled portion of progress bars ("·" characters) can visually compete with the filled portion when rendered in the same color, reducing the scannability of the progress state.
+**Action:** Apply `Colors.DIM` to the unfilled portion of CLI progress bars and countdown timers to create better contrast and a more polished, intuitive visual hierarchy.
