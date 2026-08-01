@@ -88,7 +88,7 @@ class TestFetchFolderDataHints:
 
     def test_401_hint_in_message(self):
         err = _make_http_status_error(401)
-        with patch.object(main, "_gh_get", side_effect=err):
+        with patch("gh_client._gh_get", side_effect=err):
             with pytest.raises(httpx.HTTPStatusError) as exc_info:
                 main.fetch_folder_data("https://example.com/data.json")
         msg = str(exc_info.value)
@@ -96,7 +96,7 @@ class TestFetchFolderDataHints:
 
     def test_403_hint_in_message(self):
         err = _make_http_status_error(403)
-        with patch.object(main, "_gh_get", side_effect=err):
+        with patch("gh_client._gh_get", side_effect=err):
             with pytest.raises(httpx.HTTPStatusError) as exc_info:
                 main.fetch_folder_data("https://example.com/data.json")
         msg = str(exc_info.value)
@@ -104,7 +104,7 @@ class TestFetchFolderDataHints:
 
     def test_404_hint_in_message(self):
         err = _make_http_status_error(404)
-        with patch.object(main, "_gh_get", side_effect=err):
+        with patch("gh_client._gh_get", side_effect=err):
             with pytest.raises(httpx.HTTPStatusError) as exc_info:
                 main.fetch_folder_data("https://example.com/data.json")
         msg = str(exc_info.value)
@@ -112,7 +112,7 @@ class TestFetchFolderDataHints:
 
     def test_429_hint_in_message(self):
         err = _make_http_status_error(429)
-        with patch.object(main, "_gh_get", side_effect=err):
+        with patch("gh_client._gh_get", side_effect=err):
             with pytest.raises(httpx.HTTPStatusError) as exc_info:
                 main.fetch_folder_data("https://example.com/data.json")
         msg = str(exc_info.value)
@@ -120,7 +120,7 @@ class TestFetchFolderDataHints:
 
     def test_unknown_status_fallback(self):
         err = _make_http_status_error(503)
-        with patch.object(main, "_gh_get", side_effect=err):
+        with patch("gh_client._gh_get", side_effect=err):
             with pytest.raises(httpx.HTTPStatusError) as exc_info:
                 main.fetch_folder_data("https://example.com/data.json")
         msg = str(exc_info.value)
@@ -130,7 +130,7 @@ class TestFetchFolderDataHints:
         """URL in the error message must pass through sanitize_for_log (no creds)."""
         err = _make_http_status_error(401)
         secret_url = "https://example.com/data.json?token=SUPERSECRET"
-        with patch.object(main, "_gh_get", side_effect=err):
+        with patch("gh_client._gh_get", side_effect=err):
             with pytest.raises(httpx.HTTPStatusError) as exc_info:
                 main.fetch_folder_data(secret_url)
         msg = str(exc_info.value)
@@ -138,8 +138,8 @@ class TestFetchFolderDataHints:
 
     def test_invalid_folder_data_still_raises_key_error(self):
         """Validation failure (not HTTP error) still raises KeyError."""
-        with patch.object(main, "_gh_get", return_value={"bad": "data"}):
-            with patch.object(main, "validate_folder_data", return_value=False):
+        with patch("gh_client._gh_get", return_value={"bad": "data"}):
+            with patch("gh_client.validate_folder_data", return_value=False):
                 with pytest.raises(KeyError):
                     main.fetch_folder_data("https://example.com/data.json")
 
@@ -152,9 +152,9 @@ class TestPushRulesBatchHints:
         mock_client = MagicMock()
         mock_log = MagicMock()
 
-        with patch.object(main, "_api_post_form", side_effect=err):
-            with patch.object(main, "log", mock_log):
-                with patch.object(main, "USE_COLORS", False):
+        with patch("sync._api_post_form", side_effect=err):
+            with patch("sync.log", mock_log):
+                with patch("sync.USE_COLORS", False):
                     ctx = main.SyncContext(
                         profile_id="profile",
                         client=mock_client,
@@ -171,9 +171,9 @@ class TestPushRulesBatchHints:
         mock_client = MagicMock()
         mock_log = MagicMock()
 
-        with patch.object(main, "_api_post_form", side_effect=err):
-            with patch.object(main, "log", mock_log):
-                with patch.object(main, "USE_COLORS", False):
+        with patch("sync._api_post_form", side_effect=err):
+            with patch("sync.log", mock_log):
+                with patch("sync.USE_COLORS", False):
                     ctx = main.SyncContext(
                         profile_id="profile",
                         client=mock_client,
@@ -190,9 +190,9 @@ class TestPushRulesBatchHints:
         mock_client = MagicMock()
         mock_log = MagicMock()
 
-        with patch.object(main, "_api_post_form", side_effect=err):
-            with patch.object(main, "log", mock_log):
-                with patch.object(main, "USE_COLORS", False):
+        with patch("sync._api_post_form", side_effect=err):
+            with patch("sync.log", mock_log):
+                with patch("sync.USE_COLORS", False):
                     ctx = main.SyncContext(
                         profile_id="profile",
                         client=mock_client,
@@ -230,8 +230,7 @@ class TestTimeoutHint:
 
         request_func = MagicMock(side_effect=[timeout_error, success_response])
 
-        with patch.object(main, "time") as mock_time:
-            mock_time.sleep = MagicMock()
+        with patch("time.sleep"):
             with caplog.at_level("WARNING"):
                 main.api_client._retry_request(request_func, max_retries=3, delay=0.01)
 
@@ -256,8 +255,7 @@ class TestTimeoutHint:
 
         request_func = MagicMock(side_effect=[conn_error, success_response])
 
-        with patch.object(main, "time") as mock_time:
-            mock_time.sleep = MagicMock()
+        with patch("time.sleep"):
             with caplog.at_level("WARNING"):
                 main.api_client._retry_request(request_func, max_retries=3, delay=0.01)
 
@@ -275,7 +273,7 @@ class TestTimeoutHint:
         )
         mock_log = MagicMock()
 
-        with patch.object(main, "log", mock_log):
+        with patch("sync.log", mock_log):
             result = main.check_api_access(mock_client, "test_profile")
 
         assert result is False
@@ -291,7 +289,7 @@ class TestTimeoutHint:
         )
         mock_log = MagicMock()
 
-        with patch.object(main, "log", mock_log):
+        with patch("sync.log", mock_log):
             result = main.check_api_access(mock_client, "test_profile")
 
         assert result is False
@@ -312,8 +310,8 @@ class TestListExistingFoldersHints:
         )
 
         mock_log = MagicMock()
-        with patch.object(main, "_api_get", side_effect=err):
-            with patch.object(main, "log", mock_log):
+        with patch("sync._api_get", side_effect=err):
+            with patch("sync.log", mock_log):
                 result = main.list_existing_folders(mock_client, "profile123")
 
         assert result == {}
@@ -330,8 +328,8 @@ class TestListExistingFoldersHints:
         )
 
         mock_log = MagicMock()
-        with patch.object(main, "_api_get", side_effect=err):
-            with patch.object(main, "log", mock_log):
+        with patch("sync._api_get", side_effect=err):
+            with patch("sync.log", mock_log):
                 result = main.list_existing_folders(mock_client, "profile123")
 
         assert result == {}
@@ -348,8 +346,8 @@ class TestListExistingFoldersHints:
         )
 
         mock_log = MagicMock()
-        with patch.object(main, "_api_get", side_effect=err):
-            with patch.object(main, "log", mock_log):
+        with patch("sync._api_get", side_effect=err):
+            with patch("sync.log", mock_log):
                 result = main.list_existing_folders(mock_client, "profile123")
 
         assert result == {}
@@ -362,8 +360,8 @@ class TestListExistingFoldersHints:
         err = httpx.TimeoutException("timed out", request=mock_request)
 
         mock_log = MagicMock()
-        with patch.object(main, "_api_get", side_effect=err):
-            with patch.object(main, "log", mock_log):
+        with patch("sync._api_get", side_effect=err):
+            with patch("sync.log", mock_log):
                 result = main.list_existing_folders(mock_client, "profile123")
 
         assert result == {}
@@ -384,8 +382,8 @@ class TestDeleteFolderHints:
         )
 
         mock_log = MagicMock()
-        with patch.object(main, "_api_delete", side_effect=err):
-            with patch.object(main, "log", mock_log):
+        with patch("sync._api_delete", side_effect=err):
+            with patch("sync.log", mock_log):
                 result = main.delete_folder(
                     mock_client, "profile123", "MyFolder", "fid1"
                 )
@@ -404,8 +402,8 @@ class TestDeleteFolderHints:
         )
 
         mock_log = MagicMock()
-        with patch.object(main, "_api_delete", side_effect=err):
-            with patch.object(main, "log", mock_log):
+        with patch("sync._api_delete", side_effect=err):
+            with patch("sync.log", mock_log):
                 result = main.delete_folder(
                     mock_client, "profile123", "MyFolder", "fid1"
                 )
@@ -424,8 +422,8 @@ class TestDeleteFolderHints:
         )
 
         mock_log = MagicMock()
-        with patch.object(main, "_api_delete", side_effect=err):
-            with patch.object(main, "log", mock_log):
+        with patch("sync._api_delete", side_effect=err):
+            with patch("sync.log", mock_log):
                 result = main.delete_folder(
                     mock_client, "profile123", "MyFolder", "fid1"
                 )
@@ -440,8 +438,8 @@ class TestDeleteFolderHints:
         err = httpx.TimeoutException("timed out", request=mock_request)
 
         mock_log = MagicMock()
-        with patch.object(main, "_api_delete", side_effect=err):
-            with patch.object(main, "log", mock_log):
+        with patch("sync._api_delete", side_effect=err):
+            with patch("sync.log", mock_log):
                 result = main.delete_folder(
                     mock_client, "profile123", "MyFolder", "fid1"
                 )
@@ -469,8 +467,8 @@ class TestCreateFolderHints:
         )
         action = main.RuleAction(do=1, status=1)
 
-        with patch.object(main, "_api_post", side_effect=err):
-            with patch.object(main, "log", mock_log):
+        with patch("sync._api_post", side_effect=err):
+            with patch("sync.log", mock_log):
                 result = main.create_folder(ctx, "MyFolder", action)
 
         assert result is None
@@ -492,8 +490,8 @@ class TestCreateFolderHints:
         )
         action = main.RuleAction(do=1, status=1)
 
-        with patch.object(main, "_api_post", side_effect=err):
-            with patch.object(main, "log", mock_log):
+        with patch("sync._api_post", side_effect=err):
+            with patch("sync.log", mock_log):
                 result = main.create_folder(ctx, "MyFolder", action)
 
         assert result is None
@@ -515,8 +513,8 @@ class TestCreateFolderHints:
         )
         action = main.RuleAction(do=1, status=1)
 
-        with patch.object(main, "_api_post", side_effect=err):
-            with patch.object(main, "log", mock_log):
+        with patch("sync._api_post", side_effect=err):
+            with patch("sync.log", mock_log):
                 result = main.create_folder(ctx, "MyFolder", action)
 
         assert result is None
@@ -531,8 +529,8 @@ class TestCreateFolderHints:
         )
         action = main.RuleAction(do=1, status=1)
 
-        with patch.object(main, "_api_post", side_effect=KeyError("missing_key")):
-            with patch.object(main, "log", mock_log):
+        with patch("sync._api_post", side_effect=KeyError("missing_key")):
+            with patch("sync.log", mock_log):
                 result = main.create_folder(ctx, "MyFolder", action)
 
         assert result is None
@@ -550,9 +548,8 @@ class TestVerifyAccessHints:
         mock_client.get.side_effect = err
 
         mock_log = MagicMock()
-        with patch.object(main, "log", mock_log):
-            with patch.object(main, "time") as mock_time:
-                mock_time.sleep = MagicMock()
+        with patch("sync.log", mock_log):
+            with patch("time.sleep"):
                 result = main.verify_access_and_get_folders(mock_client, "profile123")
 
         assert result is None
@@ -567,9 +564,8 @@ class TestVerifyAccessHints:
         mock_client.get.side_effect = err
 
         mock_log = MagicMock()
-        with patch.object(main, "log", mock_log):
-            with patch.object(main, "time") as mock_time:
-                mock_time.sleep = MagicMock()
+        with patch("sync.log", mock_log):
+            with patch("time.sleep"):
                 result = main.verify_access_and_get_folders(mock_client, "profile123")
 
         assert result is None
@@ -595,7 +591,7 @@ class TestConnectErrorHint:
         mock_client.get.side_effect = self._connect_error()
         mock_log = MagicMock()
 
-        with patch.object(main, "log", mock_log):
+        with patch("sync.log", mock_log):
             result = main.check_api_access(mock_client, "test_profile")
 
         assert result is False
@@ -611,7 +607,7 @@ class TestConnectErrorHint:
         )
         mock_log = MagicMock()
 
-        with patch.object(main, "log", mock_log):
+        with patch("sync.log", mock_log):
             result = main.check_api_access(mock_client, "test_profile")
 
         assert result is False
@@ -623,8 +619,8 @@ class TestConnectErrorHint:
         mock_client = MagicMock()
         mock_log = MagicMock()
 
-        with patch.object(main, "_api_get", side_effect=self._connect_error()):
-            with patch.object(main, "log", mock_log):
+        with patch("sync._api_get", side_effect=self._connect_error()):
+            with patch("sync.log", mock_log):
                 result = main.list_existing_folders(mock_client, "profile123")
 
         assert result == {}
@@ -638,8 +634,8 @@ class TestConnectErrorHint:
         err = httpx.TimeoutException("timed out", request=mock_request)
         mock_log = MagicMock()
 
-        with patch.object(main, "_api_get", side_effect=err):
-            with patch.object(main, "log", mock_log):
+        with patch("sync._api_get", side_effect=err):
+            with patch("sync.log", mock_log):
                 result = main.list_existing_folders(mock_client, "profile123")
 
         assert result == {}
@@ -651,8 +647,8 @@ class TestConnectErrorHint:
         mock_client = MagicMock()
         mock_log = MagicMock()
 
-        with patch.object(main, "_api_delete", side_effect=self._connect_error()):
-            with patch.object(main, "log", mock_log):
+        with patch("sync._api_delete", side_effect=self._connect_error()):
+            with patch("sync.log", mock_log):
                 result = main.delete_folder(
                     mock_client, "profile123", "MyFolder", "fid1"
                 )
@@ -668,8 +664,8 @@ class TestConnectErrorHint:
         err = httpx.TimeoutException("timed out", request=mock_request)
         mock_log = MagicMock()
 
-        with patch.object(main, "_api_delete", side_effect=err):
-            with patch.object(main, "log", mock_log):
+        with patch("sync._api_delete", side_effect=err):
+            with patch("sync.log", mock_log):
                 result = main.delete_folder(
                     mock_client, "profile123", "MyFolder", "fid1"
                 )
@@ -684,9 +680,8 @@ class TestConnectErrorHint:
         mock_client.get.side_effect = self._connect_error()
         mock_log = MagicMock()
 
-        with patch.object(main, "log", mock_log):
-            with patch.object(main, "time") as mock_time:
-                mock_time.sleep = MagicMock()
+        with patch("sync.log", mock_log):
+            with patch("time.sleep"):
                 result = main.verify_access_and_get_folders(mock_client, "profile123")
 
         assert result is None
@@ -701,9 +696,8 @@ class TestConnectErrorHint:
         mock_client.get.side_effect = err
         mock_log = MagicMock()
 
-        with patch.object(main, "log", mock_log):
-            with patch.object(main, "time") as mock_time:
-                mock_time.sleep = MagicMock()
+        with patch("sync.log", mock_log):
+            with patch("time.sleep"):
                 result = main.verify_access_and_get_folders(mock_client, "profile123")
 
         assert result is None

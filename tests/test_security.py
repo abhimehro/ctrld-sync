@@ -1,7 +1,7 @@
 import os
 import stat
 import sys
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -15,18 +15,9 @@ def test_push_rules_filters_xss_payloads():
     Verify that push_rules filters out malicious strings (XSS payloads).
     """
     mock_client = MagicMock()
-    mock_post_form = MagicMock()
 
-    # Patch the API call
-    original_post_form = main._api_post_form
-    main._api_post_form = mock_post_form
-
-    # Patch the logger to verify warnings
-    mock_log = MagicMock()
-    original_log = main.log
-    main.log = mock_log
-
-    try:
+    # Patch the API call and logger on the canonical sync module
+    with patch("sync._api_post_form") as mock_post_form, patch("sync.log") as mock_log:
         malicious_rules = [
             "<script>alert(1)</script>",
             "valid.com",
@@ -92,10 +83,6 @@ def test_push_rules_filters_xss_payloads():
             if "Skipping unsafe rule" in str(call):
                 found_unsafe_log = True
         assert found_unsafe_log
-
-    finally:
-        main._api_post_form = original_post_form
-        main.log = original_log
 
 
 @pytest.mark.skipif(
