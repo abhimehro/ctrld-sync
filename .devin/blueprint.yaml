@@ -1,0 +1,30 @@
+# https://docs.devin.ai/onboard-devin/environment-yaml
+# One-time setup (e.g., install system tools, global CLIs).
+initialize:
+  - uses: github.com/astral-sh/setup-uv@v7
+    with:
+      enable-cache: true
+      cache-dependency-glob: uv.lock
+  - uses: github.com/actions/setup-python@v5
+    with:
+      python-version: "3.13"
+# Install project dependencies (runs during builds, surfaced to agent at session start).
+maintenance: |
+  uv sync --all-extras
+  uv run pre-commit install
+knowledge:
+  - name: test
+    contents: |
+      uv run pytest tests/ test_main.py -v
+  - name: lint
+    contents: |
+      uv run ruff check .
+      uv run mypy main.py models.py validation.py config.py display.py gh_client.py sync.py api_client.py cache.py fix_env.py
+  - name: format
+    contents: |
+      uv run ruff format --check .
+      uv run ruff format .
+  - name: run
+    contents: |
+      uv run python main.py --dry-run
+      Live runs require TOKEN and PROFILE environment variables.
