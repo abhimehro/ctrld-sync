@@ -4,10 +4,6 @@
 
 [Full Changelog](https://github.com/abhimehro/ctrld-sync/compare/v0.1.1...HEAD)
 
-**Added:**
-
-- Devin environment blueprint (`.devin/blueprint.yaml`) for reproducible agent sessions.
-
 **Security fixes:**
 
 - P1: SSRF - User-Controlled URLs with Outbound Requests [\#1024](https://github.com/abhimehro/ctrld-sync/issues/1024)
@@ -51,6 +47,7 @@
 
 **Merged pull requests:**
 
+- chore\(devin\): add environment blueprint as source-of-truth [\#1108](https://github.com/abhimehro/ctrld-sync/pull/1108) ([abhimehro](https://github.com/abhimehro))
 - chore\(repo-health\): remove scratch files and align CI \(salvages \#1081\) [\#1105](https://github.com/abhimehro/ctrld-sync/pull/1105) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Dim auto-appended password hint [\#1104](https://github.com/abhimehro/ctrld-sync/pull/1104) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Improve visual hierarchy in interactive restart prompt [\#1092](https://github.com/abhimehro/ctrld-sync/pull/1092) ([abhimehro](https://github.com/abhimehro))
