@@ -47,6 +47,8 @@
 
 **Merged pull requests:**
 
+- 🎨 Palette: Improve visual hierarchy in interactive restart prompt [\#1092](https://github.com/abhimehro/ctrld-sync/pull/1092) ([abhimehro](https://github.com/abhimehro))
+- Fix capsys assertions in test\_main.py [\#1091](https://github.com/abhimehro/ctrld-sync/pull/1091) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Optimize domain allowlist checking [\#1089](https://github.com/abhimehro/ctrld-sync/pull/1089) ([abhimehro](https://github.com/abhimehro))
 - refactor: extract helpers out of main.py into focused modules [\#1088](https://github.com/abhimehro/ctrld-sync/pull/1088) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump actions/ai-inference from 2 to 2.1.1 [\#1085](https://github.com/abhimehro/ctrld-sync/pull/1085) ([dependabot[bot]](https://github.com/apps/dependabot))
