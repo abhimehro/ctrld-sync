@@ -275,3 +275,7 @@ suggested command, they might unintentionally run with default settings or
 execute destructive operations. **Action:** Always reconstruct suggested
 follow-up commands by preserving all relevant user-provided arguments and
 context flags to ensure safety and predictability.
+
+## 2026-07-31 - Visual hierarchy in CLI prompts
+**Learning:** Found an opportunity to improve visual hierarchy in CLI prompts by utilizing `Colors.DIM` for secondary/optional text (hints). This makes it easier for users to scan the primary action required, reducing visual noise.
+**Action:** Use `Colors.DIM` to style secondary instructions in prompts such as `_get_interactive_restart_confirmation` in `main.py`.

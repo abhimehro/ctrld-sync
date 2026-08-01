@@ -15,7 +15,7 @@ import main
 class TestExceptionLogging(unittest.TestCase):
     """Test suite for exception logging with sanitization."""
 
-    @patch("main.log")
+    @patch("sync.log")
     @patch("main.TOKEN", "TEST_TOKEN_XYZ")
     def test_check_api_access_redacts_exception(self, mock_log):
         """Test that check_api_access redacts tokens in exception messages."""
@@ -54,7 +54,7 @@ class TestExceptionLogging(unittest.TestCase):
         # Verify redaction placeholder IS present
         self.assertIn("[REDACTED]", logged_message, "Redaction placeholder missing!")
 
-    @patch("main.log")
+    @patch("validation.log")
     @patch("main.socket.getaddrinfo")
     def test_validate_folder_url_redacts_exception(self, mock_getaddrinfo, mock_log):
         """Test validate_folder_url redacts sensitive data in exceptions."""
@@ -82,7 +82,7 @@ class TestExceptionLogging(unittest.TestCase):
                 "SECRET_API_KEY_456", logged_message, "Secret API key leaked in logs!"
             )
 
-    @patch("main.log")
+    @patch("sync.log")
     def test_fetch_folder_rules_redacts_exception(self, mock_log):
         """Test exception handlers in get_all_existing_rules redact."""
         # Setup
@@ -96,7 +96,7 @@ class TestExceptionLogging(unittest.TestCase):
         )
 
         # Mock _api_get to succeed for root but fail for folder rules
-        with patch("main._api_get") as mock_api_get:
+        with patch("sync._api_get") as mock_api_get:
 
             def api_get_side_effect(client_arg, url):
                 if url.endswith("/rules"):
@@ -129,9 +129,9 @@ class TestExceptionLogging(unittest.TestCase):
                 "TEST_SECRET_789", logged_message, "Secret token leaked in logs!"
             )
 
-    @patch("main.log")
-    @patch("main._api_post")
-    @patch("main._api_get")
+    @patch("sync.log")
+    @patch("sync._api_post")
+    @patch("sync._api_get")
     def test_create_folder_redacts_exception(
         self, mock_api_get, mock_api_post, mock_log
     ):
@@ -229,13 +229,13 @@ class TestExceptionLogging(unittest.TestCase):
                 "HIDDEN_KEY_999", logged_message, "Secret key leaked in logs!"
             )
 
-    @patch("main.log")
+    @patch("sync.log")
     def test_root_rules_http_error_logs_debug(self, mock_log):
         """Test that an HTTPError during root-rules fetch emits a DEBUG log."""
         client = MagicMock()
         profile_id = "test_profile"
 
-        with patch("main._api_get") as mock_api_get:
+        with patch("sync._api_get") as mock_api_get:
             mock_api_get.side_effect = httpx.HTTPError("connection failed")
 
             main.get_all_existing_rules(client, profile_id, known_folders={})
@@ -249,14 +249,14 @@ class TestExceptionLogging(unittest.TestCase):
             found, "Expected debug message about root-level rules not found"
         )
 
-    @patch("main.log")
+    @patch("sync.log")
     def test_folder_rules_http_error_logs_debug(self, mock_log):
         """Test that an HTTPError during folder-rules fetch emits a DEBUG log."""
         client = MagicMock()
         profile_id = "test_profile"
         folder_id = "folder_abc"
 
-        with patch("main._api_get") as mock_api_get:
+        with patch("sync._api_get") as mock_api_get:
 
             def api_get_side_effect(client_arg, url):
                 if url.endswith("/rules"):

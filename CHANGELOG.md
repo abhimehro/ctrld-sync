@@ -12,6 +12,7 @@
 
 **Closed issues:**
 
+- \[repo-health\] Continue extracting helpers out of main.py [\#1082](https://github.com/abhimehro/ctrld-sync/issues/1082)
 - Daily QA & Agentic Review — 2026-07-29 [\#1077](https://github.com/abhimehro/ctrld-sync/issues/1077)
 - Daily QA & Agentic Review — 2026-07-28 [\#1073](https://github.com/abhimehro/ctrld-sync/issues/1073)
 - Daily QA & Agentic Review — 2026-07-26 [\#1065](https://github.com/abhimehro/ctrld-sync/issues/1065)
@@ -46,6 +47,12 @@
 
 **Merged pull requests:**
 
+- 🎨 Palette: Improve visual hierarchy in interactive restart prompt [\#1092](https://github.com/abhimehro/ctrld-sync/pull/1092) ([abhimehro](https://github.com/abhimehro))
+- Fix capsys assertions in test\_main.py [\#1091](https://github.com/abhimehro/ctrld-sync/pull/1091) ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: Optimize domain allowlist checking [\#1089](https://github.com/abhimehro/ctrld-sync/pull/1089) ([abhimehro](https://github.com/abhimehro))
+- refactor: extract helpers out of main.py into focused modules [\#1088](https://github.com/abhimehro/ctrld-sync/pull/1088) ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump actions/ai-inference from 2 to 2.1.1 [\#1085](https://github.com/abhimehro/ctrld-sync/pull/1085) ([dependabot[bot]](https://github.com/apps/dependabot))
+- 🎨 Palette: Add Partial status for batch rule pushes [\#1083](https://github.com/abhimehro/ctrld-sync/pull/1083) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump shundor/python-bandit-scan from ab1d87dfccc5a0ffab88be3aaac6ffe35c10d6cd to 9955228c1cbdc5aeb5e511e0fa232154e2ed2b67 [\#1080](https://github.com/abhimehro/ctrld-sync/pull/1080) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump release-drafter/release-drafter from 7.6.0 to 7.7.0 [\#1079](https://github.com/abhimehro/ctrld-sync/pull/1079) ([dependabot[bot]](https://github.com/apps/dependabot))
 - fix\(lint\): repair SIM110 noqa so ruff check passes [\#1078](https://github.com/abhimehro/ctrld-sync/pull/1078) ([cursor[bot]](https://github.com/apps/cursor))

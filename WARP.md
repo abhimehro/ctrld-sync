@@ -5,9 +5,10 @@ repository.
 
 ## Project Overview
 
-Control D Sync is a single-file Python tool (`main.py`) that keeps one or more
-Control D profiles' Folders in sync with a set of remote JSON blocklists
-(primarily from hagezi/dns-blocklists plus a small number of curated extras).
+Control D Sync is a Python CLI tool that keeps one or more Control D profiles'
+Folders in sync with a set of remote JSON blocklists (primarily from
+hagezi/dns-blocklists plus a small number of curated extras). The code is split
+into focused modules; `main.py` is only the CLI/bootstrap/wiring entry point.
 For each profile it:
 
 1. Downloads and validates the configured JSON folder definitions.
@@ -92,98 +93,131 @@ Safety/validation helpers:
 - `validate_profile_id()` – Guards against obviously malformed or dangerous
   profile IDs.
 
-## High-Level Architecture (`main.py`)
+## Module Map
 
-The entire tool lives in `main.py` and is structured into clear phases:
+| Module | Purpose | Key exports |
+| ------ | ------- | -------------- |
+| `main.py` | CLI, argument parsing, environment bootstrap, and wiring | `main()`, `parse_args()`, `run_main()` |
+| `models.py` | Pure data types (TypedDicts / dataclasses) | `RuleAction`, `SyncContext`, `FolderData`, `PlanEntry`, `SyncResult` |
+| `validation.py` | Sanitization, hostname/URL/profile/folder validators, allowlist helpers | `sanitize_for_log`, `validate_hostname`, `validate_folder_url`, `validate_profile_id`, `is_valid_rule`, `is_valid_folder_name`, `DEFAULT_ALLOWED_BLOCKLIST_DOMAINS`, `set_allowed_blocklist_domains` |
+| `config.py` | Defaults, config loading/validation, runtime constants | `DEFAULT_FOLDER_URLS`, `load_config`, `get_default_config`, `_resolve_folder_urls`, `_validate_config`, `BATCH_SIZE`, `MAX_RESPONSE_SIZE` |
+| `display.py` | Colors, prompts, progress bars, tables, logging formatters | `Colors`, `USE_COLORS`, `AlertSystem`, `JsonFormatter`, `ColoredFormatter`, `render_progress_bar`, `countdown_timer`, `print_summary_table` |
+| `gh_client.py` | `httpx` client for fetching blocklist JSON, in-memory cache | `_gh_get`, `fetch_folder_data`, `warm_up_cache` |
+| `sync.py` | Folder/rule orchestration and `sync_profile` | `sync_profile`, `create_client`, `push_rules`, `create_folder`, `delete_folder`, `verify_access_and_get_folders` |
+| `api_client.py` | Low-level Control D API helpers (HTTP + retries) | `_api_get`, `_api_post`, `_api_post_form`, `_api_delete`, `_retry_request`, `retry_with_jitter` |
+| `cache.py` | Persistent disk cache for blocklist JSON | `load_disk_cache`, `save_disk_cache`, `_disk_cache` |
+| `fix_env.py` | Legacy `.env` fix helper | `fix_env` |
+
+Dependencies between the new modules are one-way:
+
+```text
+models
+^
+validation <- config <- display
+^         ^
+gh_client <- sync <- main
+^
+api_client, cache
+```
+
+No helper module imports `main.py`.
+
+## High-Level Architecture
+
+`main()` drives the sync in phases:
 
 1. **Bootstrap & logging**
    - Loads `.env` with `load_dotenv()`.
-   - Configures color-aware logging via `ColoredFormatter` and a `log` logger.
-   - Defines a `Colors` helper class that disables ANSI codes when not attached
-     to a TTY.
+   - Configures color-aware logging via `display.ColoredFormatter` and the shared
+     `control-d-sync` logger.
+   - `display.Colors` / `USE_COLORS` disable ANSI codes when not attached to a
+     TTY.
 
 2. **Configuration & constants**
-   - `API_BASE` – Base URL for Control D API operations.
-   - `DEFAULT_FOLDER_URLS` – Default set of remote JSON folder definitions.
+   - `config.API_BASE` – Base URL for Control D API operations.
+   - `config.DEFAULT_FOLDER_URLS` – Default set of remote JSON folder
+     definitions.
    - Tunables such as `BATCH_SIZE`, `MAX_RETRIES`, `RETRY_DELAY`,
-     `FOLDER_CREATION_DELAY`, and `MAX_RESPONSE_SIZE` control batching, retry
-     behavior, and size limits.
+     `FOLDER_CREATION_DELAY`, and `MAX_RESPONSE_SIZE` live in `config.py` and
+     control batching, retry behavior, and size limits.
 
 3. **HTTP clients & low-level helpers**
-   - `_api_client()` – Creates an authenticated `httpx.Client` for talking to
-     Control D, with bearer-token auth from `TOKEN`.
-   - `_gh` – Long-lived `httpx.Client` for fetching remote JSON over HTTPS.
-   - `_retry_request()` – Wraps Control D API calls with exponential backoff and
-     debug logging on failure.
-   - `_gh_get()` – Streams remote JSON responses with strict size checks
-     (`MAX_RESPONSE_SIZE`), then parses and memoizes them in `_cache`.
-   - `sanitize_for_log()` – Redacts `TOKEN` values from any log messages.
+   - `sync.create_client(token)` – Creates an authenticated `httpx.Client` for
+     talking to Control D, with bearer-token auth.
+   - `gh_client._gh` – Long-lived `httpx.Client` for fetching remote JSON over
+     HTTPS.
+   - `api_client._retry_request()` – Wraps Control D API calls with exponential
+     backoff and debug logging on failure.
+   - `gh_client._gh_get()` – Streams remote JSON responses with strict size
+     checks (`MAX_RESPONSE_SIZE`), then parses and memoizes them in
+     `gh_client._cache`.
+   - `validation.sanitize_for_log()` – Redacts `TOKEN` values from any log
+     messages.
 
-4. **Control D API helpers**
-   - `verify_access_and_get_folders()` – Combines the API access check and
+4. **Control D API helpers (`sync.py`)**
+   - `sync.verify_access_and_get_folders()` – Combines the API access check and
      fetching existing folders into a single request. Returns
      `{folder_name -> folder_id}` on success.
-   - `list_existing_folders()` – Helper that returns a
+   - `sync.list_existing_folders()` – Helper that returns a
      `{folder_name -> folder_id}` mapping (used as fallback).
-   - `get_all_existing_rules()` – Collects all existing rule PKs from both the
-     root and each folder, using a `ThreadPoolExecutor` to parallelize
-     per-folder fetches while accumulating into a shared `set` guarded by a
-     lock.
-   - `delete_folder()` – Deletes a folder by ID with error-logged failures.
-   - `create_folder()` – Creates a folder and tries to read its ID directly from
-     the response; if that fails, it polls `GET /groups` with increasing waits
-     (using `FOLDER_CREATION_DELAY`) until the new folder appears. Uses
-     `SyncContext` and `RuleAction` objects.
-   - `push_rules()` – Sends hostname rules in batches (`BATCH_SIZE`) to
+   - `sync.get_all_existing_rules()` – Collects all existing rule PKs from both
+     the root and each folder, using a `ThreadPoolExecutor` to parallelize
+     per-folder fetches while accumulating into a shared `set` guarded by a lock.
+   - `sync.delete_folder()` – Deletes a folder by ID with error-logged failures.
+   - `sync.create_folder()` – Creates a folder and tries to read its ID directly
+     from the response; if that fails, it polls `GET /groups` with increasing
+     waits (using `FOLDER_CREATION_DELAY`) until the new folder appears. Uses
+     `models.SyncContext` and `models.RuleAction`.
+   - `sync.push_rules()` – Sends hostname rules in batches (`BATCH_SIZE`) to
      `POST /rules`, de-duplicating against the global `ctx.existing_rules` set
-     and updating it as batches succeed. Uses `SyncContext` and `RuleAction`
-     objects.
+     and updating it as batches succeed. Uses `models.SyncContext` and
+     `models.RuleAction`.
 
-5. **Folder data processing**
-   - `fetch_folder_data()` – Fetches and validates a single folder JSON
+5. **Folder data processing (`gh_client.py`)**
+   - `gh_client.fetch_folder_data()` – Fetches and validates a single folder JSON
      document.
-   - `warm_up_cache()` – Pre-fetches and caches folder JSON definitions in
-     parallel, so subsequent parsing is cheap.
-   - `_process_single_folder()` – Given one parsed folder JSON and a
-     `SyncContext`, it:
+   - `gh_client.warm_up_cache()` – Pre-fetches and caches folder JSON definitions
+     in parallel, so subsequent parsing is cheap.
+   - `sync._process_single_folder()` – Given one parsed folder JSON and a
+     `models.SyncContext`, it:
      - Determines the main folder attributes (name, default action/status).
-     - Creates the folder via `create_folder()`.
+     - Creates the folder via `sync.create_folder()`.
      - Handles either legacy single-action JSON (flat `rules`) or the newer
-       multi-action `rule_groups` format, dispatching batched `push_rules()`
-       calls for each group.
+       multi-action `rule_groups` format, dispatching batched
+       `sync.push_rules()` calls for each group.
 
-6. **Per-profile orchestration (`sync_profile`)**
+6. **Per-profile orchestration (`sync.sync_profile`)**
    - For one `profile_id` and a list of folder URLs, it:
      1. Validates URLs and fetches all folder JSON documents in parallel.
-     2. Builds a `plan_entry` summarizing folder names, rule counts, and
+     2. Builds a `models.PlanEntry` summarizing folder names, rule counts, and
         per-action breakdown (for `rule_groups`), appending it to the shared
         `plan_accumulator`.
      3. If `dry_run=True`, stops here after logging a summary message.
-     4. Otherwise, reuses a single `_api_client()` instance to:
+     4. Otherwise, reuses a single `httpx.Client` to:
         - Verify access and list existing folders in one request
-          (`verify_access_and_get_folders`).
+          (`sync.verify_access_and_get_folders`).
         - Optionally delete existing folders with matching names (`--no-delete`
           skips this step).
-        - If any deletions occurred, waits ~60 seconds (`countdown_timer`) to
-          let Control D fully process the removals.
+        - If any deletions occurred, waits ~60 seconds (`display.countdown_timer`)
+          to let Control D fully process the removals.
         - Build the global `existing_rules` set.
         - Sequentially process each folder (executor with `max_workers=1` to
           avoid rate-limit and ordering issues), calling
-          `_process_single_folder()` for each.
+          `sync._process_single_folder()` for each.
      5. Returns a boolean indicating whether all folders for that profile were
         processed successfully.
 
-7. **CLI & entry point (`main`)**
-   - `parse_args()` defines the public CLI surface:
+7. **CLI & entry point (`main.py`)**
+   - `main.parse_args()` defines the public CLI surface:
      - `--profiles` – Comma-separated profile IDs.
      - `--folder-url` – One or more custom folder JSON URLs.
      - `--dry-run` – Plan only, no Control D API calls.
      - `--no-delete` – Do not delete existing folders before pushing new rules.
      - `--plan-json` – Path to write the aggregated plan as JSON.
    - `main()` resolves `TOKEN` and `PROFILE` from CLI and environment
-     (`_clean_env_kv` aware), optionally prompts interactively, then loops over
-     each profile to:
-     - Call `sync_profile()`.
+     (`config._clean_env_kv` aware), optionally prompts interactively, then
+     loops over each profile to:
+     - Call `sync.sync_profile()`.
      - Track per-profile stats (folders, rules, duration, status).
      - Handle `KeyboardInterrupt` by marking the current profile as cancelled
        but still printing a summary.
@@ -192,9 +226,9 @@ The entire tool lives in `main.py` and is structured into clear phases:
      total aggregates before exiting with a non-zero status if any profile
      failed.
 
-There is currently no dedicated test suite or linter configuration in this
-repository; if you add one (e.g. `pytest`, `ruff`), prefer to keep commands and
-configuration in sync with `pyproject.toml` and update this file accordingly.
+The test suite lives under `tests/` and `test_main.py` at the repo root. Keep
+commands in sync with `pyproject.toml` and update this file when module
+boundaries change.
 
 ## Control D API Surface
 

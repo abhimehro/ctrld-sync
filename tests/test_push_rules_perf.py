@@ -6,6 +6,8 @@ from unittest.mock import MagicMock, patch
 # Add root to path to import main
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import sync  # noqa: E402
+
 
 class TestPushRulesPerf(unittest.TestCase):
     def setUp(self):
@@ -48,7 +50,7 @@ class TestPushRulesPerf(unittest.TestCase):
         # patch("main._api_post_form") patches what is in sys.modules['main']
         # self.main is likely sys.modules['main'] due to setUp logic
 
-        with patch("main._api_post_form") as mock_post:
+        with patch("sync._api_post_form") as mock_post:
             ctx = self.main.SyncContext(
                 profile_id=self.profile_id,
                 client=self.client,
@@ -91,7 +93,7 @@ class TestPushRulesPerf(unittest.TestCase):
 
         mock_as_completed.return_value = [mock_future, mock_future]  # 2 batches
 
-        with patch("main._api_post_form"):
+        with patch("sync._api_post_form"):
             ctx = self.main.SyncContext(
                 profile_id=self.profile_id,
                 client=self.client,
@@ -115,8 +117,8 @@ class TestPushRulesPerf(unittest.TestCase):
         """
         Test that _ALLOWED_RULE_CHARS.issuperset is NOT called for rules that are already in existing_rules.
         """
-        # Patch _ALLOWED_RULE_CHARS on the current main module
-        with patch.object(self.main, "_ALLOWED_RULE_CHARS") as mock_allowed:
+        # Patch _ALLOWED_RULE_CHARS on the sync module (canonical owner)
+        with patch.object(sync, "_ALLOWED_RULE_CHARS") as mock_allowed:
             # Configure the mock issuperset method
             mock_issuperset = mock_allowed.issuperset
             mock_issuperset.return_value = True
@@ -125,7 +127,7 @@ class TestPushRulesPerf(unittest.TestCase):
             # h1 is already known, h2 is new
             existing_rules = {"h1"}
 
-            with patch("main._api_post_form"):
+            with patch("sync._api_post_form"):
                 ctx = self.main.SyncContext(
                     profile_id=self.profile_id,
                     client=self.client,
