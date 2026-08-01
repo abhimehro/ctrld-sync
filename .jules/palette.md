@@ -279,3 +279,7 @@ context flags to ensure safety and predictability.
 ## 2026-07-31 - Visual hierarchy in CLI prompts
 **Learning:** Found an opportunity to improve visual hierarchy in CLI prompts by utilizing `Colors.DIM` for secondary/optional text (hints). This makes it easier for users to scan the primary action required, reducing visual noise.
 **Action:** Use `Colors.DIM` to style secondary instructions in prompts such as `_get_interactive_restart_confirmation` in `main.py`.
+
+## 2026-08-01 - [Visual Hierarchy for Auto-Appended Hints]
+**Learning:** When auto-appending informative hints (like "(typing will be hidden)") to CLI prompts, appending them as plain text can cause them to blend in with the primary instruction, reducing visual hierarchy.
+**Action:** Use `Colors.DIM` (conditionally checking `USE_COLORS`) to style auto-appended secondary instructions, making them visually distinct from the main prompt while remaining accessible.

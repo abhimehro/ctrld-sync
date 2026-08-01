@@ -455,7 +455,10 @@ def _format_password_prompt(prompt: str) -> str:
         prompt = prompt.replace("\n", "", 1)
 
     if "(typing will be hidden)" not in prompt:
-        prompt = f"{prompt.rstrip()} (typing will be hidden) "
+        if USE_COLORS:
+            prompt = f"{prompt.rstrip()} {Colors.DIM}(typing will be hidden){Colors.ENDC} "
+        else:
+            prompt = f"{prompt.rstrip()} (typing will be hidden) "
     if not _ANSI_ESCAPE_PATTERN.sub("", prompt).endswith(" "):
         prompt += " "
     return prompt
