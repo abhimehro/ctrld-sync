@@ -47,6 +47,8 @@
 
 **Merged pull requests:**
 
+- chore\(repo-health\): remove scratch files and align CI \(salvages \#1081\) [\#1105](https://github.com/abhimehro/ctrld-sync/pull/1105) ([abhimehro](https://github.com/abhimehro))
+- 🎨 Palette: Dim auto-appended password hint [\#1104](https://github.com/abhimehro/ctrld-sync/pull/1104) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Improve visual hierarchy in interactive restart prompt [\#1092](https://github.com/abhimehro/ctrld-sync/pull/1092) ([abhimehro](https://github.com/abhimehro))
 - Fix capsys assertions in test\_main.py [\#1091](https://github.com/abhimehro/ctrld-sync/pull/1091) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Optimize domain allowlist checking [\#1089](https://github.com/abhimehro/ctrld-sync/pull/1089) ([abhimehro](https://github.com/abhimehro))
