@@ -4,6 +4,10 @@
 
 [Full Changelog](https://github.com/abhimehro/ctrld-sync/compare/v0.1.1...HEAD)
 
+**Added:**
+
+- Devin environment blueprint (`.devin/blueprint.yaml`) for reproducible agent sessions.
+
 **Security fixes:**
 
 - P1: SSRF - User-Controlled URLs with Outbound Requests [\#1024](https://github.com/abhimehro/ctrld-sync/issues/1024)
