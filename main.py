@@ -116,7 +116,14 @@ from display import (  # noqa: F401
     print_summary_table,
     render_progress_bar,
 )
-from gh_client import _cache, _cache_lock, _gh, _gh_get, fetch_folder_data, warm_up_cache  # noqa: F401
+from gh_client import (  # noqa: F401
+    _cache,
+    _cache_lock,
+    _gh,
+    _gh_get,
+    fetch_folder_data,
+    warm_up_cache,
+)
 from models import (  # noqa: F401
     FolderAction,
     FolderData,
@@ -187,11 +194,18 @@ class _MainModule(types.ModuleType):
         elif name == "log":
             # Many tests patch main.log; helper modules were extracted with per-module
             # loggers, so keep them pointing at the same logger object for compatibility.
-            for mod in ("api_client", "cache", "config", "display", "gh_client", "sync", "validation"):
+            for mod in (
+                "api_client",
+                "cache",
+                "config",
+                "display",
+                "gh_client",
+                "sync",
+                "validation",
+            ):
                 if mod in sys.modules:
                     sys.modules[mod].log = value  # type: ignore[attr-defined]
         super().__setattr__(name, value)
-
 
     def __getattr__(self, name: str) -> Any:
         # Mirror the mutable allowlist state from validation so tests that read
@@ -208,7 +222,15 @@ sys.modules[__name__].__class__ = _MainModule
 log = logging.getLogger("control-d-sync")
 
 # Module body assignments do not trigger __setattr__, so unify loggers explicitly.
-for _mod in ("api_client", "cache", "config", "display", "gh_client", "sync", "validation"):
+for _mod in (
+    "api_client",
+    "cache",
+    "config",
+    "display",
+    "gh_client",
+    "sync",
+    "validation",
+):
     if _mod in sys.modules:
         sys.modules[_mod].log = log  # type: ignore[attr-defined]
 

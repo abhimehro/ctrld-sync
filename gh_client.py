@@ -39,6 +39,7 @@ _cache: dict[str, dict] = {}
 
 _cache_lock = threading.RLock()
 
+
 def _parse_and_cache_response(url: str, r: httpx.Response) -> dict:
     """Validate, stream, parse, and cache a blocklist response."""
 
@@ -102,6 +103,7 @@ def _parse_and_cache_response(url: str, r: httpx.Response) -> dict:
 
     _cache_stats["misses"] += 1
     return cast(dict, data)
+
 
 def _gh_get(url: str) -> dict:
     """
@@ -199,6 +201,7 @@ def _gh_get(url: str) -> dict:
     with _cache_lock:
         return _cache.setdefault(url, data)
 
+
 def fetch_folder_data(url: str) -> FolderData:
     """
     Downloads and validates folder JSON data from a URL.
@@ -224,10 +227,12 @@ def fetch_folder_data(url: str) -> FolderData:
         raise KeyError(f"Invalid folder data from {sanitize_for_log(url)}")
     return js
 
+
 def _validate_and_fetch_url(url: str) -> Any:
     if validate_folder_url(url):
         return _gh_get(url)
     return None
+
 
 def warm_up_cache(urls: Sequence[str]) -> None:
     """
@@ -273,4 +278,13 @@ def warm_up_cache(urls: Sequence[str]) -> None:
     _print_completion("Warming up cache: Done!")
 
 
-__all__ = ['_gh', '_cache', '_cache_lock', '_gh_get', 'fetch_folder_data', '_validate_and_fetch_url', 'warm_up_cache', '_parse_and_cache_response']
+__all__ = [
+    "_gh",
+    "_cache",
+    "_cache_lock",
+    "_gh_get",
+    "fetch_folder_data",
+    "_validate_and_fetch_url",
+    "warm_up_cache",
+    "_parse_and_cache_response",
+]

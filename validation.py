@@ -114,7 +114,9 @@ def sanitize_for_log(text: Any) -> str:
         return safe[1:-1]
     return safe
 
+
 _CGNAT_NETWORK = ipaddress.IPv4Network("100.64.0.0/10")
+
 
 def _is_safe_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
     """Rejects non-global, reserved, link-local, loopback, multicast, unspecified, and IPv4 CGNAT addresses."""
@@ -135,6 +137,7 @@ def _is_safe_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
     if isinstance(ip, ipaddress.IPv4Address) and ip in _CGNAT_NETWORK:
         return False
     return ip.is_global
+
 
 def _resolve_and_validate_domain(hostname: str) -> bool:
     try:
@@ -157,6 +160,7 @@ def _resolve_and_validate_domain(hostname: str) -> bool:
             f"Failed to resolve/validate domain {sanitize_for_log(hostname)}: {sanitize_for_log(e)}"
         )
         return False
+
 
 @lru_cache(maxsize=128)
 def validate_hostname(hostname: str) -> bool:
@@ -187,6 +191,7 @@ def validate_hostname(hostname: str) -> bool:
         # Not an IP literal, it's a domain. Resolve and check IPs.
         return _resolve_and_validate_domain(hostname)
 
+
 def _is_allowed_blocklist_domain(
     hostname: str, allowed_domains: frozenset[str]
 ) -> bool:
@@ -200,6 +205,7 @@ def _is_allowed_blocklist_domain(
             return True
         idx = hostname.find(".", idx + 1)
     return False
+
 
 @lru_cache(maxsize=128)
 def validate_folder_url(
@@ -250,6 +256,7 @@ def validate_folder_url(
         )
         return False
 
+
 def set_allowed_blocklist_domains(domains: list[str] | None) -> None:
     """Set the runtime allowed blocklist domains for SSRF protection."""
     global _ALLOWED_BLOCKLIST_DOMAINS
@@ -259,6 +266,7 @@ def set_allowed_blocklist_domains(domains: list[str] | None) -> None:
         _ALLOWED_BLOCKLIST_DOMAINS = DEFAULT_ALLOWED_BLOCKLIST_DOMAINS
     # validate_folder_url() is cached, so any allowlist change must clear it.
     validate_folder_url.cache_clear()
+
 
 def extract_profile_id(text: str) -> str:
     """
@@ -275,6 +283,7 @@ def extract_profile_id(text: str) -> str:
         return match.group(1)
     return text
 
+
 def is_valid_profile_id_format(profile_id: str) -> bool:
     """
     Checks if a profile ID matches the expected format.
@@ -288,6 +297,7 @@ def is_valid_profile_id_format(profile_id: str) -> bool:
         return False
 
     return bool(PROFILE_ID_PATTERN.match(profile_id))
+
 
 def validate_profile_id(profile_id: str, log_errors: bool = True) -> bool:
     """
@@ -311,11 +321,13 @@ def validate_profile_id(profile_id: str, log_errors: bool = True) -> bool:
 
     return False
 
+
 def _log_validation_error(msg: str, log_errors: bool) -> bool:
     """Helper to conditionally log validation errors and return False."""
     if log_errors:
         log.error(msg)
     return False
+
 
 def validate_folder_id(folder_id: str, log_errors: bool = True) -> bool:
     """Validates folder ID (PK) format to prevent path traversal."""
@@ -339,6 +351,7 @@ def validate_folder_id(folder_id: str, log_errors: bool = True) -> bool:
 
     return True
 
+
 def is_valid_rule(rule: str) -> bool:
     """
     Validates that a rule is safe to use.
@@ -353,6 +366,7 @@ def is_valid_rule(rule: str) -> bool:
 
     # Strict whitelist to prevent injection
     return bool(rule) and _ALLOWED_RULE_CHARS.issuperset(rule)
+
 
 def is_valid_folder_name(name: str) -> bool:
     """
@@ -384,6 +398,7 @@ def is_valid_folder_name(name: str) -> bool:
     # Security: Block command option injection (if name is passed to shell)
     return not clean_name.startswith("-")
 
+
 def _is_valid_rule_list(rules_list: Any) -> bool:
     """Helper to quickly validate a list of rules without generator overhead."""
     if not isinstance(rules_list, list):
@@ -394,6 +409,7 @@ def _is_valid_rule_list(rules_list: Any) -> bool:
         ):
             return False
     return True
+
 
 def _log_invalid_rules(rules_list: list[Any], url: str, prefix: str) -> bool:
     """Helper to log specific validation errors for a list of rules.
@@ -417,6 +433,7 @@ def _log_invalid_rules(rules_list: list[Any], url: str, prefix: str) -> bool:
             )
             return False
     return False
+
 
 def validate_folder_data(data: dict[str, Any], url: str) -> TypeGuard[FolderData]:
     """
@@ -505,4 +522,20 @@ def validate_folder_data(data: dict[str, Any], url: str) -> TypeGuard[FolderData
     return True
 
 
-__all__ = ['sanitize_for_log', 'set_token_for_redaction', 'validate_hostname', 'validate_folder_url', 'set_allowed_blocklist_domains', 'extract_profile_id', 'is_valid_profile_id_format', 'validate_profile_id', 'validate_folder_id', 'is_valid_rule', 'is_valid_folder_name', 'validate_folder_data', 'DEFAULT_ALLOWED_BLOCKLIST_DOMAINS', 'MAX_RULE_LENGTH', '_ALLOWED_RULE_CHARS']
+__all__ = [
+    "sanitize_for_log",
+    "set_token_for_redaction",
+    "validate_hostname",
+    "validate_folder_url",
+    "set_allowed_blocklist_domains",
+    "extract_profile_id",
+    "is_valid_profile_id_format",
+    "validate_profile_id",
+    "validate_folder_id",
+    "is_valid_rule",
+    "is_valid_folder_name",
+    "validate_folder_data",
+    "DEFAULT_ALLOWED_BLOCKLIST_DOMAINS",
+    "MAX_RULE_LENGTH",
+    "_ALLOWED_RULE_CHARS",
+]

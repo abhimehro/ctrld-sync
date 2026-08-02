@@ -48,6 +48,7 @@ from validation import (
 
 log = logging.getLogger(__name__)
 
+
 def create_client(token: str) -> httpx.Client:
     set_token_for_redaction(token)
     return httpx.Client(
@@ -60,6 +61,7 @@ def create_client(token: str) -> httpx.Client:
         timeout=httpx.Timeout(10.0, connect=5.0),
         follow_redirects=False,
     )
+
 
 def check_api_access(client: httpx.Client, profile_id: str) -> bool:
     """
@@ -105,6 +107,7 @@ def check_api_access(client: httpx.Client, profile_id: str) -> bool:
         log.error(f"Network Error during access check: {sanitize_for_log(e)}{hint}")
         return False
 
+
 def list_existing_folders(client: httpx.Client, profile_id: str) -> dict[str, str]:
     """
     Retrieves all existing folders (groups) for a given profile.
@@ -134,6 +137,7 @@ def list_existing_folders(client: httpx.Client, profile_id: str) -> dict[str, st
         log.error(f"Failed to list existing folders{hint}: {sanitize_for_log(e)}")
         return {}
 
+
 def _parse_folders_response(data: dict) -> dict[str, str] | None:
     """Parse folders response."""
     if not isinstance(data, dict):
@@ -161,6 +165,7 @@ def _parse_folders_response(data: dict) -> dict[str, str] | None:
             result[str(name).strip()] = pk_str
 
     return result
+
 
 def verify_access_and_get_folders(
     client: httpx.Client, profile_id: str
@@ -232,6 +237,7 @@ def verify_access_and_get_folders(
 
     return None
 
+
 def get_all_existing_rules(
     client: httpx.Client,
     profile_id: str,
@@ -248,7 +254,9 @@ def get_all_existing_rules(
 
     def _fetch_folder_rules(folder_id: str) -> list[str]:
         try:
-            data = _api_get(client, f"{config.API_BASE}/{profile_id}/rules/{folder_id}").json()
+            data = _api_get(
+                client, f"{config.API_BASE}/{profile_id}/rules/{folder_id}"
+            ).json()
             folder_rules = data.get("body", {}).get("rules", [])
             return [pk for rule in folder_rules if (pk := rule.get("PK"))]
         except httpx.HTTPError as e:
@@ -311,6 +319,7 @@ def get_all_existing_rules(
         log.error(f"Failed to get existing rules: {sanitize_for_log(e)}")
         return set()
 
+
 def delete_folder(
     client: httpx.Client, profile_id: str, name: str, folder_id: str
 ) -> bool:
@@ -340,6 +349,7 @@ def delete_folder(
         )
         return False
 
+
 def _process_new_folder_pk(pk: str, name: str, source: str) -> str | None:
     if not validate_folder_id(pk, log_errors=False):
         log.error(f"API returned invalid folder ID: {sanitize_for_log(pk)}")
@@ -351,6 +361,7 @@ def _process_new_folder_pk(pk: str, name: str, source: str) -> str | None:
         source,
     )
     return pk
+
 
 def _extract_from_groups_list(groups: list, name: str) -> str | None:
     """Extract folder ID from groups list."""
@@ -364,6 +375,7 @@ def _extract_from_groups_list(groups: list, name: str) -> str | None:
             if pk:
                 return pk
     return None
+
 
 def _extract_folder_id_from_response(response: httpx.Response, name: str) -> str | None:
     try:
@@ -386,10 +398,13 @@ def _extract_folder_id_from_response(response: httpx.Response, name: str) -> str
 
     return None
 
+
 def _poll_for_folder_id(ctx: SyncContext, name: str) -> str | None:
     for attempt in range(api_client.MAX_RETRIES + 1):
         try:
-            data = _api_get(ctx.client, f"{config.API_BASE}/{ctx.profile_id}/groups").json()
+            data = _api_get(
+                ctx.client, f"{config.API_BASE}/{ctx.profile_id}/groups"
+            ).json()
             groups = data.get("body", {}).get("groups", [])
 
             for grp in groups:
@@ -417,6 +432,7 @@ def _poll_for_folder_id(ctx: SyncContext, name: str) -> str | None:
         f"Folder {sanitize_for_log(name)} was not found after creation and retries."
     )
     return None
+
 
 def create_folder(ctx: SyncContext, name: str, action: RuleAction) -> str | None:
     """
@@ -449,6 +465,7 @@ def create_folder(ctx: SyncContext, name: str, action: RuleAction) -> str | None
         )
         return None
 
+
 def _deduplicate_hostnames(
     existing_rules: set[str], hostnames: list[str]
 ) -> dict[str, None]:
@@ -460,6 +477,7 @@ def _deduplicate_hostnames(
     # This prevents redundant dictionary insertions for rules already in existing_rules,
     # and avoids materializing a large intermediate list before deduplication.
     return dict.fromkeys(itertools.filterfalse(existing_rules.__contains__, hostnames))
+
 
 def _log_filtering_results(
     original_count: int,
@@ -490,6 +508,7 @@ def _log_filtering_results(
             f"Folder {sanitize_for_log(folder_name)}: skipping {duplicates_count} duplicate {pluralize(duplicates_count, 'rule')}"
         )
 
+
 def _filter_rules_for_folder(
     existing_rules: set[str],
     hostnames: list[str],
@@ -517,6 +536,7 @@ def _filter_rules_for_folder(
     )
 
     return filtered_hostnames
+
 
 def _push_single_batch(
     client: httpx.Client,
@@ -564,6 +584,7 @@ def _push_single_batch(
             log.debug(f"Response content: {sanitize_for_log(response.text)}")
         return None
 
+
 def _process_batches_with_executor(
     executor: concurrent.futures.Executor,
     ctx: SyncContext,
@@ -597,6 +618,7 @@ def _process_batches_with_executor(
         render_progress_bar(successful_batches, len(batches), progress_label)
 
     return successful_batches
+
 
 def _log_batch_result(
     sanitized_folder_name: str,
@@ -726,6 +748,7 @@ def push_rules(
         filtered_hostnames,
     )
 
+
 def _process_single_folder(
     ctx: SyncContext,
     folder_data: FolderData,
@@ -771,6 +794,7 @@ def _process_single_folder(
             folder_success = False
 
     return folder_success
+
 
 def _fetch_all_folder_data(folder_urls: Sequence[str]) -> list[FolderData] | None:
     """Fetches folder data for all URLs in parallel."""
@@ -822,6 +846,7 @@ def _fetch_all_folder_data(folder_urls: Sequence[str]) -> list[FolderData] | Non
 
     return folder_data_list
 
+
 def _build_plan_entry(profile_id: str, folder_data_list: list[FolderData]) -> PlanEntry:
     """Builds the plan entry for a given profile."""
     plan_entry: PlanEntry = {"profile": profile_id, "folders": []}
@@ -862,6 +887,7 @@ def _build_plan_entry(profile_id: str, folder_data_list: list[FolderData]) -> Pl
                 }
             )
     return plan_entry
+
 
 def _prepare_folders_and_rules(
     client: httpx.Client,
@@ -940,6 +966,7 @@ def _prepare_folders_and_rules(
         existing_rules = set()
 
     return existing_folders, existing_rules
+
 
 def sync_profile(
     profile_id: str,
@@ -1042,4 +1069,14 @@ def sync_profile(
         return False
 
 
-__all__ = ['create_client', 'sync_profile', 'push_rules', 'get_all_existing_rules', 'check_api_access', 'list_existing_folders', 'verify_access_and_get_folders', 'delete_folder', 'create_folder']
+__all__ = [
+    "create_client",
+    "sync_profile",
+    "push_rules",
+    "get_all_existing_rules",
+    "check_api_access",
+    "list_existing_folders",
+    "verify_access_and_get_folders",
+    "delete_folder",
+    "create_folder",
+]

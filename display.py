@@ -32,6 +32,7 @@ else:
 if os.getenv("JSON_LOG"):
     USE_COLORS = False
 
+
 class Colors:
     if USE_COLORS:
         HEADER = "\033[95m"
@@ -55,6 +56,7 @@ class Colors:
         BOLD = ""
         UNDERLINE = ""
         DIM = ""
+
 
 class Box:
     """Box drawing characters for pretty tables."""
@@ -88,6 +90,7 @@ class Box:
             "+",
         )
 
+
 class ColoredFormatter(logging.Formatter):
     """Custom formatter to add colors to log levels."""
 
@@ -113,6 +116,7 @@ class ColoredFormatter(logging.Formatter):
         result = self.delegate_formatter.format(record)
         record.levelname = original_levelname
         return result
+
 
 class JsonFormatter(logging.Formatter):
     """Emit one JSON object per log record for structured/observability pipelines.
@@ -150,6 +154,7 @@ class JsonFormatter(logging.Formatter):
             if record.exc_text:
                 payload["exc"] = record.exc_text
         return json.dumps(payload)
+
 
 def configure_logging() -> None:
     """Configure the root logger for the CLI.
@@ -236,16 +241,19 @@ class AlertSystem:
                 exc_info=True,
             )
 
+
 EMPTY_INPUT_HINT = (
     "   💡 Hint: Please type a value and press Enter, or press Ctrl+C/Ctrl+D to cancel."
 )
 INVALID_INPUT_HINT = "   💡 Hint: Please check your input and try again, or press Ctrl+C/Ctrl+D to cancel."
+
 
 def pluralize(count: int, singular: str, plural: str | None = None) -> str:
     """Helper to cleanly pluralize nouns based on count."""
     if plural is None:
         plural = f"{singular}s"
     return singular if count == 1 else plural
+
 
 def _get_action_text(folder: PlanFolderEntry) -> str:
     """Determine the action label (Block/Allow/Mixed) for a given folder."""
@@ -268,6 +276,7 @@ def _get_action_text(folder: PlanFolderEntry) -> str:
     if USE_COLORS:
         return f"({color}{icon} {label}{Colors.ENDC})"
     return f"({icon} {label})"
+
 
 def print_plan_details(plan_entry: PlanEntry) -> None:
     """Pretty-print the folder-level breakdown during a dry-run."""
@@ -318,6 +327,7 @@ def print_plan_details(plan_entry: PlanEntry) -> None:
 
     print("")
 
+
 def _get_progress_bar_width() -> int:
     """Calculate dynamic progress bar width based on terminal size.
 
@@ -327,6 +337,7 @@ def _get_progress_bar_width() -> int:
     """
     cols, _ = shutil.get_terminal_size(fallback=(80, 24))
     return max(15, min(50, int(cols * 0.4)))
+
 
 def countdown_timer(seconds: int, message: str = "Waiting") -> None:
     """Show a countdown in interactive/color mode; in no-color/non-interactive
@@ -360,6 +371,7 @@ def countdown_timer(seconds: int, message: str = "Waiting") -> None:
     sys.stderr.write(f"\r\033[K{Colors.GREEN}✅ {message}: Done!{Colors.ENDC}\n")
     sys.stderr.flush()
 
+
 def render_progress_bar(
     current: int, total: int, label: str, prefix: str = "🚀"
 ) -> None:
@@ -385,11 +397,13 @@ def render_progress_bar(
     )
     sys.stderr.flush()
 
+
 def _clear_current_line() -> None:
     """Helper to clear the current line on stderr in a TTY."""
     if sys.stderr.isatty():
         sys.stderr.write("\r\033[K")
         sys.stderr.flush()
+
 
 def _print_hint(hint: str, file=None) -> None:
     """Helper to cleanly print input hints while respecting USE_COLORS to reduce cyclomatic complexity."""
@@ -398,6 +412,7 @@ def _print_hint(hint: str, file=None) -> None:
         print(f"{Colors.DIM}{hint}{Colors.ENDC}", file=file)
     else:
         print(hint, file=file)
+
 
 def _print_bold_header(text: str) -> None:
     """Print a bold section header when colors are enabled; plain text otherwise.
@@ -409,6 +424,7 @@ def _print_bold_header(text: str) -> None:
         print(f"{Colors.BOLD}{text}{Colors.ENDC}")
     else:
         print(text)
+
 
 def get_validated_input(
     prompt: str,
@@ -448,6 +464,7 @@ def get_validated_input(
         _print_hint(INVALID_INPUT_HINT, file=sys.stderr)
         print(file=sys.stderr)
 
+
 def _format_password_prompt(prompt: str) -> str:
     """Formats the password prompt to ensure it contains standard hints and spaces."""
     while _ANSI_ESCAPE_PATTERN.sub("", prompt).startswith("\n"):
@@ -456,12 +473,15 @@ def _format_password_prompt(prompt: str) -> str:
 
     if "(typing will be hidden)" not in prompt:
         if USE_COLORS:
-            prompt = f"{prompt.rstrip()} {Colors.DIM}(typing will be hidden){Colors.ENDC} "
+            prompt = (
+                f"{prompt.rstrip()} {Colors.DIM}(typing will be hidden){Colors.ENDC} "
+            )
         else:
             prompt = f"{prompt.rstrip()} (typing will be hidden) "
     if not _ANSI_ESCAPE_PATTERN.sub("", prompt).endswith(" "):
         prompt += " "
     return prompt
+
 
 def get_password(
     prompt: str,
@@ -504,6 +524,7 @@ def get_password(
         _print_hint(INVALID_INPUT_HINT, file=sys.stderr)
         print(file=sys.stderr)
 
+
 def _print_completion(msg: str) -> None:
     """Helper to print completion message to stderr or log."""
     _clear_current_line()
@@ -517,7 +538,9 @@ def _print_completion(msg: str) -> None:
         sys.stderr.write(f"✅ {msg}\n")
     sys.stderr.flush()
 
+
 _ANSI_ESCAPE_PATTERN = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+
 
 def _display_len(s: str) -> int:
     """Calculate display width of a string considering full-width characters and ignoring ANSI codes."""
@@ -534,6 +557,7 @@ def _display_len(s: str) -> int:
         ]
     )
 
+
 def _pad_string(s: str, width: int, align: str = "<") -> str:
     """Pad string considering full-width characters."""
     pad_len = width - _display_len(s)
@@ -549,9 +573,11 @@ def _pad_string(s: str, width: int, align: str = "<") -> str:
         return " " * left + s + " " * right
     return s
 
+
 def print_line(left_char: str, mid_char: str, right_char: str, w: list[int]) -> str:
     """Format a horizontal table separator line."""
     return f"{Colors.BOLD}{make_col_separator(left_char, mid_char, right_char, Box.H, w)}{Colors.ENDC}"
+
 
 def print_row(cols: list[str], w: list[int]) -> str:
     """Format a row of table data."""
@@ -562,6 +588,7 @@ def print_row(cols: list[str], w: list[int]) -> str:
     col4 = _pad_string(cols[4], w[4], "<")
     return f"{Colors.BOLD}│{Colors.ENDC} {col0} {Colors.BOLD}│{Colors.ENDC} {col1} {Colors.BOLD}│{Colors.ENDC} {col2} {Colors.BOLD}│{Colors.ENDC} {col3} {Colors.BOLD}│{Colors.ENDC} {col4} {Colors.BOLD}│{Colors.ENDC}"
 
+
 @dataclass
 class _SummaryStats:
     t_f: int
@@ -570,14 +597,17 @@ class _SummaryStats:
     t_status: str
     t_col: str
 
+
 def _get_display_profile(profile: str) -> str:
     return "(Unspecified)" if profile == "dry-run-placeholder" else profile
+
 
 def _print_hint_if_no_folders(t_f: int) -> None:
     if t_f == 0:
         _print_hint(
             "  💡 Hint: Add folder URLs using --folder-url or in your config.yaml"
         )
+
 
 def _render_ascii_table(
     sync_results: list[SyncResult], w: list[int], stats: _SummaryStats, dry_run: bool
@@ -596,6 +626,7 @@ def _render_ascii_table(
         f"{sep}\n{'TOTAL':<{w[0]}} | {stats.t_f:>{w[1]}} | {stats.t_r:>{w[2]},} | {stats.t_d:>{w[3] - 1}.1f}s | {_pad_string(stats.t_status, w[4], align='<')}\n{sep}\n"
     )
     print()
+
 
 def _render_unicode_table(
     sync_results: list[SyncResult], w: list[int], stats: _SummaryStats, dry_run: bool
@@ -632,6 +663,7 @@ def _render_unicode_table(
     )
     print(f"{print_line('└', '┴', '┘', w)}\n")
 
+
 def print_summary_table(
     sync_results: list[SyncResult], success_count: int, total: int, dry_run: bool
 ) -> None:
@@ -663,6 +695,7 @@ def print_summary_table(
     _render_unicode_table(sync_results, w, stats, dry_run)
     _print_hint_if_no_folders(t_f)
 
+
 def _print_success_text(all_success: bool, success_count: int, total: int) -> None:
     """Helper to print the success or partial success message."""
     if all_success:
@@ -684,6 +717,7 @@ def _print_success_text(all_success: bool, success_count: int, total: int) -> No
         print(f"\n{color}{chosen_msg}{Colors.ENDC}")
     else:
         print(f"\n{chosen_msg}")
+
 
 def _print_dashboard_url(profile_ids: list[str]) -> None:
     """Helper to print the dashboard URL."""
@@ -710,6 +744,7 @@ def _print_dashboard_url(profile_ids: list[str]) -> None:
     else:
         print(f"👀 View your changes: {dashboard_url}")
 
+
 def print_success_message(
     profile_ids: list[str], success_count: int, total: int
 ) -> None:
@@ -718,12 +753,14 @@ def print_success_message(
     _print_success_text(all_success, success_count, total)
     _print_dashboard_url(profile_ids)
 
+
 def make_col_separator(
     left: str, mid: str, right: str, horiz: str, col_widths: list[int]
 ) -> str:
     """Generates a table row separator with given box drawing characters and column widths."""
     parts = [horiz * (w + 2) for w in col_widths]
     return left + mid.join(parts) + right
+
 
 def display_api_statistics() -> None:
     """Display API statistics."""
@@ -736,6 +773,7 @@ def display_api_statistics() -> None:
         print(f"  • Blocklist fetches:   {_api_stats['blocklist_fetches']:>7,}")
         print(f"  • Total API requests:  {total_api_calls:>7,}")
         print()
+
 
 def display_cache_statistics() -> None:
     """Display cache statistics if any cache activity occurred."""
@@ -760,6 +798,7 @@ def display_cache_statistics() -> None:
             )
             print(f"  • Cache effectiveness:  {cache_effectiveness:>6.1f}%")
         print()
+
 
 def display_rate_limit_status() -> None:
     """Display rate limit information if available."""
@@ -796,6 +835,7 @@ def display_rate_limit_status() -> None:
 
         print()
 
+
 def display_statistics() -> None:
     """Display API, cache, and rate limit statistics."""
     display_api_statistics()
@@ -803,4 +843,38 @@ def display_statistics() -> None:
     display_rate_limit_status()
 
 
-__all__ = ['USE_COLORS', 'Colors', 'Box', 'ColoredFormatter', 'JsonFormatter', 'AlertSystem', 'pluralize', 'countdown_timer', 'render_progress_bar', 'get_password', 'get_validated_input', 'print_plan_details', 'print_summary_table', 'print_success_message', 'display_statistics', '_clear_current_line', '_print_hint', '_print_bold_header', '_print_completion', '_display_len', '_pad_string', 'print_line', 'print_row', '_SummaryStats', '_get_display_profile', '_render_ascii_table', '_render_unicode_table', '_print_success_text', '_print_dashboard_url', '_ANSI_ESCAPE_PATTERN', 'EMPTY_INPUT_HINT', 'INVALID_INPUT_HINT', 'make_col_separator']
+__all__ = [
+    "USE_COLORS",
+    "Colors",
+    "Box",
+    "ColoredFormatter",
+    "JsonFormatter",
+    "AlertSystem",
+    "pluralize",
+    "countdown_timer",
+    "render_progress_bar",
+    "get_password",
+    "get_validated_input",
+    "print_plan_details",
+    "print_summary_table",
+    "print_success_message",
+    "display_statistics",
+    "_clear_current_line",
+    "_print_hint",
+    "_print_bold_header",
+    "_print_completion",
+    "_display_len",
+    "_pad_string",
+    "print_line",
+    "print_row",
+    "_SummaryStats",
+    "_get_display_profile",
+    "_render_ascii_table",
+    "_render_unicode_table",
+    "_print_success_text",
+    "_print_dashboard_url",
+    "_ANSI_ESCAPE_PATTERN",
+    "EMPTY_INPUT_HINT",
+    "INVALID_INPUT_HINT",
+    "make_col_separator",
+]

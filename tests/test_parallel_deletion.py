@@ -91,7 +91,9 @@ def test_parallel_deletion_uses_threadpool(mock_env, monkeypatch):
             super().__init__(*args, **kwargs)
 
     with patch("concurrent.futures.ThreadPoolExecutor", TrackedExecutor):
-        main.sync_profile("test-profile", ["url1", "url2"], token=TEST_TOKEN, no_delete=False)
+        main.sync_profile(
+            "test-profile", ["url1", "url2"], token=TEST_TOKEN, no_delete=False
+        )
 
     # Verify ThreadPoolExecutor was called with DELETE_WORKERS
     delete_executor_found = False
