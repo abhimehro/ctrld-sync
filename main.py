@@ -116,14 +116,14 @@ from display import (  # noqa: F401
     print_summary_table,
     render_progress_bar,
 )
-from gh_client import (
+from gh_client import (  # noqa: F401
     _cache,
     _cache_lock,
     _gh,
     _gh_get,
     fetch_folder_data,
     warm_up_cache,
-)  # noqa: F401
+)
 from models import (  # noqa: F401
     FolderAction,
     FolderData,
