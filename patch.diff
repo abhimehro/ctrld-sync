@@ -1,0 +1,17 @@
+--- main.py
++++ main.py
+@@ -438,9 +438,14 @@
+             )
+
+         print()
++        prompt_str = (
++            f"{Colors.BOLD}👤 Enter Control D Profile ID {Colors.DIM}(comma-separated for multiple){Colors.ENDC}: "
++            if USE_COLORS
++            else "👤 Enter Control D Profile ID (comma-separated for multiple): "
++        )
+         p_input = get_validated_input(
+-            f"{Colors.BOLD}👤 Enter Control D Profile ID:{Colors.ENDC} ",
++            prompt_str,
+             validate_profile_input,
+             "Invalid ID(s) or URL(s). Must be a valid Profile ID or a Control D Profile URL. Comma-separate for multiple.",
+         )
