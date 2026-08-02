@@ -36,7 +36,10 @@ def reload_main_with_env(monkeypatch, no_color=None, isatty=True):
         importlib.reload(display)
         importlib.reload(config)
         # Avoid leaking httpx connection pools when reloading gh_client repeatedly.
-        if hasattr(gh_client, "_gh") and getattr(gh_client._gh, "is_closed", False) is False:
+        if (
+            hasattr(gh_client, "_gh")
+            and getattr(gh_client._gh, "is_closed", False) is False
+        ):
             gh_client._gh.close()
         importlib.reload(gh_client)
         importlib.reload(sync)

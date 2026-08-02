@@ -23,6 +23,7 @@ USER_AGENT = "Control-D-Sync/0.1.0"
 
 DELETE_WORKERS = 3  # Conservative for DELETE operations due to rate limits
 
+
 def _clean_env_kv(value: str | None, key: str) -> str | None:
     """Allow TOKEN/PROFILE values to be provided as either raw values or KEY=value."""
     if not value:
@@ -37,6 +38,7 @@ def _clean_env_kv(value: str | None, key: str) -> str | None:
             if val_stripped:
                 return val_stripped
     return v
+
 
 DEFAULT_FOLDER_URLS = [
     "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/controld/apple-private-relay-allow-folder.json",
@@ -82,6 +84,7 @@ _DEFAULT_CONFIG_PATHS = [
     "~/.ctrld-sync/config.yml",
 ]
 
+
 def get_default_config() -> dict:
     """Return the built-in default configuration (mirrors DEFAULT_FOLDER_URLS)."""
     return {
@@ -93,6 +96,7 @@ def get_default_config() -> dict:
             "max_retries": MAX_RETRIES,
         },
     }
+
 
 def _validate_config(config: dict) -> None:
     """
@@ -142,6 +146,7 @@ def _validate_config(config: dict) -> None:
             raise ValueError(
                 f"settings.{key} must be a positive integer (got {val!r})."
             )
+
 
 def _read_config_yaml(
     config_path: str | None = None,
@@ -198,6 +203,7 @@ def _read_config_yaml(
 
     return None
 
+
 def load_config(config_path: str | None = None) -> dict:
     """
     Load and validate configuration from a YAML file.
@@ -233,6 +239,7 @@ def load_config(config_path: str | None = None) -> dict:
     set_allowed_blocklist_domains(loaded.get("allowed_blocklist_domains"))
     return loaded
 
+
 def _load_allowed_blocklist_domains(config_path: str | None = None) -> None:
     loaded_config = _read_config_yaml(config_path)
     if loaded_config is None:
@@ -251,6 +258,7 @@ def _load_allowed_blocklist_domains(config_path: str | None = None) -> None:
 
     set_allowed_blocklist_domains(loaded.get("allowed_blocklist_domains"))
 
+
 def _validate_allowed_blocklist_domains(allowed_domains: list[str] | None) -> None:
     if allowed_domains is None:
         return
@@ -262,7 +270,9 @@ def _validate_allowed_blocklist_domains(allowed_domains: list[str] | None) -> No
                 f"allowed_blocklist_domains[{i}]: must be a non-empty string (got {domain!r})."
             )
 
+
 MAX_RESPONSE_SIZE = 10 * 1024 * 1024  # 10 MB limit for external resources
+
 
 def _resolve_folder_urls(args: argparse.Namespace) -> tuple[list[str], dict | None]:
     if args.folder_url:
@@ -286,4 +296,19 @@ def _resolve_folder_urls(args: argparse.Namespace) -> tuple[list[str], dict | No
     return [entry["url"] for entry in cfg["folders"]], cfg
 
 
-__all__ = ['API_BASE', 'USER_AGENT', 'BATCH_SIZE', 'BATCH_KEYS', 'DELETE_WORKERS', 'FOLDER_CREATION_DELAY', 'MAX_RESPONSE_SIZE', '_STATUS_HINTS', 'DEFAULT_FOLDER_URLS', '_DEFAULT_CONFIG_PATHS', '_clean_env_kv', 'get_default_config', 'load_config', '_resolve_folder_urls']
+__all__ = [
+    "API_BASE",
+    "USER_AGENT",
+    "BATCH_SIZE",
+    "BATCH_KEYS",
+    "DELETE_WORKERS",
+    "FOLDER_CREATION_DELAY",
+    "MAX_RESPONSE_SIZE",
+    "_STATUS_HINTS",
+    "DEFAULT_FOLDER_URLS",
+    "_DEFAULT_CONFIG_PATHS",
+    "_clean_env_kv",
+    "get_default_config",
+    "load_config",
+    "_resolve_folder_urls",
+]
