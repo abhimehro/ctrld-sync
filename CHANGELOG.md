@@ -47,7 +47,9 @@
 
 **Merged pull requests:**
 
+- chore\(style\): Apply automated code formatting [\#1109](https://github.com/abhimehro/ctrld-sync/pull/1109) ([abhimehro](https://github.com/abhimehro))
 - chore\(devin\): add environment blueprint as source-of-truth [\#1108](https://github.com/abhimehro/ctrld-sync/pull/1108) ([abhimehro](https://github.com/abhimehro))
+- 🎨 Palette: Dim unfilled progress bar tracks for better visual hierarchy [\#1107](https://github.com/abhimehro/ctrld-sync/pull/1107) ([abhimehro](https://github.com/abhimehro))
 - chore\(repo-health\): remove scratch files and align CI \(salvages \#1081\) [\#1105](https://github.com/abhimehro/ctrld-sync/pull/1105) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Dim auto-appended password hint [\#1104](https://github.com/abhimehro/ctrld-sync/pull/1104) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Improve visual hierarchy in interactive restart prompt [\#1092](https://github.com/abhimehro/ctrld-sync/pull/1092) ([abhimehro](https://github.com/abhimehro))
