@@ -287,3 +287,7 @@ context flags to ensure safety and predictability.
 ## 2026-08-01 - [Visual Polish for Progress Bars]
 **Learning:** The unfilled portion of progress bars ("·" characters) can visually compete with the filled portion when rendered in the same color, reducing the scannability of the progress state.
 **Action:** Apply `Colors.DIM` to the unfilled portion of CLI progress bars and countdown timers to create better contrast and a more polished, intuitive visual hierarchy.
+
+## 2026-08-03 - [Proactive CLI Input Hints]
+**Learning:** When a CLI input field supports complex or multiple values (e.g., comma-separated), relying solely on validation errors to educate the user creates a poor UX.
+**Action:** Proactively include a formatting hint directly in the prompt (styled with `Colors.DIM`) to guide the user before they submit their input.
