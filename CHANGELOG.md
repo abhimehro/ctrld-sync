@@ -48,6 +48,7 @@
 
 **Merged pull requests:**
 
+- chore: Automated QA formatting fixes [\#1113](https://github.com/abhimehro/ctrld-sync/pull/1113) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Add proactive hint to Profile ID prompt [\#1111](https://github.com/abhimehro/ctrld-sync/pull/1111) ([abhimehro](https://github.com/abhimehro))
 - chore\(style\): Apply automated code formatting [\#1109](https://github.com/abhimehro/ctrld-sync/pull/1109) ([abhimehro](https://github.com/abhimehro))
 - chore\(devin\): add environment blueprint as source-of-truth [\#1108](https://github.com/abhimehro/ctrld-sync/pull/1108) ([abhimehro](https://github.com/abhimehro))
