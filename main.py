@@ -439,7 +439,7 @@ def _prompt_for_missing_config(profile_ids: list[str]) -> None:
 
         print()
         p_input = get_validated_input(
-            f"{Colors.BOLD}👤 Enter Control D Profile ID:{Colors.ENDC} ",
+            f"{Colors.BOLD}👤 Enter Control D Profile ID {Colors.DIM}(comma-separate for multiple){Colors.ENDC}: ",
             validate_profile_input,
             "Invalid ID(s) or URL(s). Must be a valid Profile ID or a Control D Profile URL. Comma-separate for multiple.",
         )
