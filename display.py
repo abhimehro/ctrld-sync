@@ -361,7 +361,12 @@ def countdown_timer(seconds: int, message: str = "Waiting") -> None:
     for remaining in range(seconds, 0, -1):
         progress = (seconds - remaining + 1) / seconds
         filled = int(width * progress)
-        bar = "█" * filled + f"{Colors.DIM}" + "·" * (width - filled) + f"{Colors.ENDC}{Colors.CYAN}"
+        bar = (
+            "█" * filled
+            + f"{Colors.DIM}"
+            + "·" * (width - filled)
+            + f"{Colors.ENDC}{Colors.CYAN}"
+        )
         sys.stderr.write(
             f"\r\033[K{Colors.CYAN}⏳ {message}: [{bar}] {remaining:>{max_len}}s...{Colors.ENDC}"
         )
@@ -386,7 +391,12 @@ def render_progress_bar(
 
     progress = min(1.0, current / total)
     filled = int(width * progress)
-    bar = "█" * filled + f"{Colors.DIM}" + "·" * (width - filled) + f"{Colors.ENDC}{Colors.CYAN}"
+    bar = (
+        "█" * filled
+        + f"{Colors.DIM}"
+        + "·" * (width - filled)
+        + f"{Colors.ENDC}{Colors.CYAN}"
+    )
     percent = int(progress * 100)
 
     total_str = str(total)
