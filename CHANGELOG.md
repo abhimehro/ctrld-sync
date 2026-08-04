@@ -12,6 +12,7 @@
 
 **Closed issues:**
 
+- \[repo-automation\] Weekly Retrospective - 2026-08-02 [\#1110](https://github.com/abhimehro/ctrld-sync/issues/1110)
 - \[repo-health\] Continue extracting helpers out of main.py [\#1082](https://github.com/abhimehro/ctrld-sync/issues/1082)
 - Daily QA & Agentic Review — 2026-07-29 [\#1077](https://github.com/abhimehro/ctrld-sync/issues/1077)
 - Daily QA & Agentic Review — 2026-07-28 [\#1073](https://github.com/abhimehro/ctrld-sync/issues/1073)
@@ -47,6 +48,7 @@
 
 **Merged pull requests:**
 
+- 🎨 Palette: Add proactive hint to Profile ID prompt [\#1111](https://github.com/abhimehro/ctrld-sync/pull/1111) ([abhimehro](https://github.com/abhimehro))
 - chore\(style\): Apply automated code formatting [\#1109](https://github.com/abhimehro/ctrld-sync/pull/1109) ([abhimehro](https://github.com/abhimehro))
 - chore\(devin\): add environment blueprint as source-of-truth [\#1108](https://github.com/abhimehro/ctrld-sync/pull/1108) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Dim unfilled progress bar tracks for better visual hierarchy [\#1107](https://github.com/abhimehro/ctrld-sync/pull/1107) ([abhimehro](https://github.com/abhimehro))
