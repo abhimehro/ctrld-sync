@@ -718,9 +718,8 @@ def _print_success_text(all_success: bool, success_count: int, total: int) -> No
         ]
         chosen_msg = secrets.choice(success_msgs)
     else:
-        chosen_msg = (
-            f"⚠️  Synced {success_count} out of {total} profile(s). Check errors above."
-        )
+        profile_word = pluralize(total, "profile")
+        chosen_msg = f"⚠️  Synced {success_count} out of {total} {profile_word}. Check errors above."
 
     if USE_COLORS:
         color = Colors.GREEN if all_success else Colors.WARNING

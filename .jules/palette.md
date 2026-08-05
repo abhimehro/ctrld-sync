@@ -291,3 +291,7 @@ context flags to ensure safety and predictability.
 ## 2026-08-02 - [Visual Hierarchy for Proactive Hints]
 **Learning:** When prompting for inputs that allow multiple values, waiting until the user encounters an error to explain the format (e.g., "comma-separate for multiple") is a poor experience. However, appending this hint in plain text can clutter the primary instruction.
 **Action:** Include proactive input format hints directly in the prompt, but style them with `Colors.DIM` to maintain a clear visual hierarchy where the primary action remains in focus while the hint is available but unobtrusive.
+
+## 2026-08-04 - [Grammatical Polish in Success Messages]
+**Learning:** Hardcoding plural strings (like "profile(s)") can lead to poor grammar when counts evaluate to exactly 1.
+**Action:** Use `pluralize` to dynamically correct grammar in CLI output to improve text polish and reduce cognitive load.
