@@ -48,6 +48,7 @@
 
 **Merged pull requests:**
 
+- 🎨 Palette: Fix CLI grammatical pluralization in success message [\#1119](https://github.com/abhimehro/ctrld-sync/pull/1119) ([abhimehro](https://github.com/abhimehro))
 - chore: Automated QA formatting fixes [\#1113](https://github.com/abhimehro/ctrld-sync/pull/1113) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Add proactive hint to Profile ID prompt [\#1111](https://github.com/abhimehro/ctrld-sync/pull/1111) ([abhimehro](https://github.com/abhimehro))
 - chore\(style\): Apply automated code formatting [\#1109](https://github.com/abhimehro/ctrld-sync/pull/1109) ([abhimehro](https://github.com/abhimehro))
