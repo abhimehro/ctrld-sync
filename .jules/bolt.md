@@ -146,3 +146,8 @@ Python function call overhead.
 
 **Learning:** When iteratively checking subdomains against an allowlist, using `str.find('.')` and string slicing avoids the memory allocation overhead of `str.split('.')` and `str.join()`, executing significantly faster.
 **Action:** When extracting or checking domain parts, prefer using string `.find()` and slicing instead of `.split()` inside hot functions.
+
+## 2026-08-06 - Native try-except vs contextlib.suppress for fast parsing
+
+**Learning:** When parsing integers or performing basic error-handled extraction in a hot path (like parsing rate-limit headers for every API request), using a native `try...except` block is significantly faster than using `contextlib.suppress`. The context manager overhead of `contextlib.suppress` degrades performance noticeably in tight loops.
+**Action:** Prefer native `try...except` blocks over `contextlib.suppress` in performance-critical or frequently called I/O bound parsing functions.
