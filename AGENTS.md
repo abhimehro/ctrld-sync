@@ -6,8 +6,8 @@
 
 Python CLI tool that syncs Control D DNS folders with remote JSON block-lists via
 the Control D REST API. The codebase is split into focused modules; `main.py` is
-only the CLI/bootstrap/wiring entry point. No frontend, no database, no Docker
-required.
+only the CLI/bootstrap/wiring entry point. No frontend or database. Docker is
+optional (`Dockerfile` / `docker-compose.yml`); local CLI use does not require it.
 
 ### Runtime
 
