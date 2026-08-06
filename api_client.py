@@ -21,7 +21,6 @@ the signature ``(Any) -> str`` is accepted.
 
 from __future__ import annotations
 
-import contextlib
 import logging
 import random
 import threading
@@ -127,8 +126,12 @@ _sanitize_fn: Callable[[Any], str] = str
 def _extract_int_header(headers: httpx.Headers, key: str) -> int | None:
     """Helper to extract and parse an integer header safely."""
     if (val := headers.get(key)) is not None:
-        with contextlib.suppress(ValueError, TypeError):
+        # Optimization: Native try/except is significantly faster than contextlib.suppress
+        # for hot-path integer parsing.
+        try:
             return int(val)
+        except (ValueError, TypeError):
+            pass
     return None
 
 
@@ -293,8 +296,11 @@ def _handle_rate_limit(
         return False
 
     wait_seconds: int | None = None
-    with contextlib.suppress(ValueError):
+    # Optimization: Native try/except is significantly faster than contextlib.suppress
+    try:
         wait_seconds = int(retry_after)
+    except ValueError:
+        pass
 
     if wait_seconds is not None:
         log.warning(
