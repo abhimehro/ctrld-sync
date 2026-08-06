@@ -441,7 +441,7 @@ def _prompt_for_missing_config(profile_ids: list[str]) -> None:
         p_input = get_validated_input(
             f"{Colors.BOLD}👤 Enter Control D Profile ID {Colors.DIM}(comma-separate for multiple){Colors.ENDC}: ",
             validate_profile_input,
-            "Invalid ID(s) or URL(s). Must be a valid Profile ID or a Control D Profile URL. Comma-separate for multiple.",
+            "Invalid ID or URL. Must be a valid Profile ID or a Control D Profile URL. Comma-separate for multiple.",
         )
         profile_ids.extend(
             [extract_profile_id(p) for p in p_input.split(",") if p.strip()]
@@ -530,7 +530,7 @@ def parse_args() -> argparse.Namespace:
         "--profiles", help="Comma-separated list of profile IDs", default=None
     )
     parser.add_argument(
-        "--folder-url", action="append", help="Folder JSON URL(s)", default=None
+        "--folder-url", action="append", help="Folder JSON URL (repeatable)", default=None
     )
     parser.add_argument("--dry-run", action="store_true", help="Plan only")
     parser.add_argument(
