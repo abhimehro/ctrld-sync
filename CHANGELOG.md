@@ -12,7 +12,12 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-08-04 [\#1118](https://github.com/abhimehro/ctrld-sync/issues/1118)
+- Daily QA & Agentic Review — 2026-08-03 [\#1116](https://github.com/abhimehro/ctrld-sync/issues/1116)
+- Daily QA & Agentic Review — 2026-08-02 [\#1112](https://github.com/abhimehro/ctrld-sync/issues/1112)
 - \[repo-automation\] Weekly Retrospective - 2026-08-02 [\#1110](https://github.com/abhimehro/ctrld-sync/issues/1110)
+- Daily QA & Agentic Review — 2026-08-01 [\#1106](https://github.com/abhimehro/ctrld-sync/issues/1106)
+- Daily QA & Agentic Review — 2026-07-30 [\#1084](https://github.com/abhimehro/ctrld-sync/issues/1084)
 - \[repo-health\] Continue extracting helpers out of main.py [\#1082](https://github.com/abhimehro/ctrld-sync/issues/1082)
 - Daily QA & Agentic Review — 2026-07-29 [\#1077](https://github.com/abhimehro/ctrld-sync/issues/1077)
 - Daily QA & Agentic Review — 2026-07-28 [\#1073](https://github.com/abhimehro/ctrld-sync/issues/1073)
@@ -48,6 +53,8 @@
 
 **Merged pull requests:**
 
+- ⚡ Bolt: Optimize rate limit header parsing [\#1122](https://github.com/abhimehro/ctrld-sync/pull/1122) ([abhimehro](https://github.com/abhimehro))
+- 🎨 Palette: Grammatical Polish for hardcoded \(s\) [\#1121](https://github.com/abhimehro/ctrld-sync/pull/1121) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Fix CLI grammatical pluralization in success message [\#1119](https://github.com/abhimehro/ctrld-sync/pull/1119) ([abhimehro](https://github.com/abhimehro))
 - chore: Automated QA formatting fixes [\#1113](https://github.com/abhimehro/ctrld-sync/pull/1113) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Add proactive hint to Profile ID prompt [\#1111](https://github.com/abhimehro/ctrld-sync/pull/1111) ([abhimehro](https://github.com/abhimehro))
