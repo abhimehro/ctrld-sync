@@ -65,7 +65,7 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
 
 3. **Configure secrets** Create a `.env` file (or set GitHub secrets) with:
 
-   ```py
+   ```env
    TOKEN=your_control_d_api_token
    PROFILE=your_profile_id  # or comma-separated list of profile ids (e.g. your_id_1,your_id_2)
    ```

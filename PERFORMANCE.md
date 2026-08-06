@@ -56,8 +56,10 @@ Add to `main.py` for function-level timing:
 import time
 from functools import wraps
 
+
 def timed(func):
     """Decorator to measure and log execution time."""
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         start = time.perf_counter()
@@ -65,6 +67,7 @@ def timed(func):
         elapsed = time.perf_counter() - start
         log.info(f"⏱️  {func.__name__} completed in {elapsed:.2f}s")
         return result
+
     return wrapper
 ```
 
@@ -94,19 +97,19 @@ def example_sync_workflow():
     # Your actual folder fetching logic here
     folder_data_list = []  # Results from concurrent futures
     t2 = time.perf_counter()
-    log.info(f"⏱️  Fetched {len(folder_data_list)} folders in {t2-t1:.2f}s")
+    log.info(f"⏱️  Fetched {len(folder_data_list)} folders in {t2 - t1:.2f}s")
 
     # Stage 2: Delete folders
     # Your actual folder deletion logic here
     t3 = time.perf_counter()
-    log.info(f"⏱️  Deleted folders in {t3-t2:.2f}s")
+    log.info(f"⏱️  Deleted folders in {t3 - t2:.2f}s")
 
     # Stage 3: Push rules
     # Your actual rule pushing logic here
     t4 = time.perf_counter()
-    log.info(f"⏱️  Pushed rules in {t4-t3:.2f}s")
+    log.info(f"⏱️  Pushed rules in {t4 - t3:.2f}s")
 
-    log.info(f"⏱️  TOTAL sync time: {t4-t0:.2f}s")
+    log.info(f"⏱️  TOTAL sync time: {t4 - t0:.2f}s")
 ```
 
 **Why this matters:** Without baseline numbers, every optimization is a guess.
@@ -126,6 +129,7 @@ Add a call counter to your API wrapper:
 ```python
 import threading
 
+
 class APICallTracker:
     def __init__(self):
         self.calls = {"GET": 0, "POST": 0, "DELETE": 0}
@@ -139,12 +143,15 @@ class APICallTracker:
         total = sum(self.calls.values())
         return f"API calls: {total} total ({', '.join(f'{k}:{v}' for k, v in self.calls.items())})"
 
+
 # Global tracker
 api_tracker = APICallTracker()
+
 
 def _api_get(client, url, **kwargs):
     api_tracker.record("GET")
     # existing implementation
+
 
 # At end of sync:
 log.info(api_tracker.summary())
@@ -170,6 +177,7 @@ import time
 import pytest
 from main import push_rules
 
+
 @pytest.mark.benchmark
 def test_push_rules_benchmark_10k():
     """Benchmark pushing 10,000 rules."""
@@ -186,6 +194,7 @@ def test_push_rules_benchmark_10k():
         Placeholder HTTP client for benchmarking example.
         Replace with your real client or test fixture that matches push_rules expectations.
         """
+
         pass
 
     mock_client = DummyClient()

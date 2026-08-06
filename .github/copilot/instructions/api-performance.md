@@ -95,6 +95,7 @@ Test individual API operations in isolation:
 ```python
 # Measure single API call latency
 import time
+
 start = time.time()
 response = _api_get(client, f"{API_BASE}/{profile_id}")
 print(f"GET latency: {time.time() - start:.3f}s")
@@ -232,10 +233,7 @@ Simulate rate limit scenarios:
 ```python
 # Mock 429 response in tests
 mock_response.status_code = 429
-mock_response.headers = {
-    "Retry-After": "5",
-    "X-RateLimit-Remaining": "0"
-}
+mock_response.headers = {"Retry-After": "5", "X-RateLimit-Remaining": "0"}
 
 # Verify retry logic respects Retry-After
 # See tests/test_rate_limit.py for examples
