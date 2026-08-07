@@ -10,3 +10,14 @@ updates:
     labels:
       - "dependencies"
       - "github_actions"
+
+  # uv lockfile / pyproject dependency updates
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    assignees:
+      - "abhimehro"
+    labels:
+      - "dependencies"
+      - "python"
