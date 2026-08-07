@@ -12,6 +12,7 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-08-06 [\#1125](https://github.com/abhimehro/ctrld-sync/issues/1125)
 - Daily QA & Agentic Review — 2026-08-04 [\#1118](https://github.com/abhimehro/ctrld-sync/issues/1118)
 - Daily QA & Agentic Review — 2026-08-03 [\#1116](https://github.com/abhimehro/ctrld-sync/issues/1116)
 - Daily QA & Agentic Review — 2026-08-02 [\#1112](https://github.com/abhimehro/ctrld-sync/issues/1112)
@@ -53,6 +54,13 @@
 
 **Merged pull requests:**
 
+- chore\(deps-dev\): bump pytest-cov from 7.0.0 to 7.1.0 [\#1132](https://github.com/abhimehro/ctrld-sync/pull/1132) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump github/gh-aw/actions/setup from 0.83.4 to 0.84.3 [\#1131](https://github.com/abhimehro/ctrld-sync/pull/1131) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump pnpm/action-setup from 6.0.9 to 6.0.10 [\#1130](https://github.com/abhimehro/ctrld-sync/pull/1130) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump github/gh-aw from 0.83.4 to 0.84.3 [\#1129](https://github.com/abhimehro/ctrld-sync/pull/1129) ([dependabot[bot]](https://github.com/apps/dependabot))
+- 🎨 Palette: Improve error message grammar for comma-separated inputs [\#1127](https://github.com/abhimehro/ctrld-sync/pull/1127) ([abhimehro](https://github.com/abhimehro))
+- fix\(deps\): bump pygments 2.19.2 → 2.20.0 \(CVE-2026-4539\) [\#1126](https://github.com/abhimehro/ctrld-sync/pull/1126) ([cursor[bot]](https://github.com/apps/cursor))
+- chore\(repo-health\): align version, ruff pin, Dependabot uv, Docker docs [\#1123](https://github.com/abhimehro/ctrld-sync/pull/1123) ([cursor[bot]](https://github.com/apps/cursor))
 - ⚡ Bolt: Optimize rate limit header parsing [\#1122](https://github.com/abhimehro/ctrld-sync/pull/1122) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Grammatical Polish for hardcoded \(s\) [\#1121](https://github.com/abhimehro/ctrld-sync/pull/1121) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Fix CLI grammatical pluralization in success message [\#1119](https://github.com/abhimehro/ctrld-sync/pull/1119) ([abhimehro](https://github.com/abhimehro))
