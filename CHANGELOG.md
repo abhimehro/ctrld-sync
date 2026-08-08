@@ -4,6 +4,10 @@
 
 [Full Changelog](https://github.com/abhimehro/ctrld-sync/compare/v0.1.1...HEAD)
 
+**Changed:**
+
+- Refactored `config.py` validation flow by splitting `_validate_config` into per-section helpers and named predicates while preserving behavior and error messages. [\#1095](https://github.com/abhimehro/ctrld-sync/issues/1095)
+
 **Security fixes:**
 
 - P1: SSRF - User-Controlled URLs with Outbound Requests [\#1024](https://github.com/abhimehro/ctrld-sync/issues/1024)
