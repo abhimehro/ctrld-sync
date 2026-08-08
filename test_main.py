@@ -474,7 +474,7 @@ def test_interactive_input_extracts_id(monkeypatch, capsys):
 
     # Verify sync_profile called with extracted ID
     args, _ = mock_sync.call_args
-    assert args[0] == "extracted_id"
+    assert args[0].profile_id == "extracted_id"
 
     # Verify prompt text update
     captured = capsys.readouterr()
