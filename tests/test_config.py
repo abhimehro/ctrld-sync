@@ -265,3 +265,106 @@ def test_config_yaml_example_is_valid():
     cfg = main.load_config(config_path=str(example))
     assert "folders" in cfg
     assert len(cfg["folders"]) > 0
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Characterization tests for _validate_config behavior
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize(
+    "cfg, expected",
+    [
+        ({}, "Configuration is missing the required 'folders' key."),
+        ({"folders": None}, "'folders' must be a non-empty list."),
+        ({"folders": []}, "'folders' must be a non-empty list."),
+        ({"folders": "x"}, "'folders' must be a non-empty list."),
+        ({"folders": ["x"]}, "folders[0] must be a mapping, got str."),
+        (
+            {"folders": [{}]},
+            "folders[0]: 'url' must be an https:// string (got '').",
+        ),
+        # ordering: folders error must win over a broken settings block
+        (
+            {"folders": [{}], "settings": "bad"},
+            "folders[0]: 'url' must be an https:// string (got '').",
+        ),
+        # ordering: allowed_blocklist_domains must be checked before settings
+        (
+            {
+                "folders": [{"url": "https://e.com/f.json"}],
+                "allowed_blocklist_domains": "nope",
+                "settings": "bad",
+            },
+            "'allowed_blocklist_domains' must be a list.",
+        ),
+        (
+            {"folders": [{"url": "https://e.com/f.json"}], "settings": None},
+            "'settings' must be a mapping.",
+        ),
+    ],
+)
+def test_validate_config_exact_error_messages(cfg, expected):
+    with pytest.raises(ValueError) as exc:
+        main._validate_config(cfg)
+    assert str(exc.value) == expected
+
+
+@pytest.mark.parametrize("name", ["", None, 0, []])
+def test_validate_config_falsy_name_is_accepted(name):
+    """Falsy `name` short-circuits the truthiness gate — preserved quirk."""
+    main._validate_config({"folders": [{"url": "https://e.com/f.json", "name": name}]})
+
+
+def test_validate_config_action_null_is_accepted():
+    """`action: null` is accepted by the `is not None` gate."""
+    main._validate_config(
+        {"folders": [{"url": "https://e.com/f.json", "action": None}]}
+    )
+
+
+def test_validate_config_settings_empty_dict_is_accepted():
+    main._validate_config(
+        {"folders": [{"url": "https://e.com/f.json"}], "settings": {}}
+    )
+
+
+def test_validate_config_settings_bool_true_for_batch_size_is_accepted():
+    """`bool` passes `isinstance(True, int)` — preserved quirk."""
+    main._validate_config(
+        {
+            "folders": [{"url": "https://e.com/f.json"}],
+            "settings": {"batch_size": True},
+        }
+    )
+
+
+@pytest.mark.parametrize(
+    "allowed_blocklist_domains, expected",
+    [
+        (None, None),
+        (
+            "nope",
+            "'allowed_blocklist_domains' must be a list.",
+        ),
+        (
+            [""],
+            "allowed_blocklist_domains[0]: must be a non-empty string (got '').",
+        ),
+        (
+            [123],
+            "allowed_blocklist_domains[0]: must be a non-empty string (got 123).",
+        ),
+    ],
+)
+def test_validate_config_allowed_blocklist_domains(allowed_blocklist_domains, expected):
+    cfg = {
+        "folders": [{"url": "https://e.com/f.json"}],
+        "allowed_blocklist_domains": allowed_blocklist_domains,
+    }
+    if expected is None:
+        main._validate_config(cfg)  # must not raise
+    else:
+        with pytest.raises(ValueError) as exc:
+            main._validate_config(cfg)
+        assert str(exc.value) == expected

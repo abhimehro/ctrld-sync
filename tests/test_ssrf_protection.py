@@ -124,4 +124,5 @@ def test_folder_url_broken_discovered_config_falls_back(tmp_path, monkeypatch):
     assert urls == ["https://raw.githubusercontent.com/test/file.json"]
     assert cfg is None
     # Fallback to defaults means the GitHub-only allowlist is active again.
-    assert main._ALLOWED_BLOCKLIST_DOMAINS == main.DEFAULT_ALLOWED_BLOCKLIST_DOMAINS
+    # main._ALLOWED_BLOCKLIST_DOMAINS is provided by a runtime __getattr__ hook.
+    assert main._ALLOWED_BLOCKLIST_DOMAINS == main.DEFAULT_ALLOWED_BLOCKLIST_DOMAINS  # type: ignore[attr-defined]

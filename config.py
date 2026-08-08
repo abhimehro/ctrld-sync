@@ -98,6 +98,64 @@ def get_default_config() -> dict:
     }
 
 
+def _is_invalid_url(url: object) -> bool:
+    return not isinstance(url, str) or not url.startswith("https://")
+
+
+def _is_invalid_name(name: object) -> bool:
+    if not name:
+        return False
+    if not isinstance(name, str):
+        return True
+    return not name.strip()
+
+
+def _is_invalid_positive_int(val: object) -> bool:
+    if val is None:
+        return False
+    if not isinstance(val, int):
+        return True
+    return val <= 0
+
+
+def _validate_folders(folders: object) -> None:
+    if not isinstance(folders, list) or not folders:
+        raise ValueError("'folders' must be a non-empty list.")
+    for i, entry in enumerate(folders):
+        _validate_folder_entry(entry, i)
+
+
+def _validate_folder_entry(entry: object, index: int) -> None:
+    if not isinstance(entry, dict):
+        raise ValueError(
+            f"folders[{index}] must be a mapping, got {type(entry).__name__}."
+        )
+    url = entry.get("url", "")
+    if _is_invalid_url(url):
+        raise ValueError(
+            f"folders[{index}]: 'url' must be an https:// string (got {url!r})."
+        )
+    name = entry.get("name", "")
+    if _is_invalid_name(name):
+        raise ValueError(f"folders[{index}]: 'name' must be a non-empty string.")
+    action = entry.get("action")
+    if action is not None and action not in ("block", "allow"):
+        raise ValueError(
+            f"folders[{index}]: 'action' must be 'block' or 'allow' (got {action!r})."
+        )
+
+
+def _validate_settings(settings: object) -> None:
+    if not isinstance(settings, dict):
+        raise ValueError("'settings' must be a mapping.")
+    for key in ("batch_size", "delete_workers", "max_retries"):
+        val = settings.get(key)
+        if _is_invalid_positive_int(val):
+            raise ValueError(
+                f"settings.{key} must be a positive integer (got {val!r})."
+            )
+
+
 def _validate_config(config: dict) -> None:
     """
     Validate a loaded configuration dict and raise ValueError on the first problem.
@@ -111,41 +169,9 @@ def _validate_config(config: dict) -> None:
     """
     if "folders" not in config:
         raise ValueError("Configuration is missing the required 'folders' key.")
-
-    folders = config["folders"]
-    if not isinstance(folders, list) or not folders:
-        raise ValueError("'folders' must be a non-empty list.")
-
-    for i, entry in enumerate(folders):
-        if not isinstance(entry, dict):
-            raise ValueError(
-                f"folders[{i}] must be a mapping, got {type(entry).__name__}."
-            )
-        url = entry.get("url", "")
-        if not isinstance(url, str) or not url.startswith("https://"):
-            raise ValueError(
-                f"folders[{i}]: 'url' must be an https:// string (got {url!r})."
-            )
-        name = entry.get("name", "")
-        if name and (not isinstance(name, str) or not name.strip()):
-            raise ValueError(f"folders[{i}]: 'name' must be a non-empty string.")
-        action = entry.get("action")
-        if action is not None and action not in ("block", "allow"):
-            raise ValueError(
-                f"folders[{i}]: 'action' must be 'block' or 'allow' (got {action!r})."
-            )
-
+    _validate_folders(config["folders"])
     _validate_allowed_blocklist_domains(config.get("allowed_blocklist_domains"))
-
-    settings = config.get("settings", {})
-    if not isinstance(settings, dict):
-        raise ValueError("'settings' must be a mapping.")
-    for key in ("batch_size", "delete_workers", "max_retries"):
-        val = settings.get(key)
-        if val is not None and (not isinstance(val, int) or val <= 0):
-            raise ValueError(
-                f"settings.{key} must be a positive integer (got {val!r})."
-            )
+    _validate_settings(config.get("settings", {}))
 
 
 def _read_config_yaml(
