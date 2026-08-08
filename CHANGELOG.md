@@ -4,10 +4,6 @@
 
 [Full Changelog](https://github.com/abhimehro/ctrld-sync/compare/v0.1.1...HEAD)
 
-**Changed:**
-
-- Refactored `config.py` validation flow by splitting `_validate_config` into per-section helpers and named predicates while preserving behavior and error messages. [\#1095](https://github.com/abhimehro/ctrld-sync/issues/1095)
-
 **Security fixes:**
 
 - P1: SSRF - User-Controlled URLs with Outbound Requests [\#1024](https://github.com/abhimehro/ctrld-sync/issues/1024)
@@ -16,12 +12,17 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-08-07 [\#1137](https://github.com/abhimehro/ctrld-sync/issues/1137)
 - Daily QA & Agentic Review — 2026-08-06 [\#1125](https://github.com/abhimehro/ctrld-sync/issues/1125)
+- \[repo-health\] Dual requirements\*.txt vs Docker/uv migration + stale branch cleanup [\#1124](https://github.com/abhimehro/ctrld-sync/issues/1124)
+- Daily QA & Agentic Review — 2026-08-05 [\#1120](https://github.com/abhimehro/ctrld-sync/issues/1120)
 - Daily QA & Agentic Review — 2026-08-04 [\#1118](https://github.com/abhimehro/ctrld-sync/issues/1118)
 - Daily QA & Agentic Review — 2026-08-03 [\#1116](https://github.com/abhimehro/ctrld-sync/issues/1116)
 - Daily QA & Agentic Review — 2026-08-02 [\#1112](https://github.com/abhimehro/ctrld-sync/issues/1112)
 - \[repo-automation\] Weekly Retrospective - 2026-08-02 [\#1110](https://github.com/abhimehro/ctrld-sync/issues/1110)
 - Daily QA & Agentic Review — 2026-08-01 [\#1106](https://github.com/abhimehro/ctrld-sync/issues/1106)
+- \[repo-health\] Refactor config.py validation flow without behavior changes [\#1095](https://github.com/abhimehro/ctrld-sync/issues/1095)
+- \[repo-health\] Capture CodeScene baseline and acceptance criteria [\#1094](https://github.com/abhimehro/ctrld-sync/issues/1094)
 - Daily QA & Agentic Review — 2026-07-30 [\#1084](https://github.com/abhimehro/ctrld-sync/issues/1084)
 - \[repo-health\] Continue extracting helpers out of main.py [\#1082](https://github.com/abhimehro/ctrld-sync/issues/1082)
 - Daily QA & Agentic Review — 2026-07-29 [\#1077](https://github.com/abhimehro/ctrld-sync/issues/1077)
@@ -58,6 +59,7 @@
 
 **Merged pull requests:**
 
+- refactor\(config\): split \_validate\_config into per-section helpers [\#1140](https://github.com/abhimehro/ctrld-sync/pull/1140) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps-dev\): bump pytest-cov from 7.0.0 to 7.1.0 [\#1132](https://github.com/abhimehro/ctrld-sync/pull/1132) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump github/gh-aw/actions/setup from 0.83.4 to 0.84.3 [\#1131](https://github.com/abhimehro/ctrld-sync/pull/1131) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump pnpm/action-setup from 6.0.9 to 6.0.10 [\#1130](https://github.com/abhimehro/ctrld-sync/pull/1130) ([dependabot[bot]](https://github.com/apps/dependabot))
