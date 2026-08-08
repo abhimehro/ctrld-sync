@@ -49,7 +49,7 @@ def _validate_content_type(url: str, r: httpx.Response) -> None:
         )
 
 
-def _content_length_exceeds_limit(url: str, cl: str | None) -> int | None:
+def _content_length_if_over_limit(url: str, cl: str | None) -> int | None:
     """Return the parsed Content-Length if it exceeds MAX_RESPONSE_SIZE.
 
     Logs a warning and returns None when the header is malformed or within the
@@ -72,7 +72,7 @@ def _content_length_exceeds_limit(url: str, cl: str | None) -> int | None:
 
 def _read_body(url: str, r: httpx.Response) -> bytes:
     """Stream and return the response body, enforcing MAX_RESPONSE_SIZE."""
-    declared = _content_length_exceeds_limit(url, r.headers.get("Content-Length"))
+    declared = _content_length_if_over_limit(url, r.headers.get("Content-Length"))
     if declared is not None:
         raise ValueError(
             f"Response too large from {sanitize_for_log(url)} "
