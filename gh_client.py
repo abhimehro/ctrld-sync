@@ -49,14 +49,14 @@ def _validate_content_type(url: str, r: httpx.Response) -> None:
         )
 
 
-def _content_length_exceeds_limit(url: str, cl: str | None) -> bool:
-    """Return True iff the declared Content-Length exceeds the max response size.
+def _content_length_exceeds_limit(url: str, cl: str | None) -> int | None:
+    """Return the parsed Content-Length if it exceeds MAX_RESPONSE_SIZE.
 
-    Logs a warning and returns False when the header is malformed so the caller
-    can fall back to the streaming size check.
+    Logs a warning and returns None when the header is malformed or within the
+    limit, so the caller can fall back to the streaming size check.
     """
     if not cl:
-        return False
+        return None
     try:
         declared = int(cl)
     except ValueError:
@@ -64,15 +64,16 @@ def _content_length_exceeds_limit(url: str, cl: str | None) -> bool:
             f"Malformed Content-Length header from {sanitize_for_log(url)}: "
             f"{sanitize_for_log(cl)}. Falling back to streaming check."
         )
-        return False
-    return declared > config.MAX_RESPONSE_SIZE
+        return None
+    if declared > config.MAX_RESPONSE_SIZE:
+        return declared
+    return None
 
 
 def _read_body(url: str, r: httpx.Response) -> bytes:
     """Stream and return the response body, enforcing MAX_RESPONSE_SIZE."""
-    if _content_length_exceeds_limit(url, r.headers.get("Content-Length")):
-        cl = r.headers.get("Content-Length")
-        declared = int(cast(str, cl))
+    declared = _content_length_exceeds_limit(url, r.headers.get("Content-Length"))
+    if declared is not None:
         raise ValueError(
             f"Response too large from {sanitize_for_log(url)} "
             f"({declared / (1024 * 1024):.2f} MB)"
@@ -191,7 +192,7 @@ def _fetch_unconditional(url: str, headers: dict[str, str]) -> dict:
 
 
 def _sanitize_http_status_error(e: httpx.HTTPStatusError) -> httpx.HTTPStatusError:
-    """Re-raise an HTTPStatusError with a sanitized message."""
+    """Construct an HTTPStatusError whose message has been sanitized."""
     return httpx.HTTPStatusError(
         sanitize_for_log(str(e)),
         request=e.request,

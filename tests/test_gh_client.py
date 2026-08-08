@@ -33,9 +33,14 @@ def _make_stream_response(
     """Build a MagicMock that behaves like an httpx streaming response context."""
     response = MagicMock()
     response.status_code = status_code
-    response.headers = {"Content-Type": "application/json"} | (headers or {})
+    merged_headers = {"Content-Type": "application/json"} | (headers or {})
+    response.headers = httpx.Headers(merged_headers)
     if body is not None:
-        response.iter_bytes = MagicMock(return_value=[body])
+        response.iter_bytes = MagicMock(
+            side_effect=lambda chunk_size=16 * 1024: (
+                body[i : i + chunk_size] for i in range(0, len(body), chunk_size)
+            )
+        )
     else:
         response.iter_bytes = MagicMock(return_value=[])
     response.raise_for_status = MagicMock()
@@ -95,12 +100,12 @@ class TestParseAndCacheResponse:
         misses_before = cache._cache_stats["misses"]
         result = gh_client._parse_and_cache_response(url, response)
 
-        assert result == data
-        assert cache._cache_stats["misses"] == misses_before + 1
-        assert cache._disk_cache[url]["data"] == data
-        assert "etag" in cache._disk_cache[url]
-        assert "fetched_at" in cache._disk_cache[url]
-        assert "last_validated" in cache._disk_cache[url]
+        assert result == data  # nosec B101
+        assert cache._cache_stats["misses"] == misses_before + 1  # nosec B101
+        assert cache._disk_cache[url]["data"] == data  # nosec B101
+        assert "etag" in cache._disk_cache[url]  # nosec B101
+        assert "fetched_at" in cache._disk_cache[url]  # nosec B101
+        assert "last_validated" in cache._disk_cache[url]  # nosec B101
 
     @pytest.mark.parametrize(
         "content_type",
@@ -119,7 +124,7 @@ class TestParseAndCacheResponse:
         )
 
         result = gh_client._parse_and_cache_response(url, response)
-        assert result == data
+        assert result == data  # nosec B101
 
     @pytest.mark.parametrize(
         "content_type",
@@ -147,8 +152,8 @@ class TestParseAndCacheResponse:
         with caplog.at_level(logging.WARNING):
             result = gh_client._parse_and_cache_response(url, response)
 
-        assert result == data
-        assert "Malformed Content-Length header" in caplog.text
+        assert result == data  # nosec B101
+        assert "Malformed Content-Length header" in caplog.text  # nosec B101
         response.iter_bytes.assert_called_once()
 
     def test_malformed_content_length_falls_back_to_streaming(self, caplog):
@@ -162,8 +167,8 @@ class TestParseAndCacheResponse:
         with caplog.at_level(logging.WARNING):
             result = gh_client._parse_and_cache_response(url, response)
 
-        assert result == data
-        assert "Malformed Content-Length header" in caplog.text
+        assert result == data  # nosec B101
+        assert "Malformed Content-Length header" in caplog.text  # nosec B101
 
     def test_content_length_over_max_raises_before_reading_body(self):
         url = "https://example.com/huge.json"
@@ -180,11 +185,8 @@ class TestParseAndCacheResponse:
     def test_streaming_body_over_max_raises_during_iteration(self):
         url = "https://example.com/huge.json"
         response = _make_stream_response(
-            body=None,
+            body=b"x" * (config.MAX_RESPONSE_SIZE + 1),
             headers={"Content-Length": str(config.MAX_RESPONSE_SIZE - 1)},
-        )
-        response.iter_bytes = MagicMock(
-            return_value=[b"x" * (config.MAX_RESPONSE_SIZE + 1)]
         )
 
         with pytest.raises(ValueError, match="Response too large"):
@@ -199,7 +201,7 @@ class TestParseAndCacheResponse:
         with pytest.raises(ValueError, match="Invalid JSON response"):
             gh_client._parse_and_cache_response(url, response)
 
-        assert url not in cache._disk_cache
+        assert url not in cache._disk_cache  # nosec B101
 
 
 class TestGhGet:
@@ -214,8 +216,8 @@ class TestGhGet:
         with patch.object(gh_client._gh, "stream") as mock_stream:
             result = gh_client._gh_get(url)
 
-        assert result is data
-        assert cache._cache_stats["hits"] == hits_before + 1
+        assert result is data  # nosec B101
+        assert cache._cache_stats["hits"] == hits_before + 1  # nosec B101
         mock_stream.assert_not_called()
 
     def test_disk_ttl_hit_returns_without_http_and_counts_fetch(self):
@@ -235,11 +237,11 @@ class TestGhGet:
         with patch.object(gh_client._gh, "stream") as mock_stream:
             result = gh_client._gh_get(url)
 
-        assert result == data
-        assert result is data
-        assert cache._cache_stats["hits"] == hits_before + 1
-        assert api_client._api_stats["blocklist_fetches"] == fetches_before + 1
-        assert gh_client._cache[url] is data
+        assert result == data  # nosec B101
+        assert result is data  # nosec B101
+        assert cache._cache_stats["hits"] == hits_before + 1  # nosec B101
+        assert api_client._api_stats["blocklist_fetches"] == fetches_before + 1  # nosec B101
+        assert gh_client._cache[url] is data  # nosec B101
         mock_stream.assert_not_called()
 
     @pytest.mark.parametrize(
@@ -284,8 +286,8 @@ class TestGhGet:
         with patch.object(gh_client._gh, "stream", side_effect=mock_stream):
             result = gh_client._gh_get(url)
 
-        assert result == data
-        assert captured["headers"] == expected_headers
+        assert result == data  # nosec B101
+        assert captured["headers"] == expected_headers  # nosec B101
 
     def test_304_with_cached_data_validates_and_updates_timestamp(self):
         url = "https://example.com/304.json"
@@ -304,10 +306,10 @@ class TestGhGet:
         with patch.object(gh_client._gh, "stream", return_value=response):
             result = gh_client._gh_get(url)
 
-        assert result is data
-        assert cache._cache_stats["validations"] == validations_before + 1
-        assert gh_client._cache[url] is data
-        assert cache._disk_cache[url]["last_validated"] > 0.0
+        assert result is data  # nosec B101
+        assert cache._cache_stats["validations"] == validations_before + 1  # nosec B101
+        assert gh_client._cache[url] is data  # nosec B101
+        assert cache._disk_cache[url]["last_validated"] > 0.0  # nosec B101
 
     def test_304_without_cached_data_retries_unconditionally(self, caplog):
         url = "https://example.com/304-retry.json"
@@ -329,10 +331,10 @@ class TestGhGet:
         def mock_stream(method, stream_url, headers=None):
             if not call_count:
                 call_count.append(1)
-                assert headers.get("If-None-Match") == "abc123"
+                assert headers.get("If-None-Match") == "abc123"  # nosec B101
                 return resp_304
             call_count.append(2)
-            assert headers == {}
+            assert headers == {}  # nosec B101
             return resp_200
 
         with caplog.at_level(logging.WARNING):
@@ -341,10 +343,10 @@ class TestGhGet:
             ) as patched_stream:
                 result = gh_client._gh_get(url)
 
-        assert result == data
-        assert cache._cache_stats["errors"] == errors_before + 1
-        assert "Got 304 but no cached data" in caplog.text
-        assert patched_stream.call_count == 2
+        assert result == data  # nosec B101
+        assert cache._cache_stats["errors"] == errors_before + 1  # nosec B101
+        assert "Got 304 but no cached data" in caplog.text  # nosec B101
+        assert patched_stream.call_count == 2  # nosec B101
 
     def test_http_status_error_is_sanitized_and_suppresses_cause(self, monkeypatch):
         url = "https://example.com/secret.json?token=TOPSECRET"
@@ -357,9 +359,9 @@ class TestGhGet:
             with pytest.raises(httpx.HTTPStatusError) as exc_info:
                 gh_client._gh_get(url)
 
-        assert "TOPSECRET" not in str(exc_info.value)
-        assert "[REDACTED]" in str(exc_info.value)
-        assert exc_info.value.__cause__ is None
+        assert "TOPSECRET" not in str(exc_info.value)  # nosec B101
+        assert "[REDACTED]" in str(exc_info.value)  # nosec B101
+        assert exc_info.value.__cause__ is None  # nosec B101
 
     def test_double_checked_locking_returns_first_callers_object(self):
         url = "https://example.com/race.json"
@@ -396,9 +398,9 @@ class TestGhGet:
                 for t in threads:
                     t.join()
 
-        assert not errors
-        assert len(results) == 2
-        assert results[0] is results[1]
+        assert not errors  # nosec B101
+        assert len(results) == 2  # nosec B101
+        assert results[0] is results[1]  # nosec B101
 
 
 class TestFetchFolderData:
@@ -411,7 +413,7 @@ class TestFetchFolderData:
         with patch.object(gh_client, "_gh_get", return_value=data):
             result = gh_client.fetch_folder_data(url)
 
-        assert result is data
+        assert result is data  # nosec B101
 
     def test_http_error_includes_status_hint_and_sanitized_url(self):
         url = "https://example.com/folder.json?token=SECRET"
@@ -422,9 +424,9 @@ class TestFetchFolderData:
                 gh_client.fetch_folder_data(url)
 
         msg = str(exc_info.value)
-        assert "TOKEN" in msg
-        assert "SECRET" not in msg
-        assert "example.com/folder.json" in msg
+        assert "TOKEN" in msg  # nosec B101
+        assert "SECRET" not in msg  # nosec B101
+        assert "example.com/folder.json" in msg  # nosec B101
 
     def test_validation_failure_raises_key_error(self):
         url = "https://example.com/folder.json"
@@ -458,7 +460,7 @@ class TestWarmUpCache:
             gh_client.warm_up_cache(urls)
 
         completion.assert_called_once_with("Warming up cache: Done!")
-        assert any("Failed to pre-fetch" in r.message for r in caplog.records)
+        assert any("Failed to pre-fetch" in r.message for r in caplog.records)  # nosec B101
 
     def test_skips_urls_already_in_memory_cache(self, monkeypatch):
         url = "https://example.com/already.json"
@@ -483,5 +485,5 @@ class TestValidateAndFetchUrl:
 
         result = gh_client._validate_and_fetch_url(url)
 
-        assert result is None
+        assert result is None  # nosec B101
         fake_gh_get.assert_not_called()
