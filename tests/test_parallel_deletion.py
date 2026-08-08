@@ -92,7 +92,12 @@ def test_parallel_deletion_uses_threadpool(mock_env, monkeypatch):
 
     with patch("concurrent.futures.ThreadPoolExecutor", TrackedExecutor):
         main.sync_profile(
-            "test-profile", ["url1", "url2"], token=TEST_TOKEN, no_delete=False
+            main.SyncProfileOptions(
+                profile_id="test-profile",
+                folder_urls=["url1", "url2"],
+                token=TEST_TOKEN,
+                no_delete=False,
+            )
         )
 
     # Verify ThreadPoolExecutor was called with DELETE_WORKERS
@@ -156,7 +161,14 @@ def test_parallel_deletion_handles_exceptions(mock_env, monkeypatch):
     monkeypatch.setattr(main.log, "error", mock_error)
 
     # Should not crash, should log error
-    main.sync_profile("test-profile", ["url"], token=TEST_TOKEN, no_delete=False)
+    main.sync_profile(
+        main.SyncProfileOptions(
+            profile_id="test-profile",
+            folder_urls=["url"],
+            token=TEST_TOKEN,
+            no_delete=False,
+        )
+    )
 
     # Verify error was logged
     assert len(log_calls) > 0, "Expected error to be logged"
@@ -211,7 +223,14 @@ def test_parallel_deletion_sanitizes_exception(mock_env, monkeypatch):
     monkeypatch.setattr(main.log, "error", mock_error)
 
     # Run sync
-    main.sync_profile("test-profile", ["url"], token=TEST_TOKEN, no_delete=False)
+    main.sync_profile(
+        main.SyncProfileOptions(
+            profile_id="test-profile",
+            folder_urls=["url"],
+            token=TEST_TOKEN,
+            no_delete=False,
+        )
+    )
 
     # Verify TOKEN was redacted and control chars were escaped
     assert len(log_calls) > 0

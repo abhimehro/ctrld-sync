@@ -3,6 +3,8 @@ import sys
 import unittest
 from unittest.mock import MagicMock, patch
 
+import httpx
+
 # Add root to path to import main
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -182,6 +184,156 @@ class TestPushRulesPerf(unittest.TestCase):
 
         # Verify executor.submit was called twice (once for each batch)
         self.assertEqual(mock_executor.submit.call_count, 2)
+
+    @patch("sync._api_post_form")
+    def test_push_rules_partial_failure_updates_existing_rules(self, mock_api_post):
+        """A failed batch leaves successful batches in existing_rules."""
+        batch_size = self.main.BATCH_SIZE
+        hostnames = [f"example{i}.com" for i in range(batch_size)] + ["bad.com"]
+
+        def side_effect(client, url, data=None):
+            if data and data.get("hostnames[0]") == "bad.com":
+                raise httpx.RequestError("boom")
+            return MagicMock(spec=httpx.Response)
+
+        mock_api_post.side_effect = side_effect
+
+        ctx = self.main.SyncContext(
+            profile_id=self.profile_id,
+            client=self.client,
+            existing_rules=set(),
+        )
+        action = self.main.RuleAction(do=self.do, status=self.status)
+
+        with self.assertLogs("control-d-sync", level="WARNING") as cm:
+            result = self.main.push_rules(
+                ctx,
+                self.folder_name,
+                self.folder_id,
+                action,
+                hostnames,
+            )
+
+        self.assertFalse(result)
+        self.assertEqual(len(ctx.existing_rules), batch_size)
+        self.assertNotIn("bad.com", ctx.existing_rules)
+        self.assertTrue(
+            any("only 1/2 batches succeeded (Partial)" in m for m in cm.output),
+            f"Expected partial-failure log, got: {cm.output}",
+        )
+
+    @patch("sync._api_post_form")
+    def test_push_rules_total_failure_logs_zero_batches(self, mock_api_post):
+        """All failed batches return False and log the total failure."""
+        hostnames = [f"example{i}.com" for i in range(600)]
+        mock_api_post.side_effect = httpx.RequestError("boom")
+
+        ctx = self.main.SyncContext(
+            profile_id=self.profile_id,
+            client=self.client,
+            existing_rules=set(),
+        )
+        action = self.main.RuleAction(do=self.do, status=self.status)
+
+        with self.assertLogs("control-d-sync", level="ERROR") as cm:
+            result = self.main.push_rules(
+                ctx,
+                self.folder_name,
+                self.folder_id,
+                action,
+                hostnames,
+            )
+
+        self.assertFalse(result)
+        self.assertEqual(len(ctx.existing_rules), 0)
+        self.assertTrue(
+            any("0/2 batches succeeded" in m for m in cm.output),
+            f"Expected total-failure log, got: {cm.output}",
+        )
+
+    @patch("sync.concurrent.futures.as_completed")
+    def test_push_rules_provided_executor_is_not_shut_down(self, mock_as_completed):
+        """An externally supplied executor must not be shut down or exited."""
+        batch_size = self.main.BATCH_SIZE
+        hostnames = [f"example{i}.com" for i in range(batch_size + 1)]
+
+        mock_executor = MagicMock()
+        mock_future_1 = MagicMock()
+        mock_future_1.result.return_value = hostnames[:batch_size]
+        mock_future_2 = MagicMock()
+        mock_future_2.result.return_value = hostnames[batch_size:]
+        mock_executor.submit.side_effect = [mock_future_1, mock_future_2]
+        mock_as_completed.return_value = [mock_future_1, mock_future_2]
+
+        ctx = self.main.SyncContext(
+            profile_id=self.profile_id,
+            client=self.client,
+            existing_rules=set(),
+            batch_executor=mock_executor,
+        )
+        action = self.main.RuleAction(do=self.do, status=self.status)
+
+        with patch("sync._api_post_form"):
+            result = self.main.push_rules(
+                ctx,
+                self.folder_name,
+                self.folder_id,
+                action,
+                hostnames,
+            )
+
+        self.assertTrue(result)
+        self.assertEqual(mock_executor.submit.call_count, 2)
+        mock_executor.shutdown.assert_not_called()
+        mock_executor.__exit__.assert_not_called()
+
+    @patch("sync._api_post_form")
+    def test_push_rules_short_final_batch(self, mock_api_post):
+        """A final batch smaller than BATCH_SIZE emits only one hostnames[0] key."""
+        batch_size = self.main.BATCH_SIZE
+        hostnames = [f"example{i}.com" for i in range(batch_size)] + ["final.com"]
+        payloads: list[dict] = []
+
+        def side_effect(client, url, data=None):
+            if data is not None:
+                payloads.append(data.copy())
+            return MagicMock(spec=httpx.Response)
+
+        mock_api_post.side_effect = side_effect
+
+        ctx = self.main.SyncContext(
+            profile_id=self.profile_id,
+            client=self.client,
+            existing_rules=set(),
+        )
+        action = self.main.RuleAction(do=self.do, status=self.status)
+
+        result = self.main.push_rules(
+            ctx,
+            self.folder_name,
+            self.folder_id,
+            action,
+            hostnames,
+        )
+
+        self.assertTrue(result)
+        self.assertEqual(len(payloads), 2)
+
+        hostname_key_counts = [
+            len([k for k in p if k.startswith("hostnames[")]) for p in payloads
+        ]
+        self.assertIn(batch_size, hostname_key_counts)
+        self.assertIn(1, hostname_key_counts)
+
+        short_payloads = [
+            p
+            for p in payloads
+            if len([k for k in p if k.startswith("hostnames[")]) == 1
+        ]
+        self.assertEqual(len(short_payloads), 1)
+        short_payload = short_payloads[0]
+        self.assertEqual(short_payload["hostnames[0]"], "final.com")
+        self.assertNotIn("hostnames[1]", short_payload)
 
 
 if __name__ == "__main__":

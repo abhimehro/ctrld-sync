@@ -9,6 +9,7 @@ import logging
 import sys
 import time
 from collections.abc import Sequence
+from dataclasses import dataclass
 
 
 import httpx
@@ -34,7 +35,7 @@ from display import (
     render_progress_bar,
 )
 from gh_client import _cache, _cache_lock, fetch_folder_data  # noqa: F401
-from models import FolderData, PlanEntry, RuleAction, SyncContext
+from models import FolderData, PlanEntry, RuleAction, SyncContext, SyncProfileOptions
 from validation import (
     _ALLOWED_RULE_CHARS,
     MAX_RULE_LENGTH,
@@ -47,6 +48,63 @@ from validation import (
 )
 
 log = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True, slots=True)
+class _BatchTarget:
+    """Per-folder invariants for a batched rule push."""
+
+    profile_id: str
+    sanitized_name: str
+    str_do: str
+    str_status: str
+    str_group: str
+    progress_label: str
+
+    @classmethod
+    def from_parts(
+        cls,
+        profile_id: str,
+        folder_name: str,
+        folder_id: str,
+        action: RuleAction,
+    ) -> _BatchTarget:
+        sanitized_name = sanitize_for_log(folder_name)
+        return cls(
+            profile_id=profile_id,
+            sanitized_name=sanitized_name,
+            str_do=str(action.do),
+            str_status=str(action.status),
+            str_group=str(folder_id),
+            progress_label=f"Folder {sanitized_name}",
+        )
+
+
+def _managed_batch_executor(
+    ctx: SyncContext,
+) -> contextlib.AbstractContextManager[concurrent.futures.Executor]:
+    """Return a context manager for the batch executor.
+
+    Reuses an externally provided executor when available; otherwise creates a
+    fresh ThreadPoolExecutor with max_workers=4 that is shut down on exit.
+    """
+    if ctx.batch_executor is not None:
+        return contextlib.nullcontext(ctx.batch_executor)
+    return concurrent.futures.ThreadPoolExecutor(max_workers=4)
+
+
+def _run_single_batch(
+    ctx: SyncContext,
+    target: _BatchTarget,
+    batch: list[str],
+) -> int:
+    """Push a single batch synchronously and update state."""
+    result = _push_single_batch(ctx.client, target, 1, batch)
+    successful_batches = 1 if result else 0
+    if result:
+        ctx.existing_rules.update(result)
+    render_progress_bar(successful_batches, 1, target.progress_label)
+    return successful_batches
 
 
 def create_client(token: str) -> httpx.Client:
@@ -540,30 +598,28 @@ def _filter_rules_for_folder(
 
 def _push_single_batch(
     client: httpx.Client,
-    profile_id: str,
-    sanitized_folder_name: str,
-    str_do: str,
-    str_status: str,
-    str_group: str,
+    target: _BatchTarget,
     batch_idx: int,
     batch_data: list[str],
 ) -> list[str] | None:
-    """Processes a single batch of rules by sending API request."""
+    """Process a single batch of rules by sending an API request."""
     data = {
-        "do": str_do,
-        "status": str_status,
-        "group": str_group,
+        "do": target.str_do,
+        "status": target.str_status,
+        "group": target.str_group,
     }
     # Optimization: Use pre-calculated keys and zip for faster dict update
     # strict=False is intentional: batch_data may be shorter than BATCH_KEYS for final batch
     data.update(zip(config.BATCH_KEYS, batch_data, strict=False))
 
     try:
-        _api_post_form(client, f"{config.API_BASE}/{profile_id}/rules", data=data)
+        _api_post_form(
+            client, f"{config.API_BASE}/{target.profile_id}/rules", data=data
+        )
         if not USE_COLORS:
             log.info(
                 "Folder %s – batch %d: added %d %s",
-                sanitized_folder_name,
+                target.sanitized_name,
                 batch_idx,
                 len(batch_data),
                 pluralize(len(batch_data), "rule"),
@@ -577,7 +633,7 @@ def _push_single_batch(
             status_code = e.response.status_code
             hint = f" ({config._STATUS_HINTS.get(status_code, f'HTTP {status_code}')})"
         log.error(
-            f"Failed to push batch {batch_idx} for folder {sanitized_folder_name}{hint}: {sanitize_for_log(e)}"
+            f"Failed to push batch {batch_idx} for folder {target.sanitized_name}{hint}: {sanitize_for_log(e)}"
         )
         response = getattr(e, "response", None)
         if response is not None and log.isEnabledFor(logging.DEBUG):
@@ -588,24 +644,13 @@ def _push_single_batch(
 def _process_batches_with_executor(
     executor: concurrent.futures.Executor,
     ctx: SyncContext,
-    batch_config: tuple[tuple[str, str, str, str], list[list[str]], str],
+    target: _BatchTarget,
+    batches: list[list[str]],
 ) -> int:
     """Process batches using the provided executor and return successful batch count."""
-    batch_params, batches, progress_label = batch_config
-    str_do, str_status, str_group, sanitized_folder_name = batch_params
     successful_batches = 0
     futures = {
-        executor.submit(
-            _push_single_batch,
-            ctx.client,
-            ctx.profile_id,
-            sanitized_folder_name,
-            str_do,
-            str_status,
-            str_group,
-            i,
-            batch,
-        ): i
+        executor.submit(_push_single_batch, ctx.client, target, i, batch): i
         for i, batch in enumerate(batches, 1)
     }
 
@@ -615,13 +660,13 @@ def _process_batches_with_executor(
             successful_batches += 1
             ctx.existing_rules.update(result)
 
-        render_progress_bar(successful_batches, len(batches), progress_label)
+        render_progress_bar(successful_batches, len(batches), target.progress_label)
 
     return successful_batches
 
 
 def _log_batch_result(
-    sanitized_folder_name: str,
+    target: _BatchTarget,
     successful_batches: int,
     total_batches: int,
     total_rules: int,
@@ -629,7 +674,7 @@ def _log_batch_result(
     """Helper to evaluate and log the result of a batch rule push."""
     if successful_batches == total_batches:
         _print_completion(
-            f"Folder {sanitized_folder_name}: Finished ({total_rules:,} {pluralize(total_rules, 'rule')})"
+            f"Folder {target.sanitized_name}: Finished ({total_rules:,} {pluralize(total_rules, 'rule')})"
         )
         return True
 
@@ -637,14 +682,14 @@ def _log_batch_result(
     if successful_batches > 0:
         log.warning(
             "Folder %s – only %d/%d batches succeeded (Partial)",
-            sanitized_folder_name,
+            target.sanitized_name,
             successful_batches,
             total_batches,
         )
     else:
         log.error(
             "Folder %s – 0/%d batches succeeded",
-            sanitized_folder_name,
+            target.sanitized_name,
             total_batches,
         )
     return False
@@ -652,9 +697,7 @@ def _log_batch_result(
 
 def _push_rule_batches(
     ctx: SyncContext,
-    folder_name: str,
-    folder_id: str,
-    action: RuleAction,
+    target: _BatchTarget,
     filtered_hostnames: list[str],
 ) -> bool:
     """
@@ -666,46 +709,16 @@ def _push_rule_batches(
     ]
     total_batches = len(batches)
 
-    # Optimization: Hoist loop invariants to avoid redundant computations
-    str_do = str(action.do)
-    str_status = str(action.status)
-    str_group = str(folder_id)
-    sanitized_folder_name = sanitize_for_log(folder_name)
-    progress_label = f"Folder {sanitized_folder_name}"
-
-    # Optimization 3: Parallelize batch processing
-    batch_params = (str_do, str_status, str_group, sanitized_folder_name)
-    batch_config = (batch_params, batches, progress_label)
-
     if total_batches == 1:
-        result = _push_single_batch(
-            ctx.client,
-            ctx.profile_id,
-            sanitized_folder_name,
-            str_do,
-            str_status,
-            str_group,
-            1,
-            batches[0],
-        )
-        successful_batches = 1 if result else 0
-        if result:
-            ctx.existing_rules.update(result)
-        render_progress_bar(successful_batches, 1, progress_label)
+        successful_batches = _run_single_batch(ctx, target, batches[0])
     else:
-        if ctx.batch_executor:
-            with contextlib.nullcontext(ctx.batch_executor) as executor:
-                successful_batches = _process_batches_with_executor(
-                    executor, ctx, batch_config
-                )
-        else:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-                successful_batches = _process_batches_with_executor(
-                    executor, ctx, batch_config
-                )
+        with _managed_batch_executor(ctx) as executor:
+            successful_batches = _process_batches_with_executor(
+                executor, ctx, target, batches
+            )
 
     return _log_batch_result(
-        sanitized_folder_name,
+        target,
         successful_batches,
         total_batches,
         len(filtered_hostnames),
@@ -740,13 +753,8 @@ def push_rules(
         )
         return True
 
-    return _push_rule_batches(
-        ctx,
-        folder_name,
-        folder_id,
-        action,
-        filtered_hostnames,
-    )
+    target = _BatchTarget.from_parts(ctx.profile_id, folder_name, folder_id, action)
+    return _push_rule_batches(ctx, target, filtered_hostnames)
 
 
 def _process_single_folder(
@@ -968,14 +976,72 @@ def _prepare_folders_and_rules(
     return existing_folders, existing_rules
 
 
-def sync_profile(
-    profile_id: str,
-    folder_urls: Sequence[str],
-    token: str,
-    dry_run: bool = False,
-    no_delete: bool = False,
-    plan_accumulator: list[PlanEntry] | None = None,
+def _sync_profile_live(
+    options: SyncProfileOptions,
+    folder_data_list: list[FolderData],
 ) -> bool:
+    """Execute the live (non-dry-run) portion of a profile sync."""
+    with (
+        concurrent.futures.ThreadPoolExecutor(
+            max_workers=config.DELETE_WORKERS
+        ) as shared_executor,
+        create_client(options.token) as client,
+    ):
+        existing_folders_and_rules = _prepare_folders_and_rules(
+            client,
+            options.profile_id,
+            folder_data_list,
+            options.no_delete,
+            shared_executor,
+        )
+        if existing_folders_and_rules[0] is None:
+            return False
+        existing_folders, existing_rules = existing_folders_and_rules
+
+        ctx = SyncContext(
+            profile_id=options.profile_id,
+            client=client,
+            existing_rules=existing_rules,
+            batch_executor=shared_executor,
+        )
+
+        success_count = _process_folders(ctx, folder_data_list)
+
+    log.info(
+        f"Sync complete: {success_count}/{len(folder_data_list)} {pluralize(len(folder_data_list), 'folder')} processed successfully"
+    )
+    return success_count == len(folder_data_list)
+
+
+def _process_folders(
+    ctx: SyncContext,
+    folder_data_list: list[FolderData],
+) -> int:
+    """Process folders serially (max_workers=1) and return the success count."""
+    success_count = 0
+    # CRITICAL FIX: Switch to Serial Processing (1 worker)
+    # This prevents API rate limits and ensures stability for large folders.
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        future_to_folder = {
+            executor.submit(_process_single_folder, ctx, folder_data): folder_data
+            for folder_data in folder_data_list
+        }
+
+        for future in concurrent.futures.as_completed(future_to_folder):
+            folder_data = future_to_folder[future]
+            folder_name = folder_data["group"]["group"].strip()
+            try:
+                if future.result():
+                    success_count += 1
+            except Exception as e:
+                log.error(
+                    f"Failed to process folder '{sanitize_for_log(folder_name)}': {sanitize_for_log(e)}"
+                )
+
+    return success_count
+
+
+def sync_profile(options: SyncProfileOptions) -> bool:
     """
     Synchronizes Control D folders from remote blocklist URLs.
 
@@ -990,81 +1056,26 @@ def sync_profile(
     validate_hostname.cache_clear()
 
     try:
-        folder_data_list = _fetch_all_folder_data(folder_urls)
+        folder_data_list = _fetch_all_folder_data(options.folder_urls)
         if folder_data_list is None:
             return False
 
         # Build plan entries
-        plan_entry = _build_plan_entry(profile_id, folder_data_list)
+        plan_entry = _build_plan_entry(options.profile_id, folder_data_list)
 
-        if plan_accumulator is not None:
-            plan_accumulator.append(plan_entry)
+        if options.plan_accumulator is not None:
+            options.plan_accumulator.append(plan_entry)
 
-        if dry_run:
+        if options.dry_run:
             print_plan_details(plan_entry)
             log.info("Dry-run complete: no API calls were made.")
             return True
 
-        # Create new folders and push rules
-        success_count = 0
-
-        # CRITICAL FIX: Switch to Serial Processing (1 worker)
-        # This prevents API rate limits and ensures stability for large folders.
-        max_workers = 1
-
-        # Shared executor for rate-limited operations (DELETE, push_rules batches)
-        # Reusing this executor prevents thread churn and enforces global rate limits.
-        with (
-            concurrent.futures.ThreadPoolExecutor(
-                max_workers=config.DELETE_WORKERS
-            ) as shared_executor,
-            create_client(token) as client,
-        ):
-            existing_folders_and_rules = _prepare_folders_and_rules(
-                client, profile_id, folder_data_list, no_delete, shared_executor
-            )
-            if existing_folders_and_rules[0] is None:
-                return False
-            existing_folders, existing_rules = existing_folders_and_rules
-
-            ctx = SyncContext(
-                profile_id=profile_id,
-                client=client,
-                existing_rules=existing_rules,
-                batch_executor=shared_executor,
-            )
-
-            with concurrent.futures.ThreadPoolExecutor(
-                max_workers=max_workers
-            ) as executor:
-                future_to_folder = {
-                    executor.submit(
-                        _process_single_folder,
-                        ctx,
-                        folder_data,
-                    ): folder_data
-                    for folder_data in folder_data_list
-                }
-
-                for future in concurrent.futures.as_completed(future_to_folder):
-                    folder_data = future_to_folder[future]
-                    folder_name = folder_data["group"]["group"].strip()
-                    try:
-                        if future.result():
-                            success_count += 1
-                    except Exception as e:
-                        log.error(
-                            f"Failed to process folder '{sanitize_for_log(folder_name)}': {sanitize_for_log(e)}"
-                        )
-
-        log.info(
-            f"Sync complete: {success_count}/{len(folder_data_list)} {pluralize(len(folder_data_list), 'folder')} processed successfully"
-        )
-        return success_count == len(folder_data_list)
+        return _sync_profile_live(options, folder_data_list)
 
     except Exception as e:
         log.error(
-            f"Unexpected error during sync for profile {profile_id}: {sanitize_for_log(e)}"
+            f"Unexpected error during sync for profile {options.profile_id}: {sanitize_for_log(e)}"
         )
         return False
 

@@ -135,6 +135,7 @@ from models import (  # noqa: F401
     RuleEntry,
     RuleGroup,
     SyncContext,
+    SyncProfileOptions,
     SyncResult,
 )
 from sync import (  # noqa: F401
@@ -677,12 +678,14 @@ def main() -> bool:
             )
             log.info("Starting sync for profile %s", display_profile)
             status = sync_profile(
-                profile_id,
-                folder_urls,
-                token=TOKEN or "",
-                dry_run=args.dry_run,
-                no_delete=args.no_delete,
-                plan_accumulator=plan,
+                SyncProfileOptions(
+                    profile_id=profile_id,
+                    folder_urls=folder_urls,
+                    token=TOKEN or "",
+                    dry_run=args.dry_run,
+                    no_delete=args.no_delete,
+                    plan_accumulator=plan,
+                )
             )
             end_time = time.time()
             duration = end_time - start_time
