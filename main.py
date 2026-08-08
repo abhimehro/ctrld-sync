@@ -425,7 +425,7 @@ def _prompt_for_missing_config(profile_ids: list[str]) -> None:
     global TOKEN
 
     if not profile_ids:
-        print(f"{Colors.CYAN}ℹ Profile ID is missing.{Colors.ENDC}")
+        print(f"{Colors.CYAN}ℹ Profile ID(s) missing.{Colors.ENDC}")
         _print_hint(
             "  💡 Hint: You can find this in the URL of your profile in the Control D Dashboard (or just paste the URL)."
         )
@@ -439,7 +439,7 @@ def _prompt_for_missing_config(profile_ids: list[str]) -> None:
 
         print()
         p_input = get_validated_input(
-            f"{Colors.BOLD}👤 Enter Control D Profile ID {Colors.DIM}(comma-separate for multiple){Colors.ENDC}: ",
+            f"{Colors.BOLD}👤 Enter Control D Profile ID(s) {Colors.DIM}(comma-separate for multiple){Colors.ENDC}: ",
             validate_profile_input,
             "Invalid ID(s) or URL(s). Must be valid Profile ID(s) or Control D Profile URL(s). Comma-separate for multiple.",
         )
