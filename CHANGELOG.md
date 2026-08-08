@@ -66,6 +66,8 @@
 - refactor\(display\): simplify print\_plan\_details plan rendering logic [\#1143](https://github.com/abhimehro/ctrld-sync/pull/1143) ([abhimehro](https://github.com/abhimehro))
 - refactor\(validation\): split validate\_folder\_data and sanitize\_for\_log into focused helpers [\#1142](https://github.com/abhimehro/ctrld-sync/pull/1142) ([abhimehro](https://github.com/abhimehro))
 - refactor\(config\): split \_validate\_config into per-section helpers [\#1140](https://github.com/abhimehro/ctrld-sync/pull/1140) ([abhimehro](https://github.com/abhimehro))
+- 🎨 Palette: Fix semantic mismatch in Profile ID prompt [\#1138](https://github.com/abhimehro/ctrld-sync/pull/1138) ([abhimehro](https://github.com/abhimehro))
+- chore\(deps-dev\): bump pytest from 9.0.3 to 9.1.1 [\#1134](https://github.com/abhimehro/ctrld-sync/pull/1134) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps-dev\): bump pytest-cov from 7.0.0 to 7.1.0 [\#1132](https://github.com/abhimehro/ctrld-sync/pull/1132) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump github/gh-aw/actions/setup from 0.83.4 to 0.84.3 [\#1131](https://github.com/abhimehro/ctrld-sync/pull/1131) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump pnpm/action-setup from 6.0.9 to 6.0.10 [\#1130](https://github.com/abhimehro/ctrld-sync/pull/1130) ([dependabot[bot]](https://github.com/apps/dependabot))
