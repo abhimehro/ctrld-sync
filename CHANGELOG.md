@@ -10,10 +10,6 @@
 - P1: SSRF - User-Controlled URLs with Outbound Requests [\#993](https://github.com/abhimehro/ctrld-sync/issues/993)
 - 🚨 P0: Critical SSRF Vulnerability in Blocklist URL Fetching [\#987](https://github.com/abhimehro/ctrld-sync/issues/987)
 
-**Fixed:**
-
-- `gh_client.py`: corrected Content-Length parsing so a malformed header (e.g. `Response too large`) falls back to streaming instead of being mistaken for a size-limit error. Refactored `_gh_get` and `_parse_and_cache_response` into focused helpers with regression coverage in `tests/test_gh_client.py`.
-
 **Closed issues:**
 
 - Daily QA & Agentic Review — 2026-08-07 [\#1137](https://github.com/abhimehro/ctrld-sync/issues/1137)
@@ -25,6 +21,7 @@
 - Daily QA & Agentic Review — 2026-08-02 [\#1112](https://github.com/abhimehro/ctrld-sync/issues/1112)
 - \[repo-automation\] Weekly Retrospective - 2026-08-02 [\#1110](https://github.com/abhimehro/ctrld-sync/issues/1110)
 - Daily QA & Agentic Review — 2026-08-01 [\#1106](https://github.com/abhimehro/ctrld-sync/issues/1106)
+- \[repo-health\] Refactor gh\_client.py error and response handling with regression coverage [\#1098](https://github.com/abhimehro/ctrld-sync/issues/1098)
 - \[repo-health\] Simplify display.py plan rendering logic [\#1097](https://github.com/abhimehro/ctrld-sync/issues/1097)
 - \[repo-health\] Refactor validation.py hot paths and preserve log redaction guarantees [\#1096](https://github.com/abhimehro/ctrld-sync/issues/1096)
 - \[repo-health\] Refactor config.py validation flow without behavior changes [\#1095](https://github.com/abhimehro/ctrld-sync/issues/1095)
@@ -65,6 +62,7 @@
 
 **Merged pull requests:**
 
+- refactor\(gh\_client\): split response/error handling and fix Content-Length bug [\#1144](https://github.com/abhimehro/ctrld-sync/pull/1144) ([abhimehro](https://github.com/abhimehro))
 - refactor\(display\): simplify print\_plan\_details plan rendering logic [\#1143](https://github.com/abhimehro/ctrld-sync/pull/1143) ([abhimehro](https://github.com/abhimehro))
 - refactor\(validation\): split validate\_folder\_data and sanitize\_for\_log into focused helpers [\#1142](https://github.com/abhimehro/ctrld-sync/pull/1142) ([abhimehro](https://github.com/abhimehro))
 - refactor\(config\): split \_validate\_config into per-section helpers [\#1140](https://github.com/abhimehro/ctrld-sync/pull/1140) ([abhimehro](https://github.com/abhimehro))
