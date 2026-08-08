@@ -70,11 +70,48 @@ _SENSITIVE_PARAM_PATTERN = re.compile(
 # Token-aware redaction state.  Set via set_token_for_redaction() from main.
 _token: str = ""
 
+# Prefixes that can trigger CSV/formula injection in spreadsheet software.
+_CSV_INJECTION_PREFIXES = ("=", "+", "-", "@")
+
+# Sentinel values for validate_folder_data helper decomposition.
+_INVALID = object()
+_MISSING = object()
+
 
 def set_token_for_redaction(token: str | None) -> None:
     """Set the token value that sanitize_for_log will redact from output."""
     global _token
     _token = token or ""
+
+
+def _redact_secrets(s: str) -> str:
+    """Redact token, basic-auth credentials and sensitive query parameters."""
+    if _token and _token in s:
+        s = s.replace(_token, "[REDACTED]")
+
+    # Optimization: Check for '://' before running expensive regex substitution
+    if "://" in s:
+        s = _BASIC_AUTH_PATTERN.sub("://[REDACTED]@", s)
+
+    # Optimization: Check for delimiters before running expensive regex substitution
+    if "?" in s or "&" in s or "#" in s:
+        s = _SENSITIVE_PARAM_PATTERN.sub(r"\1\2=[REDACTED]", s)
+    return s
+
+
+def _escape_for_log(s: str) -> str:
+    """repr()-escape control characters, preserving CSV-injection quoting."""
+    safe = repr(s)
+
+    # Security: Prevent CSV Injection (Formula Injection)
+    # If the string starts with =, +, -, or @, we keep the quotes from repr()
+    # to force spreadsheet software to treat it as a string literal.
+    if s and s.startswith(_CSV_INJECTION_PREFIXES):
+        return safe
+
+    if len(safe) >= 2 and safe[0] == safe[-1] and safe[0] in ("'", '"'):
+        return safe[1:-1]
+    return safe
 
 
 def sanitize_for_log(text: Any) -> str:
@@ -86,33 +123,7 @@ def sanitize_for_log(text: Any) -> str:
     - Sensitive query parameters (token, key, secret, password, auth, access_token, api_key)
     - Control characters (prevents log injection and terminal hijacking)
     """
-    s = str(text)
-    if _token and _token in s:
-        s = s.replace(_token, "[REDACTED]")
-
-    # Redact Basic Auth in URLs (e.g. https://user:pass@host)
-    # Optimization: Check for '://' before running expensive regex substitution
-    if "://" in s:
-        s = _BASIC_AUTH_PATTERN.sub("://[REDACTED]@", s)
-
-    # Redact sensitive query parameters (handles ?, &, and # separators)
-    # Optimization: Check for delimiters before running expensive regex substitution
-    if "?" in s or "&" in s or "#" in s:
-        s = _SENSITIVE_PARAM_PATTERN.sub(r"\1\2=[REDACTED]", s)
-
-    # repr() safely escapes control characters (e.g., \n -> \\n, \x1b -> \\x1b)
-    # This prevents log injection and terminal hijacking.
-    safe = repr(s)
-
-    # Security: Prevent CSV Injection (Formula Injection)
-    # If the string starts with =, +, -, or @, we keep the quotes from repr()
-    # to force spreadsheet software to treat it as a string literal.
-    if s and s.startswith(("=", "+", "-", "@")):
-        return safe
-
-    if len(safe) >= 2 and safe[0] == safe[-1] and safe[0] in ("'", '"'):
-        return safe[1:-1]
-    return safe
+    return _escape_for_log(_redact_secrets(str(text)))
 
 
 _CGNAT_NETWORK = ipaddress.IPv4Network("100.64.0.0/10")
@@ -435,91 +446,104 @@ def _log_invalid_rules(rules_list: list[Any], url: str, prefix: str) -> bool:
     return False
 
 
-def validate_folder_data(data: dict[str, Any], url: str) -> TypeGuard[FolderData]:
-    """
-    Validates folder JSON data structure and content.
+def _extract_folder_name(data: Any, url: str) -> Any:
+    """Validate root/group shape and return the raw folder name.
 
-    Checks for required fields (name, action, rules), validates folder name
-    and action type, and ensures rules are valid. Logs specific validation errors.
+    Returns the raw ``group.group`` value if it passes all shape/type/name
+    checks; otherwise returns ``_INVALID`` after logging the exact error.
     """
-
     if not isinstance(data, dict):
         log.error(
             f"Invalid data from {sanitize_for_log(url)}: Root must be a JSON object."
         )
-        return False
+        return _INVALID
     if "group" not in data:
         log.error(f"Invalid data from {sanitize_for_log(url)}: Missing 'group' key.")
-        return False
+        return _INVALID
     if not isinstance(data["group"], dict):
         log.error(
             f"Invalid data from {sanitize_for_log(url)}: 'group' must be an object."
         )
-        return False
+        return _INVALID
     if "group" not in data["group"]:
         log.error(
             f"Invalid data from {sanitize_for_log(url)}: Missing 'group.group' (folder name)."
         )
-        return False
+        return _INVALID
 
     folder_name = data["group"]["group"]
     if not isinstance(folder_name, str):
         log.error(
             f"Invalid data from {sanitize_for_log(url)}: Folder name must be a string."
         )
-        return False
+        return _INVALID
 
     if not is_valid_folder_name(folder_name):
         log.error(
             f"Invalid data from {sanitize_for_log(url)}: Invalid folder name (empty, unsafe characters, or non-printable)."
         )
+        return _INVALID
+
+    return folder_name
+
+
+def _validate_rules_block(
+    rules: Any, url: str, list_name: str, rules_prefix: str
+) -> bool:
+    """Validate an optional rules list when the key is present."""
+    if rules is _MISSING:
+        return True
+    if not isinstance(rules, list):
+        log.error(
+            f"Invalid data from {sanitize_for_log(url)}: {list_name} must be a list."
+        )
+        return False
+    if not _is_valid_rule_list(rules):
+        return _log_invalid_rules(rules, url, rules_prefix)
+    return True
+
+
+def _validate_rule_groups(rule_groups: Any, url: str) -> bool:
+    """Validate the optional rule_groups list and each group's rules block."""
+    if rule_groups is _MISSING:
+        return True
+    if not isinstance(rule_groups, list):
+        log.error(
+            f"Invalid data from {sanitize_for_log(url)}: 'rule_groups' must be a list."
+        )
+        return False
+    for i, rg in enumerate(rule_groups):
+        if not isinstance(rg, dict):
+            log.error(
+                f"Invalid data from {sanitize_for_log(url)}: rule_groups[{i}] must be an object."
+            )
+            return False
+        rules_name = f"rule_groups[{i}].rules"
+        if not _validate_rules_block(
+            rg.get("rules", _MISSING), url, rules_name, rules_name
+        ):
+            return False
+    return True
+
+
+def validate_folder_data(data: dict[str, Any], url: str) -> TypeGuard[FolderData]:
+    """
+    Validates folder JSON data structure and content.
+
+    Checks that the root object contains a 'group' object with a string
+    'group.group' folder name, validates the folder name, and validates the
+    optional top-level 'rules' list and optional 'rule_groups[*].rules' lists.
+    Logs specific validation errors.
+    """
+
+    folder_name = _extract_folder_name(data, url)
+    if folder_name is _INVALID:
         return False
 
-    # Validate 'rules' if present (must be a list of dicts with string PK values)
-    if "rules" in data:
-        if not isinstance(data["rules"], list):
-            log.error(
-                f"Invalid data from {sanitize_for_log(url)}: 'rules' must be a list."
-            )
-            return False
+    if not _validate_rules_block(data.get("rules", _MISSING), url, "'rules'", "rules"):
+        return False
 
-        # Optimization: Fast path inline type check avoids function call overhead per rule.
-        # Fallback identifies the exact error for logging.
-        rules_list = data["rules"]
-        if not _is_valid_rule_list(rules_list):
-            return _log_invalid_rules(rules_list, url, "rules")
-
-    # Validate 'rule_groups' if present (must be a list of dicts)
-    if "rule_groups" in data:
-        if not isinstance(data["rule_groups"], list):
-            log.error(
-                f"Invalid data from {sanitize_for_log(url)}: 'rule_groups' must be a list."
-            )
-            return False
-        for i, rg in enumerate(data["rule_groups"]):
-            if not isinstance(rg, dict):
-                log.error(
-                    f"Invalid data from {sanitize_for_log(url)}: rule_groups[{i}] must be an object."
-                )
-                return False
-            if "rules" in rg:
-                if not isinstance(rg["rules"], list):
-                    log.error(
-                        f"Invalid data from {sanitize_for_log(url)}: rule_groups[{i}].rules must be a list."
-                    )
-                    return False
-
-                # Ensure each rule within the group is an object (dict) and has a string PK,
-                # because later code treats each rule as a mapping (e.g., rule.get(...)).
-                rg_rules_list = rg["rules"]
-                # Optimization: Fast path inline type check avoids function call overhead per rule.
-                # Fallback identifies the exact error for logging.
-                if not _is_valid_rule_list(rg_rules_list):
-                    return _log_invalid_rules(
-                        rg_rules_list, url, f"rule_groups[{i}].rules"
-                    )
-
-    return True
+    return _validate_rule_groups(data.get("rule_groups", _MISSING), url)
 
 
 __all__ = [
