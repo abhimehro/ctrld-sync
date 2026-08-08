@@ -31,7 +31,7 @@ def _decode_input(obj: Any) -> Any:
 def _restore_token():
     old = validation._token
     yield
-    validation._token = old
+    validation.set_token_for_redaction(old)
 
 
 def test_sanitize_golden_corpus():

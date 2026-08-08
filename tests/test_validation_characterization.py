@@ -20,7 +20,7 @@ import validation
 def _restore_token():
     old = validation._token
     yield
-    validation._token = old
+    validation.set_token_for_redaction(old)
 
 
 @pytest.mark.parametrize(
