@@ -1,0 +1,118 @@
+{
+  "token": "GOLDEN_TOKEN_42",
+  "inputs": [
+    "",
+    "plain text",
+    "12345",
+    "<script>alert(1)</script>",
+    "no secrets here",
+    "email=foo@bar.com",
+    "value with = sign but not prefix",
+    "+not a formula",
+    "-not an option",
+    "@not a mention",
+    "foo'bar",
+    "foo\"bar",
+    "foo\\bar",
+    "a'b'c",
+    "a\"b\"c",
+    "quote ' and \" mixed",
+    "multi\nline",
+    "\n",
+    "\r",
+    "\u0000",
+    "\t",
+    "\u001b[31mMalicious",
+    "\u001b[31m\u0000\u001b[0m",
+    "‮",
+    "=cmd|' /C calc'!A0",
+    "+cmd|' /C calc'!A0",
+    "-cmd|' /C calc'!A0",
+    "@cmd|' /C calc'!A0",
+    "='formula'",
+    "leading - dash",
+    "leading + plus",
+    "leading @ at",
+    "leading = equals",
+    "'single-quoted",
+    "\"double-quoted",
+    "Bearer abcdef",
+    "GOLDEN_TOKEN_42",
+    "GOLDEN_TOKEN_42 at start",
+    "text with GOLDEN_TOKEN_42 in middle",
+    "at end GOLDEN_TOKEN_42",
+    "GOLDEN_TOKEN_42\nwith newline",
+    "prefix GOLDEN_TOKEN_42 suffix",
+    "GOLDEN_TOKEN_42=https://user:pass@example.com",
+    "token=GOLDEN_TOKEN_42",
+    "GOLDEN_TOKEN_42=value",
+    "Bearer GOLDEN_TOKEN_42",
+    "https://user:password123@example.com/folder.json",
+    "https://example.com/api?secret=mysecretkey&authorization=Bearer123",
+    "https://example.com/api?id=123&token=abc&name=user&api_key=def",
+    "https://example.com/api?TOKEN=mytoken",
+    "https://example.com/api?authorization=Bearer%20mytoken",
+    "https://user:password@example.com/path?token=GOLDEN_TOKEN_42&api_key=secret",
+    "https://example.com/path#token=secret123",
+    "https://example.com/path?token=secret123&foo=bar",
+    "https://example.com?foo=bar",
+    "https://example.com?foo=bar&baz=qux",
+    "https://example.com#fragment",
+    "ftp://user:pass@example.com",
+    "https://example.com?token=GOLDEN_TOKEN_42&api_key=GOLDEN_TOKEN_42",
+    "https://example.com?token=abc&token=def",
+    "https://example.com?token=",
+    "https://example.com?token=abc&secret=def&auth=ghi",
+    "https://example.com?api_key=secret&token=secret&key=secret&password=secret&auth=secret&access_token=secret&authorization=secret",
+    "https://example.com?foo=bar#token=secret",
+    "https://example.com?token=secret#foo=bar",
+    "https://user:@host/path",
+    "https://:pass@host/path",
+    "https://example.com?foo=GOLDEN_TOKEN_42&bar=baz",
+    "url=https://user:pass@host?token=GOLDEN_TOKEN_42",
+    "path?token=abc",
+    "https://example.com?token=GOLDEN_TOKEN_42",
+    "https://user:GOLDEN_TOKEN_42@host/path",
+    "https://GOLDEN_TOKEN_42:pass@host/path",
+    null,
+    123,
+    {
+      "api_token": "GOLDEN_TOKEN_42"
+    },
+    {
+      "nested": {
+        "url": "https://user:pass@host?token=secret"
+      }
+    },
+    {
+      "a": {
+        "b": {
+          "c": "GOLDEN_TOKEN_42"
+        }
+      }
+    },
+    {
+      "key": null,
+      "empty": ""
+    },
+    [
+      "GOLDEN_TOKEN_42",
+      "https://user:pass@host?token=secret"
+    ],
+    [
+      1,
+      2,
+      "GOLDEN_TOKEN_42"
+    ],
+    {
+      "list": [
+        "a",
+        "https://user:pass@host"
+      ]
+    },
+    {
+      "__type__": "exception",
+      "message": "error with GOLDEN_TOKEN_42"
+    }
+  ]
+}
