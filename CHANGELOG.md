@@ -4,6 +4,10 @@
 
 [Full Changelog](https://github.com/abhimehro/ctrld-sync/compare/v0.1.1...HEAD)
 
+**Changed:**
+
+- Refactored `display.py` dry-run plan rendering into focused `_resolve_folder_action` and `_format_*` helpers, lowering cyclomatic complexity while preserving exact CLI output and color behavior. [\#1143](https://github.com/abhimehro/ctrld-sync/pull/1143)
+
 **Security fixes:**
 
 - P1: SSRF - User-Controlled URLs with Outbound Requests [\#1024](https://github.com/abhimehro/ctrld-sync/issues/1024)
