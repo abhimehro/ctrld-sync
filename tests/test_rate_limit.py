@@ -246,7 +246,7 @@ class TestRetryWithRateLimit:
         with main._rate_limit_lock:
             assert main._rate_limit_info["remaining"] == 50
 
-    @patch("random.random", return_value=1.0)
+    @patch("secrets.SystemRandom.random", return_value=1.0)
     def test_429_without_retry_after_uses_exponential_backoff(self, mock_random):
         """Test that 429 without Retry-After falls back to exponential backoff."""
         mock_request = MagicMock()
@@ -268,7 +268,7 @@ class TestRetryWithRateLimit:
 
         request_func = MagicMock(side_effect=[error, error, success_response])
 
-        # With delay=1 and random.random()=1.0 (full jitter), backoff is: 1s, 2s
+        # With delay=1 and SystemRandom.random()=1.0 (full jitter), backoff is: 1s, 2s
         # Total wait should be >= 3 seconds
         start_time = time.time()
         result = main.api_client._retry_request(request_func, max_retries=3, delay=1)
