@@ -530,7 +530,10 @@ def parse_args() -> argparse.Namespace:
         "--profiles", help="Comma-separated list of profile IDs", default=None
     )
     parser.add_argument(
-        "--folder-url", action="append", help="Folder JSON URL (repeatable)", default=None
+        "--folder-url",
+        action="append",
+        help="Folder JSON URL (repeatable)",
+        default=None,
     )
     parser.add_argument("--dry-run", action="store_true", help="Plan only")
     parser.add_argument(

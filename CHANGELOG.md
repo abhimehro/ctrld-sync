@@ -10,6 +10,10 @@
 - P1: SSRF - User-Controlled URLs with Outbound Requests [\#993](https://github.com/abhimehro/ctrld-sync/issues/993)
 - 🚨 P0: Critical SSRF Vulnerability in Blocklist URL Fetching [\#987](https://github.com/abhimehro/ctrld-sync/issues/987)
 
+**Fixed:**
+
+- `gh_client.py`: corrected Content-Length parsing so a malformed header (e.g. `Response too large`) falls back to streaming instead of being mistaken for a size-limit error. Refactored `_gh_get` and `_parse_and_cache_response` into focused helpers with regression coverage in `tests/test_gh_client.py`.
+
 **Closed issues:**
 
 - Daily QA & Agentic Review — 2026-08-07 [\#1137](https://github.com/abhimehro/ctrld-sync/issues/1137)
