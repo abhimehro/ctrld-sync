@@ -4,10 +4,6 @@
 
 [Full Changelog](https://github.com/abhimehro/ctrld-sync/compare/v0.1.1...HEAD)
 
-**Changed:**
-
-- Refactored `display.py` dry-run plan rendering into focused `_resolve_folder_action` and `_format_*` helpers, lowering cyclomatic complexity while preserving exact CLI output and color behavior. [\#1143](https://github.com/abhimehro/ctrld-sync/pull/1143)
-
 **Security fixes:**
 
 - P1: SSRF - User-Controlled URLs with Outbound Requests [\#1024](https://github.com/abhimehro/ctrld-sync/issues/1024)
@@ -25,6 +21,7 @@
 - Daily QA & Agentic Review — 2026-08-02 [\#1112](https://github.com/abhimehro/ctrld-sync/issues/1112)
 - \[repo-automation\] Weekly Retrospective - 2026-08-02 [\#1110](https://github.com/abhimehro/ctrld-sync/issues/1110)
 - Daily QA & Agentic Review — 2026-08-01 [\#1106](https://github.com/abhimehro/ctrld-sync/issues/1106)
+- \[repo-health\] Simplify display.py plan rendering logic [\#1097](https://github.com/abhimehro/ctrld-sync/issues/1097)
 - \[repo-health\] Refactor validation.py hot paths and preserve log redaction guarantees [\#1096](https://github.com/abhimehro/ctrld-sync/issues/1096)
 - \[repo-health\] Refactor config.py validation flow without behavior changes [\#1095](https://github.com/abhimehro/ctrld-sync/issues/1095)
 - \[repo-health\] Capture CodeScene baseline and acceptance criteria [\#1094](https://github.com/abhimehro/ctrld-sync/issues/1094)
@@ -64,6 +61,7 @@
 
 **Merged pull requests:**
 
+- refactor\(display\): simplify print\_plan\_details plan rendering logic [\#1143](https://github.com/abhimehro/ctrld-sync/pull/1143) ([abhimehro](https://github.com/abhimehro))
 - refactor\(validation\): split validate\_folder\_data and sanitize\_for\_log into focused helpers [\#1142](https://github.com/abhimehro/ctrld-sync/pull/1142) ([abhimehro](https://github.com/abhimehro))
 - refactor\(config\): split \_validate\_config into per-section helpers [\#1140](https://github.com/abhimehro/ctrld-sync/pull/1140) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps-dev\): bump pytest-cov from 7.0.0 to 7.1.0 [\#1132](https://github.com/abhimehro/ctrld-sync/pull/1132) ([dependabot[bot]](https://github.com/apps/dependabot))
