@@ -299,3 +299,7 @@ context flags to ensure safety and predictability.
 ## 2026-08-09 - [Grammatical Polish in Error Messages]
 **Learning:** Hardcoding generic plural strings (like "encountered errors") creates awkward grammar when there is exactly 1 error ("encountered 1 errors" or "encountered errors" for a single failure).
 **Action:** Use a dynamic pluralization helper (like `pluralize()`) and pass the actual count to explicitly format the string (e.g., "encountered 1 error" vs "encountered 2 errors") to ensure correct grammar and clarity in CLI output.
+
+## 2026-08-09 - [Code Quality Metric Management in Hot Paths]
+**Learning:** Adding new UX conditional logic (like custom formatting, hints, or nuanced pluralizations) inside already long methods (like `main()`) increases cyclomatic complexity and logical density, which can trigger CodeScene or CI "Complex Method" violations and block PRs.
+**Action:** When injecting UX improvements into dense hot paths, proactively extract large, cohesive blocks of logic (such as a core loop body or `try/except` handler) into a separate helper function (e.g., `_sync_all_profiles`) to maintain a healthy code score while delivering the UX enhancement.

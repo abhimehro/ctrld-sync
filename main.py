@@ -583,71 +583,13 @@ def _apply_runtime_settings(cfg: dict[str, Any] | None) -> None:
         api_client.MAX_RETRIES = max_retries
 
 
-def main() -> bool:
-    """
-    Main entry point for Control D Sync.
-
-    Loads environment configuration, validates inputs, warms up cache,
-    and syncs profiles. Supports interactive prompts for missing credentials
-    when running in a TTY. Prints summary statistics and exits with appropriate
-    status code.
-    """
-    # SECURITY: Check .env permissions (after Colors is defined for NO_COLOR support)
-    # This must happen BEFORE load_dotenv() to prevent reading secrets from world-readable files
-    check_env_permissions()
-    load_dotenv()
-
-    global TOKEN
-    # Re-initialize TOKEN to pick up values from .env (since load_dotenv was delayed)
-    TOKEN = _clean_env_kv(os.getenv("TOKEN"), "TOKEN")
-
-    # Inject token-aware sanitizer into modules that must not log secrets.
-    api_client._sanitize_fn = validation.sanitize_for_log
-    cache._sanitize_fn = validation.sanitize_for_log
-    set_token_for_redaction(TOKEN or "")
-
-    args = parse_args()
-
-    # Load persistent cache from disk (graceful degradation on any error)
-    # NOTE: Called only after successful argument parsing so that `--help` or
-    #       argument errors do not perform unnecessary filesystem I/O or logging.
-    load_disk_cache()
-
-    # Handle --clear-cache: delete cache file and exit immediately
-    if args.clear_cache:
-        _handle_clear_cache()
-
-    profiles_arg = (
-        _clean_env_kv(args.profiles or os.getenv("PROFILE", ""), "PROFILE") or ""
-    )
-    profile_ids = [extract_profile_id(p) for p in profiles_arg.split(",") if p.strip()]
-
-    # --folder-url flags take highest precedence; otherwise use config file or defaults
-    folder_urls, cfg = _resolve_folder_urls(args)
-
-    if cfg is not None:
-        _apply_runtime_settings(cfg)
-
-    # Interactive prompts for missing config
-    if not args.dry_run and sys.stdin.isatty():
-        _prompt_for_missing_config(profile_ids)
-
-    # Re-apply token redaction in case the interactive prompt changed TOKEN.
-    set_token_for_redaction(TOKEN or "")
-
-    if not profile_ids and not args.dry_run:
-        log.error(
-            "PROFILE missing and --dry-run not set. Provide --profiles or set PROFILE env."
-        )
-        exit(1)
-
-    if not TOKEN and not args.dry_run:
-        log.error("TOKEN missing and --dry-run not set. Set TOKEN env for live sync.")
-        exit(1)
-
-    warm_up_cache(folder_urls)
-
-    plan: list[PlanEntry] = []
+def _sync_all_profiles(
+    profile_ids: list[str],
+    folder_urls: list[str],
+    args: argparse.Namespace,
+    plan: list[PlanEntry],
+) -> tuple[int, list[SyncResult]]:
+    """Runs the sync loop across all profiles, handling cancellation gracefully."""
     success_count = 0
     sync_results: list[SyncResult] = []
 
@@ -733,6 +675,76 @@ def main() -> bool:
             }
         )
 
+    return success_count, sync_results
+
+
+def main() -> bool:
+    """
+    Main entry point for Control D Sync.
+
+    Loads environment configuration, validates inputs, warms up cache,
+    and syncs profiles. Supports interactive prompts for missing credentials
+    when running in a TTY. Prints summary statistics and exits with appropriate
+    status code.
+    """
+    # SECURITY: Check .env permissions (after Colors is defined for NO_COLOR support)
+    # This must happen BEFORE load_dotenv() to prevent reading secrets from world-readable files
+    check_env_permissions()
+    load_dotenv()
+
+    global TOKEN
+    # Re-initialize TOKEN to pick up values from .env (since load_dotenv was delayed)
+    TOKEN = _clean_env_kv(os.getenv("TOKEN"), "TOKEN")
+
+    # Inject token-aware sanitizer into modules that must not log secrets.
+    api_client._sanitize_fn = validation.sanitize_for_log
+    cache._sanitize_fn = validation.sanitize_for_log
+    set_token_for_redaction(TOKEN or "")
+
+    args = parse_args()
+
+    # Load persistent cache from disk (graceful degradation on any error)
+    # NOTE: Called only after successful argument parsing so that `--help` or
+    #       argument errors do not perform unnecessary filesystem I/O or logging.
+    load_disk_cache()
+
+    # Handle --clear-cache: delete cache file and exit immediately
+    if args.clear_cache:
+        _handle_clear_cache()
+
+    profiles_arg = (
+        _clean_env_kv(args.profiles or os.getenv("PROFILE", ""), "PROFILE") or ""
+    )
+    profile_ids = [extract_profile_id(p) for p in profiles_arg.split(",") if p.strip()]
+
+    # --folder-url flags take highest precedence; otherwise use config file or defaults
+    folder_urls, cfg = _resolve_folder_urls(args)
+
+    if cfg is not None:
+        _apply_runtime_settings(cfg)
+
+    # Interactive prompts for missing config
+    if not args.dry_run and sys.stdin.isatty():
+        _prompt_for_missing_config(profile_ids)
+
+    # Re-apply token redaction in case the interactive prompt changed TOKEN.
+    set_token_for_redaction(TOKEN or "")
+
+    if not profile_ids and not args.dry_run:
+        log.error(
+            "PROFILE missing and --dry-run not set. Provide --profiles or set PROFILE env."
+        )
+        exit(1)
+
+    if not TOKEN and not args.dry_run:
+        log.error("TOKEN missing and --dry-run not set. Set TOKEN env for live sync.")
+        exit(1)
+
+    warm_up_cache(folder_urls)
+
+    plan: list[PlanEntry] = []
+    success_count, sync_results = _sync_all_profiles(profile_ids, folder_urls, args, plan)
+
     if args.plan_json:
         with open(args.plan_json, "w", encoding="utf-8") as f:
             json.dump(plan, f, indent=2)
@@ -753,10 +765,7 @@ def main() -> bool:
         print_success_message(profile_ids, success_count, total)
 
     # Dry Run Next Steps
-    dry_run_error_count = sum(1 for result in sync_results if not result["success"])
-    if args.dry_run and _print_dry_run_next_steps(
-        args, profile_ids, all_success, dry_run_error_count
-    ):
+    if args.dry_run and _print_dry_run_next_steps(args, profile_ids, all_success, total - success_count):
         return True
 
     # Display execution statistics and rate limit status
