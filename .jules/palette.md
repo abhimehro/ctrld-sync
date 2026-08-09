@@ -307,3 +307,7 @@ context flags to ensure safety and predictability.
 ## 2026-08-09 - [Further Code Quality Optimization for Complex Methods]
 **Learning:** Extracting an entire outer loop into a separate function is not always enough to drop cyclomatic complexity to a passing threshold if the inner logic of the loop itself is still highly complex. In these cases, it is better to extract the logic *inside* the loop (e.g. processing a single profile) to completely flatten the method signature.
 **Action:** When remediating CodeScene "Complex Method" violations related to loop iteration, extract the core logic for processing a *single item* into a helper function (like `_process_single_profile`), rather than just extracting the whole loop block.
+
+## 2026-08-09 - [Optimizing Function Signatures for Code Health]
+**Learning:** Returning values (such as results or status objects) from helper functions is often cleaner and reduces the "Excess Number of Function Arguments" compared to passing a mutable data structure (like a list or dict) as an argument to be updated.
+**Action:** When extracting functions to improve code health, prefer returning results (e.g., `tuple[bool, SyncResult]`) rather than passing mutable collections as an argument to reduce argument count and side-effects.

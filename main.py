@@ -593,23 +593,19 @@ def _process_single_profile(
     folder_urls: list[str],
     args: argparse.Namespace,
     plan: list[PlanEntry],
-    sync_results: list[SyncResult],
-) -> bool:
-    """Processes a single profile and updates the sync_results list."""
+) -> tuple[bool, SyncResult]:
+    """Processes a single profile and returns its status and result."""
     start_time = time.time()
     # Skip validation for dry-run placeholder
     if profile_id != "dry-run-placeholder" and not validate_profile_id(profile_id):
-        sync_results.append(
-            {
-                "profile": profile_id,
-                "folders": 0,
-                "rules": 0,
-                "status_label": "❌ Invalid Profile ID",
-                "success": False,
-                "duration": 0.0,
-            }
-        )
-        return False
+        return False, {
+            "profile": profile_id,
+            "folders": 0,
+            "rules": 0,
+            "status_label": "❌ Invalid Profile ID",
+            "success": False,
+            "duration": 0.0,
+        }
 
     display_profile = (
         "(Unspecified)" if profile_id == "dry-run-placeholder" else profile_id
@@ -634,17 +630,14 @@ def _process_single_profile(
     else:
         status_text = "✅ Success" if status else "❌ Failed"
 
-    sync_results.append(
-        {
-            "profile": profile_id,
-            "folders": folder_count,
-            "rules": rule_count,
-            "status_label": status_text,
-            "success": status,
-            "duration": duration,
-        }
-    )
-    return status
+    return status, {
+        "profile": profile_id,
+        "folders": folder_count,
+        "rules": rule_count,
+        "status_label": status_text,
+        "success": status,
+        "duration": duration,
+    }
 
 
 def _sync_all_profiles(
@@ -661,9 +654,10 @@ def _sync_all_profiles(
 
     try:
         for profile_id in profile_ids or ["dry-run-placeholder"]:
-            status = _process_single_profile(
-                profile_id, folder_urls, args, plan, sync_results
+            status, result = _process_single_profile(
+                profile_id, folder_urls, args, plan
             )
+            sync_results.append(result)
             if status:
                 success_count += 1
     except KeyboardInterrupt:
