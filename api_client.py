@@ -196,6 +196,14 @@ def _parse_rate_limit_headers(response: httpx.Response) -> None:
     """
     headers = response.headers
 
+    # Fast path: skip parsing overhead if no standard headers exist (most responses)
+    if (
+        "x-ratelimit-limit" not in headers
+        and "x-ratelimit-remaining" not in headers
+        and "x-ratelimit-reset" not in headers
+    ):
+        return
+
     # Parse standard rate limit headers
     # These may not exist on all responses, so we check individually
     try:

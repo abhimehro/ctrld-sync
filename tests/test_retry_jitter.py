@@ -130,7 +130,7 @@ class TestRetryJitter:
 
     def test_four_hundred_errors_still_fail_fast(self):
         """Verify 4xx errors (except 429) still don't retry despite jitter."""
-        response = Mock(status_code=404)
+        response = Mock(status_code=404, headers=httpx.Headers({}))
         error = httpx.HTTPStatusError("Not found", request=Mock(), response=response)
         request_func = Mock(side_effect=error)
 
@@ -172,7 +172,7 @@ class TestRetryJitter:
             side_effect=[
                 httpx.TimeoutException("Timeout 1"),
                 httpx.TimeoutException("Timeout 2"),
-                Mock(status_code=200),  # Success
+                Mock(status_code=200, headers=httpx.Headers({})),  # Success
             ]
         )
 
