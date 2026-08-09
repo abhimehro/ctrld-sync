@@ -295,3 +295,7 @@ context flags to ensure safety and predictability.
 ## 2026-08-04 - [Grammatical Polish in Success Messages]
 **Learning:** Hardcoding plural strings (like "profile(s)") can lead to poor grammar when counts evaluate to exactly 1.
 **Action:** Use `pluralize` to dynamically correct grammar in CLI output to improve text polish and reduce cognitive load.
+
+## 2026-08-09 - [Grammatical Polish in Error Messages]
+**Learning:** Hardcoding generic plural strings (like "encountered errors") creates awkward grammar when there is exactly 1 error ("encountered 1 errors" or "encountered errors" for a single failure).
+**Action:** Use a dynamic pluralization helper (like `pluralize()`) and pass the actual count to explicitly format the string (e.g., "encountered 1 error" vs "encountered 2 errors") to ensure correct grammar and clarity in CLI output.
