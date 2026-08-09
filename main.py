@@ -753,7 +753,10 @@ def main() -> bool:
         print_success_message(profile_ids, success_count, total)
 
     # Dry Run Next Steps
-    if args.dry_run and _print_dry_run_next_steps(args, profile_ids, all_success, total - success_count):
+    dry_run_error_count = sum(1 for result in sync_results if not result["success"])
+    if args.dry_run and _print_dry_run_next_steps(
+        args, profile_ids, all_success, dry_run_error_count
+    ):
         return True
 
     # Display execution statistics and rate limit status
