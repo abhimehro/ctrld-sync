@@ -303,3 +303,7 @@ context flags to ensure safety and predictability.
 ## 2026-08-09 - [Code Quality Metric Management in Hot Paths]
 **Learning:** Adding new UX conditional logic (like custom formatting, hints, or nuanced pluralizations) inside already long methods (like `main()`) increases cyclomatic complexity and logical density, which can trigger CodeScene or CI "Complex Method" violations and block PRs.
 **Action:** When injecting UX improvements into dense hot paths, proactively extract large, cohesive blocks of logic (such as a core loop body or `try/except` handler) into a separate helper function (e.g., `_sync_all_profiles`) to maintain a healthy code score while delivering the UX enhancement.
+
+## 2026-08-09 - [Further Code Quality Optimization for Complex Methods]
+**Learning:** Extracting an entire outer loop into a separate function is not always enough to drop cyclomatic complexity to a passing threshold if the inner logic of the loop itself is still highly complex. In these cases, it is better to extract the logic *inside* the loop (e.g. processing a single profile) to completely flatten the method signature.
+**Action:** When remediating CodeScene "Complex Method" violations related to loop iteration, extract the core logic for processing a *single item* into a helper function (like `_process_single_profile`), rather than just extracting the whole loop block.

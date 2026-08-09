@@ -499,11 +499,16 @@ def _print_dry_run_failure(error_count: int) -> None:
             f"{Colors.FAIL}⚠️  Dry run encountered {error_count} {error_word}. Please check the logs above.{Colors.ENDC}"
         )
     else:
-        print(f"⚠️  Dry run encountered {error_count} {error_word}. Please check the logs above.")
+        print(
+            f"⚠️  Dry run encountered {error_count} {error_word}. Please check the logs above."
+        )
 
 
 def _print_dry_run_next_steps(
-    args: argparse.Namespace, profile_ids: list[str], all_success: bool, error_count: int
+    args: argparse.Namespace,
+    profile_ids: list[str],
+    all_success: bool,
+    error_count: int,
 ) -> bool:
     """Prints suggested next steps after a dry run and handles interactive restart."""
     print()  # Spacer
@@ -583,6 +588,65 @@ def _apply_runtime_settings(cfg: dict[str, Any] | None) -> None:
         api_client.MAX_RETRIES = max_retries
 
 
+def _process_single_profile(
+    profile_id: str,
+    folder_urls: list[str],
+    args: argparse.Namespace,
+    plan: list[PlanEntry],
+    sync_results: list[SyncResult],
+) -> bool:
+    """Processes a single profile and updates the sync_results list."""
+    start_time = time.time()
+    # Skip validation for dry-run placeholder
+    if profile_id != "dry-run-placeholder" and not validate_profile_id(profile_id):
+        sync_results.append(
+            {
+                "profile": profile_id,
+                "folders": 0,
+                "rules": 0,
+                "status_label": "❌ Invalid Profile ID",
+                "success": False,
+                "duration": 0.0,
+            }
+        )
+        return False
+
+    display_profile = (
+        "(Unspecified)" if profile_id == "dry-run-placeholder" else profile_id
+    )
+    log.info("Starting sync for profile %s", display_profile)
+    status = sync_profile(
+        profile_id,
+        folder_urls,
+        token=TOKEN or "",
+        dry_run=args.dry_run,
+        no_delete=args.no_delete,
+        plan_accumulator=plan,
+    )
+    duration = time.time() - start_time
+
+    entry = next((p for p in plan if p["profile"] == profile_id), None)
+    folder_count = len(entry["folders"]) if entry else 0
+    rule_count = sum([f["rules"] for f in entry["folders"]]) if entry else 0
+
+    if args.dry_run:
+        status_text = "✅ Planned" if status else "❌ Failed (Dry)"
+    else:
+        status_text = "✅ Success" if status else "❌ Failed"
+
+    sync_results.append(
+        {
+            "profile": profile_id,
+            "folders": folder_count,
+            "rules": rule_count,
+            "status_label": status_text,
+            "success": status,
+            "duration": duration,
+        }
+    )
+    return status
+
+
 def _sync_all_profiles(
     profile_ids: list[str],
     folder_urls: list[str],
@@ -592,66 +656,16 @@ def _sync_all_profiles(
     """Runs the sync loop across all profiles, handling cancellation gracefully."""
     success_count = 0
     sync_results: list[SyncResult] = []
-
     profile_id = "unknown"
     start_time = time.time()
 
     try:
         for profile_id in profile_ids or ["dry-run-placeholder"]:
-            start_time = time.time()
-            # Skip validation for dry-run placeholder
-            if profile_id != "dry-run-placeholder" and not validate_profile_id(
-                profile_id
-            ):
-                sync_results.append(
-                    {
-                        "profile": profile_id,
-                        "folders": 0,
-                        "rules": 0,
-                        "status_label": "❌ Invalid Profile ID",
-                        "success": False,
-                        "duration": 0.0,
-                    }
-                )
-                continue
-
-            display_profile = (
-                "(Unspecified)" if profile_id == "dry-run-placeholder" else profile_id
+            status = _process_single_profile(
+                profile_id, folder_urls, args, plan, sync_results
             )
-            log.info("Starting sync for profile %s", display_profile)
-            status = sync_profile(
-                profile_id,
-                folder_urls,
-                token=TOKEN or "",
-                dry_run=args.dry_run,
-                no_delete=args.no_delete,
-                plan_accumulator=plan,
-            )
-            end_time = time.time()
-            duration = end_time - start_time
-
             if status:
                 success_count += 1
-
-            entry = next((p for p in plan if p["profile"] == profile_id), None)
-            folder_count = len(entry["folders"]) if entry else 0
-            rule_count = sum([f["rules"] for f in entry["folders"]]) if entry else 0
-
-            if args.dry_run:
-                status_text = "✅ Planned" if status else "❌ Failed (Dry)"
-            else:
-                status_text = "✅ Success" if status else "❌ Failed"
-
-            sync_results.append(
-                {
-                    "profile": profile_id,
-                    "folders": folder_count,
-                    "rules": rule_count,
-                    "status_label": status_text,
-                    "success": status,
-                    "duration": duration,
-                }
-            )
     except KeyboardInterrupt:
         duration = time.time() - start_time
         _clear_current_line()
@@ -743,7 +757,9 @@ def main() -> bool:
     warm_up_cache(folder_urls)
 
     plan: list[PlanEntry] = []
-    success_count, sync_results = _sync_all_profiles(profile_ids, folder_urls, args, plan)
+    success_count, sync_results = _sync_all_profiles(
+        profile_ids, folder_urls, args, plan
+    )
 
     if args.plan_json:
         with open(args.plan_json, "w", encoding="utf-8") as f:
@@ -765,7 +781,9 @@ def main() -> bool:
         print_success_message(profile_ids, success_count, total)
 
     # Dry Run Next Steps
-    if args.dry_run and _print_dry_run_next_steps(args, profile_ids, all_success, total - success_count):
+    if args.dry_run and _print_dry_run_next_steps(
+        args, profile_ids, all_success, total - success_count
+    ):
         return True
 
     # Display execution statistics and rate limit status
