@@ -150,6 +150,15 @@ def _log_rate_limit_warning(limit: int, remaining: int, reset: int | None) -> No
         log.warning(f"Approaching rate limit: {remaining}/{limit} requests remaining")
 
 
+def _has_rate_limit_headers(headers: httpx.Headers) -> bool:
+    """Fast-path check if any standard rate limit headers exist in the response."""
+    return (
+        "x-ratelimit-limit" in headers
+        or "x-ratelimit-remaining" in headers
+        or "x-ratelimit-reset" in headers
+    )
+
+
 def _has_any_rate_limit_headers(
     new_limit: int | None, new_remaining: int | None, new_reset: int | None
 ) -> bool:
@@ -197,11 +206,7 @@ def _parse_rate_limit_headers(response: httpx.Response) -> None:
     headers = response.headers
 
     # Fast path: skip parsing overhead if no standard headers exist (most responses)
-    if (
-        "x-ratelimit-limit" not in headers
-        and "x-ratelimit-remaining" not in headers
-        and "x-ratelimit-reset" not in headers
-    ):
+    if not _has_rate_limit_headers(headers):
         return
 
     # Parse standard rate limit headers
