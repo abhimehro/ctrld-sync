@@ -584,6 +584,32 @@ def _apply_runtime_settings(cfg: dict[str, Any] | None) -> None:
         api_client.MAX_RETRIES = max_retries
 
 
+def _write_plan_json(plan_json_path: str, plan: list[dict]) -> None:
+    """Securely write the dry-run plan to a JSON file."""
+    # SECURITY: Write using tempfile and os.replace to prevent TOCTOU symlink attacks
+    # and ensure 0o600 permissions at creation time.
+    plan_path = Path(plan_json_path).resolve()
+    plan_path.parent.mkdir(parents=True, exist_ok=True)
+    temp_file = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            delete=False,
+            prefix="plan.",
+            suffix=".tmp",
+            dir=str(plan_path.parent),
+            encoding="utf-8",
+        ) as f:
+            temp_file = f.name
+            json.dump(plan, f, indent=2)
+        os.replace(temp_file, plan_path)
+        log.info("Plan written to %s", plan_json_path)
+    except Exception as e:
+        if temp_file and os.path.exists(temp_file):
+            os.unlink(temp_file)
+        log.error(f"Failed to write plan securely: {validation.sanitize_for_log(e)}")
+
+
 def main() -> bool:
     """
     Main entry point for Control D Sync.
@@ -735,44 +761,7 @@ def main() -> bool:
         )
 
     if args.plan_json:
-        # SECURITY: Write using tempfile and os.replace to prevent TOCTOU symlink attacks
-        # and ensure 0o600 permissions at creation time.
-        plan_path = Path(args.plan_json).resolve()
-        plan_dir = plan_path.parent
-        plan_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
-        if sys.platform != "win32":
-            # Security: pin directory fd and fchmod to avoid TOCTOU symlink races
-            fd = os.open(
-                str(plan_dir),
-                os.O_RDONLY
-                | getattr(os, "O_DIRECTORY", 0)
-                | getattr(os, "O_NOFOLLOW", 0),
-            )
-            try:
-                os.fchmod(fd, 0o700)
-            finally:
-                os.close(fd)
-        temp_file = None
-        try:
-            with tempfile.NamedTemporaryFile(
-                mode="w",
-                delete=False,
-                prefix="plan.",
-                suffix=".tmp",
-                dir=str(plan_dir),
-                encoding="utf-8",
-            ) as f:
-                temp_file = f.name
-                json.dump(plan, f, indent=2)
-            os.replace(temp_file, plan_path)
-            temp_file = None  # successfully replaced; skip cleanup
-            log.info("Plan written to %s", args.plan_json)
-        finally:
-            if temp_file and os.path.exists(temp_file):
-                try:
-                    os.unlink(temp_file)
-                except OSError:
-                    pass
+        _write_plan_json(args.plan_json, plan)
 
     total = len(profile_ids or ["dry-run-placeholder"])
     all_success = success_count == total
