@@ -584,7 +584,7 @@ def _apply_runtime_settings(cfg: dict[str, Any] | None) -> None:
         api_client.MAX_RETRIES = max_retries
 
 
-def _write_plan_json(plan_json_path: str, plan: list[dict]) -> None:
+def _write_plan_json(plan_json_path: str, plan: list[PlanEntry]) -> None:
     """Securely write the dry-run plan to a JSON file."""
     # SECURITY: Write using tempfile and os.replace to prevent TOCTOU symlink attacks
     # and ensure 0o600 permissions at creation time.
