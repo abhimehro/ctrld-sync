@@ -193,11 +193,8 @@ def validate_hostname(hostname: str) -> bool:
         return False
 
     # Fast-path for domain names avoiding the ValueError exception in ip_address.
-    # Exclude hex characters (a-f) as IPv6 addresses can end with them.
-    if hostname:
-        c = hostname[-1]
-        if c.isalpha() and (c < "a" or c > "f") and (c < "A" or c > "F"):
-            return _resolve_and_validate_domain(hostname)
+    if _is_definitely_domain(hostname):
+        return _resolve_and_validate_domain(hostname)
 
     try:
         ip = ipaddress.ip_address(hostname)
@@ -208,6 +205,14 @@ def validate_hostname(hostname: str) -> bool:
     except ValueError:
         # Not an IP literal, it's a domain. Resolve and check IPs.
         return _resolve_and_validate_domain(hostname)
+
+
+def _is_definitely_domain(hostname: str) -> bool:
+    """Fast-path check to avoid parsing domains as IPs. Excludes IPv6 hex endings."""
+    if not hostname:
+        return False
+    c = hostname[-1]
+    return c.isalpha() and c not in "abcdefABCDEF"
 
 
 def _is_allowed_blocklist_domain(
