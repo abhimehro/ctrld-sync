@@ -192,6 +192,13 @@ def validate_hostname(hostname: str) -> bool:
         )
         return False
 
+    # Fast-path for domain names avoiding the ValueError exception in ip_address.
+    # Exclude hex characters (a-f) as IPv6 addresses can end with them.
+    if hostname:
+        c = hostname[-1]
+        if c.isalpha() and (c < "a" or c > "f") and (c < "A" or c > "F"):
+            return _resolve_and_validate_domain(hostname)
+
     try:
         ip = ipaddress.ip_address(hostname)
         if not _is_safe_ip(ip):
