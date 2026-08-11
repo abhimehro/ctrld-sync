@@ -150,6 +150,16 @@ def _is_safe_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
     return ip.is_global
 
 
+def _is_likely_domain(hostname: str) -> bool:
+    """Fast-path heuristic to safely identify a string as a domain name."""
+    last_char = hostname[-1]
+    return (
+        last_char.isalpha()
+        and last_char.lower() not in "abcdef"
+        and "%" not in hostname
+    )
+
+
 def _resolve_and_validate_domain(hostname: str) -> bool:
     try:
         # Resolve hostname to IPs (IPv4 and IPv6)
@@ -195,11 +205,9 @@ def validate_hostname(hostname: str) -> bool:
         )
         return False
 
-    # Fast-path heuristic: if it ends in a non-hex alphabet character, it's a domain.
-    # We also check for "%" to ensure IPv6 addresses with zone indices aren't falsely flagged as domains.
-    # Bypassing ipaddress.ip_address() for domains avoids slow ValueError handling.
-    last_char = hostname[-1]
-    if last_char.isalpha() and last_char.lower() not in "abcdef" and "%" not in hostname:
+    # Fast-path heuristic: bypassing ipaddress.ip_address() for domains avoids slow ValueError handling.
+    # We check the last character and presence of IPv6 zone index markers.
+    if _is_likely_domain(hostname):
         return _resolve_and_validate_domain(hostname)
 
     try:
