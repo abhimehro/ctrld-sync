@@ -179,6 +179,9 @@ def validate_hostname(hostname: str) -> bool:
     Validates a hostname (DNS resolution and IP checks).
     Cached to prevent redundant DNS lookups for the same host across different URLs.
     """
+    if not hostname:
+        return False
+
     if len(hostname) > MAX_HOSTNAME_LENGTH:
         log.warning(
             f"Skipping unsafe hostname (exceeds {MAX_HOSTNAME_LENGTH} chars): {sanitize_for_log(hostname)}"
@@ -191,6 +194,13 @@ def validate_hostname(hostname: str) -> bool:
             f"Skipping unsafe hostname (localhost detected): {sanitize_for_log(hostname)}"
         )
         return False
+
+    # Fast-path heuristic: if it ends in a non-hex alphabet character, it's a domain.
+    # We also check for "%" to ensure IPv6 addresses with zone indices aren't falsely flagged as domains.
+    # Bypassing ipaddress.ip_address() for domains avoids slow ValueError handling.
+    last_char = hostname[-1]
+    if last_char.isalpha() and last_char.lower() not in "abcdef" and "%" not in hostname:
+        return _resolve_and_validate_domain(hostname)
 
     try:
         ip = ipaddress.ip_address(hostname)
