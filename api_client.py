@@ -22,7 +22,7 @@ the signature ``(Any) -> str`` is accepted.
 from __future__ import annotations
 
 import logging
-import random
+import secrets
 import threading
 import time
 from collections.abc import Callable
@@ -150,6 +150,15 @@ def _log_rate_limit_warning(limit: int, remaining: int, reset: int | None) -> No
         log.warning(f"Approaching rate limit: {remaining}/{limit} requests remaining")
 
 
+def _has_rate_limit_headers(headers: httpx.Headers) -> bool:
+    """Fast-path check if any standard rate limit headers exist in the response."""
+    return (
+        "x-ratelimit-limit" in headers
+        or "x-ratelimit-remaining" in headers
+        or "x-ratelimit-reset" in headers
+    )
+
+
 def _has_any_rate_limit_headers(
     new_limit: int | None, new_remaining: int | None, new_reset: int | None
 ) -> bool:
@@ -195,6 +204,10 @@ def _parse_rate_limit_headers(response: httpx.Response) -> None:
     GRACEFUL: Invalid/missing headers are ignored (no crashes)
     """
     headers = response.headers
+
+    # Fast path: skip parsing overhead if no standard headers exist (most responses)
+    if not _has_rate_limit_headers(headers):
+        return
 
     # Parse standard rate limit headers
     # These may not exist on all responses, so we check individually
@@ -243,7 +256,7 @@ def retry_with_jitter(
         Delay in seconds with full jitter applied
     """
     exponential_delay = min(base_delay * (2.0**attempt), max_delay)
-    return exponential_delay * random.random()
+    return exponential_delay * secrets.SystemRandom().random()
 
 
 def _is_server_error(e: Exception) -> bool:
