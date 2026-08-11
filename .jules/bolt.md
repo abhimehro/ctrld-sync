@@ -151,6 +151,11 @@ Python function call overhead.
 
 **Learning:** When parsing integers or performing basic error-handled extraction in a hot path (like parsing rate-limit headers for every API request), using a native `try...except` block is significantly faster than using `contextlib.suppress`. The context manager overhead of `contextlib.suppress` degrades performance noticeably in tight loops.
 **Action:** Prefer native `try...except` blocks over `contextlib.suppress` in performance-critical or frequently called I/O bound parsing functions.
+
+## 2026-08-09 - Fast Path for Missing API Headers
+
+**Learning:** When parsing headers on every I/O response (e.g., rate limits), relying on `.get()` checks and native try-except logic for missing keys is slower than doing an explicit `not in` check against the `Headers` object mapping before proceeding with parsing. Adding a fast-path early exit (`if "x-ratelimit-limit" not in headers and ...: return`) for responses that don't have rate limit headers speeds up the execution time by >2x in benchmarks for empty headers.
+**Action:** When extracting multiple optional headers on hot paths (e.g., every API response), prefer an upfront `not in` fast path check against the mapping to bypass the parsing logic for missing headers entirely.
 ## 2026-08-11 - Exception Handling in Hot Paths
 **Learning:** Performance Optimization Pattern: Exception handling (like `ValueError` from `ipaddress.ip_address`) is slow in hot paths. Bypassing it with a fast-path heuristic (e.g., checking if the last character is a non-hex alphabet char to confirm it's a domain) avoids exception overhead and provides significant performance improvements.
 **Action:** Use heuristic fast-paths to bypass exception-heavy blocks in hot paths when parsing common string types like domains vs IPs.
