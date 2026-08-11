@@ -5,6 +5,7 @@ from __future__ import annotations
 import concurrent.futures
 import httpx
 from dataclasses import dataclass
+from collections.abc import Sequence
 from typing import NotRequired, TypedDict
 
 
@@ -24,6 +25,19 @@ class SyncContext:
     client: httpx.Client
     existing_rules: set[str]
     batch_executor: concurrent.futures.Executor | None = None
+
+
+@dataclass(frozen=True)
+class SyncProfileOptions:
+    """Top-level options for a profile sync run."""
+
+    profile_id: str
+    folder_urls: Sequence[str]
+    token: str
+    dry_run: bool = False
+    no_delete: bool = False
+    # plan_accumulator is intentionally a mutable out-parameter (sink).
+    plan_accumulator: list[PlanEntry] | None = None
 
 
 class FolderAction(TypedDict, total=False):
@@ -107,6 +121,7 @@ class SyncResult(TypedDict):
 __all__ = [
     "RuleAction",
     "SyncContext",
+    "SyncProfileOptions",
     "FolderAction",
     "FolderGroup",
     "RuleEntry",
