@@ -492,23 +492,29 @@ def _print_dry_run_success(cmd_str: str) -> None:
         print(f"   {cmd_str}")
 
 
-def _print_dry_run_failure() -> None:
+def _print_dry_run_failure(error_count: int) -> None:
     """Prints dry run error message."""
+    error_word = pluralize(error_count, "error")
     if USE_COLORS:
         print(
-            f"{Colors.FAIL}⚠️  Dry run encountered errors. Please check the logs above.{Colors.ENDC}"
+            f"{Colors.FAIL}⚠️  Dry run encountered {error_count} {error_word}. Please check the logs above.{Colors.ENDC}"
         )
     else:
-        print("⚠️  Dry run encountered errors. Please check the logs above.")
+        print(
+            f"⚠️  Dry run encountered {error_count} {error_word}. Please check the logs above."
+        )
 
 
 def _print_dry_run_next_steps(
-    args: argparse.Namespace, profile_ids: list[str], all_success: bool
+    args: argparse.Namespace,
+    profile_ids: list[str],
+    all_success: bool,
+    error_count: int,
 ) -> bool:
     """Prints suggested next steps after a dry run and handles interactive restart."""
     print()  # Spacer
     if not all_success:
-        _print_dry_run_failure()
+        _print_dry_run_failure(error_count)
         return False
 
     cmd_str = _build_dry_run_command_str(args, profile_ids)
@@ -755,7 +761,10 @@ def main() -> bool:
         print_success_message(profile_ids, success_count, total)
 
     # Dry Run Next Steps
-    if args.dry_run and _print_dry_run_next_steps(args, profile_ids, all_success):
+    error_count = sum(1 for r in sync_results if not r["success"])
+    if args.dry_run and _print_dry_run_next_steps(
+        args, profile_ids, all_success, error_count
+    ):
         return True
 
     # Display execution statistics and rate limit status
