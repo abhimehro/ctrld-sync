@@ -62,17 +62,12 @@
 
 **Merged pull requests:**
 
-- ⚡ Bolt: Optimize hostname validation with fast-path heuristic [\#1157](https://github.com/abhimehro/ctrld-sync/pull/1157) ([abhimehro](https://github.com/abhimehro))
-- chore\(deps\): bump github/gh-aw from 0.84.3 to 0.85.4 [\#1154](https://github.com/abhimehro/ctrld-sync/pull/1154) ([dependabot[bot]](https://github.com/apps/dependabot))
-- chore\(deps\): bump github/gh-aw/actions/setup from 0.84.3 to 0.85.4 [\#1153](https://github.com/abhimehro/ctrld-sync/pull/1153) ([dependabot[bot]](https://github.com/apps/dependabot))
-- ⚡ Bolt: Optimize rate limit header parsing [\#1151](https://github.com/abhimehro/ctrld-sync/pull/1151) ([abhimehro](https://github.com/abhimehro))
 - refactor\(gh\_client\): split response/error handling and fix Content-Length bug [\#1144](https://github.com/abhimehro/ctrld-sync/pull/1144) ([abhimehro](https://github.com/abhimehro))
 - refactor\(display\): simplify print\_plan\_details plan rendering logic [\#1143](https://github.com/abhimehro/ctrld-sync/pull/1143) ([abhimehro](https://github.com/abhimehro))
 - refactor\(validation\): split validate\_folder\_data and sanitize\_for\_log into focused helpers [\#1142](https://github.com/abhimehro/ctrld-sync/pull/1142) ([abhimehro](https://github.com/abhimehro))
 - refactor\(config\): split \_validate\_config into per-section helpers [\#1140](https://github.com/abhimehro/ctrld-sync/pull/1140) ([abhimehro](https://github.com/abhimehro))
 - chore: automated ruff formatting [\#1139](https://github.com/abhimehro/ctrld-sync/pull/1139) ([abhimehro](https://github.com/abhimehro))
 - 🎨 Palette: Fix semantic mismatch in Profile ID prompt [\#1138](https://github.com/abhimehro/ctrld-sync/pull/1138) ([abhimehro](https://github.com/abhimehro))
-- chore\(deps-dev\): bump ruff from 0.15.4 to 0.16.1 [\#1135](https://github.com/abhimehro/ctrld-sync/pull/1135) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps-dev\): bump pytest from 9.0.3 to 9.1.1 [\#1134](https://github.com/abhimehro/ctrld-sync/pull/1134) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps-dev\): bump pre-commit from 4.5.1 to 4.6.1 [\#1133](https://github.com/abhimehro/ctrld-sync/pull/1133) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps-dev\): bump pytest-cov from 7.0.0 to 7.1.0 [\#1132](https://github.com/abhimehro/ctrld-sync/pull/1132) ([dependabot[bot]](https://github.com/apps/dependabot))

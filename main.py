@@ -775,8 +775,9 @@ def main() -> bool:
         print_success_message(profile_ids, success_count, total)
 
     # Dry Run Next Steps
+    error_count = sum(1 for r in sync_results if not r["success"])
     if args.dry_run and _print_dry_run_next_steps(
-        args, profile_ids, all_success, total - success_count
+        args, profile_ids, all_success, error_count
     ):
         return True
 
