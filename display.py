@@ -714,9 +714,9 @@ def print_summary_table(
     w = [max(25, max_p), 10, 12, 10, 15]
 
     t_f, t_r, t_d = (
-        sum(r["folders"] for r in sync_results),
-        sum(r["rules"] for r in sync_results),
-        sum(r["duration"] for r in sync_results),
+        sum([r["folders"] for r in sync_results]),
+        sum([r["rules"] for r in sync_results]),
+        sum([r["duration"] for r in sync_results]),
     )
     all_ok = success_count == total
     if all_ok:
