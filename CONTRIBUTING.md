@@ -43,7 +43,8 @@ need to get started.
 ## Running Tests
 
 ```bash
-uv run pytest tests/ -v
+# Full suite (includes root test_main.py)
+uv run pytest tests/ test_main.py -v
 ```
 
 Run a specific test file:
@@ -114,7 +115,7 @@ standards:
    - `chore/<short-description>` for maintenance tasks
 
 2. **Before opening a PR:**
-   - Run the full test suite: `uv run pytest tests/ -v`
+   - Run the full test suite: `uv run pytest tests/ test_main.py -v`
    - Run the linter: `ruff check .`
    - Run pre-commit: `uv run pre-commit run --all-files`
 
