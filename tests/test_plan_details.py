@@ -6,6 +6,8 @@ from unittest.mock import patch
 
 import pytest
 
+from models import PlanRuleGroup
+
 # NOTE: Avoid importing `main` at module import time.
 # Some tests delete `sys.modules["main"]` to force a clean import under different env/TTY
 # settings; holding a stale module reference can cause patches to target the wrong module.
@@ -327,7 +329,7 @@ def test_resolve_folder_action_fallbacks():
     )
 
     # Single rule_groups action
-    rg = {"rules": 1, "action": 0, "status": 1}
+    rg = PlanRuleGroup(rules=1, action=0, status=1)
     assert display._resolve_folder_action(
         {"name": "x", "rules": 1, "rule_groups": [rg]}
     ) == (
@@ -342,8 +344,8 @@ def test_resolve_folder_action_fallbacks():
             "name": "x",
             "rules": 2,
             "rule_groups": [
-                {"rules": 1, "action": 0, "status": 1},
-                {"rules": 1, "action": 1, "status": 1},
+                PlanRuleGroup(rules=1, action=0, status=1),
+                PlanRuleGroup(rules=1, action=1, status=1),
             ],
         }
     ) == ("Mixed", "⚠️ ", "WARNING")
