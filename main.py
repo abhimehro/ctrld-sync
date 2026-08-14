@@ -522,6 +522,17 @@ def _print_dry_run_next_steps(
     return prompt_for_interactive_restart(profile_ids)
 
 
+def _handle_dry_run_next_steps(
+    args: argparse.Namespace,
+    profile_ids: list[str],
+    sync_results: list[SyncResult],
+    all_success: bool,
+) -> bool:
+    """Handles dry run next steps by calculating error count and delegating to print function."""
+    error_count = sum(1 for r in sync_results if not r["success"])
+    return _print_dry_run_next_steps(args, profile_ids, all_success, error_count)
+
+
 def parse_args() -> argparse.Namespace:
     """
     Parses command-line arguments for the Control D sync tool.
@@ -761,9 +772,8 @@ def main() -> bool:
         print_success_message(profile_ids, success_count, total)
 
     # Dry Run Next Steps
-    error_count = sum(1 for r in sync_results if not r["success"])
-    if args.dry_run and _print_dry_run_next_steps(
-        args, profile_ids, all_success, error_count
+    if args.dry_run and _handle_dry_run_next_steps(
+        args, profile_ids, sync_results, all_success
     ):
         return True
 
