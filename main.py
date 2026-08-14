@@ -766,7 +766,8 @@ def main() -> bool:
         save_disk_cache()
 
     total = len(profile_ids or ["dry-run-placeholder"])
-    log.info(f"All profiles processed: {success_count}/{total} successful")
+    profile_word = pluralize(total, "profile")
+    log.info(f"Processed {total} {profile_word}: {success_count}/{total} successful")
     if success_count != total:
         exit(1)
     return False
