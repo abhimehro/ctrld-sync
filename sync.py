@@ -679,18 +679,21 @@ def _log_batch_result(
         return True
 
     _clear_current_line()
+    batch_word = pluralize(total_batches, "batch", "batches")
     if successful_batches > 0:
         log.warning(
-            "Folder %s – only %d/%d batches succeeded (Partial)",
+            "Folder %s – only %d/%d %s succeeded (Partial)",
             target.sanitized_name,
             successful_batches,
             total_batches,
+            batch_word,
         )
     else:
         log.error(
-            "Folder %s – 0/%d batches succeeded",
+            "Folder %s – 0/%d %s succeeded",
             target.sanitized_name,
             total_batches,
+            batch_word,
         )
     return False
 
