@@ -163,3 +163,8 @@ in a sanitization function like `_sanitize_fn(e)` before embedding them into any
 error messages. Always explicitly suppress exception chaining by appending
 `from None` when re-raising a sanitized exception to avoid leaking the original
 context.
+
+## 2026-08-15 - [Centralize Validation Checks]
+**Vulnerability:** In `_filter_rules_for_folder`, an inline 'fast-path' security check was implemented that manually checked rule characters and length, bypassing the centralized `is_valid_rule` function. This created a maintainability and security risk, as any future updates to `is_valid_rule` would not be reflected in this hot-path, leading to "security drift" or validation bypasses.
+**Learning:** Hot-path performance optimizations can easily overlook secondary safety checks or diverge from the main validation logic. Inline security checks often lead to security drift.
+**Prevention:** Consistently use the dedicated validation function (`is_valid_rule`) for input sanitization and validation, even in hot-path loops, unless the full set of checks is rigorously duplicated or proven unnecessary. Centralization acts as a defense-in-depth measure to ensure all validation rules are applied uniformly.

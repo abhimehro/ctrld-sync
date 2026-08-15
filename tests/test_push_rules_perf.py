@@ -8,7 +8,6 @@ import httpx
 # Add root to path to import main
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import sync  # noqa: E402
 
 
 class TestPushRulesPerf(unittest.TestCase):
@@ -117,14 +116,10 @@ class TestPushRulesPerf(unittest.TestCase):
 
     def test_push_rules_skips_validation_for_existing(self):
         """
-        Test that _ALLOWED_RULE_CHARS.issuperset is NOT called for rules that are already in existing_rules.
+        Test that validation is NOT called for rules that are already in existing_rules.
         """
-        # Patch _ALLOWED_RULE_CHARS on the sync module (canonical owner)
-        with patch.object(sync, "_ALLOWED_RULE_CHARS") as mock_allowed:
-            # Configure the mock issuperset method
-            mock_issuperset = mock_allowed.issuperset
-            mock_issuperset.return_value = True
-
+        # Patch is_valid_rule on the sync module (canonical owner)
+        with patch("sync.is_valid_rule", return_value=True) as mock_is_valid:
             hostnames = ["h1", "h2"]
             # h1 is already known, h2 is new
             existing_rules = {"h1"}
@@ -146,8 +141,8 @@ class TestPushRulesPerf(unittest.TestCase):
 
             # h1 is in existing_rules, so we should skip validation for it.
             # h2 is NOT in existing_rules, so we should validate it.
-            # So issuperset should be called EXACTLY once, with "h2".
-            mock_issuperset.assert_called_once_with("h2")
+            # So validation should be called EXACTLY once, with "h2".
+            mock_is_valid.assert_called_once_with("h2")
 
     @patch("main.concurrent.futures.as_completed")
     def test_push_rules_uses_provided_executor(self, mock_as_completed):

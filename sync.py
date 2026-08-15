@@ -37,8 +37,6 @@ from display import (
 from gh_client import _cache, _cache_lock, fetch_folder_data  # noqa: F401
 from models import FolderData, PlanEntry, RuleAction, SyncContext, SyncProfileOptions
 from validation import (
-    _ALLOWED_RULE_CHARS,
-    MAX_RULE_LENGTH,
     is_valid_rule,
     sanitize_for_log,
     set_token_for_redaction,
@@ -577,16 +575,12 @@ def _filter_rules_for_folder(
     """
     unique_hostnames_dict = _deduplicate_hostnames(existing_rules, hostnames)
 
-    # Optimization 2: Inline method references for hot loop performance
-    allowed = _ALLOWED_RULE_CHARS
-    max_len = MAX_RULE_LENGTH
-
     # Second pass: Strict safety validation
     # FAST PATH: C-speed list comprehension for the 99.9% case where rules are safe
     filtered_hostnames = [
         h
         for h in unique_hostnames_dict
-        if h and len(h) <= max_len and allowed.issuperset(h)
+        if is_valid_rule(h)
     ]
 
     _log_filtering_results(
