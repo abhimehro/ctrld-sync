@@ -12,6 +12,13 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-08-14 [\#1169](https://github.com/abhimehro/ctrld-sync/issues/1169)
+- Daily QA & Agentic Review — 2026-08-13 [\#1164](https://github.com/abhimehro/ctrld-sync/issues/1164)
+- Daily QA & Agentic Review — 2026-08-12 [\#1160](https://github.com/abhimehro/ctrld-sync/issues/1160)
+- Daily QA & Agentic Review — 2026-08-11 [\#1158](https://github.com/abhimehro/ctrld-sync/issues/1158)
+- Daily QA & Agentic Review — 2026-08-10 [\#1152](https://github.com/abhimehro/ctrld-sync/issues/1152)
+- Daily QA & Agentic Review — 2026-08-09 [\#1149](https://github.com/abhimehro/ctrld-sync/issues/1149)
+- Daily QA & Agentic Review — 2026-08-08 [\#1146](https://github.com/abhimehro/ctrld-sync/issues/1146)
 - Daily QA & Agentic Review — 2026-08-07 [\#1137](https://github.com/abhimehro/ctrld-sync/issues/1137)
 - Daily QA & Agentic Review — 2026-08-06 [\#1125](https://github.com/abhimehro/ctrld-sync/issues/1125)
 - \[repo-health\] Dual requirements\*.txt vs Docker/uv migration + stale branch cleanup [\#1124](https://github.com/abhimehro/ctrld-sync/issues/1124)
@@ -63,6 +70,8 @@
 
 **Merged pull requests:**
 
+- chore\(deps\): bump github/gh-aw/actions/setup from 0.85.4 to 0.86.2 [\#1171](https://github.com/abhimehro/ctrld-sync/pull/1171) ([dependabot[bot]](https://github.com/apps/dependabot))
+- 🎨 Palette: Dynamic pluralization for CLI success messages [\#1168](https://github.com/abhimehro/ctrld-sync/pull/1168) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Optimize hostname validation with fast-path heuristic [\#1157](https://github.com/abhimehro/ctrld-sync/pull/1157) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump github/gh-aw from 0.84.3 to 0.85.4 [\#1154](https://github.com/abhimehro/ctrld-sync/pull/1154) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump github/gh-aw/actions/setup from 0.84.3 to 0.85.4 [\#1153](https://github.com/abhimehro/ctrld-sync/pull/1153) ([dependabot[bot]](https://github.com/apps/dependabot))
