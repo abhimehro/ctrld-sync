@@ -96,7 +96,7 @@ def test_push_rules_benchmark_10k(benchmark, overlap_ratio):
 
 
 def test_sum_sync_result_totals_benchmark(benchmark):
-    """Guard sync summary totals: sum(generator) is preferred over sum([list comp])."""
+    """Guard sync summary totals: sum([list comp]) is preferred over sum(generator)."""
     sync_results = [
         main.SyncResult(
             profile=f"profile-{i}",
@@ -111,9 +111,9 @@ def test_sum_sync_result_totals_benchmark(benchmark):
 
     def totals() -> tuple[int, int, float]:
         return (
-            sum(r["folders"] for r in sync_results),
-            sum(r["rules"] for r in sync_results),
-            sum(r["duration"] for r in sync_results),
+            sum([r["folders"] for r in sync_results]),
+            sum([r["rules"] for r in sync_results]),
+            sum([r["duration"] for r in sync_results]),
         )
 
     folders, rules, duration = benchmark(totals)
