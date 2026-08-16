@@ -295,3 +295,6 @@ context flags to ensure safety and predictability.
 ## 2026-08-04 - [Grammatical Polish in Success Messages]
 **Learning:** Hardcoding plural strings (like "profile(s)") can lead to poor grammar when counts evaluate to exactly 1.
 **Action:** Use `pluralize` to dynamically correct grammar in CLI output to improve text polish and reduce cognitive load.
+## 2026-08-14 - [Code Review Hallucinations]
+**Learning:** Automated code review tools may hallucinate missing imports, undefined functions, or incorrect signatures. For example, a reviewer claimed `pluralize` was undefined and not imported, despite it being correctly imported from `display` and fully passing the test suite.
+**Action:** When a review flags an issue that contradicts verified ground truth (e.g., tests pass locally, imports are present), document the hallucination and proceed rather than trying to fix a non-existent problem.

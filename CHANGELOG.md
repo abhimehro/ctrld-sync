@@ -12,6 +12,15 @@
 
 **Closed issues:**
 
+- \[docs\] CONTRIBUTING.md step 4 requires a manual CHANGELOG entry, but CHANGELOG is generated [\#1180](https://github.com/abhimehro/ctrld-sync/issues/1180)
+- Daily QA & Agentic Review — 2026-08-15 [\#1172](https://github.com/abhimehro/ctrld-sync/issues/1172)
+- Daily QA & Agentic Review — 2026-08-14 [\#1169](https://github.com/abhimehro/ctrld-sync/issues/1169)
+- Daily QA & Agentic Review — 2026-08-13 [\#1164](https://github.com/abhimehro/ctrld-sync/issues/1164)
+- Daily QA & Agentic Review — 2026-08-12 [\#1160](https://github.com/abhimehro/ctrld-sync/issues/1160)
+- Daily QA & Agentic Review — 2026-08-11 [\#1158](https://github.com/abhimehro/ctrld-sync/issues/1158)
+- Daily QA & Agentic Review — 2026-08-10 [\#1152](https://github.com/abhimehro/ctrld-sync/issues/1152)
+- Daily QA & Agentic Review — 2026-08-09 [\#1149](https://github.com/abhimehro/ctrld-sync/issues/1149)
+- Daily QA & Agentic Review — 2026-08-08 [\#1146](https://github.com/abhimehro/ctrld-sync/issues/1146)
 - Daily QA & Agentic Review — 2026-08-07 [\#1137](https://github.com/abhimehro/ctrld-sync/issues/1137)
 - Daily QA & Agentic Review — 2026-08-06 [\#1125](https://github.com/abhimehro/ctrld-sync/issues/1125)
 - \[repo-health\] Dual requirements\*.txt vs Docker/uv migration + stale branch cleanup [\#1124](https://github.com/abhimehro/ctrld-sync/issues/1124)
@@ -21,6 +30,8 @@
 - Daily QA & Agentic Review — 2026-08-02 [\#1112](https://github.com/abhimehro/ctrld-sync/issues/1112)
 - \[repo-automation\] Weekly Retrospective - 2026-08-02 [\#1110](https://github.com/abhimehro/ctrld-sync/issues/1110)
 - Daily QA & Agentic Review — 2026-08-01 [\#1106](https://github.com/abhimehro/ctrld-sync/issues/1106)
+- \[repo-health\] Split sync.py into focused modules after function-level refactors [\#1101](https://github.com/abhimehro/ctrld-sync/issues/1101)
+- \[repo-health\] Refactor sync.py folder preparation and polling flow [\#1100](https://github.com/abhimehro/ctrld-sync/issues/1100)
 - \[repo-health\] Refactor sync.py batching and context plumbing [\#1099](https://github.com/abhimehro/ctrld-sync/issues/1099)
 - \[repo-health\] Refactor gh\_client.py error and response handling with regression coverage [\#1098](https://github.com/abhimehro/ctrld-sync/issues/1098)
 - \[repo-health\] Simplify display.py plan rendering logic [\#1097](https://github.com/abhimehro/ctrld-sync/issues/1097)
@@ -63,6 +74,12 @@
 
 **Merged pull requests:**
 
+- refactor\(sync\): split sync.py into focused sync/ package \(ABHI-1637\) [\#1182](https://github.com/abhimehro/ctrld-sync/pull/1182) ([abhimehro](https://github.com/abhimehro))
+- docs\(contributing\): do not require manual CHANGELOG edits [\#1181](https://github.com/abhimehro/ctrld-sync/pull/1181) ([abhimehro](https://github.com/abhimehro))
+- Document credential-free live-mode sync harness in testing skill [\#1179](https://github.com/abhimehro/ctrld-sync/pull/1179) ([abhimehro](https://github.com/abhimehro))
+- refactor\(sync\): decompose folder preparation and polling flow \(ABHI-1636\) [\#1178](https://github.com/abhimehro/ctrld-sync/pull/1178) ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump github/gh-aw/actions/setup from 0.85.4 to 0.86.2 [\#1171](https://github.com/abhimehro/ctrld-sync/pull/1171) ([dependabot[bot]](https://github.com/apps/dependabot))
+- 🎨 Palette: Dynamic pluralization for CLI success messages [\#1168](https://github.com/abhimehro/ctrld-sync/pull/1168) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Optimize hostname validation with fast-path heuristic [\#1157](https://github.com/abhimehro/ctrld-sync/pull/1157) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump github/gh-aw from 0.84.3 to 0.85.4 [\#1154](https://github.com/abhimehro/ctrld-sync/pull/1154) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump github/gh-aw/actions/setup from 0.84.3 to 0.85.4 [\#1153](https://github.com/abhimehro/ctrld-sync/pull/1153) ([dependabot[bot]](https://github.com/apps/dependabot))
