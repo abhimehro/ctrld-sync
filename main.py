@@ -184,6 +184,13 @@ def _set_sync_submodule_attr(name: str, value: Any) -> None:
             setattr(sys.modules[mod_name], name, value)
 
 
+def _set_display_submodule_attr(name: str, value: Any) -> None:
+    """Propagate an attribute change to all loaded display.* submodules."""
+    for mod_name in list(sys.modules):
+        if mod_name.startswith("display."):
+            setattr(sys.modules[mod_name], name, value)
+
+
 class _MainModule(types.ModuleType):
     """Custom module class so test patches on main.* update canonical module state."""
 
@@ -200,6 +207,7 @@ class _MainModule(types.ModuleType):
             if "sync" in sys.modules:
                 sys.modules["sync"].USE_COLORS = value  # type: ignore[attr-defined]
             _set_sync_submodule_attr("USE_COLORS", value)
+            _set_display_submodule_attr("USE_COLORS", value)
         elif name == "log":
             # Many tests patch main.log; helper modules were extracted with per-module
             # loggers, so keep them pointing at the same logger object for compatibility.
@@ -215,6 +223,7 @@ class _MainModule(types.ModuleType):
                 if mod in sys.modules:
                     sys.modules[mod].log = value  # type: ignore[attr-defined]
             _set_sync_submodule_attr("log", value)
+            _set_display_submodule_attr("log", value)
         super().__setattr__(name, value)
 
     def __getattr__(self, name: str) -> Any:
@@ -244,6 +253,7 @@ for _mod in (
     if _mod in sys.modules:
         sys.modules[_mod].log = log  # type: ignore[attr-defined]
 _set_sync_submodule_attr("log", log)
+_set_display_submodule_attr("log", log)
 
 # Configure coloured/JSON output and silence noisy library loggers.
 display.configure_logging()
