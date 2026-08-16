@@ -12,6 +12,7 @@
 
 **Closed issues:**
 
+- \[docs\] CONTRIBUTING.md step 4 requires a manual CHANGELOG entry, but CHANGELOG is generated [\#1180](https://github.com/abhimehro/ctrld-sync/issues/1180)
 - Daily QA & Agentic Review — 2026-08-15 [\#1172](https://github.com/abhimehro/ctrld-sync/issues/1172)
 - Daily QA & Agentic Review — 2026-08-14 [\#1169](https://github.com/abhimehro/ctrld-sync/issues/1169)
 - Daily QA & Agentic Review — 2026-08-13 [\#1164](https://github.com/abhimehro/ctrld-sync/issues/1164)
@@ -72,6 +73,8 @@
 
 **Merged pull requests:**
 
+- docs\(contributing\): do not require manual CHANGELOG edits [\#1181](https://github.com/abhimehro/ctrld-sync/pull/1181) ([abhimehro](https://github.com/abhimehro))
+- Document credential-free live-mode sync harness in testing skill [\#1179](https://github.com/abhimehro/ctrld-sync/pull/1179) ([abhimehro](https://github.com/abhimehro))
 - refactor\(sync\): decompose folder preparation and polling flow \(ABHI-1636\) [\#1178](https://github.com/abhimehro/ctrld-sync/pull/1178) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump github/gh-aw/actions/setup from 0.85.4 to 0.86.2 [\#1171](https://github.com/abhimehro/ctrld-sync/pull/1171) ([dependabot[bot]](https://github.com/apps/dependabot))
 - 🎨 Palette: Dynamic pluralization for CLI success messages [\#1168](https://github.com/abhimehro/ctrld-sync/pull/1168) ([abhimehro](https://github.com/abhimehro))
