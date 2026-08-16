@@ -39,6 +39,15 @@ class _ImmediateExecutor:
         return future
 
 
+def _preparation(executor: _ImmediateExecutor, no_delete: bool) -> Any:
+    return sync._FolderPreparationContext(
+        client=object(),
+        profile_id="profile",
+        shared_executor=executor,
+        no_delete=no_delete,
+    )
+
+
 def _folder_data(name: str) -> dict[str, Any]:
     return {"group": {"group": name}, "rules": []}
 
@@ -281,7 +290,7 @@ def test_prepare_access_failure_submits_nothing(monkeypatch):
     monkeypatch.setattr(sync, "verify_access_and_get_folders", lambda *args: None)
 
     result = sync._prepare_folders_and_rules(
-        object(), "profile", [_folder_data("Folder")], False, executor
+        _preparation(executor, False), [_folder_data("Folder")]
     )
 
     assert result == (None, set())
@@ -303,7 +312,7 @@ def test_prepare_no_delete_scans_all_folders_without_wait_or_deletes(monkeypatch
     monkeypatch.setattr(sync, "countdown_timer", lambda *args: waits.append(args))
 
     result = sync._prepare_folders_and_rules(
-        object(), "profile", [_folder_data("Replace")], True, executor
+        _preparation(executor, True), [_folder_data("Replace")]
     )
 
     assert result == (existing, {"rule"})
@@ -325,7 +334,7 @@ def test_prepare_removes_replacements_from_scan_before_failed_deletion(monkeypat
     monkeypatch.setattr(sync, "countdown_timer", lambda *args: None)
 
     result = sync._prepare_folders_and_rules(
-        object(), "profile", [_folder_data("Replace")], False, executor
+        _preparation(executor, False), [_folder_data("Replace")]
     )
 
     assert scanned == [{"Keep": "keep-id"}]
@@ -357,11 +366,8 @@ def test_prepare_deletion_outcomes(monkeypatch, outcomes, expected_folders, wait
     monkeypatch.setattr(sync, "countdown_timer", lambda *args: waits_seen.append(args))
 
     result = sync._prepare_folders_and_rules(
-        object(),
-        "profile",
+        _preparation(executor, False),
         [_folder_data("A"), _folder_data("B")],
-        False,
-        executor,
     )
 
     assert result[0] == expected_folders
@@ -380,7 +386,7 @@ def test_prepare_rules_future_success(monkeypatch):
     monkeypatch.setattr(sync, "countdown_timer", lambda *args: None)
 
     assert sync._prepare_folders_and_rules(
-        object(), "profile", [_folder_data("Folder")], False, executor
+        _preparation(executor, False), [_folder_data("Folder")]
     ) == ({}, {"rule"})
 
 
@@ -397,7 +403,7 @@ def test_prepare_rules_future_failure_returns_empty_set(monkeypatch, caplog):
 
     with caplog.at_level("ERROR", logger=sync.log.name):
         result = sync._prepare_folders_and_rules(
-            object(), "profile", [_folder_data("Folder")], True, executor
+            _preparation(executor, True), [_folder_data("Folder")]
         )
 
     assert result == ({"Folder": "id"}, set())
@@ -427,11 +433,8 @@ def test_prepare_submits_rules_before_delete_and_preserves_duplicate_targets(
     monkeypatch.setattr(sync, "countdown_timer", lambda *args: None)
 
     sync._prepare_folders_and_rules(
-        object(),
-        "profile",
+        _preparation(executor, False),
         [_folder_data("Folder"), _folder_data("Folder")],
-        False,
-        executor,
     )
 
     assert executor.submissions[:3] == ["rules", "delete", "delete"]
