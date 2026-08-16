@@ -13,6 +13,7 @@
 **Closed issues:**
 
 - \[docs\] CONTRIBUTING.md step 4 requires a manual CHANGELOG entry, but CHANGELOG is generated [\#1180](https://github.com/abhimehro/ctrld-sync/issues/1180)
+- \[repo-automation\] Weekly Retrospective - 2026-08-16 [\#1177](https://github.com/abhimehro/ctrld-sync/issues/1177)
 - Daily QA & Agentic Review — 2026-08-15 [\#1172](https://github.com/abhimehro/ctrld-sync/issues/1172)
 - Daily QA & Agentic Review — 2026-08-14 [\#1169](https://github.com/abhimehro/ctrld-sync/issues/1169)
 - Daily QA & Agentic Review — 2026-08-13 [\#1164](https://github.com/abhimehro/ctrld-sync/issues/1164)
@@ -20,6 +21,7 @@
 - Daily QA & Agentic Review — 2026-08-11 [\#1158](https://github.com/abhimehro/ctrld-sync/issues/1158)
 - Daily QA & Agentic Review — 2026-08-10 [\#1152](https://github.com/abhimehro/ctrld-sync/issues/1152)
 - Daily QA & Agentic Review — 2026-08-09 [\#1149](https://github.com/abhimehro/ctrld-sync/issues/1149)
+- \[repo-automation\] Weekly Retrospective - 2026-08-09 [\#1148](https://github.com/abhimehro/ctrld-sync/issues/1148)
 - Daily QA & Agentic Review — 2026-08-08 [\#1146](https://github.com/abhimehro/ctrld-sync/issues/1146)
 - Daily QA & Agentic Review — 2026-08-07 [\#1137](https://github.com/abhimehro/ctrld-sync/issues/1137)
 - Daily QA & Agentic Review — 2026-08-06 [\#1125](https://github.com/abhimehro/ctrld-sync/issues/1125)
@@ -78,6 +80,7 @@
 - docs\(contributing\): do not require manual CHANGELOG edits [\#1181](https://github.com/abhimehro/ctrld-sync/pull/1181) ([abhimehro](https://github.com/abhimehro))
 - Document credential-free live-mode sync harness in testing skill [\#1179](https://github.com/abhimehro/ctrld-sync/pull/1179) ([abhimehro](https://github.com/abhimehro))
 - refactor\(sync\): decompose folder preparation and polling flow \(ABHI-1636\) [\#1178](https://github.com/abhimehro/ctrld-sync/pull/1178) ([abhimehro](https://github.com/abhimehro))
+- chore\(deps-dev\): bump ruff from 0.16.1 to 0.16.2 [\#1176](https://github.com/abhimehro/ctrld-sync/pull/1176) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump github/gh-aw/actions/setup from 0.85.4 to 0.86.2 [\#1171](https://github.com/abhimehro/ctrld-sync/pull/1171) ([dependabot[bot]](https://github.com/apps/dependabot))
 - 🎨 Palette: Dynamic pluralization for CLI success messages [\#1168](https://github.com/abhimehro/ctrld-sync/pull/1168) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Optimize hostname validation with fast-path heuristic [\#1157](https://github.com/abhimehro/ctrld-sync/pull/1157) ([abhimehro](https://github.com/abhimehro))
