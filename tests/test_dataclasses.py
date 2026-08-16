@@ -81,3 +81,20 @@ def test_push_rules_creates_executor_when_none(
     assert mock_tpe_cls.called, (
         "ThreadPoolExecutor should be created when batch_executor is None"
     )
+
+
+def test_sync_profile_options_defaults_and_field_rebinding_is_blocked(main_module):
+    """SyncProfileOptions exposes expected defaults and rejects field rebinding."""
+    options = main_module.SyncProfileOptions(
+        profile_id="p1",
+        folder_urls=["url"],
+        token="tok",
+    )
+    assert options.dry_run is False
+    assert options.no_delete is False
+    assert options.plan_accumulator is None
+
+    # plan_accumulator is intentionally a mutable out-parameter (sink).
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        # Use setattr so static type checkers do not flag a frozen-field assignment.
+        setattr(options, "profile_id", "p2")

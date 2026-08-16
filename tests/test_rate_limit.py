@@ -31,11 +31,13 @@ class TestRateLimitParsing:
     def test_parse_rate_limit_headers_all_present(self):
         """Test parsing when all rate limit headers are present."""
         mock_response = MagicMock(spec=httpx.Response)
-        mock_response.headers = {
-            "X-RateLimit-Limit": "100",
-            "X-RateLimit-Remaining": "75",
-            "X-RateLimit-Reset": "1708225200",  # Some future timestamp
-        }
+        mock_response.headers = httpx.Headers(
+            {
+                "X-RateLimit-Limit": "100",
+                "X-RateLimit-Remaining": "75",
+                "X-RateLimit-Reset": "1708225200",  # Some future timestamp
+            }
+        )
 
         main.api_client._parse_rate_limit_headers(mock_response)
 
@@ -47,9 +49,11 @@ class TestRateLimitParsing:
     def test_parse_rate_limit_headers_partial(self):
         """Test parsing when only some headers are present."""
         mock_response = MagicMock(spec=httpx.Response)
-        mock_response.headers = {
-            "X-RateLimit-Remaining": "50",
-        }
+        mock_response.headers = httpx.Headers(
+            {
+                "X-RateLimit-Remaining": "50",
+            }
+        )
 
         main.api_client._parse_rate_limit_headers(mock_response)
 
@@ -61,7 +65,7 @@ class TestRateLimitParsing:
     def test_parse_rate_limit_headers_missing(self):
         """Test parsing when no rate limit headers are present."""
         mock_response = MagicMock(spec=httpx.Response)
-        mock_response.headers = {}
+        mock_response.headers = httpx.Headers({})
 
         # Store original values
         with main._rate_limit_lock:
@@ -80,11 +84,13 @@ class TestRateLimitParsing:
     def test_parse_rate_limit_headers_invalid_values(self):
         """Test graceful handling of invalid header values."""
         mock_response = MagicMock(spec=httpx.Response)
-        mock_response.headers = {
-            "X-RateLimit-Limit": "not-a-number",
-            "X-RateLimit-Remaining": "also-invalid",
-            "X-RateLimit-Reset": "bad-timestamp",
-        }
+        mock_response.headers = httpx.Headers(
+            {
+                "X-RateLimit-Limit": "not-a-number",
+                "X-RateLimit-Remaining": "also-invalid",
+                "X-RateLimit-Reset": "bad-timestamp",
+            }
+        )
 
         # Should not crash, just ignore invalid values
         main.api_client._parse_rate_limit_headers(mock_response)
@@ -98,11 +104,13 @@ class TestRateLimitParsing:
     def test_parse_rate_limit_low_remaining_warning(self, caplog):
         """Test warning when approaching rate limit (< 20% remaining)."""
         mock_response = MagicMock(spec=httpx.Response)
-        mock_response.headers = {
-            "X-RateLimit-Limit": "100",
-            "X-RateLimit-Remaining": "15",  # 15% remaining
-            "X-RateLimit-Reset": str(int(time.time()) + 3600),
-        }
+        mock_response.headers = httpx.Headers(
+            {
+                "X-RateLimit-Limit": "100",
+                "X-RateLimit-Remaining": "15",  # 15% remaining
+                "X-RateLimit-Reset": str(int(time.time()) + 3600),
+            }
+        )
 
         with caplog.at_level("WARNING"):
             main.api_client._parse_rate_limit_headers(mock_response)
@@ -115,10 +123,12 @@ class TestRateLimitParsing:
     def test_parse_rate_limit_healthy_no_warning(self, caplog):
         """Test no warning when rate limit is healthy (> 20% remaining)."""
         mock_response = MagicMock(spec=httpx.Response)
-        mock_response.headers = {
-            "X-RateLimit-Limit": "100",
-            "X-RateLimit-Remaining": "80",  # 80% remaining
-        }
+        mock_response.headers = httpx.Headers(
+            {
+                "X-RateLimit-Limit": "100",
+                "X-RateLimit-Remaining": "80",  # 80% remaining
+            }
+        )
 
         with caplog.at_level("WARNING"):
             main.api_client._parse_rate_limit_headers(mock_response)
@@ -131,10 +141,12 @@ class TestRateLimitParsing:
     def test_rate_limit_thread_safety(self):
         """Test thread-safe access to rate limit info."""
         mock_response = MagicMock(spec=httpx.Response)
-        mock_response.headers = {
-            "X-RateLimit-Limit": "100",
-            "X-RateLimit-Remaining": "50",
-        }
+        mock_response.headers = httpx.Headers(
+            {
+                "X-RateLimit-Limit": "100",
+                "X-RateLimit-Remaining": "50",
+            }
+        )
 
         # Parse from multiple threads concurrently
         threads = []
@@ -169,10 +181,12 @@ class TestRetryWithRateLimit:
         mock_request = MagicMock()
         mock_response = MagicMock(spec=httpx.Response)
         mock_response.status_code = 429
-        mock_response.headers = {
-            "Retry-After": "2",  # 2 seconds
-            "X-RateLimit-Remaining": "0",
-        }
+        mock_response.headers = httpx.Headers(
+            {
+                "Retry-After": "2",  # 2 seconds
+                "X-RateLimit-Remaining": "0",
+            }
+        )
         mock_response.request = mock_request
 
         error = httpx.HTTPStatusError(
@@ -206,10 +220,12 @@ class TestRetryWithRateLimit:
         """Test that successful requests parse rate limit headers."""
         mock_response = MagicMock(spec=httpx.Response)
         mock_response.raise_for_status = MagicMock()
-        mock_response.headers = {
-            "X-RateLimit-Limit": "100",
-            "X-RateLimit-Remaining": "99",
-        }
+        mock_response.headers = httpx.Headers(
+            {
+                "X-RateLimit-Limit": "100",
+                "X-RateLimit-Remaining": "99",
+            }
+        )
 
         request_func = MagicMock(return_value=mock_response)
 
@@ -225,9 +241,11 @@ class TestRetryWithRateLimit:
         mock_request = MagicMock()
         mock_response = MagicMock(spec=httpx.Response)
         mock_response.status_code = 500
-        mock_response.headers = {
-            "X-RateLimit-Remaining": "50",
-        }
+        mock_response.headers = httpx.Headers(
+            {
+                "X-RateLimit-Remaining": "50",
+            }
+        )
         mock_response.request = mock_request
         mock_response.text = "Server error"
 
@@ -246,13 +264,13 @@ class TestRetryWithRateLimit:
         with main._rate_limit_lock:
             assert main._rate_limit_info["remaining"] == 50
 
-    @patch("random.random", return_value=1.0)
+    @patch("secrets.SystemRandom.random", return_value=1.0)
     def test_429_without_retry_after_uses_exponential_backoff(self, mock_random):
         """Test that 429 without Retry-After falls back to exponential backoff."""
         mock_request = MagicMock()
         mock_response = MagicMock(spec=httpx.Response)
         mock_response.status_code = 429
-        mock_response.headers = {}  # No Retry-After
+        mock_response.headers = httpx.Headers({})  # No Retry-After
         mock_response.request = mock_request
 
         error = httpx.HTTPStatusError(
@@ -268,7 +286,7 @@ class TestRetryWithRateLimit:
 
         request_func = MagicMock(side_effect=[error, error, success_response])
 
-        # With delay=1 and random.random()=1.0 (full jitter), backoff is: 1s, 2s
+        # With delay=1 and SystemRandom.random()=1.0 (full jitter), backoff is: 1s, 2s
         # Total wait should be >= 3 seconds
         start_time = time.time()
         result = main.api_client._retry_request(request_func, max_retries=3, delay=1)
