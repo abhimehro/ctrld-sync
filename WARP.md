@@ -267,9 +267,10 @@ GitHub Actions workflow: `.github/workflows/sync.yml`
   - Scheduled run daily at `02:00 UTC`.
   - Manual run via `workflow_dispatch`.
 - Job:
-  - Checks out the repo and sets up Python 3.13.
-  - Installs `httpx` and `python-dotenv` with `pip`.
-  - Runs `python main.py` with:
+  - Checks out the repo and sets up uv + Python 3.13.
+  - Installs dependencies with `uv sync --all-extras` (from `pyproject.toml` /
+    `uv.lock`).
+  - Runs `uv run python main.py` with:
     - `TOKEN` – Provided via `secrets.TOKEN`.
     - `PROFILE` – Provided via `secrets.PROFILE` (can be a comma-separated list
       for multiple profiles).

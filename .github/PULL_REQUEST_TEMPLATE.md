@@ -17,7 +17,7 @@ Use a short, descriptive name:
 
 Run the following in order:
 
-1. Run the full test suite: `uv run pytest tests/ -v`
+1. Run the full test suite: `uv run pytest tests/ test_main.py -v`
 2. Run the linter: `ruff check .`
 3. Run pre-commit: `uv run pre-commit run --all-files`
 
