@@ -10,6 +10,7 @@ import sys
 import time
 from collections.abc import Sequence
 from dataclasses import dataclass
+from enum import Enum, auto
 
 
 import httpx
@@ -78,6 +79,28 @@ class _BatchTarget:
             str_group=str(folder_id),
             progress_label=f"Folder {sanitized_name}",
         )
+
+
+@dataclass(frozen=True, slots=True)
+class _FolderPreparationContext:
+    """Shared state for preparing folders and collecting existing rules."""
+
+    client: httpx.Client
+    profile_id: str
+    shared_executor: concurrent.futures.ThreadPoolExecutor
+    no_delete: bool
+
+
+class _GroupLookupState(Enum):
+    ABSENT = auto()
+    INVALID = auto()
+    VALID = auto()
+
+
+@dataclass(frozen=True, slots=True)
+class _GroupLookupResult:
+    state: _GroupLookupState
+    folder_id: str | None = None
 
 
 def _managed_batch_executor(
@@ -421,18 +444,29 @@ def _process_new_folder_pk(pk: str, name: str, source: str) -> str | None:
     return pk
 
 
-def _extract_from_groups_list(groups: list, name: str) -> str | None:
-    """Extract folder ID from groups list."""
+def _find_folder_in_groups(
+    groups: list, name: str, *, source: str, stop_on_invalid: bool
+) -> _GroupLookupResult:
     for grp in groups:
         if not isinstance(grp, dict):
             continue
         if grp.get("group", "").strip() != name.strip():
             continue
         if "PK" in grp:
-            pk = _process_new_folder_pk(str(grp["PK"]), name, "Direct")
+            pk = _process_new_folder_pk(str(grp["PK"]), name, source)
             if pk:
-                return pk
-    return None
+                return _GroupLookupResult(_GroupLookupState.VALID, pk)
+            if stop_on_invalid:
+                return _GroupLookupResult(_GroupLookupState.INVALID)
+    return _GroupLookupResult(_GroupLookupState.ABSENT)
+
+
+def _extract_from_groups_list(groups: list, name: str) -> str | None:
+    """Extract folder ID from groups list."""
+    result = _find_folder_in_groups(
+        groups, name, source="Direct", stop_on_invalid=False
+    )
+    return result.folder_id if result.state is _GroupLookupState.VALID else None
 
 
 def _extract_folder_id_from_response(response: httpx.Response, name: str) -> str | None:
@@ -460,25 +494,17 @@ def _extract_folder_id_from_response(response: httpx.Response, name: str) -> str
 def _poll_for_folder_id(ctx: SyncContext, name: str) -> str | None:
     for attempt in range(api_client.MAX_RETRIES + 1):
         try:
-            data = _api_get(
-                ctx.client, f"{config.API_BASE}/{ctx.profile_id}/groups"
-            ).json()
-            groups = data.get("body", {}).get("groups", [])
-
-            for grp in groups:
-                if not isinstance(grp, dict):
-                    continue
-                if grp.get("group", "").strip() != name.strip():
-                    continue
-                if "PK" in grp:
-                    pk = _process_new_folder_pk(str(grp["PK"]), name, "Polled")
-                    if pk:
-                        return pk
-                    return None  # Invalid PK found, stop polling
+            result = _poll_folder_attempt(ctx, name)
         except Exception as e:
             log.warning(
                 f"Error fetching groups on attempt {attempt}: {sanitize_for_log(e)}"
             )
+            result = _GroupLookupResult(_GroupLookupState.ABSENT)
+
+        if result.state is _GroupLookupState.VALID:
+            return result.folder_id
+        if result.state is _GroupLookupState.INVALID:
+            return None
 
         if attempt < api_client.MAX_RETRIES:
             wait_time = config.FOLDER_CREATION_DELAY * (attempt + 1)
@@ -490,6 +516,13 @@ def _poll_for_folder_id(ctx: SyncContext, name: str) -> str | None:
         f"Folder {sanitize_for_log(name)} was not found after creation and retries."
     )
     return None
+
+
+def _poll_folder_attempt(ctx: SyncContext, name: str) -> _GroupLookupResult:
+    """Fetch and inspect one folder-poll response."""
+    data = _api_get(ctx.client, f"{config.API_BASE}/{ctx.profile_id}/groups").json()
+    groups = data.get("body", {}).get("groups", [])
+    return _find_folder_in_groups(groups, name, source="Polled", stop_on_invalid=True)
 
 
 def create_folder(ctx: SyncContext, name: str, action: RuleAction) -> str | None:
@@ -522,6 +555,144 @@ def create_folder(ctx: SyncContext, name: str, action: RuleAction) -> str | None
             f"Failed to create folder {sanitize_for_log(name)}{hint}: {sanitize_for_log(e)}"
         )
         return None
+
+
+def _partition_folders_for_deletion(
+    prep: _FolderPreparationContext,
+    folder_data_list: list[FolderData],
+    existing_folders: dict[str, str],
+) -> tuple[list[tuple[str, str]], dict[str, str]]:
+    """Partition replacement folders while preserving target order."""
+    folders_to_delete: list[tuple[str, str]] = []
+    folders_to_scan = existing_folders.copy()
+
+    if prep.no_delete:
+        return folders_to_delete, folders_to_scan
+
+    for folder_data in folder_data_list:
+        name = folder_data["group"]["group"].strip()
+        if name in existing_folders:
+            folders_to_delete.append((name, existing_folders[name]))
+            folders_to_scan.pop(name, None)
+
+    return folders_to_delete, folders_to_scan
+
+
+def _delete_folders(
+    prep: _FolderPreparationContext,
+    folders_to_delete: list[tuple[str, str]],
+    existing_folders: dict[str, str],
+) -> bool:
+    """Delete replacement folders and return whether any deletion succeeded."""
+    future_to_name = {
+        prep.shared_executor.submit(
+            delete_folder, prep.client, prep.profile_id, name, folder_id
+        ): name
+        for name, folder_id in folders_to_delete
+    }
+    deletion_occurred = False
+
+    for future in concurrent.futures.as_completed(future_to_name):
+        name = future_to_name[future]
+        try:
+            if future.result():
+                del existing_folders[name]
+                deletion_occurred = True
+        except Exception as exc:
+            log.error(
+                "Failed to delete folder %s: %s",
+                sanitize_for_log(name),
+                sanitize_for_log(exc),
+            )
+
+    return deletion_occurred
+
+
+def _wait_for_deletions(deletion_occurred: bool) -> None:
+    """Wait for successfully deleted folders to leave the API."""
+    if not deletion_occurred:
+        return
+    if not USE_COLORS:
+        log.info(
+            "Waiting 60s for deletions to propagate (prevents 'Badware Hoster' zombie state)..."
+        )
+    countdown_timer(60, "Waiting for deletions to propagate")
+
+
+def _resolve_rules_future(
+    existing_rules_future: concurrent.futures.Future[set[str]],
+) -> set[str]:
+    """Resolve the background rules scan using its current error boundary."""
+    try:
+        return existing_rules_future.result()
+    except Exception as e:
+        log.error(
+            f"Failed to fetch existing rules in background: {sanitize_for_log(e)}"
+        )
+        return set()
+
+
+def _prepare_folders_and_rules(
+    prep: _FolderPreparationContext,
+    folder_data_list: list[FolderData],
+) -> tuple[dict[str, str] | None, set[str]]:
+    """
+    Verifies access, deletes old folders, and fetches existing rules in background.
+    """
+    existing_folders = verify_access_and_get_folders(prep.client, prep.profile_id)
+    if existing_folders is None:
+        return None, set()
+
+    folders_to_delete, folders_to_scan = _partition_folders_for_deletion(
+        prep, folder_data_list, existing_folders
+    )
+    existing_rules_future = prep.shared_executor.submit(
+        get_all_existing_rules, prep.client, prep.profile_id, folders_to_scan
+    )
+
+    if not prep.no_delete and folders_to_delete:
+        deletion_occurred = _delete_folders(prep, folders_to_delete, existing_folders)
+        _wait_for_deletions(deletion_occurred)
+
+    existing_rules = _resolve_rules_future(existing_rules_future)
+    return existing_folders, existing_rules
+
+
+def _sync_profile_live(
+    options: SyncProfileOptions,
+    folder_data_list: list[FolderData],
+) -> bool:
+    """Execute the live (non-dry-run) portion of a profile sync."""
+    with (
+        concurrent.futures.ThreadPoolExecutor(
+            max_workers=config.DELETE_WORKERS
+        ) as shared_executor,
+        create_client(options.token) as client,
+    ):
+        prep = _FolderPreparationContext(
+            client=client,
+            profile_id=options.profile_id,
+            shared_executor=shared_executor,
+            no_delete=options.no_delete,
+        )
+        existing_folders_and_rules = _prepare_folders_and_rules(prep, folder_data_list)
+        if existing_folders_and_rules[0] is None:
+            return False
+        existing_folders, existing_rules = existing_folders_and_rules
+
+        ctx = SyncContext(
+            profile_id=options.profile_id,
+            client=client,
+            existing_rules=existing_rules,
+            batch_executor=shared_executor,
+        )
+
+        success_count = _process_folders(ctx, folder_data_list)
+
+    log.info(
+        f"Sync complete: {success_count}/{len(folder_data_list)} {pluralize(len(folder_data_list), 'folder')} processed successfully"
+    )
+    return success_count == len(folder_data_list)
 
 
 def _deduplicate_hostnames(
@@ -898,122 +1069,6 @@ def _build_plan_entry(profile_id: str, folder_data_list: list[FolderData]) -> Pl
                 }
             )
     return plan_entry
-
-
-def _prepare_folders_and_rules(
-    client: httpx.Client,
-    profile_id: str,
-    folder_data_list: list[FolderData],
-    no_delete: bool,
-    shared_executor: concurrent.futures.ThreadPoolExecutor,
-) -> tuple[dict[str, str] | None, set[str]]:
-    """
-    Verifies access, deletes old folders, and fetches existing rules in background.
-    """
-    # Verify access and list existing folders in one request
-    existing_folders = verify_access_and_get_folders(client, profile_id)
-    if existing_folders is None:
-        return None, set()
-
-    # Identify folders to delete and folders to keep (scan)
-    folders_to_delete = []
-    folders_to_scan = existing_folders.copy()
-
-    if not no_delete:
-        for folder_data in folder_data_list:
-            name = folder_data["group"]["group"].strip()
-            if name in existing_folders:
-                folders_to_delete.append((name, existing_folders[name]))
-                # OPTIMIZATION: Use dict.pop() to avoid a redundant dictionary lookup.
-                folders_to_scan.pop(name, None)
-
-    # Start fetching rules from kept folders in background (parallel to deletions)
-    existing_rules_future = shared_executor.submit(
-        get_all_existing_rules, client, profile_id, folders_to_scan
-    )
-
-    if not no_delete:
-        deletion_occurred = False
-        if folders_to_delete:
-            # Parallel delete to speed up the "clean slate" phase
-            # Use shared_executor (3 workers)
-            future_to_name = {
-                shared_executor.submit(
-                    delete_folder, client, profile_id, name, folder_id
-                ): name
-                for name, folder_id in folders_to_delete
-            }
-
-            for future in concurrent.futures.as_completed(future_to_name):
-                name = future_to_name[future]
-                try:
-                    if future.result():
-                        del existing_folders[name]
-                        deletion_occurred = True
-                except Exception as exc:
-                    # Sanitize both name and exception to prevent log injection
-                    log.error(
-                        "Failed to delete folder %s: %s",
-                        sanitize_for_log(name),
-                        sanitize_for_log(exc),
-                    )
-
-        # CRITICAL FIX: Increased wait time for massive folders to clear
-        if deletion_occurred:
-            if not USE_COLORS:
-                log.info(
-                    "Waiting 60s for deletions to propagate (prevents 'Badware Hoster' zombie state)..."
-                )
-            countdown_timer(60, "Waiting for deletions to propagate")
-
-    # Retrieve result from background task
-    # If deletion occurred, we effectively used the wait time to fetch rules!
-    try:
-        existing_rules = existing_rules_future.result()
-    except Exception as e:
-        log.error(
-            f"Failed to fetch existing rules in background: {sanitize_for_log(e)}"
-        )
-        existing_rules = set()
-
-    return existing_folders, existing_rules
-
-
-def _sync_profile_live(
-    options: SyncProfileOptions,
-    folder_data_list: list[FolderData],
-) -> bool:
-    """Execute the live (non-dry-run) portion of a profile sync."""
-    with (
-        concurrent.futures.ThreadPoolExecutor(
-            max_workers=config.DELETE_WORKERS
-        ) as shared_executor,
-        create_client(options.token) as client,
-    ):
-        existing_folders_and_rules = _prepare_folders_and_rules(
-            client,
-            options.profile_id,
-            folder_data_list,
-            options.no_delete,
-            shared_executor,
-        )
-        if existing_folders_and_rules[0] is None:
-            return False
-        existing_folders, existing_rules = existing_folders_and_rules
-
-        ctx = SyncContext(
-            profile_id=options.profile_id,
-            client=client,
-            existing_rules=existing_rules,
-            batch_executor=shared_executor,
-        )
-
-        success_count = _process_folders(ctx, folder_data_list)
-
-    log.info(
-        f"Sync complete: {success_count}/{len(folder_data_list)} {pluralize(len(folder_data_list), 'folder')} processed successfully"
-    )
-    return success_count == len(folder_data_list)
 
 
 def _process_folders(
