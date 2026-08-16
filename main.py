@@ -192,6 +192,9 @@ class _MainModule(types.ModuleType):
                 sys.modules["display"].USE_COLORS = value  # type: ignore[attr-defined]
             if "sync" in sys.modules:
                 sys.modules["sync"].USE_COLORS = value  # type: ignore[attr-defined]
+            for mod_name in list(sys.modules):
+                if mod_name.startswith("sync."):
+                    sys.modules[mod_name].USE_COLORS = value  # type: ignore[attr-defined]
         elif name == "log":
             # Many tests patch main.log; helper modules were extracted with per-module
             # loggers, so keep them pointing at the same logger object for compatibility.
@@ -206,6 +209,9 @@ class _MainModule(types.ModuleType):
             ):
                 if mod in sys.modules:
                     sys.modules[mod].log = value  # type: ignore[attr-defined]
+            for mod_name in list(sys.modules):
+                if mod_name.startswith("sync."):
+                    sys.modules[mod_name].log = value  # type: ignore[attr-defined]
         super().__setattr__(name, value)
 
     def __getattr__(self, name: str) -> Any:
