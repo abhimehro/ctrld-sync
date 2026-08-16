@@ -126,10 +126,11 @@ be driven end-to-end by faking the Control D API with `httpx.MockTransport`:
 
 - Patch `sync.create_client` to return
   `httpx.Client(transport=httpx.MockTransport(handler))`.
-- Patch `sync.fetch_folder_data` (looked up via `sys.modules[__name__]`, so
-  patching the `sync` attribute works) and `sync.validate_folder_url` — the
-  latter must still expose `.cache_clear()`, so wrap the stub in
-  `functools.lru_cache`, because `sync_profile` clears the cache on entry.
+- Patch `sync.plan.fetch_folder_data` (plan.py imports the helper as a module-level
+  name, so patching `sync.plan.fetch_folder_data` is what the parallel-deletion
+  tests do) and `sync.validate_folder_url` — the latter must still expose
+  `.cache_clear()`, so wrap the stub in `functools.lru_cache`, because
+  `sync_profile` clears the cache on entry.
 - Patch `sync.countdown_timer` to record its argument instead of sleeping; the
   post-deletion propagation wait is 60s and would otherwise stall the run.
 - Set `config.FOLDER_CREATION_DELAY = 0`, lower `api_client.MAX_RETRIES`, and

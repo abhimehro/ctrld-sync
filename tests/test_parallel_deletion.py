@@ -78,7 +78,7 @@ def test_parallel_deletion_uses_threadpool(mock_env, monkeypatch):
             return {"group": {"group": "FolderB"}}
         return None
 
-    monkeypatch.setattr(sync, "fetch_folder_data", mock_fetch)
+    monkeypatch.setattr(sync.plan, "fetch_folder_data", mock_fetch)
 
     # Track ThreadPoolExecutor calls
     executor_calls: list[dict[str, object]] = []
@@ -147,7 +147,7 @@ def test_parallel_deletion_handles_exceptions(mock_env, monkeypatch):
     monkeypatch.setattr(sync, "validate_hostname", mock_validate_hostname)
 
     monkeypatch.setattr(
-        sync, "fetch_folder_data", lambda url: {"group": {"group": "Folder1"}}
+        sync.plan, "fetch_folder_data", lambda url: {"group": {"group": "Folder1"}}
     )
 
     # Capture log output
@@ -211,7 +211,7 @@ def test_parallel_deletion_sanitizes_exception(mock_env, monkeypatch):
     monkeypatch.setattr(sync, "validate_hostname", mock_validate_hostname)
 
     monkeypatch.setattr(
-        sync, "fetch_folder_data", lambda url: {"group": {"group": "TestFolder"}}
+        sync.plan, "fetch_folder_data", lambda url: {"group": {"group": "TestFolder"}}
     )
 
     # Capture log output

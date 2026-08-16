@@ -42,6 +42,18 @@ def reload_main_with_env(monkeypatch, no_color=None, isatty=True):
         ):
             gh_client._gh.close()
         importlib.reload(gh_client)
+        # sync is now a package; reload submodules before the package __init__
+        # so re-exports pick up fresh module objects.
+        for submod in (
+            "sync.client",
+            "sync.folders",
+            "sync.rules",
+            "sync.batches",
+            "sync.plan",
+            "sync.profile",
+        ):
+            if submod in sys.modules:
+                importlib.reload(sys.modules[submod])
         importlib.reload(sync)
         importlib.reload(main)
         return main
