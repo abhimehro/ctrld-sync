@@ -12,6 +12,7 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-08-15 [\#1172](https://github.com/abhimehro/ctrld-sync/issues/1172)
 - Daily QA & Agentic Review — 2026-08-14 [\#1169](https://github.com/abhimehro/ctrld-sync/issues/1169)
 - Daily QA & Agentic Review — 2026-08-13 [\#1164](https://github.com/abhimehro/ctrld-sync/issues/1164)
 - Daily QA & Agentic Review — 2026-08-12 [\#1160](https://github.com/abhimehro/ctrld-sync/issues/1160)
@@ -28,6 +29,7 @@
 - Daily QA & Agentic Review — 2026-08-02 [\#1112](https://github.com/abhimehro/ctrld-sync/issues/1112)
 - \[repo-automation\] Weekly Retrospective - 2026-08-02 [\#1110](https://github.com/abhimehro/ctrld-sync/issues/1110)
 - Daily QA & Agentic Review — 2026-08-01 [\#1106](https://github.com/abhimehro/ctrld-sync/issues/1106)
+- \[repo-health\] Refactor sync.py folder preparation and polling flow [\#1100](https://github.com/abhimehro/ctrld-sync/issues/1100)
 - \[repo-health\] Refactor sync.py batching and context plumbing [\#1099](https://github.com/abhimehro/ctrld-sync/issues/1099)
 - \[repo-health\] Refactor gh\_client.py error and response handling with regression coverage [\#1098](https://github.com/abhimehro/ctrld-sync/issues/1098)
 - \[repo-health\] Simplify display.py plan rendering logic [\#1097](https://github.com/abhimehro/ctrld-sync/issues/1097)
@@ -70,6 +72,7 @@
 
 **Merged pull requests:**
 
+- refactor\(sync\): decompose folder preparation and polling flow \(ABHI-1636\) [\#1178](https://github.com/abhimehro/ctrld-sync/pull/1178) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump github/gh-aw/actions/setup from 0.85.4 to 0.86.2 [\#1171](https://github.com/abhimehro/ctrld-sync/pull/1171) ([dependabot[bot]](https://github.com/apps/dependabot))
 - 🎨 Palette: Dynamic pluralization for CLI success messages [\#1168](https://github.com/abhimehro/ctrld-sync/pull/1168) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Optimize hostname validation with fast-path heuristic [\#1157](https://github.com/abhimehro/ctrld-sync/pull/1157) ([abhimehro](https://github.com/abhimehro))
