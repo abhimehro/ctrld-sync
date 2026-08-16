@@ -33,11 +33,11 @@ optional (`Dockerfile` / `docker-compose.yml`); local CLI use does not require i
 ### Current status
 
 All modules compile cleanly (`uv run python -m compileall -q main.py models.py
-validation.py config.py display.py gh_client.py sync/ api_client.py cache.py
+validation.py config.py display/ gh_client.py sync/ api_client.py cache.py
 fix_env.py`). The full test suite is `uv run pytest tests/ test_main.py -v`.
 
 `main.py` is now only CLI/bootstrap/wiring; helpers live in `models.py`,
-`validation.py`, `config.py`, `display.py`, `gh_client.py`, and `sync/`.
+`validation.py`, `config.py`, `display/`, `gh_client.py`, and `sync/`.
 
 ### Secrets for live runs
 
