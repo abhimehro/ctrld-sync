@@ -326,7 +326,7 @@ class TestGhGet:
 
         errors_before = cache._cache_stats["errors"]
 
-        call_count = []
+        call_count: list[int] = []
 
         def mock_stream(method, stream_url, headers=None):
             if not call_count:

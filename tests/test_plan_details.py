@@ -4,6 +4,8 @@ import importlib
 import os
 from unittest.mock import patch
 
+from models import PlanRuleGroup
+
 import pytest
 
 # NOTE: Avoid importing `main` at module import time.
@@ -195,8 +197,8 @@ def test_print_plan_details_with_colors(capsys):
                         "name": "Mix",
                         "rules": 2,
                         "rule_groups": [
-                            {"rules": 1, "action": 0, "status": 1},
-                            {"rules": 1, "action": None, "status": 1},
+                            PlanRuleGroup(rules=1, action=0, status=1),
+                            PlanRuleGroup(rules=1, action=None, status=1),
                         ],
                     }
                 ],
@@ -212,8 +214,8 @@ def test_print_plan_details_with_colors(capsys):
                         "name": "Mix",
                         "rules": 2,
                         "rule_groups": [
-                            {"rules": 1, "action": 0, "status": 1},
-                            {"rules": 1, "action": None, "status": 1},
+                            PlanRuleGroup(rules=1, action=0, status=1),
+                            PlanRuleGroup(rules=1, action=None, status=1),
                         ],
                     }
                 ],
@@ -327,7 +329,7 @@ def test_resolve_folder_action_fallbacks():
     )
 
     # Single rule_groups action
-    rg = {"rules": 1, "action": 0, "status": 1}
+    rg = PlanRuleGroup(rules=1, action=0, status=1)
     assert display._resolve_folder_action(
         {"name": "x", "rules": 1, "rule_groups": [rg]}
     ) == (
@@ -342,8 +344,8 @@ def test_resolve_folder_action_fallbacks():
             "name": "x",
             "rules": 2,
             "rule_groups": [
-                {"rules": 1, "action": 0, "status": 1},
-                {"rules": 1, "action": 1, "status": 1},
+                PlanRuleGroup(rules=1, action=0, status=1),
+                PlanRuleGroup(rules=1, action=1, status=1),
             ],
         }
     ) == ("Mixed", "⚠️ ", "WARNING")
