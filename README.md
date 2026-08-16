@@ -228,7 +228,7 @@ uv run pytest tests/ test_main.py -n 4
 uv run ruff check .
 
 # Run type checker on all source modules
-uv run mypy main.py models.py validation.py config.py display.py gh_client.py sync/ api_client.py cache.py fix_env.py
+uv run mypy main.py models.py validation.py config.py display/ gh_client.py sync/ api_client.py cache.py fix_env.py
 ```
 
 ### Development Workflow
@@ -255,7 +255,7 @@ This project uses manual releases via GitHub Releases. To create a new release:
    uv run pytest tests/ test_main.py -v
 
    # Verify security scans pass
-   bandit -r main.py models.py validation.py config.py display.py gh_client.py sync/ api_client.py cache.py fix_env.py -ll
+   bandit -r main.py models.py validation.py config.py display/ gh_client.py sync/ api_client.py cache.py fix_env.py -ll
    ```
 
 2. **Update version in `pyproject.toml`**
