@@ -32,6 +32,7 @@
 - Daily QA & Agentic Review — 2026-08-02 [\#1112](https://github.com/abhimehro/ctrld-sync/issues/1112)
 - \[repo-automation\] Weekly Retrospective - 2026-08-02 [\#1110](https://github.com/abhimehro/ctrld-sync/issues/1110)
 - Daily QA & Agentic Review — 2026-08-01 [\#1106](https://github.com/abhimehro/ctrld-sync/issues/1106)
+- \[repo-health\] Split display.py by responsibility if CodeScene still requires it [\#1102](https://github.com/abhimehro/ctrld-sync/issues/1102)
 - \[repo-health\] Split sync.py into focused modules after function-level refactors [\#1101](https://github.com/abhimehro/ctrld-sync/issues/1101)
 - \[repo-health\] Refactor sync.py folder preparation and polling flow [\#1100](https://github.com/abhimehro/ctrld-sync/issues/1100)
 - \[repo-health\] Refactor sync.py batching and context plumbing [\#1099](https://github.com/abhimehro/ctrld-sync/issues/1099)
@@ -76,6 +77,7 @@
 
 **Merged pull requests:**
 
+- refactor\(display\): split display.py into responsibility-based package \(ABHI-1638\) [\#1183](https://github.com/abhimehro/ctrld-sync/pull/1183) ([abhimehro](https://github.com/abhimehro))
 - refactor\(sync\): split sync.py into focused sync/ package \(ABHI-1637\) [\#1182](https://github.com/abhimehro/ctrld-sync/pull/1182) ([abhimehro](https://github.com/abhimehro))
 - docs\(contributing\): do not require manual CHANGELOG edits [\#1181](https://github.com/abhimehro/ctrld-sync/pull/1181) ([abhimehro](https://github.com/abhimehro))
 - Document credential-free live-mode sync harness in testing skill [\#1179](https://github.com/abhimehro/ctrld-sync/pull/1179) ([abhimehro](https://github.com/abhimehro))
