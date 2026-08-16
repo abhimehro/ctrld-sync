@@ -118,6 +118,39 @@ When proving that `--dry-run` does not call the Control D API:
 - The only HTTP traffic in dry-run mode should be blocklist fetches for
   allowlisted `--folder-url` values (mocked in the harness).
 
+## Live-mode (non dry-run) harness without Control D credentials
+
+`TOKEN` / `PROFILE` are usually unavailable, but the live sync path (folder
+deletion, folder-creation polling, existing-rules scan, rule batching) can still
+be driven end-to-end by faking the Control D API with `httpx.MockTransport`:
+
+- Patch `sync.create_client` to return
+  `httpx.Client(transport=httpx.MockTransport(handler))`.
+- Patch `sync.fetch_folder_data` (looked up via `sys.modules[__name__]`, so
+  patching the `sync` attribute works) and `sync.validate_folder_url` — the
+  latter must still expose `.cache_clear()`, so wrap the stub in
+  `functools.lru_cache`, because `sync_profile` clears the cache on entry.
+- Patch `sync.countdown_timer` to record its argument instead of sleeping; the
+  post-deletion propagation wait is 60s and would otherwise stall the run.
+- Set `config.FOLDER_CREATION_DELAY = 0`, lower `api_client.MAX_RETRIES`, and
+  no-op `sync.time.sleep` / `api_client.time.sleep` to keep polling fast.
+- Clear `sync._cache` before each scenario.
+
+The handler should serve `GET/POST /profiles/<id>/groups`,
+`DELETE /profiles/<id>/groups/<fid>`, `GET /profiles/<id>/rules[/<fid>]` and
+`POST /profiles/<id>/rules` (form-encoded `hostnames[i]` keys). Useful
+assertions: which folder IDs were deleted, whether the 60s wait fired, which
+folders got rules-scanned (deleted folders must be excluded), the number of
+`GET /groups` calls (1 = direct-response folder ID, 2 = one poll), and the
+deduplicated hostnames in the `POST /rules` form.
+
+For refactor PRs, run the same harness against a `git worktree` of the base
+branch (`git worktree add /tmp/<name> main`) with the module dir injected via
+`sys.path` / `TARGET` env var and diff the JSON reports — a byte-identical diff
+is strong evidence of behavior preservation. The same A/B trick works for
+`uv run python main.py --dry-run` output (strip timestamps and durations before
+diffing).
+
 ## Notes
 
 - Clear `main.validate_hostname` and `main.validate_folder_url` caches
