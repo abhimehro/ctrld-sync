@@ -1,4 +1,4 @@
-"""Folderpreparationcontext cluster."""
+"""Per-profile orchestration: plan, delete, create folders and push rules."""
 
 from __future__ import annotations
 
@@ -252,12 +252,12 @@ def sync_profile(options: SyncProfileOptions) -> bool:
     sync.validate_hostname.cache_clear()
 
     try:
-        folder_data_list = sync.plan._fetch_all_folder_data(options.folder_urls)
+        folder_data_list = sync._fetch_all_folder_data(options.folder_urls)
         if folder_data_list is None:
             return False
 
         # Build plan entries
-        plan_entry = sync.plan._build_plan_entry(options.profile_id, folder_data_list)
+        plan_entry = sync._build_plan_entry(options.profile_id, folder_data_list)
 
         if options.plan_accumulator is not None:
             options.plan_accumulator.append(plan_entry)

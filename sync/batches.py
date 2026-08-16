@@ -1,4 +1,4 @@
-"""Batchtarget cluster."""
+"""Rule batching, deduplication and parallel pushing to folders."""
 
 from __future__ import annotations
 

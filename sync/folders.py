@@ -1,4 +1,4 @@
-"""Grouplookupstate cluster."""
+"""Control D folder listing, creation, deletion and lookup helpers."""
 
 from __future__ import annotations
 

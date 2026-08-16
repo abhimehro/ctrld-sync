@@ -1,4 +1,4 @@
-"""Get All Existing Rules cluster."""
+"""Existing rule collection and per-folder rule filtering."""
 
 from __future__ import annotations
 

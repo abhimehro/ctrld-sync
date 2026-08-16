@@ -1,4 +1,4 @@
-"""Create Client cluster."""
+"""Authenticated httpx client factory for the Control D API."""
 
 from __future__ import annotations
 

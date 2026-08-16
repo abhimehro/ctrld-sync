@@ -1,4 +1,4 @@
-"""Fetch All Folder Data cluster."""
+"""Parallel fetching and validation of remote folder JSON data."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ import httpx
 import sync
 
 from display import Colors
-from gh_client import _cache, _cache_lock, fetch_folder_data
+from gh_client import fetch_folder_data
 from models import FolderData, PlanEntry
 from validation import sanitize_for_log
 
@@ -24,12 +24,12 @@ def _fetch_all_folder_data(folder_urls: Sequence[str]) -> list[FolderData] | Non
         # Optimization: If we already have the content in cache, return it directly.
         # The content was validated at the time of fetch (warm_up_cache).
         # Read directly from cache to avoid calling fetch_folder_data while holding lock.
-        with _cache_lock:
-            if (cached := _cache.get(url)) is not None:
+        with sync._cache_lock:
+            if (cached := sync._cache.get(url)) is not None:
                 return cached
 
         if sync.validate_folder_url(url):
-            # Tests patch sync.plan.fetch_folder_data via the re-export below.
+            # Tests patch sync.plan.fetch_folder_data via this module attribute.
             return fetch_folder_data(url)
         return None
 
