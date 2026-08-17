@@ -80,25 +80,34 @@ def test_apply_runtime_settings_none_uses_defaults(defaults, key, value):
 
 
 @pytest.mark.parametrize(
-    "key, value, expected_module, expected_attr, expected",
+    "key, value, expected",
     [
-        ("batch_size", 1, config, "BATCH_SIZE", 1),
-        ("batch_size", 3, config, "BATCH_SIZE", 3),
-        ("batch_size", 10, config, "BATCH_SIZE", 10),
-        ("delete_workers", 1, config, "DELETE_WORKERS", 1),
-        ("delete_workers", 3, config, "DELETE_WORKERS", 3),
-        ("delete_workers", 10, config, "DELETE_WORKERS", 10),
-        ("max_retries", 1, api_client, "MAX_RETRIES", 1),
-        ("max_retries", 3, api_client, "MAX_RETRIES", 3),
-        ("max_retries", 10, api_client, "MAX_RETRIES", 10),
+        ("batch_size", 1, 1),
+        ("batch_size", 3, 3),
+        ("batch_size", 10, 10),
+        ("delete_workers", 1, 1),
+        ("delete_workers", 3, 3),
+        ("delete_workers", 10, 10),
     ],
 )
-def test_apply_runtime_settings_applies_valid_values(
-    key, value, expected_module, expected_attr, expected
-):
-    """Valid positive int settings are applied to the matching runtime constant."""
+def test_apply_runtime_settings_applies_valid_config_values(key, value, expected):
+    """Valid positive int settings are applied to the matching config constant."""
     main._apply_runtime_settings({"settings": {key: value}})
-    assert getattr(expected_module, expected_attr) == expected
+    if key == "batch_size":
+        assert expected == config.BATCH_SIZE
+        assert [f"hostnames[{i}]" for i in range(expected)] == config.BATCH_KEYS
+    else:
+        assert expected == config.DELETE_WORKERS
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [(1, 1), (3, 3), (10, 10)],
+)
+def test_apply_runtime_settings_applies_valid_max_retries(value, expected):
+    """Valid positive int max_retries is applied to api_client.MAX_RETRIES."""
+    main._apply_runtime_settings({"settings": {"max_retries": value}})
+    assert expected == api_client.MAX_RETRIES
 
 
 def test_apply_runtime_settings_batch_size_regenerates_keys():
