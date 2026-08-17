@@ -12,10 +12,12 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-08-16 [\#1184](https://github.com/abhimehro/ctrld-sync/issues/1184)
 - \[docs\] CONTRIBUTING.md step 4 requires a manual CHANGELOG entry, but CHANGELOG is generated [\#1180](https://github.com/abhimehro/ctrld-sync/issues/1180)
 - \[repo-automation\] Weekly Retrospective - 2026-08-16 [\#1177](https://github.com/abhimehro/ctrld-sync/issues/1177)
 - Daily QA & Agentic Review — 2026-08-15 [\#1172](https://github.com/abhimehro/ctrld-sync/issues/1172)
 - Daily QA & Agentic Review — 2026-08-14 [\#1169](https://github.com/abhimehro/ctrld-sync/issues/1169)
+- P1: Unpinned Dependencies - Floating Version Ranges in requirements.txt and pyproject.toml [\#1167](https://github.com/abhimehro/ctrld-sync/issues/1167)
 - Daily QA & Agentic Review — 2026-08-13 [\#1164](https://github.com/abhimehro/ctrld-sync/issues/1164)
 - Daily QA & Agentic Review — 2026-08-12 [\#1160](https://github.com/abhimehro/ctrld-sync/issues/1160)
 - Daily QA & Agentic Review — 2026-08-11 [\#1158](https://github.com/abhimehro/ctrld-sync/issues/1158)
@@ -77,6 +79,7 @@
 
 **Merged pull requests:**
 
+- fix\(deps\): pin runtime dependencies to exact versions \(ABHI-1803\) [\#1186](https://github.com/abhimehro/ctrld-sync/pull/1186) ([abhimehro](https://github.com/abhimehro))
 - refactor\(display\): split display.py into responsibility-based package \(ABHI-1638\) [\#1183](https://github.com/abhimehro/ctrld-sync/pull/1183) ([abhimehro](https://github.com/abhimehro))
 - refactor\(sync\): split sync.py into focused sync/ package \(ABHI-1637\) [\#1182](https://github.com/abhimehro/ctrld-sync/pull/1182) ([abhimehro](https://github.com/abhimehro))
 - docs\(contributing\): do not require manual CHANGELOG edits [\#1181](https://github.com/abhimehro/ctrld-sync/pull/1181) ([abhimehro](https://github.com/abhimehro))
