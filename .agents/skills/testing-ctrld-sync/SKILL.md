@@ -160,3 +160,11 @@ diffing).
   blocklist data bypassing fetch assertions.
 - Avoid committing temporary harnesses, evidence files, screenshots, or test
   reports unless explicitly requested.
+- When invoking `main.main()` from a temporary harness script outside the repo
+  root (e.g. in `/tmp`), set `PYTHONPATH` to the repo root so local modules
+  (`api_client`, `config`, `gh_client`, `main`) resolve correctly.
+- To force `USE_COLORS=False` inside a harness, set `NO_COLOR=1` before
+  importing `main` (display/colors.py is evaluated at import time).
+- When testing `_retry_request` directly with `httpx.Response(200)`, attach a
+  dummy `request=httpx.Request(...)` so `raise_for_status()` does not raise
+  `RuntimeError`.
