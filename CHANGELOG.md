@@ -25,6 +25,7 @@
 - Daily QA & Agentic Review — 2026-08-09 [\#1149](https://github.com/abhimehro/ctrld-sync/issues/1149)
 - \[repo-automation\] Weekly Retrospective - 2026-08-09 [\#1148](https://github.com/abhimehro/ctrld-sync/issues/1148)
 - Daily QA & Agentic Review — 2026-08-08 [\#1146](https://github.com/abhimehro/ctrld-sync/issues/1146)
+- \[repo-health\] Reconcile settings validation with runtime application [\#1141](https://github.com/abhimehro/ctrld-sync/issues/1141)
 - Daily QA & Agentic Review — 2026-08-07 [\#1137](https://github.com/abhimehro/ctrld-sync/issues/1137)
 - Daily QA & Agentic Review — 2026-08-06 [\#1125](https://github.com/abhimehro/ctrld-sync/issues/1125)
 - \[repo-health\] Dual requirements\*.txt vs Docker/uv migration + stale branch cleanup [\#1124](https://github.com/abhimehro/ctrld-sync/issues/1124)
@@ -79,7 +80,9 @@
 
 **Merged pull requests:**
 
+- Update testing-ctrld-sync skill for uv-only Docker and mypy targets [\#1190](https://github.com/abhimehro/ctrld-sync/pull/1190) ([abhimehro](https://github.com/abhimehro))
 - fix\(deps\): pin runtime dependencies to exact versions \(ABHI-1803\) [\#1186](https://github.com/abhimehro/ctrld-sync/pull/1186) ([abhimehro](https://github.com/abhimehro))
+- fix\(tests\): type hints and func returns in folder preparation tests [\#1185](https://github.com/abhimehro/ctrld-sync/pull/1185) ([abhimehro](https://github.com/abhimehro))
 - refactor\(display\): split display.py into responsibility-based package \(ABHI-1638\) [\#1183](https://github.com/abhimehro/ctrld-sync/pull/1183) ([abhimehro](https://github.com/abhimehro))
 - refactor\(sync\): split sync.py into focused sync/ package \(ABHI-1637\) [\#1182](https://github.com/abhimehro/ctrld-sync/pull/1182) ([abhimehro](https://github.com/abhimehro))
 - docs\(contributing\): do not require manual CHANGELOG edits [\#1181](https://github.com/abhimehro/ctrld-sync/pull/1181) ([abhimehro](https://github.com/abhimehro))
