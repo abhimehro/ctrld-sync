@@ -25,8 +25,10 @@ import shutil  # noqa: F401
 import socket  # noqa: F401
 import stat
 import sys
+import tempfile
 import time
 import types
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -603,6 +605,32 @@ def _apply_runtime_settings(cfg: dict[str, Any] | None) -> None:
         api_client.MAX_RETRIES = max_retries
 
 
+def _write_plan_json(plan_json_path: str, plan: list[PlanEntry]) -> None:
+    """Securely write the dry-run plan to a JSON file."""
+    # SECURITY: Write using tempfile and os.replace to prevent TOCTOU symlink attacks
+    # and ensure 0o600 permissions at creation time.
+    plan_path = Path(plan_json_path).resolve()
+    plan_path.parent.mkdir(parents=True, exist_ok=True)
+    temp_file = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            delete=False,
+            prefix="plan.",
+            suffix=".tmp",
+            dir=str(plan_path.parent),
+            encoding="utf-8",
+        ) as f:
+            temp_file = f.name
+            json.dump(plan, f, indent=2)
+        os.replace(temp_file, plan_path)
+        log.info("Plan written to %s", plan_json_path)
+    except Exception as e:
+        if temp_file and os.path.exists(temp_file):
+            os.unlink(temp_file)
+        log.error(f"Failed to write plan securely: {validation.sanitize_for_log(e)}")
+
+
 def main() -> bool:
     """
     Main entry point for Control D Sync.
@@ -756,9 +784,7 @@ def main() -> bool:
         )
 
     if args.plan_json:
-        with open(args.plan_json, "w", encoding="utf-8") as f:
-            json.dump(plan, f, indent=2)
-        log.info("Plan written to %s", args.plan_json)
+        _write_plan_json(args.plan_json, plan)
 
     total = len(profile_ids or ["dry-run-placeholder"])
     all_success = success_count == total
