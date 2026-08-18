@@ -80,6 +80,7 @@
 
 **Merged pull requests:**
 
+- style: autofix formatting issues in test suite [\#1193](https://github.com/abhimehro/ctrld-sync/pull/1193) ([abhimehro](https://github.com/abhimehro))
 - Update ctrld-sync testing skill with harness tips [\#1192](https://github.com/abhimehro/ctrld-sync/pull/1192) ([abhimehro](https://github.com/abhimehro))
 - Update testing-ctrld-sync skill for uv-only Docker and mypy targets [\#1190](https://github.com/abhimehro/ctrld-sync/pull/1190) ([abhimehro](https://github.com/abhimehro))
 - fix\(deps\): pin runtime dependencies to exact versions \(ABHI-1803\) [\#1186](https://github.com/abhimehro/ctrld-sync/pull/1186) ([abhimehro](https://github.com/abhimehro))
