@@ -118,6 +118,69 @@ When proving that `--dry-run` does not call the Control D API:
 - The only HTTP traffic in dry-run mode should be blocklist fetches for
   allowlisted `--folder-url` values (mocked in the harness).
 
+## Live-mode (non dry-run) harness without Control D credentials
+
+`TOKEN` / `PROFILE` are usually unavailable, but the live sync path (folder
+deletion, folder-creation polling, existing-rules scan, rule batching) can still
+be driven end-to-end by faking the Control D API with `httpx.MockTransport`:
+
+- Patch `sync.create_client` to return
+  `httpx.Client(transport=httpx.MockTransport(handler))`.
+- Patch `sync.plan.fetch_folder_data` (plan.py imports the helper as a module-level
+  name, so patching `sync.plan.fetch_folder_data` is what the parallel-deletion
+  tests do) and `sync.validate_folder_url` — the latter must still expose
+  `.cache_clear()`, so wrap the stub in `functools.lru_cache`, because
+  `sync_profile` clears the cache on entry.
+- Patch `sync.countdown_timer` to record its argument instead of sleeping; the
+  post-deletion propagation wait is 60s and would otherwise stall the run.
+- Set `config.FOLDER_CREATION_DELAY = 0`, lower `api_client.MAX_RETRIES`, and
+  no-op `sync.time.sleep` / `api_client.time.sleep` to keep polling fast.
+- Clear `sync._cache` before each scenario.
+
+The handler should serve `GET/POST /profiles/<id>/groups`,
+`DELETE /profiles/<id>/groups/<fid>`, `GET /profiles/<id>/rules[/<fid>]` and
+`POST /profiles/<id>/rules` (form-encoded `hostnames[i]` keys). Useful
+assertions: which folder IDs were deleted, whether the 60s wait fired, which
+folders got rules-scanned (deleted folders must be excluded), the number of
+`GET /groups` calls (1 = direct-response folder ID, 2 = one poll), and the
+deduplicated hostnames in the `POST /rules` form.
+
+For refactor PRs, run the same harness against a `git worktree` of the base
+branch (`git worktree add /tmp/<name> main`) with the module dir injected via
+`sys.path` / `TARGET` env var and diff the JSON reports — a byte-identical diff
+is strong evidence of behavior preservation. The same A/B trick works for
+`uv run python main.py --dry-run` output (strip timestamps and durations before
+diffing).
+
+## Docker image verification
+
+After a PR changes `Dockerfile`, `.dockerignore`, or the dependency manifests,
+verify the image build and runtime behavior with:
+
+```bash
+# Build image and capture ID
+IMAGE=$(docker build -q .)
+
+# Entrypoint help should print usage for main.py
+docker run --rm "$IMAGE" --help
+
+# Runtime stage excludes dev dependencies (--no-dev in the Dockerfile),
+# so pytest must not be importable
+docker run --rm --entrypoint python "$IMAGE" -c "import pytest"
+# Expected: ModuleNotFoundError: No module named 'pytest' (exit 1)
+
+# The compose service should run a default dry-run using built-in defaults
+docker compose run --rm ctrld-sync --dry-run
+# Expected: output contains "DRY RUN SUMMARY", status "Planned"/"Ready",
+# and "Control D API calls: 0".
+```
+
+For the full module set used in CI, run mypy with:
+
+```bash
+uv run mypy main.py models.py validation.py config.py display/ gh_client.py sync/ api_client.py cache.py fix_env.py
+```
+
 ## Notes
 
 - Clear `main.validate_hostname` and `main.validate_folder_url` caches
@@ -126,3 +189,11 @@ When proving that `--dry-run` does not call the Control D API:
   blocklist data bypassing fetch assertions.
 - Avoid committing temporary harnesses, evidence files, screenshots, or test
   reports unless explicitly requested.
+- When invoking `main.main()` from a temporary harness script outside the repo
+  root (e.g. in `/tmp`), set `PYTHONPATH` to the repo root so local modules
+  (`api_client`, `config`, `gh_client`, `main`) resolve correctly.
+- To force `USE_COLORS=False` inside a harness, set `NO_COLOR=1` before
+  importing `main` (display/colors.py is evaluated at import time).
+- When testing `_retry_request` directly with `httpx.Response(200)`, attach a
+  dummy `request=httpx.Request(...)` so `raise_for_status()` does not raise
+  `RuntimeError`.

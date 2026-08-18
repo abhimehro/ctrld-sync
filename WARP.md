@@ -101,9 +101,9 @@ Safety/validation helpers:
 | `models.py` | Pure data types (TypedDicts / dataclasses) | `RuleAction`, `SyncContext`, `FolderData`, `PlanEntry`, `SyncResult` |
 | `validation.py` | Sanitization, hostname/URL/profile/folder validators, allowlist helpers | `sanitize_for_log`, `validate_hostname`, `validate_folder_url`, `validate_profile_id`, `is_valid_rule`, `is_valid_folder_name`, `DEFAULT_ALLOWED_BLOCKLIST_DOMAINS`, `set_allowed_blocklist_domains` |
 | `config.py` | Defaults, config loading/validation, runtime constants | `DEFAULT_FOLDER_URLS`, `load_config`, `get_default_config`, `_resolve_folder_urls`, `_validate_config`, `BATCH_SIZE`, `MAX_RESPONSE_SIZE` |
-| `display.py` | Colors, prompts, progress bars, tables, logging formatters | `Colors`, `USE_COLORS`, `AlertSystem`, `JsonFormatter`, `ColoredFormatter`, `render_progress_bar`, `countdown_timer`, `print_summary_table` |
+| `display/` | Colors, prompts, progress bars, tables, logging formatters | `Colors`, `USE_COLORS`, `AlertSystem`, `JsonFormatter`, `ColoredFormatter`, `render_progress_bar`, `countdown_timer`, `print_summary_table` |
 | `gh_client.py` | `httpx` client for fetching blocklist JSON, in-memory cache | `_gh_get`, `fetch_folder_data`, `warm_up_cache` |
-| `sync.py` | Folder/rule orchestration and `sync_profile` | `sync_profile`, `create_client`, `push_rules`, `create_folder`, `delete_folder`, `verify_access_and_get_folders` |
+| `sync/` | Folder/rule orchestration package | `sync_profile`, `create_client`, `push_rules`, `create_folder`, `delete_folder`, `verify_access_and_get_folders` |
 | `api_client.py` | Low-level Control D API helpers (HTTP + retries) | `_api_get`, `_api_post`, `_api_post_form`, `_api_delete`, `_retry_request`, `retry_with_jitter` |
 | `cache.py` | Persistent disk cache for blocklist JSON | `load_disk_cache`, `save_disk_cache`, `_disk_cache` |
 | `fix_env.py` | Legacy `.env` fix helper | `fix_env` |
@@ -154,7 +154,7 @@ No helper module imports `main.py`.
    - `validation.sanitize_for_log()` – Redacts `TOKEN` values from any log
      messages.
 
-4. **Control D API helpers (`sync.py`)**
+4. **Control D sync package (`sync/`)**
    - `sync.verify_access_and_get_folders()` – Combines the API access check and
      fetching existing folders into a single request. Returns
      `{folder_name -> folder_id}` on success.
@@ -267,9 +267,10 @@ GitHub Actions workflow: `.github/workflows/sync.yml`
   - Scheduled run daily at `02:00 UTC`.
   - Manual run via `workflow_dispatch`.
 - Job:
-  - Checks out the repo and sets up Python 3.13.
-  - Installs `httpx` and `python-dotenv` with `pip`.
-  - Runs `python main.py` with:
+  - Checks out the repo and sets up uv + Python 3.13.
+  - Installs dependencies with `uv sync --all-extras` (from `pyproject.toml` /
+    `uv.lock`).
+  - Runs `uv run python main.py` with:
     - `TOKEN` – Provided via `secrets.TOKEN`.
     - `PROFILE` – Provided via `secrets.PROFILE` (can be a comma-separated list
       for multiple profiles).

@@ -33,6 +33,22 @@ def reload_main_with_env(monkeypatch, no_color=None, isatty=True):
         import gh_client
         import sync
 
+        # display is now a package; reload submodules before the package __init__
+        # so re-exports pick up fresh module objects and import-time Colors/USE_COLORS.
+        for submod in (
+            "display.colors",
+            "display.text",
+            "display.output",
+            "display.log",
+            "display.alerts",
+            "display.prompts",
+            "display.progress",
+            "display.plan",
+            "display.tables",
+            "display.stats",
+        ):
+            if submod in sys.modules:
+                importlib.reload(sys.modules[submod])
         importlib.reload(display)
         importlib.reload(config)
         # Avoid leaking httpx connection pools when reloading gh_client repeatedly.
@@ -42,6 +58,18 @@ def reload_main_with_env(monkeypatch, no_color=None, isatty=True):
         ):
             gh_client._gh.close()
         importlib.reload(gh_client)
+        # sync is now a package; reload submodules before the package __init__
+        # so re-exports pick up fresh module objects.
+        for submod in (
+            "sync.client",
+            "sync.folders",
+            "sync.rules",
+            "sync.batches",
+            "sync.plan",
+            "sync.profile",
+        ):
+            if submod in sys.modules:
+                importlib.reload(sys.modules[submod])
         importlib.reload(sync)
         importlib.reload(main)
         return main

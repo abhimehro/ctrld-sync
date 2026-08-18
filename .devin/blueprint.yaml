@@ -17,7 +17,7 @@ knowledge:
   - name: lint
     contents: |
       uv run ruff check .
-      uv run mypy main.py models.py validation.py config.py display.py gh_client.py sync.py api_client.py cache.py fix_env.py
+      uv run mypy main.py models.py validation.py config.py display/ gh_client.py sync/ api_client.py cache.py fix_env.py
   - name: format-check
     contents: |
       uv run ruff format --check .

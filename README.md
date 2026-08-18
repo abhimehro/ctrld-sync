@@ -98,7 +98,7 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
 
    **Example `config.yaml`:**
 
-   ````yaml
+   ```yaml
    folders:
      - name: "Native Tracker – Amazon"
        url: "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/controld/native-tracker-amazon-folder.json"
@@ -107,11 +107,14 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
      - name: "Apple Private Relay – Allow"
        url: "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/controld/apple-private-relay-allow-folder.json"
        action: "allow"
+   ```
 
-   Alternatively, you can still pass folder URLs directly on the command line (these override any config file):
+   Alternatively, you can still pass folder URLs directly on the command line
+   (these override any config file):
+
    ```bash
    python main.py --folder-url https://example.com/my-blocklist.json
-   ````
+   ```
 
    Or point to a specific config file:
 
@@ -225,7 +228,7 @@ uv run pytest tests/ test_main.py -n 4
 uv run ruff check .
 
 # Run type checker on all source modules
-uv run mypy main.py models.py validation.py config.py display.py gh_client.py sync.py api_client.py cache.py fix_env.py
+uv run mypy main.py models.py validation.py config.py display/ gh_client.py sync/ api_client.py cache.py fix_env.py
 ```
 
 ### Development Workflow
@@ -252,7 +255,7 @@ This project uses manual releases via GitHub Releases. To create a new release:
    uv run pytest tests/ test_main.py -v
 
    # Verify security scans pass
-   bandit -r main.py models.py validation.py config.py display.py gh_client.py sync.py api_client.py cache.py fix_env.py -ll
+   bandit -r main.py models.py validation.py config.py display/ gh_client.py sync/ api_client.py cache.py fix_env.py -ll
    ```
 
 2. **Update version in `pyproject.toml`**
@@ -283,7 +286,7 @@ This project uses manual releases via GitHub Releases. To create a new release:
 **Release Checklist:**
 
 - [ ] All tests passing
-- [ ] Security scans clean (Bandit, Codacy)
+- [ ] Security scans clean (Bandit)
 - [ ] Version updated in `pyproject.toml`
 - [ ] Git tag created and pushed
 - [ ] GitHub Release created with notes
@@ -296,8 +299,8 @@ This project uses manual releases via GitHub Releases. To create a new release:
 | Workflow   | File         | Trigger                             | Purpose                                                                          |
 | ---------- | ------------ | ----------------------------------- | -------------------------------------------------------------------------------- |
 | **Sync**   | `sync.yml`   | Daily at 02:00 UTC, manual dispatch | Main synchronization workflow — runs `main.py` to keep Control D folders in sync |
-| **Bandit** | `bandit.yml` | Push/PR to `main`, weekly schedule  | Security vulnerability scanning for Python code                                  |
-| **Codacy** | `codacy.yml` | Push/PR to `main`, weekly schedule  | Code quality analysis and SARIF upload to GitHub Security tab                    |
+| **Bandit** | `bandit.yml` | Push/PR to `main`, manual dispatch  | Security vulnerability scanning for Python code                                  |
+| **Test**   | `test.yml`   | Push/PR to `main`                   | Full pytest suite via `uv sync --all-extras`                                     |
 
 If CodeScene blocks a PR during review/salvage sessions, post:
 
