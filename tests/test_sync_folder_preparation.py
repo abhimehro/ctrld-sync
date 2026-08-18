@@ -170,12 +170,12 @@ def test_poll_retry_exhaustion_has_exact_calls_waits_and_final_error(
 ):
     responses = [_Response({"body": {"groups": []}})] * (api_client.MAX_RETRIES + 1)
     get_calls: list[int] = []
+
     def side_effect(*args):
         get_calls.append(1)
         return responses.pop(0)
-    monkeypatch.setattr(
-        sync, "_api_get", side_effect
-    )
+
+    monkeypatch.setattr(sync, "_api_get", side_effect)
     waits: list[tuple[int, str]] = []
     monkeypatch.setattr(sync, "countdown_timer", lambda *args: waits.append(args))
 
@@ -305,9 +305,11 @@ def test_prepare_no_delete_scans_all_folders_without_wait_or_deletes(monkeypatch
     existing = {"Keep": "keep-id", "Replace": "replace-id"}
     scanned: list[dict[str, str]] = []
     monkeypatch.setattr(sync, "verify_access_and_get_folders", lambda *args: existing)
+
     def side_effect(client, profile, folders):
         scanned.append(folders.copy())
         return {"rule"}
+
     monkeypatch.setattr(
         sync,
         "get_all_existing_rules",
@@ -331,9 +333,11 @@ def test_prepare_removes_replacements_from_scan_before_failed_deletion(monkeypat
     existing = {"Replace": "replace-id", "Keep": "keep-id"}
     scanned: list[dict[str, str]] = []
     monkeypatch.setattr(sync, "verify_access_and_get_folders", lambda *args: existing)
+
     def side_effect(client, profile, folders):
         scanned.append(folders.copy())
         return set()
+
     monkeypatch.setattr(
         sync,
         "get_all_existing_rules",
