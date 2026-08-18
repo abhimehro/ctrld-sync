@@ -148,17 +148,10 @@ def _filter_rules_for_folder(
     """
     unique_hostnames_dict = _deduplicate_hostnames(existing_rules, hostnames)
 
-    # Optimization 2: Inline method references for hot loop performance
-    allowed = sync._ALLOWED_RULE_CHARS
-    max_len = sync.MAX_RULE_LENGTH
-
-    # Second pass: Strict safety validation
-    # FAST PATH: C-speed list comprehension for the 99.9% case where rules are safe
-    filtered_hostnames = [
-        h
-        for h in unique_hostnames_dict
-        if h and len(h) <= max_len and allowed.issuperset(h)
-    ]
+    # NOTE: Use is_valid_rule (length + charset) so the hot path cannot drift
+    # from the centralized validator. Inline issuperset skipped MAX_RULE_LENGTH
+    # updates and other future checks.
+    filtered_hostnames = [h for h in unique_hostnames_dict if is_valid_rule(h)]
 
     _log_filtering_results(
         len(hostnames), unique_hostnames_dict, filtered_hostnames, folder_name
