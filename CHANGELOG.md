@@ -6,6 +6,7 @@
 
 **Security fixes:**
 
+- P0: Critical SSRF Vulnerability - User-Controlled URLs with Outbound Requests [\#1166](https://github.com/abhimehro/ctrld-sync/issues/1166)
 - P1: SSRF - User-Controlled URLs with Outbound Requests [\#1024](https://github.com/abhimehro/ctrld-sync/issues/1024)
 - P1: SSRF - User-Controlled URLs with Outbound Requests [\#993](https://github.com/abhimehro/ctrld-sync/issues/993)
 - 🚨 P0: Critical SSRF Vulnerability in Blocklist URL Fetching [\#987](https://github.com/abhimehro/ctrld-sync/issues/987)
@@ -82,6 +83,7 @@
 **Merged pull requests:**
 
 - chore\(repo-health\): delete stale requirements\*.txt and run-tests.sh [\#1199](https://github.com/abhimehro/ctrld-sync/pull/1199) ([abhimehro](https://github.com/abhimehro))
+- fix\(ssrf\): fail-closed validation in \_gh\_get and fetch\_folder\_data [\#1198](https://github.com/abhimehro/ctrld-sync/pull/1198) ([abhimehro](https://github.com/abhimehro))
 - fix\(security\): atomically write plan JSON files [\#1196](https://github.com/abhimehro/ctrld-sync/pull/1196) ([abhimehro](https://github.com/abhimehro))
 - chore\(ci\): uv Docker/Bandit and fix dependency-review \(salvages \#1188\) [\#1194](https://github.com/abhimehro/ctrld-sync/pull/1194) ([cursor[bot]](https://github.com/apps/cursor))
 - style: autofix formatting issues in test suite [\#1193](https://github.com/abhimehro/ctrld-sync/pull/1193) ([abhimehro](https://github.com/abhimehro))
