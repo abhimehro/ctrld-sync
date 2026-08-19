@@ -6,7 +6,7 @@ import logging
 import argparse
 import sys
 from pathlib import Path
-from typing import cast
+from typing import TypeGuard, cast
 
 import yaml
 from api_client import _4XX_HINTS, _SERVER_ERROR_HINT, MAX_RETRIES
@@ -110,12 +110,8 @@ def _is_invalid_name(name: object) -> bool:
     return not name.strip()
 
 
-def _is_invalid_positive_int(val: object) -> bool:
-    if val is None:
-        return False
-    if not isinstance(val, int):
-        return True
-    return val <= 0
+def _is_valid_positive_int(val: object) -> TypeGuard[int]:
+    return isinstance(val, int) and not isinstance(val, bool) and val > 0
 
 
 def _validate_folders(folders: object) -> None:
@@ -150,7 +146,7 @@ def _validate_settings(settings: object) -> None:
         raise ValueError("'settings' must be a mapping.")
     for key in ("batch_size", "delete_workers", "max_retries"):
         val = settings.get(key)
-        if _is_invalid_positive_int(val):
+        if val is not None and not _is_valid_positive_int(val):
             raise ValueError(
                 f"settings.{key} must be a positive integer (got {val!r})."
             )

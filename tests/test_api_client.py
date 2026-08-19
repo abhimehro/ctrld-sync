@@ -338,3 +338,25 @@ class TestApiHostPinning:
         with pytest.raises(ValueError, match="not allowlisted"):
             api_client._api_get(mock_client, "https://evil.com/x")
         mock_client.get.assert_not_called()
+
+
+class TestRetryRequestRuntimeDefaults:
+    """_retry_request must resolve MAX_RETRIES at call time, not at import time."""
+
+    def test_api_get_uses_updated_max_retries(self, monkeypatch):
+        """Mutating api_client.MAX_RETRIES after import affects _api_get attempts."""
+        monkeypatch.setattr(api_client, "MAX_RETRIES", 2)
+        monkeypatch.setattr("api_client.time.sleep", lambda x: None)
+
+        mock_client = MagicMock()
+        error = httpx.ConnectError(
+            "Connection refused", request=MagicMock(spec=httpx.Request)
+        )
+        mock_client.get.side_effect = error
+
+        with pytest.raises(httpx.ConnectError):
+            api_client._api_get(
+                mock_client, "https://api.controld.com/profiles/abc/groups"
+            )
+
+        assert mock_client.get.call_count == 2

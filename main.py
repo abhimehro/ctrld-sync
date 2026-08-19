@@ -25,8 +25,10 @@ import shutil  # noqa: F401
 import socket  # noqa: F401
 import stat
 import sys
+import tempfile
 import time
 import types
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -79,6 +81,7 @@ from config import (  # noqa: F401
     _DEFAULT_CONFIG_PATHS,
     _STATUS_HINTS,
     _clean_env_kv,
+    _is_valid_positive_int,
     _resolve_folder_urls,
     _validate_config,
     get_default_config,
@@ -589,18 +592,43 @@ def _apply_runtime_settings(cfg: dict[str, Any] | None) -> None:
         return
 
     batch_size = settings.get("batch_size")
-    if isinstance(batch_size, int) and batch_size > 0:
+    if _is_valid_positive_int(batch_size):
         config.BATCH_SIZE = batch_size
         # Regenerate BATCH_KEYS since BATCH_SIZE changed
         config.BATCH_KEYS = [f"hostnames[{i}]" for i in range(batch_size)]
 
     delete_workers = settings.get("delete_workers")
-    if isinstance(delete_workers, int) and delete_workers > 0:
+    if _is_valid_positive_int(delete_workers):
         config.DELETE_WORKERS = delete_workers
 
     max_retries = settings.get("max_retries")
-    if isinstance(max_retries, int) and max_retries >= 0:
+    if _is_valid_positive_int(max_retries):
         api_client.MAX_RETRIES = max_retries
+
+
+def _write_plan_json(plan_json_path: str, plan: list[PlanEntry]) -> None:
+    """Atomically write a dry-run plan with owner-only permissions."""
+    plan_path = Path(plan_json_path).resolve()
+    plan_path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temp_path = tempfile.mkstemp(
+        prefix=f".{plan_path.name}.", suffix=".tmp", dir=plan_path.parent
+    )
+
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as plan_file:
+            os.fchmod(plan_file.fileno(), 0o600)
+            json.dump(plan, plan_file, indent=2)
+            plan_file.flush()
+            os.fsync(plan_file.fileno())
+        os.replace(temp_path, plan_path)
+    except Exception:
+        try:
+            os.unlink(temp_path)
+        except FileNotFoundError:
+            pass
+        raise
+
+    log.info("Plan written to %s", plan_path)
 
 
 def main() -> bool:
@@ -756,9 +784,7 @@ def main() -> bool:
         )
 
     if args.plan_json:
-        with open(args.plan_json, "w", encoding="utf-8") as f:
-            json.dump(plan, f, indent=2)
-        log.info("Plan written to %s", args.plan_json)
+        _write_plan_json(args.plan_json, plan)
 
     total = len(profile_ids or ["dry-run-placeholder"])
     all_success = success_count == total

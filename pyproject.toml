@@ -4,7 +4,7 @@ version = "0.1.1"
 description = "Simple script which syncs defined Control D folders"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = ["httpx>=0.28.1", "python-dotenv>=1.2.2", "pyyaml>=6.0"]
+dependencies = ["httpx==0.28.1", "python-dotenv==1.2.2", "pyyaml==6.0.3"]
 
 [project.optional-dependencies]
 dev = [
@@ -17,6 +17,8 @@ dev = [
   "mypy>=1.9",
   "types-PyYAML>=6.0",
   "ruff>=0.16.2",
+  "bandit>=1.9.4",
+  "bandit-sarif-formatter>=1.1.1",
 ]
 
 [tool.coverage.run]
@@ -42,6 +44,9 @@ ignore = ["E501", "SIM105", "SIM115", "SIM117"]
 [tool.pytest.ini_options]
 addopts = "-p no:cacheprovider"
 testpaths = ["tests", "test_main.py"]
+
+[tool.bandit]
+exclude_dirs = [".venv/", ".git/", ".svn/", "CVS/", ".bzr/", ".hg/", "__pycache__/", ".tox/", ".eggs/", "*.egg"]
 
 [dependency-groups]
 dev = []

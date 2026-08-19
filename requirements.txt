@@ -1,6 +1,0 @@
-# Runtime dependencies - manually synchronized with pyproject.toml
-# This file is maintained for CI caching purposes only
-# Source of truth: pyproject.toml [project.dependencies]
-httpx>=0.28.1
-python-dotenv>=1.2.2
-pyyaml>=6.0
