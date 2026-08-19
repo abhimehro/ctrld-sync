@@ -40,6 +40,12 @@ _cache: dict[str, dict] = {}
 _cache_lock = threading.RLock()
 
 
+def _validate_url_or_raise(url: str) -> None:
+    """Fail-closed SSRF guard: validate a blocklist URL before any network or cache use."""
+    if not validate_folder_url(url):
+        raise ValueError(f"Unsafe or invalid blocklist URL: {sanitize_for_log(url)}")
+
+
 def _validate_content_type(url: str, r: httpx.Response) -> None:
     """Validate that the response Content-Type is acceptable for JSON bodies."""
     ct = r.headers.get("Content-Type", "").lower()
@@ -212,6 +218,9 @@ def _gh_get(url: str) -> dict:
 
     SECURITY: Validates data structure regardless of cache source
     """
+    # SECURITY: Fail-closed SSRF guard before any cache or network access.
+    _validate_url_or_raise(url)
+
     # First check: Quick check without holding lock for long
     if (cached := _get_memory_cached(url)) is not None:
         return cached
@@ -273,6 +282,9 @@ def fetch_folder_data(url: str) -> FolderData:
     Raises httpx.HTTPStatusError (with actionable hint) on HTTP failure,
     or KeyError if validation of the returned data fails.
     """
+    # SECURITY: Fail-closed SSRF guard in case callers bypass higher-level checks.
+    _validate_url_or_raise(url)
+
     try:
         js = _gh_get(url)
     except httpx.HTTPStatusError as e:

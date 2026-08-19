@@ -16,10 +16,8 @@ class TestSSRF(unittest.TestCase):
         Test that a domain resolving to a private IP is blocked.
         This simulates a DNS Rebinding attack or SSRF attempt against internal infrastructure.
         """
-        # We need to mock socket.getaddrinfo because the fix will use it.
-        # For the current code, this mock is unused, but the test ensures
-        # that 'internal.example.com' (which is not an IP literal) passes validation currently
-        # and will fail validation (be blocked) after the fix.
+        # Use an allowlisted host so we test the DNS-resolved IP safety
+        # rather than the domain allowlist.
 
         with patch("socket.getaddrinfo") as mock_getaddrinfo:
             # Simulate resolving to 192.168.1.1
@@ -27,7 +25,7 @@ class TestSSRF(unittest.TestCase):
                 (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("192.168.1.1", 443))
             ]
 
-            url = "https://internal.example.com/config.json"
+            url = "https://internal.raw.githubusercontent.com/config.json"
 
             # This calls the function in main.py
             result = main.validate_folder_url(url)
@@ -45,7 +43,7 @@ class TestSSRF(unittest.TestCase):
                 (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("8.8.8.8", 443))
             ]
 
-            url = "https://public.example.com/config.json"
+            url = "https://public.raw.githubusercontent.com/config.json"
 
             result = main.validate_folder_url(url)
 
