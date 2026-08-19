@@ -106,7 +106,7 @@ time python main.py --dry-run  # Second run should be faster
 - Sequential test execution
 - No dependency caching **Solutions**:
 - ✅ pytest-xdist for parallel execution (implemented)
-- ✅ CI pip dependency caching (implemented)
+- ✅ CI uv dependency caching (implemented)
 
 ## Performance Engineering Workflow
 
