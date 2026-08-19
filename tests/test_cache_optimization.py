@@ -25,9 +25,14 @@ class TestCacheOptimization(unittest.TestCase):
         main._cache.clear()
         main.validate_folder_url.cache_clear()
         main.validate_hostname.cache_clear()
+        # Bypass gh_client's SSRF gate so these cache/HTTP behavior tests stay
+        # deterministic and do not hit DNS for https://example.com URLs.
+        self._validate_patch = patch("gh_client.validate_folder_url", return_value=True)
+        self._validate_patch.start()
 
     def tearDown(self):
         """Clean up after each test."""
+        self._validate_patch.stop()
         main._cache.clear()
         main.validate_folder_url.cache_clear()
         main.validate_hostname.cache_clear()

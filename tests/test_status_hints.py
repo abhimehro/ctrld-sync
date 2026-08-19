@@ -22,7 +22,14 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import api_client
+import gh_client
 import main
+
+
+@pytest.fixture(autouse=True)
+def _mock_gh_client_validation(monkeypatch):
+    """Bypass gh_client's SSRF gate so hint tests stay deterministic."""
+    monkeypatch.setattr(gh_client, "validate_folder_url", lambda url: True)
 
 
 def _make_http_status_error(status_code: int) -> httpx.HTTPStatusError:

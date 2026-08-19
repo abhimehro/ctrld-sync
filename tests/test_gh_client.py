@@ -88,6 +88,12 @@ def _isolate_client_state():
     validation.set_token_for_redaction(token_before)
 
 
+@pytest.fixture
+def mock_url_validation(monkeypatch):
+    """Bypass SSRF validator in cache/HTTP behavior tests that exercise _gh_get directly."""
+    monkeypatch.setattr(gh_client, "validate_folder_url", lambda url: True)
+
+
 class TestParseAndCacheResponse:
     """Regression tests for _parse_and_cache_response and its helpers."""
 
@@ -204,6 +210,7 @@ class TestParseAndCacheResponse:
         assert url not in cache._disk_cache  # nosec B101
 
 
+@pytest.mark.usefixtures("mock_url_validation")
 class TestGhGet:
     """Regression tests for _gh_get cache and HTTP handling."""
 
@@ -403,6 +410,7 @@ class TestGhGet:
         assert results[0] is results[1]  # nosec B101
 
 
+@pytest.mark.usefixtures("mock_url_validation")
 class TestFetchFolderData:
     """Regression tests for fetch_folder_data error/hint handling."""
 
