@@ -19,6 +19,7 @@
 - Daily QA & Agentic Review — 2026-08-14 [\#1169](https://github.com/abhimehro/ctrld-sync/issues/1169)
 - P1: Unpinned Dependencies - Floating Version Ranges in requirements.txt and pyproject.toml [\#1167](https://github.com/abhimehro/ctrld-sync/issues/1167)
 - Daily QA & Agentic Review — 2026-08-13 [\#1164](https://github.com/abhimehro/ctrld-sync/issues/1164)
+- \[repo-health\] Dual requirements\*.txt vs Docker/uv still unresolved \(\#1124 closed without change\) [\#1163](https://github.com/abhimehro/ctrld-sync/issues/1163)
 - Daily QA & Agentic Review — 2026-08-12 [\#1160](https://github.com/abhimehro/ctrld-sync/issues/1160)
 - Daily QA & Agentic Review — 2026-08-11 [\#1158](https://github.com/abhimehro/ctrld-sync/issues/1158)
 - Daily QA & Agentic Review — 2026-08-10 [\#1152](https://github.com/abhimehro/ctrld-sync/issues/1152)
@@ -80,6 +81,7 @@
 
 **Merged pull requests:**
 
+- chore\(repo-health\): delete stale requirements\*.txt and run-tests.sh [\#1199](https://github.com/abhimehro/ctrld-sync/pull/1199) ([abhimehro](https://github.com/abhimehro))
 - fix\(security\): atomically write plan JSON files [\#1196](https://github.com/abhimehro/ctrld-sync/pull/1196) ([abhimehro](https://github.com/abhimehro))
 - chore\(ci\): uv Docker/Bandit and fix dependency-review \(salvages \#1188\) [\#1194](https://github.com/abhimehro/ctrld-sync/pull/1194) ([cursor[bot]](https://github.com/apps/cursor))
 - style: autofix formatting issues in test suite [\#1193](https://github.com/abhimehro/ctrld-sync/pull/1193) ([abhimehro](https://github.com/abhimehro))
