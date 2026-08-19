@@ -81,6 +81,7 @@ from config import (  # noqa: F401
     _DEFAULT_CONFIG_PATHS,
     _STATUS_HINTS,
     _clean_env_kv,
+    _is_valid_positive_int,
     _resolve_folder_urls,
     _validate_config,
     get_default_config,
@@ -591,17 +592,17 @@ def _apply_runtime_settings(cfg: dict[str, Any] | None) -> None:
         return
 
     batch_size = settings.get("batch_size")
-    if isinstance(batch_size, int) and batch_size > 0:
+    if _is_valid_positive_int(batch_size):
         config.BATCH_SIZE = batch_size
         # Regenerate BATCH_KEYS since BATCH_SIZE changed
         config.BATCH_KEYS = [f"hostnames[{i}]" for i in range(batch_size)]
 
     delete_workers = settings.get("delete_workers")
-    if isinstance(delete_workers, int) and delete_workers > 0:
+    if _is_valid_positive_int(delete_workers):
         config.DELETE_WORKERS = delete_workers
 
     max_retries = settings.get("max_retries")
-    if isinstance(max_retries, int) and max_retries >= 0:
+    if _is_valid_positive_int(max_retries):
         api_client.MAX_RETRIES = max_retries
 
 
