@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-import logging
 import argparse
+import logging
 import sys
 from pathlib import Path
 from typing import TypeGuard, cast
 
 import yaml
+
 from api_client import _4XX_HINTS, _SERVER_ERROR_HINT, MAX_RETRIES
 from display import Colors
 from validation import (

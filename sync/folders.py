@@ -7,11 +7,11 @@ import time
 from dataclasses import dataclass
 from enum import Enum, auto
 
+import httpx
+
 import api_client
 import config
-import httpx
 import sync
-
 from api_client import _CONNECT_ERROR_HINT, _TIMEOUT_HINT
 from display import Colors
 from models import RuleAction, SyncContext

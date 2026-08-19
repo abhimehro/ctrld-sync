@@ -7,16 +7,15 @@ import sys
 import types
 
 from .alerts import AlertSystem
-from .colors import Box, Colors, USE_COLORS
-from .log import ColoredFormatter, JsonFormatter
+from .colors import USE_COLORS, Box, Colors
 from .log import configure_logging  # noqa: F401
+from .log import ColoredFormatter, JsonFormatter
 from .output import (
     _clear_current_line,
     _print_bold_header,
     _print_completion,
     _print_hint,
 )
-from .plan import print_plan_details
 from .plan import (  # noqa: F401
     _format_dimmed_hint,
     _format_empty_warning,
@@ -24,35 +23,36 @@ from .plan import (  # noqa: F401
     _format_plan_header,
     _get_action_text,
     _resolve_folder_action,
+    print_plan_details,
 )
+from .progress import _get_progress_bar_width  # noqa: F401
+from .progress import countdown_timer, render_progress_bar
 from .prompts import (
     EMPTY_INPUT_HINT,
     INVALID_INPUT_HINT,
     get_password,
     get_validated_input,
 )
-from .progress import countdown_timer, render_progress_bar
-from .progress import _get_progress_bar_width  # noqa: F401
-from .stats import display_statistics
 from .stats import (  # noqa: F401
     display_api_statistics,
     display_cache_statistics,
     display_rate_limit_status,
+    display_statistics,
 )
+from .tables import _print_hint_if_no_folders  # noqa: F401
 from .tables import (
-    _SummaryStats,
     _get_display_profile,
     _print_dashboard_url,
     _print_success_text,
     _render_ascii_table,
     _render_unicode_table,
+    _SummaryStats,
     make_col_separator,
     print_line,
     print_row,
     print_success_message,
     print_summary_table,
 )
-from .tables import _print_hint_if_no_folders  # noqa: F401
 from .text import _ANSI_ESCAPE_PATTERN, _display_len, _pad_string, pluralize
 
 log = logging.getLogger(__name__)

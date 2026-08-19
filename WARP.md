@@ -95,18 +95,18 @@ Safety/validation helpers:
 
 ## Module Map
 
-| Module | Purpose | Key exports |
-| ------ | ------- | -------------- |
-| `main.py` | CLI, argument parsing, environment bootstrap, and wiring | `main()`, `parse_args()`, `run_main()` |
-| `models.py` | Pure data types (TypedDicts / dataclasses) | `RuleAction`, `SyncContext`, `FolderData`, `PlanEntry`, `SyncResult` |
+| Module          | Purpose                                                                 | Key exports                                                                                                                                                                                          |
+| --------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `main.py`       | CLI, argument parsing, environment bootstrap, and wiring                | `main()`, `parse_args()`, `run_main()`                                                                                                                                                               |
+| `models.py`     | Pure data types (TypedDicts / dataclasses)                              | `RuleAction`, `SyncContext`, `FolderData`, `PlanEntry`, `SyncResult`                                                                                                                                 |
 | `validation.py` | Sanitization, hostname/URL/profile/folder validators, allowlist helpers | `sanitize_for_log`, `validate_hostname`, `validate_folder_url`, `validate_profile_id`, `is_valid_rule`, `is_valid_folder_name`, `DEFAULT_ALLOWED_BLOCKLIST_DOMAINS`, `set_allowed_blocklist_domains` |
-| `config.py` | Defaults, config loading/validation, runtime constants | `DEFAULT_FOLDER_URLS`, `load_config`, `get_default_config`, `_resolve_folder_urls`, `_validate_config`, `BATCH_SIZE`, `MAX_RESPONSE_SIZE` |
-| `display/` | Colors, prompts, progress bars, tables, logging formatters | `Colors`, `USE_COLORS`, `AlertSystem`, `JsonFormatter`, `ColoredFormatter`, `render_progress_bar`, `countdown_timer`, `print_summary_table` |
-| `gh_client.py` | `httpx` client for fetching blocklist JSON, in-memory cache | `_gh_get`, `fetch_folder_data`, `warm_up_cache` |
-| `sync/` | Folder/rule orchestration package | `sync_profile`, `create_client`, `push_rules`, `create_folder`, `delete_folder`, `verify_access_and_get_folders` |
-| `api_client.py` | Low-level Control D API helpers (HTTP + retries) | `_api_get`, `_api_post`, `_api_post_form`, `_api_delete`, `_retry_request`, `retry_with_jitter` |
-| `cache.py` | Persistent disk cache for blocklist JSON | `load_disk_cache`, `save_disk_cache`, `_disk_cache` |
-| `fix_env.py` | Legacy `.env` fix helper | `fix_env` |
+| `config.py`     | Defaults, config loading/validation, runtime constants                  | `DEFAULT_FOLDER_URLS`, `load_config`, `get_default_config`, `_resolve_folder_urls`, `_validate_config`, `BATCH_SIZE`, `MAX_RESPONSE_SIZE`                                                            |
+| `display/`      | Colors, prompts, progress bars, tables, logging formatters              | `Colors`, `USE_COLORS`, `AlertSystem`, `JsonFormatter`, `ColoredFormatter`, `render_progress_bar`, `countdown_timer`, `print_summary_table`                                                          |
+| `gh_client.py`  | `httpx` client for fetching blocklist JSON, in-memory cache             | `_gh_get`, `fetch_folder_data`, `warm_up_cache`                                                                                                                                                      |
+| `sync/`         | Folder/rule orchestration package                                       | `sync_profile`, `create_client`, `push_rules`, `create_folder`, `delete_folder`, `verify_access_and_get_folders`                                                                                     |
+| `api_client.py` | Low-level Control D API helpers (HTTP + retries)                        | `_api_get`, `_api_post`, `_api_post_form`, `_api_delete`, `_retry_request`, `retry_with_jitter`                                                                                                      |
+| `cache.py`      | Persistent disk cache for blocklist JSON                                | `load_disk_cache`, `save_disk_cache`, `_disk_cache`                                                                                                                                                  |
+| `fix_env.py`    | Legacy `.env` fix helper                                                | `fix_env`                                                                                                                                                                                            |
 
 Dependencies between the new modules are one-way:
 
@@ -128,8 +128,8 @@ No helper module imports `main.py`.
 
 1. **Bootstrap & logging**
    - Loads `.env` with `load_dotenv()`.
-   - Configures color-aware logging via `display.ColoredFormatter` and the shared
-     `control-d-sync` logger.
+   - Configures color-aware logging via `display.ColoredFormatter` and the
+     shared `control-d-sync` logger.
    - `display.Colors` / `USE_COLORS` disable ANSI codes when not attached to a
      TTY.
 
@@ -162,7 +162,8 @@ No helper module imports `main.py`.
      `{folder_name -> folder_id}` mapping (used as fallback).
    - `sync.get_all_existing_rules()` – Collects all existing rule PKs from both
      the root and each folder, using a `ThreadPoolExecutor` to parallelize
-     per-folder fetches while accumulating into a shared `set` guarded by a lock.
+     per-folder fetches while accumulating into a shared `set` guarded by a
+     lock.
    - `sync.delete_folder()` – Deletes a folder by ID with error-logged failures.
    - `sync.create_folder()` – Creates a folder and tries to read its ID directly
      from the response; if that fails, it polls `GET /groups` with increasing
@@ -174,10 +175,10 @@ No helper module imports `main.py`.
      `models.RuleAction`.
 
 5. **Folder data processing (`gh_client.py`)**
-   - `gh_client.fetch_folder_data()` – Fetches and validates a single folder JSON
-     document.
-   - `gh_client.warm_up_cache()` – Pre-fetches and caches folder JSON definitions
-     in parallel, so subsequent parsing is cheap.
+   - `gh_client.fetch_folder_data()` – Fetches and validates a single folder
+     JSON document.
+   - `gh_client.warm_up_cache()` – Pre-fetches and caches folder JSON
+     definitions in parallel, so subsequent parsing is cheap.
    - `sync._process_single_folder()` – Given one parsed folder JSON and a
      `models.SyncContext`, it:
      - Determines the main folder attributes (name, default action/status).
@@ -198,8 +199,9 @@ No helper module imports `main.py`.
           (`sync.verify_access_and_get_folders`).
         - Optionally delete existing folders with matching names (`--no-delete`
           skips this step).
-        - If any deletions occurred, waits ~60 seconds (`display.countdown_timer`)
-          to let Control D fully process the removals.
+        - If any deletions occurred, waits ~60 seconds
+          (`display.countdown_timer`) to let Control D fully process the
+          removals.
         - Build the global `existing_rules` set.
         - Sequentially process each folder (executor with `max_workers=1` to
           avoid rate-limit and ordering issues), calling

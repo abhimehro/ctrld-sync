@@ -7,10 +7,10 @@ import contextlib
 import logging
 from dataclasses import dataclass
 
-import config
 import httpx
-import sync
 
+import config
+import sync
 from display import (
     _clear_current_line,
     _print_completion,
@@ -18,9 +18,8 @@ from display import (
     render_progress_bar,
 )
 from models import RuleAction, SyncContext
-from validation import sanitize_for_log
-
 from sync.rules import _filter_rules_for_folder
+from validation import sanitize_for_log
 
 
 @dataclass(frozen=True, slots=True)

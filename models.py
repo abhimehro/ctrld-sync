@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import concurrent.futures
-import httpx
-from dataclasses import dataclass
 from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import NotRequired, TypedDict
+
+import httpx
 
 
 @dataclass(frozen=True)

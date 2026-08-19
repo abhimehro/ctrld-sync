@@ -46,7 +46,18 @@ addopts = "-p no:cacheprovider"
 testpaths = ["tests", "test_main.py"]
 
 [tool.bandit]
-exclude_dirs = [".venv/", ".git/", ".svn/", "CVS/", ".bzr/", ".hg/", "__pycache__/", ".tox/", ".eggs/", "*.egg"]
+exclude_dirs = [
+  ".venv/",
+  ".git/",
+  ".svn/",
+  "CVS/",
+  ".bzr/",
+  ".hg/",
+  "__pycache__/",
+  ".tox/",
+  ".eggs/",
+  "*.egg",
+]
 
 [dependency-groups]
 dev = []

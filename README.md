@@ -13,9 +13,9 @@
 [![CodeScene System Mastery](https://codescene.io/projects/80823/status-badges/system-mastery)](https://codescene.io/projects/80823)
 [![CodeScene Missed Goals](https://codescene.io/projects/80823/status-badges/missed-goals)](https://codescene.io/projects/80823)
 
-A tiny Python CLI that keeps your Control D Folders in sync with a set of
-remote block-lists. The code is split into focused modules; `main.py` is only
-the CLI/bootstrap entry point.
+A tiny Python CLI that keeps your Control D Folders in sync with a set of remote
+block-lists. The code is split into focused modules; `main.py` is only the
+CLI/bootstrap entry point.
 
 See [CHANGELOG.md](CHANGELOG.md) for a full list of changes between versions.
 

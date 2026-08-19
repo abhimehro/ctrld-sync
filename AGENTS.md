@@ -4,10 +4,11 @@
 
 ### Project overview
 
-Python CLI tool that syncs Control D DNS folders with remote JSON block-lists via
-the Control D REST API. The codebase is split into focused modules; `main.py` is
-only the CLI/bootstrap/wiring entry point. No frontend or database. Docker is
-optional (`Dockerfile` / `docker-compose.yml`); local CLI use does not require it.
+Python CLI tool that syncs Control D DNS folders with remote JSON block-lists
+via the Control D REST API. The codebase is split into focused modules;
+`main.py` is only the CLI/bootstrap/wiring entry point. No frontend or database.
+Docker is optional (`Dockerfile` / `docker-compose.yml`); local CLI use does not
+require it.
 
 ### Runtime
 
@@ -23,7 +24,7 @@ optional (`Dockerfile` / `docker-compose.yml`); local CLI use does not require i
 | -------------------------- | ------------------------------------------------------------------ |
 | Install/update deps        | `uv sync --all-extras`                                             |
 | Run linter                 | `ruff check .` (install via `uv tool install ruff` if not on PATH) |
-| Run all tests              | `uv run pytest tests/ test_main.py -v`                               |
+| Run all tests              | `uv run pytest tests/ test_main.py -v`                             |
 | Run specific test file     | `uv run pytest tests/test_fix_env.py -v`                           |
 | Run app (dry-run)          | `uv run python main.py --dry-run`                                  |
 | Run app (live)             | `TOKEN=xxx PROFILE=yyy uv run python main.py`                      |
@@ -32,9 +33,11 @@ optional (`Dockerfile` / `docker-compose.yml`); local CLI use does not require i
 
 ### Current status
 
-All modules compile cleanly (`uv run python -m compileall -q main.py models.py
+All modules compile cleanly
+(`uv run python -m compileall -q main.py models.py
 validation.py config.py display/ gh_client.py sync/ api_client.py cache.py
-fix_env.py`). The full test suite is `uv run pytest tests/ test_main.py -v`.
+fix_env.py`).
+The full test suite is `uv run pytest tests/ test_main.py -v`.
 
 `main.py` is now only CLI/bootstrap/wiring; helpers live in `models.py`,
 `validation.py`, `config.py`, `display/`, `gh_client.py`, and `sync/`.

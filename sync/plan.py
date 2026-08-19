@@ -6,8 +6,8 @@ import concurrent.futures
 from collections.abc import Sequence
 
 import httpx
-import sync
 
+import sync
 from display import Colors
 from gh_client import fetch_folder_data
 from models import FolderData, PlanEntry

@@ -6,7 +6,6 @@ import httpx
 
 import config
 import sync
-
 from api_client import _CONNECT_ERROR_HINT, _TIMEOUT_HINT
 from display import Colors
 from validation import sanitize_for_log, set_token_for_redaction

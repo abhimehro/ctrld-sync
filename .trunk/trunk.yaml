@@ -15,20 +15,20 @@ lint:
     - markdownlint
     - prettier
   enabled:
-    - mypy@2.3.0
+    - mypy@2.3.1
     - grype@0.114.0
     - pinact@4.1.0
     - actionlint@1.7.12
     - bandit@1.9.4
     - black@26.5.1
-    - checkov@3.3.8
+    - checkov@3.3.12
     - deno@2.8.3
     - dotenv-linter@4.0.0
     - git-diff-check
     - hadolint@2.14.0
     - isort@8.0.1
     - osv-scanner@2.3.8
-    - ruff@0.16.1
+    - ruff@0.16.3
     - shellcheck@0.11.0
     - shfmt@3.6.0
     - taplo@0.10.0
