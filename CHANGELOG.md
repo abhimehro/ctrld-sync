@@ -80,6 +80,7 @@
 
 **Merged pull requests:**
 
+- fix\(security\): atomically write plan JSON files [\#1196](https://github.com/abhimehro/ctrld-sync/pull/1196) ([abhimehro](https://github.com/abhimehro))
 - chore\(ci\): uv Docker/Bandit and fix dependency-review \(salvages \#1188\) [\#1194](https://github.com/abhimehro/ctrld-sync/pull/1194) ([cursor[bot]](https://github.com/apps/cursor))
 - style: autofix formatting issues in test suite [\#1193](https://github.com/abhimehro/ctrld-sync/pull/1193) ([abhimehro](https://github.com/abhimehro))
 - Update ctrld-sync testing skill with harness tips [\#1192](https://github.com/abhimehro/ctrld-sync/pull/1192) ([abhimehro](https://github.com/abhimehro))
