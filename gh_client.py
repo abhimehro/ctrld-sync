@@ -280,7 +280,8 @@ def fetch_folder_data(url: str) -> FolderData:
 
     Uses cached GET request and validates the folder structure.
     Raises httpx.HTTPStatusError (with actionable hint) on HTTP failure,
-    or KeyError if validation of the returned data fails.
+    KeyError if validation of the returned data fails, or
+    ValueError if the URL is unsafe/invalid (SSRF guard).
     """
     # SECURITY: Fail-closed SSRF guard in case callers bypass higher-level checks.
     _validate_url_or_raise(url)
