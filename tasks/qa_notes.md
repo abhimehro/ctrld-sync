@@ -33,9 +33,9 @@ uv run python main.py --dry-run
 
 ### Notes
 
-- **email-security-pipeline**: Test count stable at 622; all pass with
-  `requirements-ci.txt`.
-- **Hydrograph**: Fresh environments need `pip install -r requirements.txt`
+- **email-security-pipeline**: Test count stable at 622; all pass after its
+  own dependency install.
+- **Hydrograph**: Fresh environments need dependency installation
   before the core pytest subset (includes `defusedxml`).
 - **series_correction**: Full suite (33 tests) passes on current pandas.
 - **Seatek**: `r-cran-testthat` via apt; run with
