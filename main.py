@@ -25,8 +25,10 @@ import shutil  # noqa: F401
 import socket  # noqa: F401
 import stat
 import sys
+import tempfile
 import time
 import types
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -603,6 +605,31 @@ def _apply_runtime_settings(cfg: dict[str, Any] | None) -> None:
         api_client.MAX_RETRIES = max_retries
 
 
+def _write_plan_json(plan_json_path: str, plan: list[PlanEntry]) -> None:
+    """Atomically write a dry-run plan with owner-only permissions."""
+    plan_path = Path(plan_json_path).resolve()
+    plan_path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temp_path = tempfile.mkstemp(
+        prefix=f".{plan_path.name}.", suffix=".tmp", dir=plan_path.parent
+    )
+
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as plan_file:
+            os.fchmod(plan_file.fileno(), 0o600)
+            json.dump(plan, plan_file, indent=2)
+            plan_file.flush()
+            os.fsync(plan_file.fileno())
+        os.replace(temp_path, plan_path)
+    except Exception:
+        try:
+            os.unlink(temp_path)
+        except FileNotFoundError:
+            pass
+        raise
+
+    log.info("Plan written to %s", plan_path)
+
+
 def main() -> bool:
     """
     Main entry point for Control D Sync.
@@ -756,9 +783,7 @@ def main() -> bool:
         )
 
     if args.plan_json:
-        with open(args.plan_json, "w", encoding="utf-8") as f:
-            json.dump(plan, f, indent=2)
-        log.info("Plan written to %s", args.plan_json)
+        _write_plan_json(args.plan_json, plan)
 
     total = len(profile_ids or ["dry-run-placeholder"])
     all_success = success_count == total
