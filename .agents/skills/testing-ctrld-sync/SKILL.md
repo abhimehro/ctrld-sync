@@ -152,6 +152,35 @@ is strong evidence of behavior preservation. The same A/B trick works for
 `uv run python main.py --dry-run` output (strip timestamps and durations before
 diffing).
 
+## Docker image verification
+
+After a PR changes `Dockerfile`, `.dockerignore`, or the dependency manifests,
+verify the image build and runtime behavior with:
+
+```bash
+# Build image and capture ID
+IMAGE=$(docker build -q .)
+
+# Entrypoint help should print usage for main.py
+docker run --rm "$IMAGE" --help
+
+# Runtime stage excludes dev dependencies (--no-dev in the Dockerfile),
+# so pytest must not be importable
+docker run --rm --entrypoint python "$IMAGE" -c "import pytest"
+# Expected: ModuleNotFoundError: No module named 'pytest' (exit 1)
+
+# The compose service should run a default dry-run using built-in defaults
+docker compose run --rm ctrld-sync --dry-run
+# Expected: output contains "DRY RUN SUMMARY", status "Planned"/"Ready",
+# and "Control D API calls: 0".
+```
+
+For the full module set used in CI, run mypy with:
+
+```bash
+uv run mypy main.py models.py validation.py config.py display/ gh_client.py sync/ api_client.py cache.py fix_env.py
+```
+
 ## Notes
 
 - Clear `main.validate_hostname` and `main.validate_folder_url` caches
@@ -160,3 +189,11 @@ diffing).
   blocklist data bypassing fetch assertions.
 - Avoid committing temporary harnesses, evidence files, screenshots, or test
   reports unless explicitly requested.
+- When invoking `main.main()` from a temporary harness script outside the repo
+  root (e.g. in `/tmp`), set `PYTHONPATH` to the repo root so local modules
+  (`api_client`, `config`, `gh_client`, `main`) resolve correctly.
+- To force `USE_COLORS=False` inside a harness, set `NO_COLOR=1` before
+  importing `main` (display/colors.py is evaluated at import time).
+- When testing `_retry_request` directly with `httpx.Response(200)`, attach a
+  dummy `request=httpx.Request(...)` so `raise_for_status()` does not raise
+  `RuntimeError`.
