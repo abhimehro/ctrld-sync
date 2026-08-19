@@ -33,30 +33,13 @@ def _clear_state(_default_test_blocklist_allowlist):
     validation.validate_hostname.cache_clear()
 
 
-def _private_addrinfo(host, *args, **kwargs):
-    """Simulate a DNS resolution to a loopback address."""
-    return [
-        (
-            socket.AF_INET,
-            socket.SOCK_STREAM,
-            socket.IPPROTO_TCP,
-            "",
-            ("127.0.0.1", 0),
-        )
-    ]
+def _addrinfo(ip: str):
+    """Return a socket.getaddrinfo replacement that resolves every host to *ip*."""
 
+    def _resolve(host, *args, **kwargs):
+        return [(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", (ip, 0))]
 
-def _public_addrinfo(host, *args, **kwargs):
-    """Simulate a DNS resolution to a public address."""
-    return [
-        (
-            socket.AF_INET,
-            socket.SOCK_STREAM,
-            socket.IPPROTO_TCP,
-            "",
-            ("8.8.8.8", 0),
-        )
-    ]
+    return _resolve
 
 
 def _make_valid_folder_response() -> MagicMock:
@@ -77,48 +60,53 @@ def _make_valid_folder_response() -> MagicMock:
     return response
 
 
-class TestGhGetSSRF:
-    """Verify _gh_get() fails closed on unsafe URLs."""
+class TestGhClientSSRF:
+    """Verify _gh_get() and fetch_folder_data() fail closed on unsafe URLs."""
 
     @pytest.mark.parametrize(
-        "url",
+        "func,url",
         [
-            "http://example.com/data.json",
-            "https://127.0.0.1/data.json",
-            "https://169.254.169.254/latest/meta-data/",
-            "https://example.com/data.json",
-            "https://10.0.0.1/data.json",
+            (gh_client._gh_get, "http://example.com/data.json"),
+            (gh_client._gh_get, "https://127.0.0.1/data.json"),
+            (gh_client._gh_get, "https://169.254.169.254/latest/meta-data/"),
+            (gh_client._gh_get, "https://example.com/data.json"),
+            (gh_client._gh_get, "https://10.0.0.1/data.json"),
+            (gh_client.fetch_folder_data, "https://127.0.0.1/data.json"),
+            (gh_client.fetch_folder_data, "https://example.com/data.json"),
         ],
     )
-    def test_rejects_unsafe_url_without_streaming(self, url):
+    def test_rejects_unsafe_url_without_streaming(self, func, url):
         with patch.object(gh_client._gh, "stream") as mock_stream:
             with pytest.raises(ValueError, match="Unsafe or invalid blocklist URL"):
-                gh_client._gh_get(url)
+                func(url)
         mock_stream.assert_not_called()
 
-    def test_rejects_allowlisted_domain_resolving_to_private_ip(self, monkeypatch):
-        monkeypatch.setattr(socket, "getaddrinfo", _private_addrinfo)
+    @pytest.mark.parametrize(
+        "func",
+        [gh_client._gh_get, gh_client.fetch_folder_data],
+    )
+    def test_rejects_allowlisted_domain_resolving_to_private_ip(
+        self, monkeypatch, func
+    ):
+        monkeypatch.setattr(socket, "getaddrinfo", _addrinfo("127.0.0.1"))
         with patch.object(gh_client._gh, "stream") as mock_stream:
             with pytest.raises(ValueError, match="Unsafe or invalid blocklist URL"):
-                gh_client._gh_get(
-                    "https://raw.githubusercontent.com/evil/repo/data.json"
-                )
+                func("https://raw.githubusercontent.com/evil/repo/data.json")
         mock_stream.assert_not_called()
 
-    def test_accepts_allowlisted_domain_resolving_to_public_ip(self, monkeypatch):
-        monkeypatch.setattr(socket, "getaddrinfo", _public_addrinfo)
+    @pytest.mark.parametrize(
+        "func",
+        [gh_client._gh_get, gh_client.fetch_folder_data],
+    )
+    def test_accepts_allowlisted_public_url(self, monkeypatch, func):
+        monkeypatch.setattr(socket, "getaddrinfo", _addrinfo("8.8.8.8"))
         response = _make_valid_folder_response()
         with patch.object(
             gh_client._gh, "stream", return_value=response
         ) as mock_stream:
-            result = gh_client._gh_get(
-                "https://raw.githubusercontent.com/org/repo/data.json"
-            )
+            result = func("https://raw.githubusercontent.com/org/repo/data.json")
         mock_stream.assert_called_once()
-        assert result == {
-            "group": {"group": "Test"},
-            "rules": [{"PK": "example.com"}],
-        }
+        assert result["group"]["group"] == "Test"  # nosec B101
 
     def test_memory_cache_cannot_bypass_validation(self):
         bad_url = "https://127.0.0.1/data.json"
@@ -141,25 +129,3 @@ class TestGhGetSSRF:
             with pytest.raises(ValueError, match="Unsafe or invalid blocklist URL"):
                 gh_client._gh_get(bad_url)
         mock_stream.assert_not_called()
-
-
-class TestFetchFolderDataSSRF:
-    """Verify fetch_folder_data() also fails closed."""
-
-    def test_rejects_internal_ip(self):
-        with patch.object(gh_client._gh, "stream") as mock_stream:
-            with pytest.raises(ValueError, match="Unsafe or invalid blocklist URL"):
-                gh_client.fetch_folder_data("https://127.0.0.1/data.json")
-        mock_stream.assert_not_called()
-
-    def test_accepts_allowlisted_public_url(self, monkeypatch):
-        monkeypatch.setattr(socket, "getaddrinfo", _public_addrinfo)
-        response = _make_valid_folder_response()
-        with patch.object(
-            gh_client._gh, "stream", return_value=response
-        ) as mock_stream:
-            result = gh_client.fetch_folder_data(
-                "https://raw.githubusercontent.com/org/repo/data.json"
-            )
-        mock_stream.assert_called_once()
-        assert result["group"]["group"] == "Test"

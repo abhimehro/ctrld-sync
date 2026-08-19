@@ -162,7 +162,7 @@ class TestAPITracking(unittest.TestCase):
         # Mock the streaming response
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.headers = {}
+        mock_response.headers = {"Content-Type": "application/json"}
         mock_response.iter_bytes.return_value = [b'{"test": "data"}']
         mock_response.__enter__ = MagicMock(return_value=mock_response)
         mock_response.__exit__ = MagicMock(return_value=False)
@@ -174,10 +174,7 @@ class TestAPITracking(unittest.TestCase):
             mock_gh_client.stream.return_value = mock_response
 
             # Call _gh_get (validation is mocked; only the counter matters here)
-            try:
-                main._gh_get("https://example.com/blocklist.json")
-            except Exception:
-                pass
+            main._gh_get("https://example.com/blocklist.json")
 
         # Verify blocklist counter was incremented by at least 1
         self.assertGreaterEqual(main._api_stats["blocklist_fetches"], initial_count + 1)
