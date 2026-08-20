@@ -78,9 +78,9 @@ def test_push_rules_creates_executor_when_none(
         )
 
     assert result is True
-    assert (
-        mock_tpe_cls.called
-    ), "ThreadPoolExecutor should be created when batch_executor is None"
+    assert mock_tpe_cls.called, (
+        "ThreadPoolExecutor should be created when batch_executor is None"
+    )
 
 
 def test_sync_profile_options_defaults_and_field_rebinding_is_blocked(main_module):
