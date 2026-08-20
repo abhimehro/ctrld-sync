@@ -24,7 +24,7 @@ Use `uv` for local dependency management (Python 3.13+ is required).
 
 ```bash
 # Install dependencies (local dev)
-uv sync
+uv sync --all-extras
 
 # Dry-run against default blocklists (no TOKEN required)
 uv run python main.py --dry-run
