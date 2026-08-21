@@ -181,3 +181,8 @@ alphabet char to confirm it's a domain) avoids exception overhead and provides
 significant performance improvements. **Action:** Use heuristic fast-paths to
 bypass exception-heavy blocks in hot paths when parsing common string types like
 domains vs IPs.
+
+## YYYY-MM-DD - Avoid CSPRNG for Non-Security Randomness
+
+**Learning:** While the `secrets` module is generally preferred over `random` to satisfy SAST tools, applying this substitution to non-security reliability mechanisms like network retry jitter (exponential backoff) introduces unnecessary performance overhead without solving a real security problem, and acts as an unmeasurable micro-optimization in I/O-bound contexts (and is measurably ~43x slower).
+**Action:** Use standard `random` (e.g., `random.random()`) for performance-sensitive, non-security features like network retry jitter.
