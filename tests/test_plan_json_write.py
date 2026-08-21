@@ -10,7 +10,7 @@ import main
 
 def test_write_plan_json_is_atomic_and_owner_only(tmp_path):
     plan_path = tmp_path / "plans" / "plan.json"
-    plan = [{"profile": "dry-run-placeholder", "folders": []}]
+    plan: list[main.PlanEntry] = [{"profile": "dry-run-placeholder", "folders": []}]
 
     main._write_plan_json(str(plan_path), plan)
 
@@ -30,7 +30,7 @@ def test_write_plan_json_removes_temp_file_when_serialization_fails(
     monkeypatch.setattr(main.json, "dump", fail_dump)
 
     with pytest.raises(TypeError, match="serialization failed"):
-        main._write_plan_json(str(plan_path), [{"profile": "dry-run-placeholder"}])
+        main._write_plan_json(str(plan_path), [{"profile": "dry-run-placeholder", "folders": []}])
 
     assert not plan_path.exists()
     assert list(tmp_path.glob(f".{plan_path.name}.*.tmp")) == []

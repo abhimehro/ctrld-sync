@@ -22,7 +22,7 @@ the signature ``(Any) -> str`` is accepted.
 from __future__ import annotations
 
 import logging
-import secrets
+import random
 import threading
 import time
 from collections.abc import Callable
@@ -256,7 +256,8 @@ def retry_with_jitter(
         Delay in seconds with full jitter applied
     """
     exponential_delay = min(base_delay * (2.0**attempt), max_delay)
-    return exponential_delay * secrets.SystemRandom().random()
+    # nosec B311 - PRNG is safe here; no cryptographic security required for network retry jitter
+    return exponential_delay * random.random()
 
 
 def _is_server_error(e: Exception) -> bool:
