@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import secrets
+import random
 from dataclasses import dataclass
 
 from models import SyncResult
@@ -144,7 +144,8 @@ def _print_success_text(all_success: bool, success_count: int, total: int) -> No
             "💎 Smooth operation!",
             "🌈 Perfect harmony!",
         ]
-        chosen_msg = secrets.choice(success_msgs)
+        # nosec B311 - PRNG is safe here; no cryptographic security required for message selection
+        chosen_msg = random.choice(success_msgs)
     else:
         profile_word = pluralize(total, "profile")
         chosen_msg = f"⚠️  Synced {success_count} out of {total} {profile_word}. Check errors above."
