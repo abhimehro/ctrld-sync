@@ -13,6 +13,7 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-08-28 [\#1219](https://github.com/abhimehro/ctrld-sync/issues/1219)
 - Daily QA & Agentic Review — 2026-08-25 [\#1217](https://github.com/abhimehro/ctrld-sync/issues/1217)
 - Daily QA & Agentic Review — 2026-08-23 [\#1214](https://github.com/abhimehro/ctrld-sync/issues/1214)
 - \[repo-automation\] Weekly Retrospective - 2026-08-23 [\#1213](https://github.com/abhimehro/ctrld-sync/issues/1213)
@@ -88,6 +89,7 @@
 
 - chore: apply automated formatting to test files [\#1212](https://github.com/abhimehro/ctrld-sync/pull/1212) ([abhimehro](https://github.com/abhimehro))
 - autofix\(\): PR \#1 \(cycle 1\) -- fix mypy errors in test\_plan\_json\_write.py [\#1208](https://github.com/abhimehro/ctrld-sync/pull/1208) ([abhimehro](https://github.com/abhimehro))
+- chore\(repo-health\): align README setup-uv pin with CI v7 [\#1203](https://github.com/abhimehro/ctrld-sync/pull/1203) ([cursor[bot]](https://github.com/apps/cursor))
 - chore\(repo-health\): delete stale requirements\*.txt and run-tests.sh [\#1199](https://github.com/abhimehro/ctrld-sync/pull/1199) ([abhimehro](https://github.com/abhimehro))
 - fix\(ssrf\): fail-closed validation in \_gh\_get and fetch\_folder\_data [\#1198](https://github.com/abhimehro/ctrld-sync/pull/1198) ([abhimehro](https://github.com/abhimehro))
 - fix\(security\): atomically write plan JSON files [\#1196](https://github.com/abhimehro/ctrld-sync/pull/1196) ([abhimehro](https://github.com/abhimehro))
