@@ -315,9 +315,9 @@ Then resume verification after the remediation run completes.
 The GitHub Actions workflows use automatic dependency caching to speed up CI
 runs:
 
-- **Cache Key**: Based on `uv.lock` (managed by `astral-sh/setup-uv@v4`)
+- **Cache Key**: Based on `uv.lock` (managed by `astral-sh/setup-uv@v7`)
 - **Cache Location**: uv's shared cache directory (managed by
-  `astral-sh/setup-uv@v4`)
+  `astral-sh/setup-uv@v7`)
 - **Invalidation**: Automatic when `uv.lock` changes
 
 ### Expected Performance
@@ -362,7 +362,7 @@ If you suspect cache issues:
 1. **Check cache hit/miss** in workflow logs:
 
    ```
-   Run astral-sh/setup-uv@v4
+   Run astral-sh/setup-uv@v7
    Cache restored successfully: true
    ```
 
