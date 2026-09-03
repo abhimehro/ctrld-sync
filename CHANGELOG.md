@@ -13,6 +13,17 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-09-03 [\#1234](https://github.com/abhimehro/ctrld-sync/issues/1234)
+- Daily QA & Agentic Review — 2026-09-01 [\#1231](https://github.com/abhimehro/ctrld-sync/issues/1231)
+- \[repo-health\] P0: Stop runaway Sentinel path-traversal PR loop \(~30 duplicate PRs\) and land one canonical fix [\#1230](https://github.com/abhimehro/ctrld-sync/issues/1230)
+- \[repo-health\] Phase C: Refactor sync.py functions [\#1229](https://github.com/abhimehro/ctrld-sync/issues/1229)
+- \[repo-health\] Phase B: Refactor display.py and gh\_client.py [\#1228](https://github.com/abhimehro/ctrld-sync/issues/1228)
+- \[repo-health\] Phase A: Refactor config.py and validation.py [\#1227](https://github.com/abhimehro/ctrld-sync/issues/1227)
+- \[repo-health\] Phase 0: Capture CodeScene baseline artifact [\#1226](https://github.com/abhimehro/ctrld-sync/issues/1226)
+- \[repo-health\] Resolve CodeScene code-health gates after main.py extraction \[PARENT\] [\#1225](https://github.com/abhimehro/ctrld-sync/issues/1225)
+- Daily QA & Agentic Review — 2026-08-31 [\#1224](https://github.com/abhimehro/ctrld-sync/issues/1224)
+- Daily QA & Agentic Review — 2026-08-30 [\#1223](https://github.com/abhimehro/ctrld-sync/issues/1223)
+- \[repo-automation\] Weekly Retrospective - 2026-08-30 [\#1222](https://github.com/abhimehro/ctrld-sync/issues/1222)
 - Daily QA & Agentic Review — 2026-08-28 [\#1219](https://github.com/abhimehro/ctrld-sync/issues/1219)
 - Daily QA & Agentic Review — 2026-08-25 [\#1217](https://github.com/abhimehro/ctrld-sync/issues/1217)
 - Daily QA & Agentic Review — 2026-08-23 [\#1214](https://github.com/abhimehro/ctrld-sync/issues/1214)
@@ -87,6 +98,7 @@
 
 **Merged pull requests:**
 
+- docs: fill General issue template and note Trunk vs app Python [\#1232](https://github.com/abhimehro/ctrld-sync/pull/1232) ([cursor[bot]](https://github.com/apps/cursor))
 - chore: apply automated formatting to test files [\#1212](https://github.com/abhimehro/ctrld-sync/pull/1212) ([abhimehro](https://github.com/abhimehro))
 - autofix\(\): PR \#1 \(cycle 1\) -- fix mypy errors in test\_plan\_json\_write.py [\#1208](https://github.com/abhimehro/ctrld-sync/pull/1208) ([abhimehro](https://github.com/abhimehro))
 - chore\(repo-health\): align README setup-uv pin with CI v7 [\#1203](https://github.com/abhimehro/ctrld-sync/pull/1203) ([cursor[bot]](https://github.com/apps/cursor))
