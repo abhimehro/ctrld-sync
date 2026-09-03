@@ -15,6 +15,8 @@ require it.
 - Requires **Python >= 3.13** (uses modern language features). The VM's system
   Python is 3.12; `uv python install 3.13` provides the right version and
   `uv sync` picks it up automatically via `requires-python` in `pyproject.toml`.
+- Trunk's Python runtime may be newer than 3.13 (lint-only). App, CI, and mypy
+  stay on 3.13 — do not treat a Trunk interpreter bump as an app upgrade.
 - Package manager: **uv** (`uv sync --all-extras` installs runtime + dev deps
   into `.venv`).
 
