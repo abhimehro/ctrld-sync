@@ -99,8 +99,10 @@
 **Merged pull requests:**
 
 - docs: fill General issue template and note Trunk vs app Python [\#1232](https://github.com/abhimehro/ctrld-sync/pull/1232) ([cursor[bot]](https://github.com/apps/cursor))
+- chore\(deps\): bump ruff from 0.16.2 to 0.16.5 [\#1221](https://github.com/abhimehro/ctrld-sync/pull/1221) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump pytest-benchmark from 5.2.3 to 5.3.0 [\#1220](https://github.com/abhimehro/ctrld-sync/pull/1220) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump codescene-oss/pr-refactoring-agent from 1.0.8 to 1.1.0 [\#1218](https://github.com/abhimehro/ctrld-sync/pull/1218) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump github/gh-aw/actions/setup from 0.86.2 to 0.87.3 [\#1215](https://github.com/abhimehro/ctrld-sync/pull/1215) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore: apply automated formatting to test files [\#1212](https://github.com/abhimehro/ctrld-sync/pull/1212) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump python-dotenv from 1.2.2 to 1.2.3 [\#1210](https://github.com/abhimehro/ctrld-sync/pull/1210) ([dependabot[bot]](https://github.com/apps/dependabot))
 - autofix\(\): PR \#1 \(cycle 1\) -- fix mypy errors in test\_plan\_json\_write.py [\#1208](https://github.com/abhimehro/ctrld-sync/pull/1208) ([abhimehro](https://github.com/abhimehro))
