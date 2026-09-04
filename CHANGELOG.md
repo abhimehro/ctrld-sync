@@ -98,6 +98,7 @@
 
 **Merged pull requests:**
 
+- salvage\(\#1207\): use standard PRNG for network retry jitter [\#1235](https://github.com/abhimehro/ctrld-sync/pull/1235) ([abhimehro](https://github.com/abhimehro))
 - docs: fill General issue template and note Trunk vs app Python [\#1232](https://github.com/abhimehro/ctrld-sync/pull/1232) ([cursor[bot]](https://github.com/apps/cursor))
 - chore\(deps\): bump ruff from 0.16.2 to 0.16.5 [\#1221](https://github.com/abhimehro/ctrld-sync/pull/1221) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump pytest-benchmark from 5.2.3 to 5.3.0 [\#1220](https://github.com/abhimehro/ctrld-sync/pull/1220) ([dependabot[bot]](https://github.com/apps/dependabot))
