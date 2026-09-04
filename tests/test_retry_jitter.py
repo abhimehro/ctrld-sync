@@ -36,7 +36,7 @@ class TestRetryJitter:
 
         # Deterministic randomness check: patch RNG to return two different values
         # so we can assert that jitter actually affects the delay without flakiness.
-        with patch("secrets.SystemRandom.random", side_effect=[0.1, 0.9]):
+        with patch("random.random", side_effect=[0.1, 0.9]):
             delay_1 = main.api_client.retry_with_jitter(2)
             delay_2 = main.api_client.retry_with_jitter(2)
 
@@ -107,11 +107,11 @@ class TestRetryJitter:
         """
         request_func = Mock(side_effect=httpx.TimeoutException("Connection timeout"))
 
-        # Full jitter is implemented as: min(base_delay * 2**attempt, MAX_RETRY_DELAY) * SystemRandom.random()
-        # With SystemRandom.random() fixed at 0.5, each delay = exponential_delay * 0.5.
+        # Full jitter is implemented as: min(base_delay * 2**attempt, MAX_RETRY_DELAY) * random.random()
+        # With random.random() fixed at 0.5, each delay = exponential_delay * 0.5.
         with (
             patch("time.sleep") as mock_sleep,
-            patch("secrets.SystemRandom.random", return_value=0.5),
+            patch("random.random", return_value=0.5),
         ):
             with contextlib.suppress(httpx.TimeoutException):
                 main.api_client._retry_request(request_func, max_retries=5, delay=1)
