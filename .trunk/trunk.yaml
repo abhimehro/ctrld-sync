@@ -22,7 +22,7 @@ lint:
     - bandit@1.9.4
     - black@26.5.1
     - checkov@3.3.16
-    - deno@2.8.3
+    - deno@2.9.6
     - dotenv-linter@4.0.0
     - git-diff-check
     - hadolint@2.15.1
@@ -30,11 +30,11 @@ lint:
     - osv-scanner@2.5.1
     - ruff@0.16.6
     - shellcheck@0.11.0
-    - shfmt@3.13.1
+    - shfmt@3.14.0
     - taplo@0.10.0
     - terrascan@1.19.9
     - trivy@0.74.0
-    - trufflehog@3.97.1
+    - trufflehog@3.97.4
     - yamllint@1.38.0
 actions:
   disabled:
@@ -57,4 +57,4 @@ tools:
   enabled:
     - snyk@1.1295.0
     - trivy@0.74.0
-    - trufflehog@3.97.1
+    - trufflehog@3.97.4

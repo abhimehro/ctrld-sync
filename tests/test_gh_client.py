@@ -247,7 +247,9 @@ class TestGhGet:
         assert result == data  # nosec B101
         assert result is data  # nosec B101
         assert cache._cache_stats["hits"] == hits_before + 1  # nosec B101
-        assert api_client._api_stats["blocklist_fetches"] == fetches_before + 1  # nosec B101
+        assert (
+            api_client._api_stats["blocklist_fetches"] == fetches_before + 1
+        )  # nosec B101
         assert gh_client._cache[url] is data  # nosec B101
         mock_stream.assert_not_called()
 
@@ -468,7 +470,9 @@ class TestWarmUpCache:
             gh_client.warm_up_cache(urls)
 
         completion.assert_called_once_with("Warming up cache: Done!")
-        assert any("Failed to pre-fetch" in r.message for r in caplog.records)  # nosec B101
+        assert any(
+            "Failed to pre-fetch" in r.message for r in caplog.records
+        )  # nosec B101
 
     def test_skips_urls_already_in_memory_cache(self, monkeypatch):
         url = "https://example.com/already.json"
