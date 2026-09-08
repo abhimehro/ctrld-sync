@@ -1,5 +1,6 @@
 # Control D Sync
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/7d0e526bcc5c40edb3ebe75d2e194c3e)](https://app.codacy.com/gh/abhimehro/ctrld-sync?utm_source=github.com&utm_medium=referral&utm_content=abhimehro/ctrld-sync&utm_campaign=Badge_Grade)
 [![CodeScene general](https://codescene.io/images/analyzed-by-codescene-badge.svg)](https://codescene.io/projects/80823)
 [![Tests](https://github.com/abhimehro/ctrld-sync/actions/workflows/test.yml/badge.svg)](https://github.com/abhimehro/ctrld-sync/actions/workflows/test.yml)
 [![Sync](https://github.com/abhimehro/ctrld-sync/actions/workflows/sync.yml/badge.svg)](https://github.com/abhimehro/ctrld-sync/actions/workflows/sync.yml)
