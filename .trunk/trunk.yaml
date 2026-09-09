@@ -16,8 +16,8 @@ lint:
     - prettier
   enabled:
     - mypy@2.3.1
-    - grype@0.114.0
-    - pinact@4.1.0
+    - grype@0.118.0
+    - pinact@4.1.1
     - actionlint@1.7.12
     - bandit@1.9.4
     - black@26.5.1
