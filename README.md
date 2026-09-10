@@ -51,7 +51,7 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
 1. **Clone & install**
 
    ```bash
-   git clone https://github.com/your-username/ctrld-sync.git
+   git clone https://github.com/abhimehro/ctrld-sync.git
    cd ctrld-sync
    ```
 
@@ -114,13 +114,13 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
    (these override any config file):
 
    ```bash
-   python main.py --folder-url https://example.com/my-blocklist.json
+   uv run python main.py --folder-url https://example.com/my-blocklist.json
    ```
 
    Or point to a specific config file:
 
    ```bash
-   python main.py --config /path/to/my-config.yaml
+   uv run python main.py --config /path/to/my-config.yaml
    ```
 
    The script includes 23 default folder URLs from
@@ -136,9 +136,9 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
 5. **Run locally**
 
    ```bash
-   python main.py --dry-run                          # plan only, no API calls
-   python main.py --dry-run --plan-json plan.json    # machine-readable dry-run output
-   python main.py --profiles your_id                 # live run (requires TOKEN)
+   uv run python main.py --dry-run                          # plan only, no API calls
+   uv run python main.py --dry-run --plan-json plan.json    # machine-readable dry-run output
+   uv run python main.py --profiles your_id                 # live run (requires TOKEN)
    ```
 
 6. **Run in CI** The included GitHub Actions workflow
@@ -297,11 +297,14 @@ This project uses manual releases via GitHub Releases. To create a new release:
 
 ### CI/CD Workflows
 
-| Workflow   | File         | Trigger                             | Purpose                                                                          |
-| ---------- | ------------ | ----------------------------------- | -------------------------------------------------------------------------------- |
-| **Sync**   | `sync.yml`   | Daily at 02:00 UTC, manual dispatch | Main synchronization workflow — runs `main.py` to keep Control D folders in sync |
-| **Bandit** | `bandit.yml` | Push/PR to `main`, manual dispatch  | Security vulnerability scanning for Python code                                  |
-| **Test**   | `test.yml`   | Push/PR to `main`                   | Full pytest suite via `uv sync --all-extras`                                     |
+| Workflow         | File              | Trigger                             | Purpose                                                                          |
+| ---------------- | ----------------- | ----------------------------------- | -------------------------------------------------------------------------------- |
+| **Sync**         | `sync.yml`        | Daily at 02:00 UTC, manual dispatch | Main synchronization workflow — runs `main.py` to keep Control D folders in sync |
+| **Test**         | `test.yml`        | Push/PR to `main`                   | Full pytest suite via `uv sync --all-extras`                                     |
+| **Lint**         | `lint.yml`        | Push/PR to `main`                   | Ruff / style gate                                                                |
+| **Typecheck**    | `typecheck.yml`   | Push/PR to `main`                   | mypy on Python 3.13                                                              |
+| **Performance**  | `performance.yml` | Push/PR to `main`                   | Performance regression checks                                                    |
+| **Bandit**       | `bandit.yml`      | Push/PR to `main`, manual dispatch  | Security vulnerability scanning for Python code                                  |
 
 If CodeScene blocks a PR during review/salvage sessions, post:
 
