@@ -117,6 +117,7 @@
 - chore\(deps\): bump ruff from 0.16.5 to 0.16.6 [\#1250](https://github.com/abhimehro/ctrld-sync/pull/1250) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump github/gh-aw from 0.86.2 to 0.87.10 [\#1239](https://github.com/abhimehro/ctrld-sync/pull/1239) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump github/gh-aw/actions/setup from 0.87.3 to 0.87.10 [\#1238](https://github.com/abhimehro/ctrld-sync/pull/1238) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump github/codeql-action/upload-sarif from 3.37.7 to 4.37.9 [\#1237](https://github.com/abhimehro/ctrld-sync/pull/1237) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump codescene-oss/pr-refactoring-agent from 1.1.0 to 1.1.1 [\#1236](https://github.com/abhimehro/ctrld-sync/pull/1236) ([dependabot[bot]](https://github.com/apps/dependabot))
 - salvage\(\#1207\): use standard PRNG for network retry jitter [\#1235](https://github.com/abhimehro/ctrld-sync/pull/1235) ([abhimehro](https://github.com/abhimehro))
 - docs: fill General issue template and note Trunk vs app Python [\#1232](https://github.com/abhimehro/ctrld-sync/pull/1232) ([cursor[bot]](https://github.com/apps/cursor))
