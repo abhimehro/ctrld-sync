@@ -112,6 +112,8 @@
 
 **Merged pull requests:**
 
+- docs\(repo-health\): clone URL, uv run, and CLI bug template [\#1258](https://github.com/abhimehro/ctrld-sync/pull/1258) ([cursor[bot]](https://github.com/apps/cursor))
+- chore\(deps\): bump types-pyyaml from 6.0.12.20260815 to 6.0.12.20260906 [\#1251](https://github.com/abhimehro/ctrld-sync/pull/1251) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump ruff from 0.16.5 to 0.16.6 [\#1250](https://github.com/abhimehro/ctrld-sync/pull/1250) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump github/gh-aw from 0.86.2 to 0.87.10 [\#1239](https://github.com/abhimehro/ctrld-sync/pull/1239) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump github/gh-aw/actions/setup from 0.87.3 to 0.87.10 [\#1238](https://github.com/abhimehro/ctrld-sync/pull/1238) ([dependabot[bot]](https://github.com/apps/dependabot))
