@@ -136,9 +136,9 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
 5. **Run locally**
 
    ```bash
-   uv run python main.py --dry-run                          # plan only, no API calls
-   uv run python main.py --dry-run --plan-json plan.json    # machine-readable dry-run output
-   uv run python main.py --profiles your_id                 # live run (requires TOKEN)
+   uv run python main.py --dry-run # plan only, no API calls
+   uv run python main.py --dry-run --plan-json plan.json # machine-readable output
+   uv run python main.py --profiles your_id # live run (requires TOKEN)
    ```
 
 6. **Run in CI** The included GitHub Actions workflow
