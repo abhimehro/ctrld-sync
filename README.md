@@ -303,7 +303,7 @@ This project uses manual releases via GitHub Releases. To create a new release:
 | **Test**         | `test.yml`        | Push/PR to `main`                   | Full pytest suite via `uv sync --all-extras`                                     |
 | **Lint**         | `lint.yml`        | Push/PR to `main`                   | Ruff / style gate                                                                |
 | **Typecheck**    | `typecheck.yml`   | Push/PR to `main`                   | mypy on Python 3.13                                                              |
-| **Performance**  | `performance.yml` | Push/PR to `main`                   | Performance regression checks                                                    |
+| **Performance**  | `performance.yml` | Push to `main`; selected performance-related PR changes | Performance regression checks                                                    |
 | **Bandit**       | `bandit.yml`      | Push/PR to `main`, manual dispatch  | Security vulnerability scanning for Python code                                  |
 
 If CodeScene blocks a PR during review/salvage sessions, post:
