@@ -12,6 +12,7 @@
 [![CodeScene Hotspot Code Health](https://codescene.io/projects/80823/status-badges/hotspot-code-health)](https://codescene.io/projects/80823)
 [![CodeScene System Mastery](https://codescene.io/projects/80823/status-badges/system-mastery)](https://codescene.io/projects/80823)
 [![CodeScene Missed Goals](https://codescene.io/projects/80823/status-badges/missed-goals)](https://codescene.io/projects/80823)
+![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/abhimehro/ctrld-sync?utm_source=oss&utm_medium=github&utm_campaign=abhimehro%2Fctrld-sync&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
 
 A tiny Python CLI that keeps your Control D Folders in sync with a set of remote
 block-lists. The code is split into focused modules; `main.py` is only the
