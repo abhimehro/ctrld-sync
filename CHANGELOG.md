@@ -114,6 +114,7 @@
 **Merged pull requests:**
 
 - chore\(deps\): bump github/gh-aw/actions/setup from 0.87.10 to 0.89.14 [\#1264](https://github.com/abhimehro/ctrld-sync/pull/1264) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump github/codeql-action/upload-sarif from 4.37.9 to 4.38.0 [\#1263](https://github.com/abhimehro/ctrld-sync/pull/1263) ([dependabot[bot]](https://github.com/apps/dependabot))
 - docs\(repo-health\): clone URL, uv run, and CLI bug template [\#1258](https://github.com/abhimehro/ctrld-sync/pull/1258) ([cursor[bot]](https://github.com/apps/cursor))
 - chore\(deps\): bump types-pyyaml from 6.0.12.20260815 to 6.0.12.20260906 [\#1251](https://github.com/abhimehro/ctrld-sync/pull/1251) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump ruff from 0.16.5 to 0.16.6 [\#1250](https://github.com/abhimehro/ctrld-sync/pull/1250) ([dependabot[bot]](https://github.com/apps/dependabot))
