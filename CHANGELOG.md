@@ -14,6 +14,7 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-09-18 [\#1265](https://github.com/abhimehro/ctrld-sync/issues/1265)
 - Daily QA & Agentic Review — 2026-09-17 [\#1259](https://github.com/abhimehro/ctrld-sync/issues/1259)
 - Daily QA & Agentic Review — 2026-09-16 [\#1257](https://github.com/abhimehro/ctrld-sync/issues/1257)
 - Daily QA & Agentic Review — 2026-09-15 [\#1256](https://github.com/abhimehro/ctrld-sync/issues/1256)
@@ -112,6 +113,7 @@
 
 **Merged pull requests:**
 
+- chore\(deps\): bump github/gh-aw/actions/setup from 0.87.10 to 0.89.14 [\#1264](https://github.com/abhimehro/ctrld-sync/pull/1264) ([dependabot[bot]](https://github.com/apps/dependabot))
 - docs\(repo-health\): clone URL, uv run, and CLI bug template [\#1258](https://github.com/abhimehro/ctrld-sync/pull/1258) ([cursor[bot]](https://github.com/apps/cursor))
 - chore\(deps\): bump types-pyyaml from 6.0.12.20260815 to 6.0.12.20260906 [\#1251](https://github.com/abhimehro/ctrld-sync/pull/1251) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump ruff from 0.16.5 to 0.16.6 [\#1250](https://github.com/abhimehro/ctrld-sync/pull/1250) ([dependabot[bot]](https://github.com/apps/dependabot))
