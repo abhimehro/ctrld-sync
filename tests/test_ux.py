@@ -641,9 +641,9 @@ class TestGetPasswordHint:
             pass
 
         prompt = captured.get("prompt", "")
-        assert (
-            "(typing will be hidden)" in prompt
-        ), f"get_password should auto-append the hint, got: {prompt!r}"
+        assert "(typing will be hidden)" in prompt, (
+            f"get_password should auto-append the hint, got: {prompt!r}"
+        )
         assert prompt.endswith(" "), "prompt must end with a space for readability"
 
     def test_caller_provided_hint_is_not_duplicated(self, monkeypatch):
@@ -663,9 +663,9 @@ class TestGetPasswordHint:
 
         prompt = captured.get("prompt", "")
         # The hint should appear exactly once when the caller already includes it.
-        assert (
-            prompt.count("(typing will be hidden)") == 1
-        ), f"hint should not be duplicated, got: {prompt!r}"
+        assert prompt.count("(typing will be hidden)") == 1, (
+            f"hint should not be duplicated, got: {prompt!r}"
+        )
 
 
 def test_print_plan_details_dry_run_placeholder(monkeypatch, capsys):
