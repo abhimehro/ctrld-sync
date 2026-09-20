@@ -119,6 +119,7 @@
 - chore\(deps\): bump github/codeql-action/upload-sarif from 4.37.9 to 4.38.0 [\#1263](https://github.com/abhimehro/ctrld-sync/pull/1263) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump pnpm/action-setup from 6.0.10 to 6.1.0 [\#1262](https://github.com/abhimehro/ctrld-sync/pull/1262) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump codescene-oss/pr-refactoring-agent from 1.1.1 to 1.1.3 [\#1261](https://github.com/abhimehro/ctrld-sync/pull/1261) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump anyio from 4.10.0 to 4.14.2 in the uv group across 1 directory [\#1260](https://github.com/abhimehro/ctrld-sync/pull/1260) ([dependabot[bot]](https://github.com/apps/dependabot))
 - docs\(repo-health\): clone URL, uv run, and CLI bug template [\#1258](https://github.com/abhimehro/ctrld-sync/pull/1258) ([cursor[bot]](https://github.com/apps/cursor))
 - chore\(deps\): bump types-pyyaml from 6.0.12.20260815 to 6.0.12.20260906 [\#1251](https://github.com/abhimehro/ctrld-sync/pull/1251) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump ruff from 0.16.5 to 0.16.6 [\#1250](https://github.com/abhimehro/ctrld-sync/pull/1250) ([dependabot[bot]](https://github.com/apps/dependabot))
