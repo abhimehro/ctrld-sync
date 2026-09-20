@@ -318,10 +318,9 @@ def warm_up_cache(urls: Sequence[str]) -> None:
     Shows progress bar when USE_COLORS is enabled. Skips invalid URLs while
     emitting warnings/log entries for validation and fetch failures.
     """
-    unique_urls = dict.fromkeys(urls)
     with _cache_lock:
         urls_to_process = list(
-            itertools.filterfalse(_cache.__contains__, unique_urls)
+            dict.fromkeys(itertools.filterfalse(_cache.__contains__, urls))
         )
     if not urls_to_process:
         return
