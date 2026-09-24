@@ -104,6 +104,27 @@ class TestContentTypeValidation(unittest.TestCase):
             main._gh_get("https://example.com/data.xml")
         self.assertIn("Invalid Content-Type", str(cm.exception))
 
+    @patch("main._gh.stream")
+    def test_reject_lookalike_content_types(self, mock_stream):
+        """Media types containing an allowed type as a prefix are rejected."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.iter_bytes.return_value = [b'{"group": {"group": "test"}}']
+        mock_response.__enter__.return_value = mock_response
+        mock_response.__exit__.return_value = None
+        mock_stream.return_value = mock_response
+
+        for content_type in (
+            "application/jsonp",
+            "application/json-evil",
+            "text/plaintext",
+        ):
+            with self.subTest(content_type=content_type):
+                mock_response.headers = httpx.Headers({"Content-Type": content_type})
+
+                with self.assertRaisesRegex(ValueError, "Invalid Content-Type"):
+                    main._gh_get("https://example.com/lookalike.json")
+
 
 if __name__ == "__main__":
     unittest.main()
