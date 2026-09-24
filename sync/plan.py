@@ -11,7 +11,7 @@ import sync
 from display import Colors
 from gh_client import fetch_folder_data
 from models import FolderData, PlanEntry
-from validation import sanitize_for_log
+from validation import sanitize_for_log, validate_folder_data
 
 
 def _fetch_all_folder_data(folder_urls: Sequence[str]) -> list[FolderData] | None:
@@ -21,12 +21,12 @@ def _fetch_all_folder_data(folder_urls: Sequence[str]) -> list[FolderData] | Non
     # OPTIMIZATION: Move validation inside the thread pool to parallelize DNS lookups.
     # Previously, sequential validation blocked the main thread.
     def _fetch_if_valid(url: str):
-        # Optimization: If we already have the content in cache, return it directly.
-        # The content was validated at the time of fetch (warm_up_cache).
-        # Read directly from cache to avoid calling fetch_folder_data while holding lock.
+        # A cache hit can skip URL/DNS validation, but its untrusted payload still
+        # needs schema validation: warm_up_cache stores parsed JSON before the
+        # normal fetch_folder_data validation boundary.
         with sync._cache_lock:
             if (cached := sync._cache.get(url)) is not None:
-                return cached
+                return cached if validate_folder_data(cached, url) else None
 
         if sync.validate_folder_url(url):
             # Tests patch sync.plan.fetch_folder_data via this module attribute.
