@@ -48,10 +48,12 @@ def _validate_url_or_raise(url: str) -> None:
 
 def _validate_content_type(url: str, r: httpx.Response) -> None:
     """Validate that the response Content-Type is acceptable for JSON bodies."""
-    ct = r.headers.get("Content-Type", "").lower()
-    if not any(t in ct for t in ("application/json", "text/json", "text/plain")):
+    content_type = r.headers.get("Content-Type", "")
+    media_type = content_type.partition(";")[0].strip().lower()
+    if media_type not in {"application/json", "text/json", "text/plain"}:
         raise ValueError(
-            f"Invalid Content-Type from {sanitize_for_log(url)}: {sanitize_for_log(ct)}."
+            f"Invalid Content-Type from {sanitize_for_log(url)}: "
+            f"{sanitize_for_log(content_type)}."
         )
 
 
