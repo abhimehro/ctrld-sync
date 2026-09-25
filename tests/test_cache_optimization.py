@@ -179,6 +179,7 @@ class TestCacheOptimization(unittest.TestCase):
         test_url = "https://example.com/test.json"
         from main import FolderData
         from sync.plan import _fetch_all_folder_data
+        from validation import validate_folder_data
 
         test_data: FolderData = {
             "group": {"group": "Test Folder"},
@@ -189,10 +190,10 @@ class TestCacheOptimization(unittest.TestCase):
         with main._cache_lock:
             main._cache[test_url] = test_data  # type: ignore[assignment]
 
-        # Mock validate_folder_url to track if it's called
         with (
             patch("sync.validate_folder_url") as mock_validate,
             patch("sync.plan.fetch_folder_data") as mock_fetch,
+            patch("sync.plan.validate_folder_data", wraps=validate_folder_data) as mock_validate_folder_data,
         ):
             result = _fetch_all_folder_data([test_url])
 
@@ -200,6 +201,7 @@ class TestCacheOptimization(unittest.TestCase):
         # network-fetch paths remain skipped.
         mock_validate.assert_not_called()
         mock_fetch.assert_not_called()
+        mock_validate_folder_data.assert_called_once_with(test_data, test_url)
         self.assertEqual(result, [test_data])
 
     def test_invalid_cached_folder_data_is_rejected(self):
