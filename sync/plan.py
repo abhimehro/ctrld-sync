@@ -26,7 +26,10 @@ def _fetch_all_folder_data(folder_urls: Sequence[str]) -> list[FolderData] | Non
         # normal fetch_folder_data validation boundary.
         with sync._cache_lock:
             if (cached := sync._cache.get(url)) is not None:
-                return cached if validate_folder_data(cached, url) else None
+                if validate_folder_data(cached, url):
+                    return cached
+                sync._cache.pop(url, None)
+                return None
 
         if sync.validate_folder_url(url):
             # Tests patch sync.plan.fetch_folder_data via this module attribute.
