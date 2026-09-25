@@ -3,8 +3,9 @@ Tests for the cache optimization in sync_profile.
 
 This module verifies that:
 1. Cached URLs correctly skip validation
-2. Non-cached URLs still get validated
-3. Cache operations are thread-safe
+2. Cached payloads still receive schema validation
+3. Non-cached URLs still get validated
+4. Cache operations are thread-safe
 """
 
 import os
@@ -174,15 +175,11 @@ class TestCacheOptimization(unittest.TestCase):
         """
         Test the actual _fetch_if_valid logic used in sync_profile.
         This is an integration test that verifies the optimization path.
-
-        NOTE: _fetch_if_valid is a nested function inside sync_profile, so we
-        cannot test it directly. This test manually reimplements its logic to
-        verify the cache optimization behavior that would occur in the actual
-        function. The logic is intentionally duplicated to test the pattern
-        without needing to invoke the entire sync_profile function.
         """
         test_url = "https://example.com/test.json"
         from main import FolderData
+        from sync.plan import _fetch_all_folder_data
+        from validation import validate_folder_data
 
         test_data: FolderData = {
             "group": {"group": "Test Folder"},
@@ -193,22 +190,39 @@ class TestCacheOptimization(unittest.TestCase):
         with main._cache_lock:
             main._cache[test_url] = test_data  # type: ignore[assignment]
 
-        # Mock validate_folder_url to track if it's called
-        with patch("main.validate_folder_url") as mock_validate:
-            with patch("gh_client._gh_get", return_value=test_data):
-                from typing import Any
+        with (
+            patch("sync.validate_folder_url") as mock_validate,
+            patch("sync.plan.fetch_folder_data") as mock_fetch,
+            patch("sync.plan.validate_folder_data", wraps=validate_folder_data) as mock_validate_folder_data,
+        ):
+            result = _fetch_all_folder_data([test_url])
 
-                # Simulate the logic in _fetch_if_valid
-                result: FolderData | dict[Any, Any] | None = None
-                with main._cache_lock:
-                    if test_url in main._cache:
-                        result = main._cache[test_url]
-                    elif main.validate_folder_url(test_url):
-                        result = main.fetch_folder_data(test_url)
+        # Cached content still gets schema validation, but the URL/DNS and
+        # network-fetch paths remain skipped.
+        mock_validate.assert_not_called()
+        mock_fetch.assert_not_called()
+        mock_validate_folder_data.assert_called_once_with(test_data, test_url)
+        self.assertEqual(result, [test_data])
 
-                # Verify validation was NOT called because URL was cached
-                mock_validate.assert_not_called()
-                self.assertEqual(result, test_data)
+    def test_invalid_cached_folder_data_is_rejected(self):
+        """Warm-up cache entries must not bypass folder schema validation."""
+        test_url = "https://example.com/invalid.json"
+        invalid_data = {"group": {"group": "<script>"}}
+
+        with main._cache_lock:
+            main._cache[test_url] = invalid_data
+
+        from sync.plan import _fetch_all_folder_data
+
+        with (
+            patch("sync.validate_folder_url") as mock_validate,
+            patch("sync.plan.fetch_folder_data") as mock_fetch,
+        ):
+            result = _fetch_all_folder_data([test_url])
+
+        mock_validate.assert_not_called()
+        mock_fetch.assert_not_called()
+        self.assertIsNone(result)
 
     def test_gh_get_thread_safety(self):
         """
