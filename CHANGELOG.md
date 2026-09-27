@@ -14,6 +14,11 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-09-26 [\#1284](https://github.com/abhimehro/ctrld-sync/issues/1284)
+- Daily QA & Agentic Review — 2026-09-25 [\#1282](https://github.com/abhimehro/ctrld-sync/issues/1282)
+- Daily QA & Agentic Review — 2026-09-24 [\#1277](https://github.com/abhimehro/ctrld-sync/issues/1277)
+- Daily QA & Agentic Review — 2026-09-23 [\#1276](https://github.com/abhimehro/ctrld-sync/issues/1276)
+- Daily QA & Agentic Review — 2026-09-22 [\#1274](https://github.com/abhimehro/ctrld-sync/issues/1274)
 - Daily QA & Agentic Review — 2026-09-19 [\#1267](https://github.com/abhimehro/ctrld-sync/issues/1267)
 - Daily QA & Agentic Review — 2026-09-18 [\#1265](https://github.com/abhimehro/ctrld-sync/issues/1265)
 - Daily QA & Agentic Review — 2026-09-17 [\#1259](https://github.com/abhimehro/ctrld-sync/issues/1259)
