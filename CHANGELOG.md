@@ -150,6 +150,7 @@
 - chore\(repo-health\): delete stale requirements\*.txt and run-tests.sh [\#1199](https://github.com/abhimehro/ctrld-sync/pull/1199) ([abhimehro](https://github.com/abhimehro))
 - fix\(ssrf\): fail-closed validation in \_gh\_get and fetch\_folder\_data [\#1198](https://github.com/abhimehro/ctrld-sync/pull/1198) ([abhimehro](https://github.com/abhimehro))
 - fix\(security\): atomically write plan JSON files [\#1196](https://github.com/abhimehro/ctrld-sync/pull/1196) ([abhimehro](https://github.com/abhimehro))
+- fix\(security\): filter rules via is\_valid\_rule \(salvages \#1174\) [\#1195](https://github.com/abhimehro/ctrld-sync/pull/1195) ([cursor[bot]](https://github.com/apps/cursor))
 - chore\(ci\): uv Docker/Bandit and fix dependency-review \(salvages \#1188\) [\#1194](https://github.com/abhimehro/ctrld-sync/pull/1194) ([cursor[bot]](https://github.com/apps/cursor))
 - style: autofix formatting issues in test suite [\#1193](https://github.com/abhimehro/ctrld-sync/pull/1193) ([abhimehro](https://github.com/abhimehro))
 - Update ctrld-sync testing skill with harness tips [\#1192](https://github.com/abhimehro/ctrld-sync/pull/1192) ([abhimehro](https://github.com/abhimehro))
