@@ -14,6 +14,7 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-09-27 [\#1286](https://github.com/abhimehro/ctrld-sync/issues/1286)
 - Daily QA & Agentic Review — 2026-09-26 [\#1284](https://github.com/abhimehro/ctrld-sync/issues/1284)
 - Daily QA & Agentic Review — 2026-09-25 [\#1282](https://github.com/abhimehro/ctrld-sync/issues/1282)
 - Daily QA & Agentic Review — 2026-09-24 [\#1277](https://github.com/abhimehro/ctrld-sync/issues/1277)
@@ -119,6 +120,7 @@
 
 **Merged pull requests:**
 
+- fix: count only outbound blocklist requests [\#1279](https://github.com/abhimehro/ctrld-sync/pull/1279) ([coderabbitai[bot]](https://github.com/apps/coderabbitai))
 - chore\(deps\): bump ruff from 0.16.6 to 0.16.8 [\#1266](https://github.com/abhimehro/ctrld-sync/pull/1266) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump github/gh-aw/actions/setup from 0.87.10 to 0.89.14 [\#1264](https://github.com/abhimehro/ctrld-sync/pull/1264) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump github/codeql-action/upload-sarif from 4.37.9 to 4.38.0 [\#1263](https://github.com/abhimehro/ctrld-sync/pull/1263) ([dependabot[bot]](https://github.com/apps/dependabot))
