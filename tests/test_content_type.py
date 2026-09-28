@@ -37,14 +37,7 @@ class TestContentTypeValidation(unittest.TestCase):
     @patch("main._gh.stream")
     def test_allow_application_json(self, mock_stream):
         """Test that application/json is allowed."""
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.headers = httpx.Headers({"Content-Type": "application/json"})
-        mock_response.iter_bytes.return_value = [b'{"group": {"group": "test"}}']
-        mock_response.__enter__.return_value = mock_response
-        mock_response.__exit__.return_value = None
-
-        mock_stream.return_value = mock_response
+        mock_stream.return_value = _json_stream_response("application/json")
 
         # Should not raise exception
         result = main._gh_get("https://example.com/valid.json")
@@ -53,16 +46,7 @@ class TestContentTypeValidation(unittest.TestCase):
     @patch("main._gh.stream")
     def test_allow_text_plain(self, mock_stream):
         """Test that text/plain (used by GitHub raw) is allowed."""
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.headers = httpx.Headers(
-            {"Content-Type": "text/plain; charset=utf-8"}
-        )
-        mock_response.iter_bytes.return_value = [b'{"group": {"group": "test"}}']
-        mock_response.__enter__.return_value = mock_response
-        mock_response.__exit__.return_value = None
-
-        mock_stream.return_value = mock_response
+        mock_stream.return_value = _json_stream_response("text/plain; charset=utf-8")
 
         # Should not raise exception
         result = main._gh_get("https://example.com/raw.json")
@@ -71,15 +55,8 @@ class TestContentTypeValidation(unittest.TestCase):
     @patch("main._gh.stream")
     def test_reject_text_html(self, mock_stream):
         """Test that text/html is rejected even if content is valid JSON."""
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.headers = httpx.Headers({"Content-Type": "text/html"})
         # Even if the body is valid JSON, the Content-Type is wrong
-        mock_response.iter_bytes.return_value = [b'{"group": {"group": "test"}}']
-        mock_response.__enter__.return_value = mock_response
-        mock_response.__exit__.return_value = None
-
-        mock_stream.return_value = mock_response
+        mock_stream.return_value = _json_stream_response("text/html")
 
         # This should fail after we implement the fix.
         # Currently it might pass because we only check JSON validity.
@@ -101,14 +78,7 @@ class TestContentTypeValidation(unittest.TestCase):
     @patch("main._gh.stream")
     def test_reject_xml(self, mock_stream):
         """Test that application/xml is rejected."""
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.headers = httpx.Headers({"Content-Type": "application/xml"})
-        mock_response.iter_bytes.return_value = [b'{"group": {"group": "test"}}']
-        mock_response.__enter__.return_value = mock_response
-        mock_response.__exit__.return_value = None
-
-        mock_stream.return_value = mock_response
+        mock_stream.return_value = _json_stream_response("application/xml")
 
         with self.assertRaises(ValueError) as cm:
             main._gh_get("https://example.com/data.xml")
