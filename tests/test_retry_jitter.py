@@ -74,9 +74,9 @@ class TestRetryJitter:
 
         # Due to jitter, wait times should differ between runs
         # (with high probability - could theoretically be equal but extremely unlikely)
-        assert (
-            wait_times_run1 != wait_times_run2
-        ), "Jitter should produce different wait times across runs"
+        assert wait_times_run1 != wait_times_run2, (
+            "Jitter should produce different wait times across runs"
+        )
 
     def test_jitter_stays_within_bounds(self):
         """Verify jitter keeps delays within expected range (0 to 1x base, full jitter)."""
