@@ -8,14 +8,13 @@ import logging
 import api_client
 import display
 import gh_client
-import validation
-
+import sync.batches
 import sync.client
 import sync.folders
-import sync.rules
-import sync.batches
 import sync.plan
 import sync.profile
+import sync.rules
+import validation
 
 log = logging.getLogger("sync")
 USE_COLORS = display.USE_COLORS

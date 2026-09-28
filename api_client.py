@@ -22,7 +22,7 @@ the signature ``(Any) -> str`` is accepted.
 from __future__ import annotations
 
 import logging
-import secrets
+import random
 import threading
 import time
 from collections.abc import Callable
@@ -256,7 +256,7 @@ def retry_with_jitter(
         Delay in seconds with full jitter applied
     """
     exponential_delay = min(base_delay * (2.0**attempt), max_delay)
-    return exponential_delay * secrets.SystemRandom().random()
+    return exponential_delay * random.random()
 
 
 def _is_server_error(e: Exception) -> bool:
@@ -355,10 +355,22 @@ def _check_client_error(e: httpx.HTTPStatusError) -> None:
         ) from None
 
 
+def _resolve_retry_defaults(
+    max_retries: int | None,
+    delay: float | None,
+) -> tuple[int, float]:
+    """Resolve None sentinel values against current module defaults."""
+    if max_retries is None:
+        max_retries = MAX_RETRIES
+    if delay is None:
+        delay = RETRY_DELAY
+    return max_retries, delay
+
+
 def _retry_request(
     request_func: Callable[[], httpx.Response],
-    max_retries: int = MAX_RETRIES,
-    delay: float = RETRY_DELAY,
+    max_retries: int | None = None,
+    delay: float | None = None,
 ) -> httpx.Response:
     """
     Retry request with exponential backoff and full jitter.
@@ -376,6 +388,7 @@ def _retry_request(
     - Does NOT retry 4xx client errors (except 429)
     - Sanitizes error messages in logs
     """
+    max_retries, delay = _resolve_retry_defaults(max_retries, delay)
     for attempt in range(max_retries):
         try:
             response = request_func()

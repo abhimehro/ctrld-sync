@@ -4,9 +4,9 @@ import importlib
 import os
 from unittest.mock import patch
 
-from models import PlanRuleGroup
-
 import pytest
+
+from models import PlanRuleGroup
 
 # NOTE: Avoid importing `main` at module import time.
 # Some tests delete `sys.modules["main"]` to force a clean import under different env/TTY

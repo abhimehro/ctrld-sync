@@ -41,11 +41,18 @@ class TestDiskCache(unittest.TestCase):
             {"hits": 0, "misses": 0, "validations": 0, "errors": 0}
         )
 
+        # Bypass gh_client's SSRF gate so disk-cache behavior tests stay
+        # deterministic and do not hit DNS for https://example.com URLs.
+        self._validate_patch = patch("gh_client.validate_folder_url", return_value=True)
+        self._validate_patch.start()
+
         # Create temporary cache directory for testing
         self.temp_dir = tempfile.mkdtemp()
 
     def tearDown(self):
         """Clean up after each test."""
+        self._validate_patch.stop()
+
         main._cache.clear()
         main._disk_cache.clear()
         main.validate_folder_url.cache_clear()

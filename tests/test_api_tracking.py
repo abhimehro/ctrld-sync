@@ -149,8 +149,7 @@ class TestAPITracking(unittest.TestCase):
             headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
 
-    @patch("main._gh")
-    def test_gh_get_increments_blocklist_counter(self, mock_gh_client):
+    def test_gh_get_increments_blocklist_counter(self):
         """Test that _gh_get increments the blocklist fetch counter"""
         import main
 
@@ -163,18 +162,19 @@ class TestAPITracking(unittest.TestCase):
         # Mock the streaming response
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.headers = {}
+        mock_response.headers = {"Content-Type": "application/json"}
         mock_response.iter_bytes.return_value = [b'{"test": "data"}']
         mock_response.__enter__ = MagicMock(return_value=mock_response)
         mock_response.__exit__ = MagicMock(return_value=False)
 
-        mock_gh_client.stream.return_value = mock_response
+        with (
+            patch("gh_client._gh") as mock_gh_client,
+            patch("gh_client.validate_folder_url", return_value=True),
+        ):
+            mock_gh_client.stream.return_value = mock_response
 
-        # Call _gh_get
-        try:
-            main._gh_get("http://test.blocklist.url")
-        except Exception:
-            pass  # May fail on validation, we just care about the counter
+            # Call _gh_get (validation is mocked; only the counter matters here)
+            main._gh_get("https://example.com/blocklist.json")
 
         # Verify blocklist counter was incremented by at least 1
         self.assertGreaterEqual(main._api_stats["blocklist_fetches"], initial_count + 1)

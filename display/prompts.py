@@ -10,7 +10,6 @@ from .colors import USE_COLORS, Colors
 from .output import _clear_current_line, _print_hint
 from .text import _ANSI_ESCAPE_PATTERN
 
-
 EMPTY_INPUT_HINT = (
     "   💡 Hint: Please type a value and press Enter, or press Ctrl+C/Ctrl+D to cancel."
 )

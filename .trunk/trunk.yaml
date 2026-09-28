@@ -15,26 +15,26 @@ lint:
     - markdownlint
     - prettier
   enabled:
-    - mypy@2.3.0
-    - grype@0.114.0
-    - pinact@4.1.0
+    - mypy@2.3.1
+    - grype@0.118.0
+    - pinact@4.1.1
     - actionlint@1.7.12
     - bandit@1.9.4
     - black@26.5.1
-    - checkov@3.3.8
-    - deno@2.8.3
+    - checkov@3.3.16
+    - deno@2.9.6
     - dotenv-linter@4.0.0
     - git-diff-check
-    - hadolint@2.14.0
-    - isort@8.0.1
-    - osv-scanner@2.3.8
-    - ruff@0.16.1
+    - hadolint@2.15.1
+    - isort@9.0.1
+    - osv-scanner@2.5.1
+    - ruff@0.16.6
     - shellcheck@0.11.0
-    - shfmt@3.6.0
+    - shfmt@3.14.0
     - taplo@0.10.0
     - terrascan@1.19.9
-    - trivy@0.71.2
-    - trufflehog@3.95.5
+    - trivy@0.74.0
+    - trufflehog@3.97.4
     - yamllint@1.38.0
 actions:
   disabled:
@@ -49,12 +49,12 @@ actions:
 plugins:
   sources:
     - id: trunk
-      ref: v1.10.2
+      ref: v1.11.0
       uri: https://github.com/trunk-io/plugins
 tools:
   disabled:
     - ruby
   enabled:
     - snyk@1.1295.0
-    - trivy@0.71.2
-    - trufflehog@3.95.5
+    - trivy@0.74.0
+    - trufflehog@3.97.4

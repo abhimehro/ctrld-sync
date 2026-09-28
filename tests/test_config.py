@@ -329,14 +329,63 @@ def test_validate_config_settings_empty_dict_is_accepted():
     )
 
 
-def test_validate_config_settings_bool_true_for_batch_size_is_accepted():
-    """`bool` passes `isinstance(True, int)` — preserved quirk."""
-    main._validate_config(
-        {
-            "folders": [{"url": "https://e.com/f.json"}],
-            "settings": {"batch_size": True},
-        }
-    )
+@pytest.mark.parametrize(
+    "key, value",
+    [
+        ("batch_size", 0),
+        ("batch_size", -1),
+        ("batch_size", True),
+        ("batch_size", False),
+        ("batch_size", 1.5),
+        ("batch_size", "10"),
+        ("delete_workers", 0),
+        ("delete_workers", -1),
+        ("delete_workers", True),
+        ("delete_workers", False),
+        ("delete_workers", 1.5),
+        ("delete_workers", "10"),
+        ("max_retries", 0),
+        ("max_retries", -1),
+        ("max_retries", True),
+        ("max_retries", False),
+        ("max_retries", 1.5),
+        ("max_retries", "10"),
+    ],
+)
+def test_validate_config_settings_rejects_invalid_values(key, value):
+    """Only positive non-bool ints are accepted for runtime tuning keys."""
+    cfg = {
+        "folders": [{"url": "https://example.com/f.json"}],
+        "settings": {key: value},
+    }
+    with pytest.raises(ValueError, match="positive integer"):
+        main._validate_config(cfg)
+
+
+@pytest.mark.parametrize(
+    "key, value",
+    [
+        ("batch_size", 1),
+        ("batch_size", 3),
+        ("batch_size", 10),
+        ("batch_size", None),
+        ("delete_workers", 1),
+        ("delete_workers", 3),
+        ("delete_workers", 10),
+        ("delete_workers", None),
+        ("max_retries", 1),
+        ("max_retries", 3),
+        ("max_retries", 10),
+        ("max_retries", None),
+    ],
+)
+def test_validate_config_settings_accepts_valid_values(key, value):
+    """Positive non-bool ints (and omitted/None) are accepted for runtime tuning keys."""
+    cfg = {
+        "folders": [{"url": "https://example.com/f.json"}],
+        "settings": {key: value},
+    }
+    main._validate_config(cfg)  # must not raise
 
 
 @pytest.mark.parametrize(

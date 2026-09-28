@@ -13,6 +13,13 @@ import main
 
 class TestContentTypeValidation(unittest.TestCase):
     def setUp(self):
+        # Bypass gh_client's SSRF gate so content-type tests stay deterministic
+        # and do not hit DNS for https://example.com URLs.
+        self._validate_patch = patch("gh_client.validate_folder_url", return_value=True)
+        self._validate_patch.start()
+
+    def tearDown(self):
+        self._validate_patch.stop()
         # Clear cache before each test
         main._cache.clear()
         main._disk_cache.clear()

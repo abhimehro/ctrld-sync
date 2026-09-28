@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-import httpx
 import ipaddress
 import logging
 import re
 import socket
 from functools import lru_cache
 from typing import Any, TypeGuard
+
+import httpx
 
 from models import FolderData
 

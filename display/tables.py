@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 from models import SyncResult
 
-from .colors import Box, USE_COLORS, Colors
+from .colors import USE_COLORS, Box, Colors
 from .output import _print_hint
 from .text import _display_len, _pad_string, pluralize
 

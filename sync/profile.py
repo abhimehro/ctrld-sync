@@ -5,10 +5,10 @@ from __future__ import annotations
 import concurrent.futures
 from dataclasses import dataclass
 
-import config
 import httpx
-import sync
 
+import config
+import sync
 from display import pluralize, print_plan_details
 from models import FolderData, RuleAction, SyncContext, SyncProfileOptions
 from validation import sanitize_for_log

@@ -40,6 +40,12 @@ _cache: dict[str, dict] = {}
 _cache_lock = threading.RLock()
 
 
+def _validate_url_or_raise(url: str) -> None:
+    """Fail-closed SSRF guard: validate a blocklist URL before any network or cache use."""
+    if not validate_folder_url(url):
+        raise ValueError(f"Unsafe or invalid blocklist URL: {sanitize_for_log(url)}")
+
+
 def _validate_content_type(url: str, r: httpx.Response) -> None:
     """Validate that the response Content-Type is acceptable for JSON bodies."""
     ct = r.headers.get("Content-Type", "").lower()
@@ -186,6 +192,7 @@ def _handle_304_with_data(url: str, cached_entry: dict[str, Any]) -> dict:
 
 def _fetch_unconditional(url: str, headers: dict[str, str]) -> dict:
     """Issue a fresh GET request and parse/store its response."""
+    _count_blocklist_fetch()
     with _gh.stream("GET", url, headers=headers) as r:
         r.raise_for_status()
         return _parse_and_cache_response(url, r)
@@ -212,12 +219,12 @@ def _gh_get(url: str) -> dict:
 
     SECURITY: Validates data structure regardless of cache source
     """
+    # SECURITY: Fail-closed SSRF guard before any cache or network access.
+    _validate_url_or_raise(url)
+
     # First check: Quick check without holding lock for long
     if (cached := _get_memory_cached(url)) is not None:
         return cached
-
-    # Track that we're about to make a blocklist fetch
-    _count_blocklist_fetch()
 
     # Check disk cache for TTL-based hit or conditional request headers
     headers: dict[str, str] = {}
@@ -235,6 +242,7 @@ def _gh_get(url: str) -> dict:
     # Fetch data (or validate cache)
     # Explicitly let HTTPError propagate (no need to catch just to re-raise)
     try:
+        _count_blocklist_fetch()
         with _gh.stream("GET", url, headers=headers) as r:
             # Handle 304 Not Modified - cached data is still valid
             if r.status_code == 304:
@@ -271,8 +279,12 @@ def fetch_folder_data(url: str) -> FolderData:
 
     Uses cached GET request and validates the folder structure.
     Raises httpx.HTTPStatusError (with actionable hint) on HTTP failure,
-    or KeyError if validation of the returned data fails.
+    KeyError if validation of the returned data fails, or
+    ValueError if the URL is unsafe/invalid (SSRF guard).
     """
+    # SECURITY: Fail-closed SSRF guard in case callers bypass higher-level checks.
+    _validate_url_or_raise(url)
+
     try:
         js = _gh_get(url)
     except httpx.HTTPStatusError as e:

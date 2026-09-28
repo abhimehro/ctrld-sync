@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from models import PlanEntry, PlanFolderEntry
+from validation import sanitize_for_log
 
 from .colors import USE_COLORS, Colors
 from .text import _display_len, _pad_string, pluralize
-from validation import sanitize_for_log
 
 
 def _resolve_folder_action(folder: PlanFolderEntry) -> tuple[str, str, str]:

@@ -7,8 +7,9 @@ import shutil
 import sys
 import time
 
-from .colors import USE_COLORS, Colors
 from validation import sanitize_for_log
+
+from .colors import USE_COLORS, Colors
 
 log = logging.getLogger(__name__)
 

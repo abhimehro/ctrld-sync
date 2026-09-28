@@ -60,13 +60,14 @@ uv run python main.py --dry-run --folder-url https://example.com/config.json
 
 Important: `example.com` is **not** in the default `allowed_blocklist_domains`
 (`raw.githubusercontent.com`, `github.com`, `yokoffing.github.io`), so the
-command above will print a `DRY RUN SUMMARY` but exit `1` with
-`Failed (Dry)`. It does not crash, but it does not produce a `Ready` status.
-To obtain a passing `Planned` / `Ready` dry-run, either:
+command above will print a `DRY RUN SUMMARY` but exit `1` with `Failed (Dry)`.
+It does not crash, but it does not produce a `Ready` status. To obtain a passing
+`Planned` / `Ready` dry-run, either:
 
 - use a URL whose host is in the default allowlist, or
-- create a temporary `config.yaml` with `allowed_blocklist_domains: [example.com]`
-  and pass `--config /path/to/config.yaml`.
+- create a temporary `config.yaml` with
+  `allowed_blocklist_domains: [example.com]` and pass
+  `--config /path/to/config.yaml`.
 
 ## SSRF harness for mocked end-to-end dry-run
 
@@ -104,7 +105,8 @@ Expected dry-run evidence for a passing safe case:
 
 - Output contains `DRY RUN SUMMARY`.
 - Output includes the accepted folder name.
-- Summary shows at least one folder / one rule with status `Planned` and `Ready`.
+- Summary shows at least one folder / one rule with status `Planned` and
+  `Ready`.
 - Captured logger output contains unsafe-host warnings for rejected cases.
 - Fetched URL list contains only the safe URL(s).
 - `api_client._api_stats["control_d_api_calls"]` remains `0` after the run.
@@ -126,11 +128,11 @@ be driven end-to-end by faking the Control D API with `httpx.MockTransport`:
 
 - Patch `sync.create_client` to return
   `httpx.Client(transport=httpx.MockTransport(handler))`.
-- Patch `sync.plan.fetch_folder_data` (plan.py imports the helper as a module-level
-  name, so patching `sync.plan.fetch_folder_data` is what the parallel-deletion
-  tests do) and `sync.validate_folder_url` — the latter must still expose
-  `.cache_clear()`, so wrap the stub in `functools.lru_cache`, because
-  `sync_profile` clears the cache on entry.
+- Patch `sync.plan.fetch_folder_data` (plan.py imports the helper as a
+  module-level name, so patching `sync.plan.fetch_folder_data` is what the
+  parallel-deletion tests do) and `sync.validate_folder_url` — the latter must
+  still expose `.cache_clear()`, so wrap the stub in `functools.lru_cache`,
+  because `sync_profile` clears the cache on entry.
 - Patch `sync.countdown_timer` to record its argument instead of sleeping; the
   post-deletion propagation wait is 60s and would otherwise stall the run.
 - Set `config.FOLDER_CREATION_DELAY = 0`, lower `api_client.MAX_RETRIES`, and
