@@ -123,6 +123,7 @@
 - salvage\(ctrld\#1269\): unique wrap/lint test remainder vs merged \#1279 \(weekend drain hop3\) [\#1287](https://github.com/abhimehro/ctrld-sync/pull/1287) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump mypy from 1.19.1 to 2.3.1 [\#1283](https://github.com/abhimehro/ctrld-sync/pull/1283) ([dependabot[bot]](https://github.com/apps/dependabot))
 - fix: count only outbound blocklist requests [\#1279](https://github.com/abhimehro/ctrld-sync/pull/1279) ([coderabbitai[bot]](https://github.com/apps/coderabbitai))
+- fix: reject lookalike blocklist content types [\#1278](https://github.com/abhimehro/ctrld-sync/pull/1278) ([coderabbitai[bot]](https://github.com/apps/coderabbitai))
 - chore\(deps\): bump ruff from 0.16.6 to 0.16.8 [\#1266](https://github.com/abhimehro/ctrld-sync/pull/1266) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump github/gh-aw/actions/setup from 0.87.10 to 0.89.14 [\#1264](https://github.com/abhimehro/ctrld-sync/pull/1264) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump github/codeql-action/upload-sarif from 4.37.9 to 4.38.0 [\#1263](https://github.com/abhimehro/ctrld-sync/pull/1263) ([dependabot[bot]](https://github.com/apps/dependabot))
