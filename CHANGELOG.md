@@ -14,6 +14,9 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-10-01 [\#1299](https://github.com/abhimehro/ctrld-sync/issues/1299)
+- Daily QA & Agentic Review — 2026-09-30 [\#1298](https://github.com/abhimehro/ctrld-sync/issues/1298)
+- Daily QA & Agentic Review — 2026-09-29 [\#1288](https://github.com/abhimehro/ctrld-sync/issues/1288)
 - Daily QA & Agentic Review — 2026-09-27 [\#1286](https://github.com/abhimehro/ctrld-sync/issues/1286)
 - Daily QA & Agentic Review — 2026-09-26 [\#1284](https://github.com/abhimehro/ctrld-sync/issues/1284)
 - Daily QA & Agentic Review — 2026-09-25 [\#1282](https://github.com/abhimehro/ctrld-sync/issues/1282)
@@ -124,6 +127,10 @@
 - chore\(deps\): bump mypy from 1.19.1 to 2.3.1 [\#1283](https://github.com/abhimehro/ctrld-sync/pull/1283) ([dependabot[bot]](https://github.com/apps/dependabot))
 - fix: count only outbound blocklist requests [\#1279](https://github.com/abhimehro/ctrld-sync/pull/1279) ([coderabbitai[bot]](https://github.com/apps/coderabbitai))
 - fix: reject lookalike blocklist content types [\#1278](https://github.com/abhimehro/ctrld-sync/pull/1278) ([coderabbitai[bot]](https://github.com/apps/coderabbitai))
+- chore\(deps\): bump ruby/setup-ruby from 1.321.0 to 1.324.0 [\#1273](https://github.com/abhimehro/ctrld-sync/pull/1273) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump github/codeql-action/upload-sarif from 4.38.0 to 4.38.1 [\#1272](https://github.com/abhimehro/ctrld-sync/pull/1272) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump github/gh-aw/actions/setup from 0.89.14 to 0.89.17 [\#1271](https://github.com/abhimehro/ctrld-sync/pull/1271) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump github/gh-aw from 0.87.10 to 0.89.17 [\#1270](https://github.com/abhimehro/ctrld-sync/pull/1270) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump ruff from 0.16.6 to 0.16.8 [\#1266](https://github.com/abhimehro/ctrld-sync/pull/1266) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump github/gh-aw/actions/setup from 0.87.10 to 0.89.14 [\#1264](https://github.com/abhimehro/ctrld-sync/pull/1264) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump github/codeql-action/upload-sarif from 4.37.9 to 4.38.0 [\#1263](https://github.com/abhimehro/ctrld-sync/pull/1263) ([dependabot[bot]](https://github.com/apps/dependabot))
