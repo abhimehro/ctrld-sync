@@ -264,7 +264,7 @@ class TestRetryWithRateLimit:
         with main._rate_limit_lock:
             assert main._rate_limit_info["remaining"] == 50
 
-    @patch("secrets.SystemRandom.random", return_value=1.0)
+    @patch("random.random", return_value=1.0)
     def test_429_without_retry_after_uses_exponential_backoff(self, mock_random):
         """Test that 429 without Retry-After falls back to exponential backoff."""
         mock_request = MagicMock()

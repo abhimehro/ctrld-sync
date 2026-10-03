@@ -1,36 +1,33 @@
 ---
 name: Bug report
-about: Create a report to help us improve
+about: Report a problem with the ctrld-sync CLI
 title: ""
 labels: ""
 assignees: ""
 ---
 
-**Describe the bug** A clear and concise description of what the bug is.
+**Describe the bug** A clear and concise description of what went wrong.
 
-**To Reproduce** Steps to reproduce the behavior:
+**Command** The exact command you ran (redact `TOKEN` / `PROFILE`):
 
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+```bash
+uv run python main.py --dry-run
+```
 
-**Expected behavior** A clear and concise description of what you expected to
-happen.
+**To Reproduce**
 
-**Screenshots** If applicable, add screenshots to help explain your problem.
+1. Python / uv versions (`python3 --version`, `uv --version`)
+2. Steps from a clean clone (`uv sync --all-extras`, then the command above)
+3. Observed output or traceback
 
-**Desktop (please complete the following information):**
+**Expected behavior** What you expected to happen instead.
 
-- OS: [e.g. iOS]
-- Browser [e.g. chrome, safari]
-- Version [e.g. 22]
+**Environment**
 
-**Smartphone (please complete the following information):**
+- OS: [e.g. macOS 15 / Ubuntu 24.04]
+- Python: [e.g. 3.13.x]
+- uv: [e.g. 0.8.x]
+- ctrld-sync version or commit: [e.g. 0.1.1 / `git rev-parse --short HEAD`]
 
-- Device: [e.g. iPhone6]
-- OS: [e.g. iOS8.1]
-- Browser [e.g. stock browser, safari]
-- Version [e.g. 22]
-
-**Additional context** Add any other context about the problem here.
+**Additional context** Logs, `plan.json` excerpts, or related issues. Do not
+paste API tokens or profile IDs.
