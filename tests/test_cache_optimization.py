@@ -205,7 +205,7 @@ class TestCacheOptimization(unittest.TestCase):
         self.assertEqual(result, [test_data])
 
     def test_invalid_cached_folder_data_is_rejected(self):
-        """Warm-up cache entries must not bypass folder schema validation."""
+        """Invalid warm-up cache entries are evicted and fetched again."""
         test_url = "https://example.com/invalid.json"
         invalid_data = {"group": {"group": "<script>"}}
 
@@ -218,11 +218,12 @@ class TestCacheOptimization(unittest.TestCase):
             patch("sync.validate_folder_url") as mock_validate,
             patch("sync.plan.fetch_folder_data") as mock_fetch,
         ):
-            result = _fetch_all_folder_data([test_url])
+            _fetch_all_folder_data([test_url])
 
-        mock_validate.assert_not_called()
-        mock_fetch.assert_not_called()
-        self.assertIsNone(result)
+        with main._cache_lock:
+            self.assertNotIn(test_url, main._cache)
+        mock_validate.assert_called_once_with(test_url)
+        mock_fetch.assert_called_once_with(test_url)
 
     def test_gh_get_thread_safety(self):
         """
