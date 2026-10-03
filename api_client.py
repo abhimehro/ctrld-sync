@@ -256,7 +256,7 @@ def retry_with_jitter(
         Delay in seconds with full jitter applied
     """
     exponential_delay = min(base_delay * (2.0**attempt), max_delay)
-    return exponential_delay * random.random()
+    return exponential_delay * random.random()  # nosec B311 - retry timing jitter, not security-sensitive
 
 
 def _is_server_error(e: Exception) -> bool:
