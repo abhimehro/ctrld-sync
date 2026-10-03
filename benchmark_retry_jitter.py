@@ -8,7 +8,7 @@ deterministic exponential backoff.
 Usage: python3 benchmark_retry_jitter.py
 """
 
-import random
+import secrets
 
 
 def simulate_retries_without_jitter(max_retries: int, base_delay: float) -> list[float]:
@@ -25,7 +25,7 @@ def simulate_retries_with_jitter(max_retries: int, base_delay: float) -> list[fl
     delays = []
     for attempt in range(max_retries - 1):
         base_wait = base_delay * (2**attempt)
-        jitter_factor = 0.5 + random.random()  # nosec B311 - non-crypto jitter simulation, range [0.5, 1.5]
+        jitter_factor = 0.5 + secrets.SystemRandom().random()  # [0.5, 1.5]
         wait_time = base_wait * jitter_factor
         delays.append(wait_time)
     return delays
@@ -95,7 +95,7 @@ def main():
     # Simulate retry distribution
     retry_times = []
     for _ in range(num_clients):
-        first_retry = base_delay * (0.5 + random.random())  # nosec B311 - non-crypto jitter simulation
+        first_retry = base_delay * (0.5 + secrets.SystemRandom().random())
         retry_times.append(first_retry)
 
     retry_times.sort()

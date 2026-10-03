@@ -48,12 +48,10 @@ def _validate_url_or_raise(url: str) -> None:
 
 def _validate_content_type(url: str, r: httpx.Response) -> None:
     """Validate that the response Content-Type is acceptable for JSON bodies."""
-    content_type = r.headers.get("Content-Type", "")
-    media_type = content_type.partition(";")[0].strip().lower()
-    if media_type not in {"application/json", "text/json", "text/plain"}:
+    ct = r.headers.get("Content-Type", "").lower()
+    if not any(t in ct for t in ("application/json", "text/json", "text/plain")):
         raise ValueError(
-            f"Invalid Content-Type from {sanitize_for_log(url)}: "
-            f"{sanitize_for_log(content_type)}."
+            f"Invalid Content-Type from {sanitize_for_log(url)}: {sanitize_for_log(ct)}."
         )
 
 
@@ -194,7 +192,6 @@ def _handle_304_with_data(url: str, cached_entry: dict[str, Any]) -> dict:
 
 def _fetch_unconditional(url: str, headers: dict[str, str]) -> dict:
     """Issue a fresh GET request and parse/store its response."""
-    _count_blocklist_fetch()
     with _gh.stream("GET", url, headers=headers) as r:
         r.raise_for_status()
         return _parse_and_cache_response(url, r)
@@ -228,6 +225,9 @@ def _gh_get(url: str) -> dict:
     if (cached := _get_memory_cached(url)) is not None:
         return cached
 
+    # Track that we're about to make a blocklist fetch
+    _count_blocklist_fetch()
+
     # Check disk cache for TTL-based hit or conditional request headers
     headers: dict[str, str] = {}
     cached_entry = _disk_cache.get(url)
@@ -244,7 +244,6 @@ def _gh_get(url: str) -> dict:
     # Fetch data (or validate cache)
     # Explicitly let HTTPError propagate (no need to catch just to re-raise)
     try:
-        _count_blocklist_fetch()
         with _gh.stream("GET", url, headers=headers) as r:
             # Handle 304 Not Modified - cached data is still valid
             if r.status_code == 304:

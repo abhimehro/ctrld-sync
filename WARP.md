@@ -24,7 +24,7 @@ Use `uv` for local dependency management (Python 3.13+ is required).
 
 ```bash
 # Install dependencies (local dev)
-uv sync --all-extras
+uv sync
 
 # Dry-run against default blocklists (no TOKEN required)
 uv run python main.py --dry-run
@@ -256,9 +256,8 @@ Folder definitions are expected to be JSON documents with at least:
 
 To change what gets synced:
 
-- Edit `DEFAULT_FOLDER_URLS` in `config.py` (not `main.py`) to adjust the
-  built-in set of remote JSON definitions; or
-- Edit `config.yaml` / pass `--config` for a file-based folder list; or
+- Edit `DEFAULT_FOLDER_URLS` in `main.py` to adjust the built-in set of remote
+  JSON definitions; or
 - Pass one or more `--folder-url` arguments on the CLI for ad-hoc runs without
   modifying the code.
 

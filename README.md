@@ -12,9 +12,6 @@
 [![CodeScene Hotspot Code Health](https://codescene.io/projects/80823/status-badges/hotspot-code-health)](https://codescene.io/projects/80823)
 [![CodeScene System Mastery](https://codescene.io/projects/80823/status-badges/system-mastery)](https://codescene.io/projects/80823)
 [![CodeScene Missed Goals](https://codescene.io/projects/80823/status-badges/missed-goals)](https://codescene.io/projects/80823)
-![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/abhimehro/ctrld-sync?utm_source=oss&utm_medium=github&utm_campaign=abhimehro%2Fctrld-sync&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
-
-[![SonarQube Cloud](https://sonarcloud.io/images/project_badges/sonarcloud-highlight.svg)](https://sonarcloud.io/summary/new_code?id=abhimehro_ctrld-sync)
 
 A tiny Python CLI that keeps your Control D Folders in sync with a set of remote
 block-lists. The code is split into focused modules; `main.py` is only the
@@ -53,7 +50,7 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
 1. **Clone & install**
 
    ```bash
-   git clone https://github.com/abhimehro/ctrld-sync.git
+   git clone https://github.com/your-username/ctrld-sync.git
    cd ctrld-sync
    ```
 
@@ -116,13 +113,13 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
    (these override any config file):
 
    ```bash
-   uv run python main.py --folder-url https://example.com/my-blocklist.json
+   python main.py --folder-url https://example.com/my-blocklist.json
    ```
 
    Or point to a specific config file:
 
    ```bash
-   uv run python main.py --config /path/to/my-config.yaml
+   python main.py --config /path/to/my-config.yaml
    ```
 
    The script includes 23 default folder URLs from
@@ -138,9 +135,9 @@ https://controld.com/dashboard/profiles/741861frakbm/filters
 5. **Run locally**
 
    ```bash
-   uv run python main.py --dry-run                          # plan only, no API calls
-   uv run python main.py --dry-run --plan-json plan.json    # machine-readable dry-run output
-   uv run python main.py --profiles your_id                 # live run (requires TOKEN)
+   python main.py --dry-run                          # plan only, no API calls
+   python main.py --dry-run --plan-json plan.json    # machine-readable dry-run output
+   python main.py --profiles your_id                 # live run (requires TOKEN)
    ```
 
 6. **Run in CI** The included GitHub Actions workflow
@@ -299,14 +296,11 @@ This project uses manual releases via GitHub Releases. To create a new release:
 
 ### CI/CD Workflows
 
-| Workflow        | File              | Trigger                                                | Purpose                                                                          |
-| --------------- | ----------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| **Sync**        | `sync.yml`        | Daily at 02:00 UTC, manual dispatch                    | Main synchronization workflow — runs `main.py` to keep Control D folders in sync |
-| **Test**        | `test.yml`        | Push/PR to `main`                                      | Full pytest suite via `uv sync --all-extras`                                     |
-| **Lint**        | `lint.yml`        | Push/PR to `main`                                      | Ruff / style gate                                                                |
-| **Typecheck**   | `typecheck.yml`   | Push/PR to `main`                                      | mypy on Python 3.13                                                              |
-| **Performance** | `performance.yml` | Push to `main`; PRs changing performance-related paths | Performance regression checks                                                    |
-| **Bandit**      | `bandit.yml`      | Push/PR to `main`, manual dispatch                     | Security vulnerability scanning for Python code                                  |
+| Workflow   | File         | Trigger                             | Purpose                                                                          |
+| ---------- | ------------ | ----------------------------------- | -------------------------------------------------------------------------------- |
+| **Sync**   | `sync.yml`   | Daily at 02:00 UTC, manual dispatch | Main synchronization workflow — runs `main.py` to keep Control D folders in sync |
+| **Bandit** | `bandit.yml` | Push/PR to `main`, manual dispatch  | Security vulnerability scanning for Python code                                  |
+| **Test**   | `test.yml`   | Push/PR to `main`                   | Full pytest suite via `uv sync --all-extras`                                     |
 
 If CodeScene blocks a PR during review/salvage sessions, post:
 
@@ -321,9 +315,9 @@ Then resume verification after the remediation run completes.
 The GitHub Actions workflows use automatic dependency caching to speed up CI
 runs:
 
-- **Cache Key**: Based on `uv.lock` (managed by `astral-sh/setup-uv@v7`)
+- **Cache Key**: Based on `uv.lock` (managed by `astral-sh/setup-uv@v4`)
 - **Cache Location**: uv's shared cache directory (managed by
-  `astral-sh/setup-uv@v7`)
+  `astral-sh/setup-uv@v4`)
 - **Invalidation**: Automatic when `uv.lock` changes
 
 ### Expected Performance
@@ -368,7 +362,7 @@ If you suspect cache issues:
 1. **Check cache hit/miss** in workflow logs:
 
    ```
-   Run astral-sh/setup-uv@v7
+   Run astral-sh/setup-uv@v4
    Cache restored successfully: true
    ```
 
