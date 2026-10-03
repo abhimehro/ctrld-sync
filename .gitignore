@@ -226,3 +226,5 @@ log.txt
 pr_body_new.json
 *.bak
 test.py
+# Causari local ledger — captured prompts, completions and reasoning.
+.causari/
