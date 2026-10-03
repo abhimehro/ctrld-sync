@@ -14,6 +14,8 @@
 [![CodeScene Missed Goals](https://codescene.io/projects/80823/status-badges/missed-goals)](https://codescene.io/projects/80823)
 ![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/abhimehro/ctrld-sync?utm_source=oss&utm_medium=github&utm_campaign=abhimehro%2Fctrld-sync&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
 
+[![SonarQube Cloud](https://sonarcloud.io/images/project_badges/sonarcloud-highlight.svg)](https://sonarcloud.io/summary/new_code?id=abhimehro_ctrld-sync)
+
 A tiny Python CLI that keeps your Control D Folders in sync with a set of remote
 block-lists. The code is split into focused modules; `main.py` is only the
 CLI/bootstrap entry point.
@@ -297,14 +299,14 @@ This project uses manual releases via GitHub Releases. To create a new release:
 
 ### CI/CD Workflows
 
-| Workflow        | File              | Trigger                             | Purpose                                                                          |
-| --------------- | ----------------- | ----------------------------------- | -------------------------------------------------------------------------------- |
-| **Sync**        | `sync.yml`        | Daily at 02:00 UTC, manual dispatch | Main synchronization workflow — runs `main.py` to keep Control D folders in sync |
-| **Test**        | `test.yml`        | Push/PR to `main`                   | Full pytest suite via `uv sync --all-extras`                                     |
-| **Lint**        | `lint.yml`        | Push/PR to `main`                   | Ruff / style gate                                                                |
-| **Typecheck**   | `typecheck.yml`   | Push/PR to `main`                   | mypy on Python 3.13                                                              |
+| Workflow        | File              | Trigger                                                | Purpose                                                                          |
+| --------------- | ----------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| **Sync**        | `sync.yml`        | Daily at 02:00 UTC, manual dispatch                    | Main synchronization workflow — runs `main.py` to keep Control D folders in sync |
+| **Test**        | `test.yml`        | Push/PR to `main`                                      | Full pytest suite via `uv sync --all-extras`                                     |
+| **Lint**        | `lint.yml`        | Push/PR to `main`                                      | Ruff / style gate                                                                |
+| **Typecheck**   | `typecheck.yml`   | Push/PR to `main`                                      | mypy on Python 3.13                                                              |
 | **Performance** | `performance.yml` | Push to `main`; PRs changing performance-related paths | Performance regression checks                                                    |
-| **Bandit**      | `bandit.yml`      | Push/PR to `main`, manual dispatch  | Security vulnerability scanning for Python code                                  |
+| **Bandit**      | `bandit.yml`      | Push/PR to `main`, manual dispatch                     | Security vulnerability scanning for Python code                                  |
 
 If CodeScene blocks a PR during review/salvage sessions, post:
 

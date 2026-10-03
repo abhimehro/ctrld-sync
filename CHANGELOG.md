@@ -14,6 +14,16 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-10-02 [\#1304](https://github.com/abhimehro/ctrld-sync/issues/1304)
+- Daily QA & Agentic Review — 2026-10-01 [\#1299](https://github.com/abhimehro/ctrld-sync/issues/1299)
+- Daily QA & Agentic Review — 2026-09-30 [\#1298](https://github.com/abhimehro/ctrld-sync/issues/1298)
+- Daily QA & Agentic Review — 2026-09-29 [\#1288](https://github.com/abhimehro/ctrld-sync/issues/1288)
+- Daily QA & Agentic Review — 2026-09-27 [\#1286](https://github.com/abhimehro/ctrld-sync/issues/1286)
+- Daily QA & Agentic Review — 2026-09-26 [\#1284](https://github.com/abhimehro/ctrld-sync/issues/1284)
+- Daily QA & Agentic Review — 2026-09-25 [\#1282](https://github.com/abhimehro/ctrld-sync/issues/1282)
+- Daily QA & Agentic Review — 2026-09-24 [\#1277](https://github.com/abhimehro/ctrld-sync/issues/1277)
+- Daily QA & Agentic Review — 2026-09-23 [\#1276](https://github.com/abhimehro/ctrld-sync/issues/1276)
+- Daily QA & Agentic Review — 2026-09-22 [\#1274](https://github.com/abhimehro/ctrld-sync/issues/1274)
 - Daily QA & Agentic Review — 2026-09-19 [\#1267](https://github.com/abhimehro/ctrld-sync/issues/1267)
 - Daily QA & Agentic Review — 2026-09-18 [\#1265](https://github.com/abhimehro/ctrld-sync/issues/1265)
 - Daily QA & Agentic Review — 2026-09-17 [\#1259](https://github.com/abhimehro/ctrld-sync/issues/1259)
@@ -114,6 +124,14 @@
 
 **Merged pull requests:**
 
+- salvage\(ctrld\#1269\): unique wrap/lint test remainder vs merged \#1279 \(weekend drain hop3\) [\#1287](https://github.com/abhimehro/ctrld-sync/pull/1287) ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump mypy from 1.19.1 to 2.3.1 [\#1283](https://github.com/abhimehro/ctrld-sync/pull/1283) ([dependabot[bot]](https://github.com/apps/dependabot))
+- fix: count only outbound blocklist requests [\#1279](https://github.com/abhimehro/ctrld-sync/pull/1279) ([coderabbitai[bot]](https://github.com/apps/coderabbitai))
+- fix: reject lookalike blocklist content types [\#1278](https://github.com/abhimehro/ctrld-sync/pull/1278) ([coderabbitai[bot]](https://github.com/apps/coderabbitai))
+- chore\(deps\): bump ruby/setup-ruby from 1.321.0 to 1.324.0 [\#1273](https://github.com/abhimehro/ctrld-sync/pull/1273) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump github/codeql-action/upload-sarif from 4.38.0 to 4.38.1 [\#1272](https://github.com/abhimehro/ctrld-sync/pull/1272) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump github/gh-aw/actions/setup from 0.89.14 to 0.89.17 [\#1271](https://github.com/abhimehro/ctrld-sync/pull/1271) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump github/gh-aw from 0.87.10 to 0.89.17 [\#1270](https://github.com/abhimehro/ctrld-sync/pull/1270) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump ruff from 0.16.6 to 0.16.8 [\#1266](https://github.com/abhimehro/ctrld-sync/pull/1266) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump github/gh-aw/actions/setup from 0.87.10 to 0.89.14 [\#1264](https://github.com/abhimehro/ctrld-sync/pull/1264) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump github/codeql-action/upload-sarif from 4.37.9 to 4.38.0 [\#1263](https://github.com/abhimehro/ctrld-sync/pull/1263) ([dependabot[bot]](https://github.com/apps/dependabot))
@@ -141,6 +159,7 @@
 - chore\(repo-health\): delete stale requirements\*.txt and run-tests.sh [\#1199](https://github.com/abhimehro/ctrld-sync/pull/1199) ([abhimehro](https://github.com/abhimehro))
 - fix\(ssrf\): fail-closed validation in \_gh\_get and fetch\_folder\_data [\#1198](https://github.com/abhimehro/ctrld-sync/pull/1198) ([abhimehro](https://github.com/abhimehro))
 - fix\(security\): atomically write plan JSON files [\#1196](https://github.com/abhimehro/ctrld-sync/pull/1196) ([abhimehro](https://github.com/abhimehro))
+- fix\(security\): filter rules via is\_valid\_rule \(salvages \#1174\) [\#1195](https://github.com/abhimehro/ctrld-sync/pull/1195) ([cursor[bot]](https://github.com/apps/cursor))
 - chore\(ci\): uv Docker/Bandit and fix dependency-review \(salvages \#1188\) [\#1194](https://github.com/abhimehro/ctrld-sync/pull/1194) ([cursor[bot]](https://github.com/apps/cursor))
 - style: autofix formatting issues in test suite [\#1193](https://github.com/abhimehro/ctrld-sync/pull/1193) ([abhimehro](https://github.com/abhimehro))
 - Update ctrld-sync testing skill with harness tips [\#1192](https://github.com/abhimehro/ctrld-sync/pull/1192) ([abhimehro](https://github.com/abhimehro))
