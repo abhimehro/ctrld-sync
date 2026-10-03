@@ -125,6 +125,8 @@
 **Merged pull requests:**
 
 - Add macOS block to repo blueprint [\#1305](https://github.com/abhimehro/ctrld-sync/pull/1305) ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump ruby/setup-ruby from 1.324.0 to 1.327.0 [\#1301](https://github.com/abhimehro/ctrld-sync/pull/1301) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump codescene-oss/pr-refactoring-agent from 1.1.3 to 1.1.4 [\#1300](https://github.com/abhimehro/ctrld-sync/pull/1300) ([dependabot[bot]](https://github.com/apps/dependabot))
 - salvage\(ctrld\#1269\): unique wrap/lint test remainder vs merged \#1279 \(weekend drain hop3\) [\#1287](https://github.com/abhimehro/ctrld-sync/pull/1287) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump mypy from 1.19.1 to 2.3.1 [\#1283](https://github.com/abhimehro/ctrld-sync/pull/1283) ([dependabot[bot]](https://github.com/apps/dependabot))
 - fix: count only outbound blocklist requests [\#1279](https://github.com/abhimehro/ctrld-sync/pull/1279) ([coderabbitai[bot]](https://github.com/apps/coderabbitai))
