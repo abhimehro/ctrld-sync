@@ -21,14 +21,9 @@ def _fetch_all_folder_data(folder_urls: Sequence[str]) -> list[FolderData] | Non
     # OPTIMIZATION: Move validation inside the thread pool to parallelize DNS lookups.
     # Previously, sequential validation blocked the main thread.
     def _fetch_if_valid(url: str):
-        # Optimization: If we already have the content in cache, return it directly.
-        # The content was validated at the time of fetch (warm_up_cache).
-        # Read directly from cache to avoid calling fetch_folder_data while holding lock.
-        with sync._cache_lock:
-            if (cached := sync._cache.get(url)) is not None:
-                return cached
-
         if sync.validate_folder_url(url):
+            # fetch_folder_data performs schema validation even when _gh_get serves
+            # the response from the cache populated by warm_up_cache.
             # Tests patch sync.plan.fetch_folder_data via this module attribute.
             return fetch_folder_data(url)
         return None
