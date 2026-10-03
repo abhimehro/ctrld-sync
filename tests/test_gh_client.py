@@ -227,7 +227,7 @@ class TestGhGet:
         assert cache._cache_stats["hits"] == hits_before + 1  # nosec B101
         mock_stream.assert_not_called()
 
-    def test_disk_ttl_hit_returns_without_http_and_counts_fetch(self):
+    def test_disk_ttl_hit_returns_without_http_or_counting_fetch(self):
         url = "https://example.com/ttl.json"
         data = {"group": {"group": "Test"}}
         cache._disk_cache[url] = {
@@ -248,7 +248,7 @@ class TestGhGet:
         assert result is data  # nosec B101
         assert cache._cache_stats["hits"] == hits_before + 1  # nosec B101
         assert (
-            api_client._api_stats["blocklist_fetches"] == fetches_before + 1
+            api_client._api_stats["blocklist_fetches"] == fetches_before
         )  # nosec B101
         assert gh_client._cache[url] is data  # nosec B101
         mock_stream.assert_not_called()
@@ -334,6 +334,7 @@ class TestGhGet:
         resp_200 = _make_stream_response(status_code=200, body=_make_json_body(data))
 
         errors_before = cache._cache_stats["errors"]
+        fetches_before = api_client._api_stats["blocklist_fetches"]
 
         call_count: list[int] = []
 
@@ -354,6 +355,9 @@ class TestGhGet:
 
         assert result == data  # nosec B101
         assert cache._cache_stats["errors"] == errors_before + 1  # nosec B101
+        assert (
+            api_client._api_stats["blocklist_fetches"] == fetches_before + 2
+        )  # nosec B101
         assert "Got 304 but no cached data" in caplog.text  # nosec B101
         assert patched_stream.call_count == 2  # nosec B101
 

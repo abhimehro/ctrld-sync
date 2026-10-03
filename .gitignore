@@ -138,6 +138,7 @@ celerybeat.pid
 .env
 .env.*
 !.env.example
+!.env.pr-recap.template
 .envrc
 .venv
 env/
@@ -225,3 +226,5 @@ log.txt
 pr_body_new.json
 *.bak
 test.py
+# Causari local ledger — captured prompts, completions and reasoning.
+.causari/

@@ -144,8 +144,7 @@ def _print_success_text(all_success: bool, success_count: int, total: int) -> No
             "💎 Smooth operation!",
             "🌈 Perfect harmony!",
         ]
-        # nosec B311 - PRNG is safe here; no cryptographic security required for message selection
-        chosen_msg = random.choice(success_msgs)
+        chosen_msg = random.choice(success_msgs)  # nosec B311 - cosmetic message pick, not security-sensitive
     else:
         profile_word = pluralize(total, "profile")
         chosen_msg = f"⚠️  Synced {success_count} out of {total} {profile_word}. Check errors above."

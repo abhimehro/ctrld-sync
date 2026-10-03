@@ -107,8 +107,8 @@ class TestRetryJitter:
         """
         request_func = Mock(side_effect=httpx.TimeoutException("Connection timeout"))
 
-        # Full jitter is implemented as: min(base_delay * 2**attempt, MAX_RETRY_DELAY) * SystemRandom.random()
-        # With SystemRandom.random() fixed at 0.5, each delay = exponential_delay * 0.5.
+        # Full jitter is implemented as: min(base_delay * 2**attempt, MAX_RETRY_DELAY) * random.random()
+        # With random.random() fixed at 0.5, each delay = exponential_delay * 0.5.
         with (
             patch("time.sleep") as mock_sleep,
             patch("random.random", return_value=0.5),
