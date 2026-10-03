@@ -158,6 +158,7 @@
 - chore\(deps\): bump python-dotenv from 1.2.2 to 1.2.3 [\#1210](https://github.com/abhimehro/ctrld-sync/pull/1210) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump types-pyyaml from 6.0.12.20250915 to 6.0.12.20260815 [\#1209](https://github.com/abhimehro/ctrld-sync/pull/1209) ([dependabot[bot]](https://github.com/apps/dependabot))
 - autofix\(\): PR \#1 \(cycle 1\) -- fix mypy errors in test\_plan\_json\_write.py [\#1208](https://github.com/abhimehro/ctrld-sync/pull/1208) ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: Optimize PRNG usage for non-security paths [\#1206](https://github.com/abhimehro/ctrld-sync/pull/1206) ([abhimehro](https://github.com/abhimehro))
 - chore\(repo-health\): align README setup-uv pin with CI v7 [\#1203](https://github.com/abhimehro/ctrld-sync/pull/1203) ([cursor[bot]](https://github.com/apps/cursor))
 - chore\(repo-health\): delete stale requirements\*.txt and run-tests.sh [\#1199](https://github.com/abhimehro/ctrld-sync/pull/1199) ([abhimehro](https://github.com/abhimehro))
 - fix\(ssrf\): fail-closed validation in \_gh\_get and fetch\_folder\_data [\#1198](https://github.com/abhimehro/ctrld-sync/pull/1198) ([abhimehro](https://github.com/abhimehro))
