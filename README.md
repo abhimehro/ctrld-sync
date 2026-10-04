@@ -257,8 +257,8 @@ This project uses manual releases via GitHub Releases. To create a new release:
    # Verify tests pass
    uv run pytest tests/ test_main.py -v
 
-   # Verify security scans pass
-   bandit -r main.py models.py validation.py config.py display/ gh_client.py sync/ api_client.py cache.py fix_env.py -ll
+   # Verify security scans pass (dev extra provides bandit; same as CI's `uv run`)
+   uv run bandit -r main.py models.py validation.py config.py display/ gh_client.py sync/ api_client.py cache.py fix_env.py -ll
    ```
 
 2. **Update version in `pyproject.toml`**
@@ -344,8 +344,9 @@ When updating dependencies:
    ```toml
    [project]
    dependencies = [
-       "httpx>=0.28.1",
-       "python-dotenv>=1.1.1",
+       "httpx==0.28.1",
+       "python-dotenv==1.2.3",
+       "pyyaml==6.0.3",
    ]
    ```
 
