@@ -6,6 +6,7 @@
 
 **Security fixes:**
 
+- \[pr-sweep\] Decide on secrets -\> random PRNG change: \#1206 [\#1291](https://github.com/abhimehro/ctrld-sync/issues/1291)
 - \[SECURITY\] Secrets & SSRF Priority Scan - Initial Assessment [\#1240](https://github.com/abhimehro/ctrld-sync/issues/1240)
 - P0: Critical SSRF Vulnerability - User-Controlled URLs with Outbound Requests [\#1166](https://github.com/abhimehro/ctrld-sync/issues/1166)
 - P1: SSRF - User-Controlled URLs with Outbound Requests [\#1024](https://github.com/abhimehro/ctrld-sync/issues/1024)
@@ -14,6 +15,8 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-10-04 [\#1311](https://github.com/abhimehro/ctrld-sync/issues/1311)
+- Daily QA & Agentic Review — 2026-10-03 [\#1308](https://github.com/abhimehro/ctrld-sync/issues/1308)
 - Daily QA & Agentic Review — 2026-10-02 [\#1304](https://github.com/abhimehro/ctrld-sync/issues/1304)
 - Daily QA & Agentic Review — 2026-10-01 [\#1299](https://github.com/abhimehro/ctrld-sync/issues/1299)
 - Daily QA & Agentic Review — 2026-09-30 [\#1298](https://github.com/abhimehro/ctrld-sync/issues/1298)
@@ -124,6 +127,9 @@
 
 **Merged pull requests:**
 
+- docs\(repo-health\): match README pins and bandit command [\#1310](https://github.com/abhimehro/ctrld-sync/pull/1310) ([cursor[bot]](https://github.com/apps/cursor))
+- chore\(deps\): bump ruff from 0.16.8 to 0.16.9 [\#1307](https://github.com/abhimehro/ctrld-sync/pull/1307) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump pytest-mock from 3.15.1 to 3.16.0 [\#1306](https://github.com/abhimehro/ctrld-sync/pull/1306) ([dependabot[bot]](https://github.com/apps/dependabot))
 - Add macOS block to repo blueprint [\#1305](https://github.com/abhimehro/ctrld-sync/pull/1305) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump ruby/setup-ruby from 1.324.0 to 1.327.0 [\#1301](https://github.com/abhimehro/ctrld-sync/pull/1301) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump codescene-oss/pr-refactoring-agent from 1.1.3 to 1.1.4 [\#1300](https://github.com/abhimehro/ctrld-sync/pull/1300) ([dependabot[bot]](https://github.com/apps/dependabot))
