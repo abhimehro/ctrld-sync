@@ -131,6 +131,7 @@
 
 **Merged pull requests:**
 
+- chore\(deps\): bump python-dotenv from 1.2.3 to 1.2.4 [\#1327](https://github.com/abhimehro/ctrld-sync/pull/1327) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump ruff from 0.16.9 to 0.16.10 [\#1326](https://github.com/abhimehro/ctrld-sync/pull/1326) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump mypy from 2.3.1 to 2.4.0 [\#1325](https://github.com/abhimehro/ctrld-sync/pull/1325) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump virtualenv from 21.1.0 to 21.7.13 in the uv group across 1 directory [\#1314](https://github.com/abhimehro/ctrld-sync/pull/1314) ([dependabot[bot]](https://github.com/apps/dependabot))
