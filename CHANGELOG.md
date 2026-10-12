@@ -15,6 +15,9 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-10-11 [\#1330](https://github.com/abhimehro/ctrld-sync/issues/1330)
+- Daily QA & Agentic Review — 2026-10-10 [\#1328](https://github.com/abhimehro/ctrld-sync/issues/1328)
+- Daily QA & Agentic Review — 2026-10-09 [\#1324](https://github.com/abhimehro/ctrld-sync/issues/1324)
 - Daily QA & Agentic Review — 2026-10-04 [\#1311](https://github.com/abhimehro/ctrld-sync/issues/1311)
 - Daily QA & Agentic Review — 2026-10-03 [\#1308](https://github.com/abhimehro/ctrld-sync/issues/1308)
 - Daily QA & Agentic Review — 2026-10-02 [\#1304](https://github.com/abhimehro/ctrld-sync/issues/1304)
@@ -82,6 +85,7 @@
 - Daily QA & Agentic Review — 2026-08-02 [\#1112](https://github.com/abhimehro/ctrld-sync/issues/1112)
 - \[repo-automation\] Weekly Retrospective - 2026-08-02 [\#1110](https://github.com/abhimehro/ctrld-sync/issues/1110)
 - Daily QA & Agentic Review — 2026-08-01 [\#1106](https://github.com/abhimehro/ctrld-sync/issues/1106)
+- \[repo-health\] Phase E: Final verification — confirm CodeScene gates pass after the sync/ and display/ package splits [\#1103](https://github.com/abhimehro/ctrld-sync/issues/1103)
 - \[repo-health\] Split display.py by responsibility if CodeScene still requires it [\#1102](https://github.com/abhimehro/ctrld-sync/issues/1102)
 - \[repo-health\] Split sync.py into focused modules after function-level refactors [\#1101](https://github.com/abhimehro/ctrld-sync/issues/1101)
 - \[repo-health\] Refactor sync.py folder preparation and polling flow [\#1100](https://github.com/abhimehro/ctrld-sync/issues/1100)
@@ -127,6 +131,9 @@
 
 **Merged pull requests:**
 
+- chore\(deps\): bump ruff from 0.16.9 to 0.16.10 [\#1326](https://github.com/abhimehro/ctrld-sync/pull/1326) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump mypy from 2.3.1 to 2.4.0 [\#1325](https://github.com/abhimehro/ctrld-sync/pull/1325) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump virtualenv from 21.1.0 to 21.7.13 in the uv group across 1 directory [\#1314](https://github.com/abhimehro/ctrld-sync/pull/1314) ([dependabot[bot]](https://github.com/apps/dependabot))
 - docs\(repo-health\): match README pins and bandit command [\#1310](https://github.com/abhimehro/ctrld-sync/pull/1310) ([cursor[bot]](https://github.com/apps/cursor))
 - chore\(deps\): bump ruff from 0.16.8 to 0.16.9 [\#1307](https://github.com/abhimehro/ctrld-sync/pull/1307) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump pytest-mock from 3.15.1 to 3.16.0 [\#1306](https://github.com/abhimehro/ctrld-sync/pull/1306) ([dependabot[bot]](https://github.com/apps/dependabot))
