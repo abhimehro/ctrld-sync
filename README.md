@@ -345,7 +345,7 @@ When updating dependencies:
    [project]
    dependencies = [
        "httpx==0.28.1",
-       "python-dotenv==1.2.3",
+       "python-dotenv==1.2.4",
        "pyyaml==6.0.3",
    ]
    ```
