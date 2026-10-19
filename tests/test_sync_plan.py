@@ -17,7 +17,9 @@ def test_fetch_all_folder_data_revalidates_warmed_cache(monkeypatch, caplog):
 
     with (
         patch.object(
-            gh_client._gh, "stream", side_effect=AssertionError("Unexpected network access")
+            gh_client._gh,
+            "stream",
+            side_effect=AssertionError("Unexpected network access"),
         ) as mock_stream,
         patch.object(
             gh_client, "validate_folder_data", wraps=gh_client.validate_folder_data
