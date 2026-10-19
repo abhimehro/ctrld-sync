@@ -34,16 +34,6 @@ class _BatchTarget:
     str_group: str
     progress_label: str
 
-
-@dataclass(frozen=True, slots=True)
-class PushRulesParams:
-    """Encapsulates parameters for the push_rules function."""
-
-    folder_name: str
-    folder_id: str
-    action: RuleAction
-    hostnames: list[str]
-
     @classmethod
     def from_parts(
         cls,
@@ -329,7 +319,10 @@ def _push_rule_batches(
 
 def push_rules(
     ctx: SyncContext,
-    params: PushRulesParams,
+    folder_name: str,
+    folder_id: str,
+    action: RuleAction,
+    hostnames: list[str],
 ) -> bool:
     """
     Pushes rules to a folder in batches, filtering duplicates and invalid rules.
@@ -338,19 +331,19 @@ def push_rules(
     in parallel for optimal performance. Updates ctx.existing_rules set with newly
     added rules. Returns True if all batches succeed.
     """
-    if not params.hostnames:
-        sync.log.info("Folder %s - no rules to push", sanitize_for_log(params.folder_name))
+    if not hostnames:
+        sync.log.info("Folder %s - no rules to push", sanitize_for_log(folder_name))
         return True
 
     filtered_hostnames = _filter_rules_for_folder(
-        ctx.existing_rules, params.hostnames, params.folder_name
+        ctx.existing_rules, hostnames, folder_name
     )
 
     if not filtered_hostnames:
         sync.log.info(
-            f"Folder {sanitize_for_log(params.folder_name)} - no new rules to push after filtering duplicates"
+            f"Folder {sanitize_for_log(folder_name)} - no new rules to push after filtering duplicates"
         )
         return True
 
-    target = _BatchTarget.from_parts(ctx.profile_id, params.folder_name, params.folder_id, params.action)
+    target = _BatchTarget.from_parts(ctx.profile_id, folder_name, folder_id, action)
     return _push_rule_batches(ctx, target, filtered_hostnames)
