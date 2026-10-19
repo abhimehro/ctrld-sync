@@ -84,7 +84,7 @@ def test_all_rules_rejected_fails_the_batch():
 
     with (
         patch("sync._api_post_form", side_effect=_make_http_status_error(400)),
-        patch("time.sleep"),
+        patch("time.sleep") as mock_sleep,
         patch("sync.log") as mock_log,
         patch("sync.USE_COLORS", False),
     ):
@@ -93,6 +93,8 @@ def test_all_rules_rejected_fails_the_batch():
     assert result is False
     assert ctx.existing_rules == set()
     assert "dropping rule" in str(mock_log.warning.call_args_list)
+    # Gitar feedback: retry + sleep only at the top level — sub-chunks POST once.
+    assert mock_sleep.call_count == 1
 
 
 def test_non_400_error_keeps_existing_failure_behavior():

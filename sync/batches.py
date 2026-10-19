@@ -105,54 +105,94 @@ def _post_rules_chunk(
     )
 
 
-def _post_chunk_with_400_recovery(
+def _post_chunk_once(
     client: httpx.Client,
     target: _BatchTarget,
-    chunk_idx: int,
     chunk: list[str],
-) -> list[str]:
-    """POST *chunk* of hostnames, recovering from HTTP 400 rejections.
-
-    The Control D rules API intermittently rejects an otherwise-valid batch
-    push with 400. Recovery: one same-payload retry (transient rejections),
-    then bisection down to single-rule POSTs so one rejected hostname only
-    drops itself. Returns the hostnames the API accepted; any other error
-    propagates to the caller's handler.
-    """
+) -> bool:
+    """POST *chunk* once; return False on a 400 rejection, True otherwise."""
     try:
         _post_rules_chunk(client, target, chunk)
-        return chunk
-    except httpx.HTTPStatusError as e:
-        if e.response.status_code != 400:
+        return True
+    except httpx.HTTPStatusError as err:
+        if err.response.status_code != 400:
             raise
+        return False
 
+
+def _log_400_retry_notice(target: _BatchTarget, chunk_idx: int) -> None:
+    """Log the same-payload retry of a 400-rejected chunk."""
     sync.log.warning(
         "Folder %s – batch %d: rules API returned 400; retrying in %.1fs",
         target.sanitized_name,
         chunk_idx,
         _400_RETRY_DELAY_S,
     )
-    time.sleep(_400_RETRY_DELAY_S)
-    try:
-        _post_rules_chunk(client, target, chunk)
+
+
+def _retry_chunk_once(
+    client: httpx.Client,
+    target: _BatchTarget,
+    chunk_idx: int,
+    chunk: list[str],
+) -> bool:
+    """Wait briefly, then retry a 400-rejected chunk once (transient case)."""
+    _log_400_retry_notice(target, chunk_idx)
+    # Intentional: brief grace period before retrying a transient 400.
+    time.sleep(_400_RETRY_DELAY_S)  # nosemgrep
+    return _post_chunk_once(client, target, chunk)
+
+
+def _log_dropped_rule(target: _BatchTarget, chunk_idx: int, rule: str) -> None:
+    """Log a single rule rejected by the rules API with 400."""
+    sync.log.warning(
+        "Folder %s – batch %d: dropping rule rejected by the rules API (400): %s",
+        target.sanitized_name,
+        chunk_idx,
+        sanitize_for_log(rule),
+    )
+
+
+def _bisect_400_rejections(
+    client: httpx.Client,
+    target: _BatchTarget,
+    chunk_idx: int,
+    chunk: list[str],
+) -> list[str]:
+    """Bisect a 400-rejected chunk down to single-rule POSTs; drop rejects."""
+    if not chunk:
+        return []
+
+    if _post_chunk_once(client, target, chunk):
         return chunk
-    except httpx.HTTPStatusError as e:
-        if e.response.status_code != 400:
-            raise
 
     if len(chunk) == 1:
-        sync.log.warning(
-            "Folder %s – batch %d: dropping rule rejected by the rules API (400): %s",
-            target.sanitized_name,
-            chunk_idx,
-            sanitize_for_log(chunk[0]),
-        )
+        _log_dropped_rule(target, chunk_idx, chunk[0])
         return []
 
     mid = len(chunk) // 2
-    accepted = _post_chunk_with_400_recovery(client, target, chunk_idx, chunk[:mid])
-    accepted += _post_chunk_with_400_recovery(client, target, chunk_idx, chunk[mid:])
+    accepted = _bisect_400_rejections(client, target, chunk_idx, chunk[:mid])
+    accepted += _bisect_400_rejections(client, target, chunk_idx, chunk[mid:])
     return accepted
+
+
+def _post_chunk_with_400_recovery(
+    client: httpx.Client,
+    target: _BatchTarget,
+    chunk_idx: int,
+    chunk: list[str],
+) -> list[str]:
+    """POST *chunk*, recovering from 400s via one retry, then bisection."""
+    if not chunk:
+        return []
+
+    if _post_chunk_once(client, target, chunk):
+        return chunk
+
+    if _retry_chunk_once(client, target, chunk_idx, chunk):
+        return chunk
+
+    return _bisect_400_rejections(client, target, chunk_idx, chunk)
 
 
 def _log_push_failure(
@@ -176,35 +216,22 @@ def _log_push_failure(
 def _log_push_success(
     target: _BatchTarget, batch_idx: int, accepted: list[str], batch_data: list[str]
 ) -> list[str] | None:
-    """Log a successful batch push and handle partial acceptance."""
+    """Log a successful batch push; return None when nothing was accepted."""
     if len(accepted) < len(batch_data):
         _clear_current_line()
         if accepted:
             sync.log.warning(
-                "Folder %s – batch %d: recovered from 400 rejection, pushed %d/%d %s",
-                target.sanitized_name,
-                batch_idx,
-                len(accepted),
-                len(batch_data),
-                pluralize(len(accepted), "rule"),
+                f"Folder {target.sanitized_name} – batch {batch_idx}: recovered from 400 rejection, pushed {len(accepted)}/{len(batch_data)} rules"
             )
         else:
             sync.log.error(
-                "Folder %s – batch %d: 0/%d %s accepted (all rejected with 400)",
-                target.sanitized_name,
-                batch_idx,
-                len(batch_data),
-                pluralize(len(batch_data), "rule"),
+                f"Folder {target.sanitized_name} – batch {batch_idx}: 0/{len(batch_data)} rules accepted (all rejected with 400)"
             )
             return None
 
     if not sync.USE_COLORS:
         sync.log.info(
-            "Folder %s – batch %d: added %d %s",
-            target.sanitized_name,
-            batch_idx,
-            len(accepted),
-            pluralize(len(accepted), "rule"),
+            f"Folder {target.sanitized_name} – batch {batch_idx}: added {len(accepted)} {pluralize(len(accepted), 'rule')}"
         )
     return accepted
 
@@ -215,7 +242,8 @@ def _push_single_batch(
     batch_idx: int,
     batch_data: list[str],
 ) -> list[str] | None:
-    """Process a single batch of rules by sending an API request.
+    """
+    Process a single batch of rules by sending an API request.
 
     A 400-rejected push is recovered by _post_chunk_with_400_recovery (retry,
     then per-rule isolation); any other HTTP error is logged and fails the
@@ -223,8 +251,8 @@ def _push_single_batch(
     """
     try:
         accepted = _post_chunk_with_400_recovery(client, target, batch_idx, batch_data)
-    except httpx.HTTPError as e:
-        _log_push_failure(target, batch_idx, e)
+    except httpx.HTTPError as err:
+        _log_push_failure(target, batch_idx, err)
         return None
 
     return _log_push_success(target, batch_idx, accepted, batch_data)
@@ -259,12 +287,18 @@ def _log_batch_result(
     successful_batches: int,
     total_batches: int,
     total_rules: int,
+    accepted_rules: int,
 ) -> bool:
     """Helper to evaluate and log the result of a batch rule push."""
     if successful_batches == total_batches:
-        _print_completion(
-            f"Folder {target.sanitized_name}: Finished ({total_rules:,} {pluralize(total_rules, 'rule')})"
-        )
+        if accepted_rules < total_rules:
+            _print_completion(
+                f"Folder {target.sanitized_name}: Finished ({accepted_rules:,}/{total_rules:,} rules)"
+            )
+        else:
+            _print_completion(
+                f"Folder {target.sanitized_name}: Finished ({total_rules:,} {pluralize(total_rules, 'rule')})"
+            )
         return True
 
     _clear_current_line()
@@ -301,6 +335,7 @@ def _push_rule_batches(
     ]
     total_batches = len(batches)
 
+    accepted_before = len(ctx.existing_rules)
     if total_batches == 1:
         successful_batches = _run_single_batch(ctx, target, batches[0])
     else:
@@ -309,11 +344,13 @@ def _push_rule_batches(
                 executor, ctx, target, batches
             )
 
+    accepted_rules = len(ctx.existing_rules) - accepted_before
     return _log_batch_result(
         target,
         successful_batches,
         total_batches,
         len(filtered_hostnames),
+        accepted_rules,
     )
 
 
