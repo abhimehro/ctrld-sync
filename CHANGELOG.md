@@ -139,6 +139,7 @@
 
 **Merged pull requests:**
 
+- style: ruff formatting updates [\#1344](https://github.com/abhimehro/ctrld-sync/pull/1344) ([kilo-code-bot[bot]](https://github.com/apps/kilo-code-bot))
 - fix\(sync\): recover from intermittent 400s on Control D rule pushes [\#1343](https://github.com/abhimehro/ctrld-sync/pull/1343) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump pre-commit from 4.6.2 to 4.7.0 [\#1341](https://github.com/abhimehro/ctrld-sync/pull/1341) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump ruff from 0.16.10 to 0.17.0 [\#1340](https://github.com/abhimehro/ctrld-sync/pull/1340) ([dependabot[bot]](https://github.com/apps/dependabot))
