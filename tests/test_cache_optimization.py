@@ -79,7 +79,9 @@ class TestCacheOptimization(unittest.TestCase):
         self.assertNotIn(test_url, main._cache)
 
         with (
-            patch("sync.plan.sync.validate_folder_url", return_value=True) as mock_validate,
+            patch(
+                "sync.plan.sync.validate_folder_url", return_value=True
+            ) as mock_validate,
             patch("sync.plan.fetch_folder_data", return_value=test_data) as mock_fetch,
         ):
             result = sync.plan._fetch_all_folder_data([test_url])
@@ -190,7 +192,9 @@ class TestCacheOptimization(unittest.TestCase):
         with (
             patch("sync.validate_folder_url") as mock_validate,
             patch("sync.plan.fetch_folder_data") as mock_fetch,
-            patch("sync.plan.validate_folder_data", wraps=validate_folder_data) as mock_validate_folder_data,
+            patch(
+                "sync.plan.validate_folder_data", wraps=validate_folder_data
+            ) as mock_validate_folder_data,
         ):
             result = _fetch_all_folder_data([test_url])
 
@@ -205,22 +209,33 @@ class TestCacheOptimization(unittest.TestCase):
         """Invalid warm-up cache entries are evicted and fetched again."""
         test_url = "https://example.com/invalid.json"
         invalid_data = {"group": {"group": "<script>"}}
+        valid_data = {
+            "group": {"group": "Test Folder"},
+            "rules": [{"PK": "example.com"}],
+        }
 
         with main._cache_lock:
             main._cache[test_url] = invalid_data
+        main._disk_cache[test_url] = {
+            "data": invalid_data,
+            "fetched_at": 0,
+            "last_validated": 0,
+        }
 
         from sync.plan import _fetch_all_folder_data
 
         with (
             patch("sync.validate_folder_url") as mock_validate,
-            patch("sync.plan.fetch_folder_data") as mock_fetch,
+            patch("sync.plan.fetch_folder_data", return_value=valid_data) as mock_fetch,
         ):
-            _fetch_all_folder_data([test_url])
+            result = _fetch_all_folder_data([test_url])
 
         with main._cache_lock:
             self.assertNotIn(test_url, main._cache)
+        self.assertNotIn(test_url, main._disk_cache)
         mock_validate.assert_called_once_with(test_url)
         mock_fetch.assert_called_once_with(test_url)
+        self.assertEqual(result, [valid_data])
 
     def test_gh_get_thread_safety(self):
         """

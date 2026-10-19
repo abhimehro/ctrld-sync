@@ -9,7 +9,7 @@ import httpx
 
 import sync
 from display import Colors
-from gh_client import fetch_folder_data
+from gh_client import evict_cached_folder, fetch_folder_data, get_cached_folder
 from models import FolderData, PlanEntry
 from validation import sanitize_for_log, validate_folder_data
 
@@ -24,11 +24,13 @@ def _fetch_all_folder_data(folder_urls: Sequence[str]) -> list[FolderData] | Non
         # A cache hit can skip URL/DNS validation, but its untrusted payload still
         # needs schema validation: warm_up_cache stores parsed JSON before the
         # normal fetch_folder_data validation boundary.
-        with sync._cache_lock:
-            if (cached := sync._cache.get(url)) is not None:
-                if validate_folder_data(cached, url):
-                    return cached
-                sync._cache.pop(url, None)
+        if (cached := get_cached_folder(url)) is not None:
+            if validate_folder_data(cached, url):
+                return cached
+            # Evict from both memory and disk caches so the fall-through
+            # re-fetch actually hits the network instead of re-serving the
+            # same invalid payload from the 24h disk TTL.
+            evict_cached_folder(url)
 
         if sync.validate_folder_url(url):
             # fetch_folder_data performs schema validation even when _gh_get serves

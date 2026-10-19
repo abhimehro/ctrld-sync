@@ -46,6 +46,8 @@ validate_hostname = validation.validate_hostname
 _cache = gh_client._cache
 _cache_lock = gh_client._cache_lock
 fetch_folder_data = gh_client.fetch_folder_data
+get_cached_folder = gh_client.get_cached_folder
+evict_cached_folder = gh_client.evict_cached_folder
 
 create_client = sync.client.create_client
 check_api_access = sync.client.check_api_access

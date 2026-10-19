@@ -148,6 +148,28 @@ def _get_memory_cached(url: str) -> dict | None:
     return None
 
 
+def get_cached_folder(url: str) -> dict | None:
+    """Return the in-memory cached folder data for a URL, or None if absent.
+
+    Thread-safe read that does not increment hit counters (used by sync
+    planning to check warm-cache entries without affecting stats).
+    """
+    with _cache_lock:
+        return _cache.get(url)
+
+
+def evict_cached_folder(url: str) -> None:
+    """Evict a URL from both the in-memory and disk caches.
+
+    Thread-safe eviction used when a cached payload fails schema validation
+    so the fall-through re-fetch actually hits the network instead of
+    re-serving the same invalid payload from the 24h disk TTL.
+    """
+    with _cache_lock:
+        _cache.pop(url, None)
+    _disk_cache.pop(url, None)
+
+
 def _count_blocklist_fetch() -> None:
     """Increment the blocklist fetch counter before issuing a request."""
     with _cache_lock:
@@ -361,6 +383,8 @@ __all__ = [
     "_cache_lock",
     "_gh_get",
     "fetch_folder_data",
+    "get_cached_folder",
+    "evict_cached_folder",
     "_validate_and_fetch_url",
     "warm_up_cache",
     "_parse_and_cache_response",
