@@ -192,7 +192,14 @@ def _post_chunk_with_400_recovery(
     if _retry_chunk_once(client, target, chunk_idx, chunk):
         return chunk
 
-    return _bisect_400_rejections(client, target, chunk_idx, chunk)
+    if len(chunk) == 1:
+        _log_dropped_rule(target, chunk_idx, chunk[0])
+        return []
+
+    mid = len(chunk) // 2
+    accepted = _bisect_400_rejections(client, target, chunk_idx, chunk[:mid])
+    accepted += _bisect_400_rejections(client, target, chunk_idx, chunk[mid:])
+    return accepted
 
 
 def _log_push_failure(
@@ -218,21 +225,23 @@ def _log_partial_recovery(
 ) -> None:
     """Log a batch partially accepted after 400-recovery dropped rules."""
     sync.log.warning(
-        "Folder %s – batch %d: recovered from 400 rejection, pushed %d/%d rules",
+        "Folder %s – batch %d: recovered from 400 rejection, pushed %d/%d %s",
         target.sanitized_name,
         batch_idx,
         len(accepted),
         total,
+        pluralize(total, "rule"),
     )
 
 
 def _log_zero_accepted(target: _BatchTarget, batch_idx: int, total: int) -> None:
     """Log a batch where every rule was rejected with 400."""
     sync.log.error(
-        "Folder %s – batch %d: 0/%d rules accepted (all rejected with 400)",
+        "Folder %s – batch %d: 0/%d %s accepted (all rejected with 400)",
         target.sanitized_name,
         batch_idx,
         total,
+        pluralize(total, "rule"),
     )
 
 
@@ -316,7 +325,7 @@ def _log_batch_result(
     if successful_batches == total_batches:
         if accepted_rules < total_rules:
             _print_completion(
-                f"Folder {target.sanitized_name}: Finished ({accepted_rules:,}/{total_rules:,} rules)"
+                f"Folder {target.sanitized_name}: Finished ({accepted_rules:,}/{total_rules:,} {pluralize(total_rules, 'rule')})"
             )
         else:
             _print_completion(
