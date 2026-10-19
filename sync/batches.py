@@ -213,6 +213,29 @@ def _log_push_failure(
         sync.log.debug(f"Response content: {sanitize_for_log(response.text)}")
 
 
+def _log_partial_recovery(
+    target: _BatchTarget, batch_idx: int, accepted: list[str], total: int
+) -> None:
+    """Log a batch partially accepted after 400-recovery dropped rules."""
+    sync.log.warning(
+        "Folder %s – batch %d: recovered from 400 rejection, pushed %d/%d rules",
+        target.sanitized_name,
+        batch_idx,
+        len(accepted),
+        total,
+    )
+
+
+def _log_zero_accepted(target: _BatchTarget, batch_idx: int, total: int) -> None:
+    """Log a batch where every rule was rejected with 400."""
+    sync.log.error(
+        "Folder %s – batch %d: 0/%d rules accepted (all rejected with 400)",
+        target.sanitized_name,
+        batch_idx,
+        total,
+    )
+
+
 def _log_push_success(
     target: _BatchTarget, batch_idx: int, accepted: list[str], batch_data: list[str]
 ) -> list[str] | None:
@@ -220,18 +243,18 @@ def _log_push_success(
     if len(accepted) < len(batch_data):
         _clear_current_line()
         if accepted:
-            sync.log.warning(
-                f"Folder {target.sanitized_name} – batch {batch_idx}: recovered from 400 rejection, pushed {len(accepted)}/{len(batch_data)} rules"
-            )
+            _log_partial_recovery(target, batch_idx, accepted, len(batch_data))
         else:
-            sync.log.error(
-                f"Folder {target.sanitized_name} – batch {batch_idx}: 0/{len(batch_data)} rules accepted (all rejected with 400)"
-            )
+            _log_zero_accepted(target, batch_idx, len(batch_data))
             return None
 
     if not sync.USE_COLORS:
         sync.log.info(
-            f"Folder {target.sanitized_name} – batch {batch_idx}: added {len(accepted)} {pluralize(len(accepted), 'rule')}"
+            "Folder %s – batch %d: added %d %s",
+            target.sanitized_name,
+            batch_idx,
+            len(accepted),
+            pluralize(len(accepted), "rule"),
         )
     return accepted
 

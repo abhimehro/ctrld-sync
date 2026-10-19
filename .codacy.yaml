@@ -1,5 +1,0 @@
-# Codacy configuration.
-# Generated planning artifacts are documentation, not analyzed source:
-# their long yaml-fence lines trip markdownlint MD013 without adding signal.
-exclude_paths:
-  - docs/plans/**
