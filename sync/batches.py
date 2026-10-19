@@ -153,27 +153,38 @@ def _log_dropped_rule(target: _BatchTarget, chunk_idx: int, rule: str) -> None:
     )
 
 
-def _bisect_400_rejections(
+def _split_400_rejections(
     client: httpx.Client,
     target: _BatchTarget,
     chunk_idx: int,
     chunk: list[str],
 ) -> list[str]:
-    """Bisect a 400-rejected chunk down to single-rule POSTs; drop rejects."""
-    if not chunk:
-        return []
-
-    if _post_chunk_once(client, target, chunk):
-        return chunk
-
-    if len(chunk) == 1:
-        _log_dropped_rule(target, chunk_idx, chunk[0])
+    """Split a rejected chunk and bisect each half; drop single rejects."""
+    if len(chunk) <= 1:
+        if chunk:
+            _log_dropped_rule(target, chunk_idx, chunk[0])
         return []
 
     mid = len(chunk) // 2
     accepted = _bisect_400_rejections(client, target, chunk_idx, chunk[:mid])
     accepted += _bisect_400_rejections(client, target, chunk_idx, chunk[mid:])
     return accepted
+
+
+def _bisect_400_rejections(
+    client: httpx.Client,
+    target: _BatchTarget,
+    chunk_idx: int,
+    chunk: list[str],
+) -> list[str]:
+    """POST a sub-chunk once; on a 400, split further until single rules."""
+    if not chunk:
+        return []
+
+    if _post_chunk_once(client, target, chunk):
+        return chunk
+
+    return _split_400_rejections(client, target, chunk_idx, chunk)
 
 
 def _post_chunk_with_400_recovery(
@@ -192,14 +203,7 @@ def _post_chunk_with_400_recovery(
     if _retry_chunk_once(client, target, chunk_idx, chunk):
         return chunk
 
-    if len(chunk) == 1:
-        _log_dropped_rule(target, chunk_idx, chunk[0])
-        return []
-
-    mid = len(chunk) // 2
-    accepted = _bisect_400_rejections(client, target, chunk_idx, chunk[:mid])
-    accepted += _bisect_400_rejections(client, target, chunk_idx, chunk[mid:])
-    return accepted
+    return _split_400_rejections(client, target, chunk_idx, chunk)
 
 
 def _log_push_failure(
@@ -324,9 +328,8 @@ def _log_batch_result(
     """Helper to evaluate and log the result of a batch rule push."""
     if successful_batches == total_batches:
         if accepted_rules < total_rules:
-            _print_completion(
-                f"Folder {target.sanitized_name}: Finished ({accepted_rules:,}/{total_rules:,} {pluralize(total_rules, 'rule')})"
-            )
+            summary = f"Finished ({accepted_rules:,}/{total_rules:,} {pluralize(total_rules, 'rule')})"
+            _print_completion(f"Folder {target.sanitized_name}: {summary}")
         else:
             _print_completion(
                 f"Folder {target.sanitized_name}: Finished ({total_rules:,} {pluralize(total_rules, 'rule')})"
