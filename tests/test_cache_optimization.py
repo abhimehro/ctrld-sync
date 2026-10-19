@@ -18,6 +18,7 @@ from unittest.mock import MagicMock, patch
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import main
+import sync
 
 
 class TestCacheOptimization(unittest.TestCase):
@@ -38,11 +39,8 @@ class TestCacheOptimization(unittest.TestCase):
         main.validate_folder_url.cache_clear()
         main.validate_hostname.cache_clear()
 
-    def test_cached_url_skips_validation(self):
-        """
-        Test that when a URL is in the cache, validate_folder_url is not called.
-        This verifies the cache optimization is working correctly.
-        """
+    def test_cached_url_avoids_network_but_validates_schema(self):
+        """A memory-cache hit must still pass folder-data validation."""
         test_url = "https://example.com/test.json"
         test_data = {"group": {"group": "Test Folder"}, "domains": ["example.com"]}
 
@@ -50,20 +48,24 @@ class TestCacheOptimization(unittest.TestCase):
         with main._cache_lock:
             main._cache[test_url] = test_data
 
-        with patch("main.validate_folder_url") as mock_validate:
-            # This should return data from cache without calling validate_folder_url
+        with (
+            patch("gh_client._gh.stream") as mock_stream,
+            patch(
+                "gh_client.validate_folder_data", wraps=main.validate_folder_data
+            ) as mock_validate_data,
+        ):
             result = main.fetch_folder_data(test_url)
 
-            # Verify validation was NOT called because URL is cached
-            mock_validate.assert_not_called()
-            self.assertEqual(result, test_data)
+        mock_stream.assert_not_called()
+        mock_validate_data.assert_called_once_with(test_data, test_url)
+        self.assertEqual(result, test_data)
 
     def test_non_cached_url_calls_validation(self):
         """
         Test that when a URL is NOT in the cache during sync_profile,
         validate_folder_url is called before fetching.
-        This test simulates the _fetch_if_valid behavior where validation
-        is required for non-cached URLs.
+        This exercises the _fetch_if_valid behavior where validation is
+        required for non-cached URLs.
         """
         test_url = "https://example.com/test.json"
         from main import FolderData
@@ -76,20 +78,15 @@ class TestCacheOptimization(unittest.TestCase):
         # Ensure URL is NOT in cache
         self.assertNotIn(test_url, main._cache)
 
-        with patch("main.validate_folder_url", return_value=True) as mock_validate:
-            with patch("gh_client._gh_get", return_value=test_data):
-                # Simulate the _fetch_if_valid logic for non-cached URLs
-                with main._cache_lock:
-                    url_in_cache = test_url in main._cache
+        with (
+            patch("sync.plan.sync.validate_folder_url", return_value=True) as mock_validate,
+            patch("sync.plan.fetch_folder_data", return_value=test_data) as mock_fetch,
+        ):
+            result = sync.plan._fetch_all_folder_data([test_url])
 
-                result = None
-                # For non-cached URLs, validate first
-                if not url_in_cache and main.validate_folder_url(test_url):
-                    result = main.fetch_folder_data(test_url)
-
-                # Verify validation WAS called for non-cached URL
-                mock_validate.assert_called_once_with(test_url)
-                self.assertEqual(result, test_data)
+        mock_validate.assert_called_once_with(test_url)
+        mock_fetch.assert_called_once_with(test_url)
+        self.assertEqual(result, [test_data])
 
     def test_cache_thread_safety_concurrent_reads(self):
         """

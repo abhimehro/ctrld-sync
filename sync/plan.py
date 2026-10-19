@@ -31,6 +31,8 @@ def _fetch_all_folder_data(folder_urls: Sequence[str]) -> list[FolderData] | Non
                 sync._cache.pop(url, None)  # pylint: disable=protected-access
 
         if sync.validate_folder_url(url):
+            # fetch_folder_data performs schema validation even when _gh_get serves
+            # the response from the cache populated by warm_up_cache.
             # Tests patch sync.plan.fetch_folder_data via this module attribute.
             return fetch_folder_data(url)
         return None
