@@ -5,6 +5,7 @@ from __future__ import annotations
 import concurrent.futures
 import contextlib
 import logging
+import time
 from dataclasses import dataclass
 
 import httpx
@@ -79,35 +80,95 @@ def _run_single_batch(
     return successful_batches
 
 
-def _push_single_batch(
+_400_RETRY_DELAY_S = (
+    2.0  # brief wait before the same-payload retry of a 400-rejected push
+)
+
+
+def _post_rules_chunk(
     client: httpx.Client,
     target: _BatchTarget,
-    batch_idx: int,
-    batch_data: list[str],
-) -> list[str] | None:
-    """Process a single batch of rules by sending an API request."""
+    chunk: list[str],
+) -> None:
+    """POST one chunk of hostnames to the profile's rules endpoint."""
     data = {
         "do": target.str_do,
         "status": target.str_status,
         "group": target.str_group,
     }
     # Optimization: Use pre-calculated keys and zip for faster dict update
-    # strict=False is intentional: batch_data may be shorter than BATCH_KEYS for final batch
-    data.update(zip(config.BATCH_KEYS, batch_data, strict=False))
+    # strict=False is intentional: chunk may be shorter than BATCH_KEYS (final
+    # batch, or a smaller chunk produced by 400-recovery bisection)
+    data.update(zip(config.BATCH_KEYS, chunk, strict=False))
+    sync._api_post_form(
+        client, f"{config.API_BASE}/{target.profile_id}/rules", data=data
+    )
 
+
+def _post_chunk_with_400_recovery(
+    client: httpx.Client,
+    target: _BatchTarget,
+    chunk_idx: int,
+    chunk: list[str],
+) -> list[str]:
+    """POST *chunk* of hostnames, recovering from HTTP 400 rejections.
+
+    The Control D rules API intermittently rejects an otherwise-valid batch
+    push with 400. Recovery: one same-payload retry (transient rejections),
+    then bisection down to single-rule POSTs so one rejected hostname only
+    drops itself. Returns the hostnames the API accepted; any other error
+    propagates to the caller's handler.
+    """
     try:
-        sync._api_post_form(
-            client, f"{config.API_BASE}/{target.profile_id}/rules", data=data
+        _post_rules_chunk(client, target, chunk)
+        return chunk
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code != 400:
+            raise
+
+    sync.log.warning(
+        "Folder %s – batch %d: rules API returned 400; retrying in %.1fs",
+        target.sanitized_name,
+        chunk_idx,
+        _400_RETRY_DELAY_S,
+    )
+    time.sleep(_400_RETRY_DELAY_S)
+    try:
+        _post_rules_chunk(client, target, chunk)
+        return chunk
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code != 400:
+            raise
+
+    if len(chunk) == 1:
+        sync.log.warning(
+            "Folder %s – batch %d: dropping rule rejected by the rules API (400): %s",
+            target.sanitized_name,
+            chunk_idx,
+            sanitize_for_log(chunk[0]),
         )
-        if not sync.USE_COLORS:
-            sync.log.info(
-                "Folder %s – batch %d: added %d %s",
-                target.sanitized_name,
-                batch_idx,
-                len(batch_data),
-                pluralize(len(batch_data), "rule"),
-            )
-        return batch_data
+        return []
+
+    mid = len(chunk) // 2
+    accepted = _post_chunk_with_400_recovery(client, target, chunk_idx, chunk[:mid])
+    accepted += _post_chunk_with_400_recovery(client, target, chunk_idx, chunk[mid:])
+    return accepted
+
+
+def _push_single_batch(
+    client: httpx.Client,
+    target: _BatchTarget,
+    batch_idx: int,
+    batch_data: list[str],
+) -> list[str] | None:
+    """Process a single batch of rules by sending an API request.
+
+    A 400-rejected push is recovered by _post_chunk_with_400_recovery (retry,
+    then per-rule isolation); any other HTTP error is logged and fails the
+    batch.
+    """
+    try:
+        accepted = _post_chunk_with_400_recovery(client, target, batch_idx, batch_data)
     except httpx.HTTPError as e:
         _clear_current_line()
         hint = ""
@@ -122,6 +183,37 @@ def _push_single_batch(
         if response is not None and sync.log.isEnabledFor(logging.DEBUG):
             sync.log.debug(f"Response content: {sanitize_for_log(response.text)}")
         return None
+
+    if len(accepted) < len(batch_data):
+        _clear_current_line()
+        if accepted:
+            sync.log.warning(
+                "Folder %s – batch %d: recovered from 400 rejection, pushed %d/%d %s",
+                target.sanitized_name,
+                batch_idx,
+                len(accepted),
+                len(batch_data),
+                pluralize(len(accepted), "rule"),
+            )
+        else:
+            sync.log.error(
+                "Folder %s – batch %d: 0/%d %s accepted (all rejected with 400)",
+                target.sanitized_name,
+                batch_idx,
+                len(batch_data),
+                pluralize(len(batch_data), "rule"),
+            )
+            return None
+
+    if not sync.USE_COLORS:
+        sync.log.info(
+            "Folder %s – batch %d: added %d %s",
+            target.sanitized_name,
+            batch_idx,
+            len(accepted),
+            pluralize(len(accepted), "rule"),
+        )
+    return accepted
 
 
 def _process_batches_with_executor(

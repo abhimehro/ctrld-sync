@@ -58,8 +58,10 @@ def test_push_rules_sanitizes_token_in_debug_logs(caplog):
     mock_client = MagicMock(spec=httpx.Client)
 
     # Let's mock client.post to raise error
+    # 401 (not 400): 400s now take the 400-recovery path; the debug-log
+    # redaction under test is shared by all non-400 status errors.
     error_text = f"Bad Rule with token {sensitive_token}"
-    mock_client.post.side_effect = create_mock_error(400, error_text)
+    mock_client.post.side_effect = create_mock_error(401, error_text)
 
     # Patch time.sleep to avoid waiting
     with patch("time.sleep"):
