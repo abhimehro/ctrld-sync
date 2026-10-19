@@ -140,6 +140,8 @@
 **Merged pull requests:**
 
 - fix\(sync\): recover from intermittent 400s on Control D rule pushes [\#1343](https://github.com/abhimehro/ctrld-sync/pull/1343) ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump pre-commit from 4.6.2 to 4.7.0 [\#1341](https://github.com/abhimehro/ctrld-sync/pull/1341) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump ruff from 0.16.10 to 0.17.0 [\#1340](https://github.com/abhimehro/ctrld-sync/pull/1340) ([dependabot[bot]](https://github.com/apps/dependabot))
 - docs\(repo-health\): sync README dotenv pin to 1.2.4 [\#1337](https://github.com/abhimehro/ctrld-sync/pull/1337) ([cursor[bot]](https://github.com/apps/cursor))
 - chore\(deps\): bump python-dotenv from 1.2.3 to 1.2.4 [\#1327](https://github.com/abhimehro/ctrld-sync/pull/1327) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump ruff from 0.16.9 to 0.16.10 [\#1326](https://github.com/abhimehro/ctrld-sync/pull/1326) ([dependabot[bot]](https://github.com/apps/dependabot))
