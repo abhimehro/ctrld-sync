@@ -34,6 +34,16 @@ class _BatchTarget:
     str_group: str
     progress_label: str
 
+
+@dataclass(frozen=True, slots=True)
+class PushRulesParams:
+    """Encapsulates parameters for the push_rules function."""
+
+    folder_name: str
+    folder_id: str
+    action: RuleAction
+    hostnames: list[str]
+
     @classmethod
     def from_parts(
         cls,
@@ -155,35 +165,28 @@ def _post_chunk_with_400_recovery(
     return accepted
 
 
-def _push_single_batch(
-    client: httpx.Client,
-    target: _BatchTarget,
-    batch_idx: int,
-    batch_data: list[str],
+def _log_push_failure(
+    target: _BatchTarget, batch_idx: int, error: httpx.HTTPError
+) -> None:
+    """Log a failed batch push with appropriate error details."""
+    _clear_current_line()
+    hint = ""
+    if isinstance(error, httpx.HTTPStatusError):
+        # Use a more specific name to avoid confusion with the rule "status" payload
+        status_code = error.response.status_code
+        hint = f" ({config._STATUS_HINTS.get(status_code, f'HTTP {status_code}')})"
+    sync.log.error(
+        f"Failed to push batch {batch_idx} for folder {target.sanitized_name}{hint}: {sanitize_for_log(error)}"
+    )
+    response = getattr(error, "response", None)
+    if response is not None and sync.log.isEnabledFor(logging.DEBUG):
+        sync.log.debug(f"Response content: {sanitize_for_log(response.text)}")
+
+
+def _log_push_success(
+    target: _BatchTarget, batch_idx: int, accepted: list[str], batch_data: list[str]
 ) -> list[str] | None:
-    """Process a single batch of rules by sending an API request.
-
-    A 400-rejected push is recovered by _post_chunk_with_400_recovery (retry,
-    then per-rule isolation); any other HTTP error is logged and fails the
-    batch.
-    """
-    try:
-        accepted = _post_chunk_with_400_recovery(client, target, batch_idx, batch_data)
-    except httpx.HTTPError as e:
-        _clear_current_line()
-        hint = ""
-        if isinstance(e, httpx.HTTPStatusError):
-            # Use a more specific name to avoid confusion with the rule "status" payload
-            status_code = e.response.status_code
-            hint = f" ({config._STATUS_HINTS.get(status_code, f'HTTP {status_code}')})"
-        sync.log.error(
-            f"Failed to push batch {batch_idx} for folder {target.sanitized_name}{hint}: {sanitize_for_log(e)}"
-        )
-        response = getattr(e, "response", None)
-        if response is not None and sync.log.isEnabledFor(logging.DEBUG):
-            sync.log.debug(f"Response content: {sanitize_for_log(response.text)}")
-        return None
-
+    """Log a successful batch push and handle partial acceptance."""
     if len(accepted) < len(batch_data):
         _clear_current_line()
         if accepted:
@@ -214,6 +217,27 @@ def _push_single_batch(
             pluralize(len(accepted), "rule"),
         )
     return accepted
+
+
+def _push_single_batch(
+    client: httpx.Client,
+    target: _BatchTarget,
+    batch_idx: int,
+    batch_data: list[str],
+) -> list[str] | None:
+    """Process a single batch of rules by sending an API request.
+
+    A 400-rejected push is recovered by _post_chunk_with_400_recovery (retry,
+    then per-rule isolation); any other HTTP error is logged and fails the
+    batch.
+    """
+    try:
+        accepted = _post_chunk_with_400_recovery(client, target, batch_idx, batch_data)
+    except httpx.HTTPError as e:
+        _log_push_failure(target, batch_idx, e)
+        return None
+
+    return _log_push_success(target, batch_idx, accepted, batch_data)
 
 
 def _process_batches_with_executor(
@@ -305,10 +329,7 @@ def _push_rule_batches(
 
 def push_rules(
     ctx: SyncContext,
-    folder_name: str,
-    folder_id: str,
-    action: RuleAction,
-    hostnames: list[str],
+    params: PushRulesParams,
 ) -> bool:
     """
     Pushes rules to a folder in batches, filtering duplicates and invalid rules.
@@ -317,19 +338,19 @@ def push_rules(
     in parallel for optimal performance. Updates ctx.existing_rules set with newly
     added rules. Returns True if all batches succeed.
     """
-    if not hostnames:
-        sync.log.info("Folder %s - no rules to push", sanitize_for_log(folder_name))
+    if not params.hostnames:
+        sync.log.info("Folder %s - no rules to push", sanitize_for_log(params.folder_name))
         return True
 
     filtered_hostnames = _filter_rules_for_folder(
-        ctx.existing_rules, hostnames, folder_name
+        ctx.existing_rules, params.hostnames, params.folder_name
     )
 
     if not filtered_hostnames:
         sync.log.info(
-            f"Folder {sanitize_for_log(folder_name)} - no new rules to push after filtering duplicates"
+            f"Folder {sanitize_for_log(params.folder_name)} - no new rules to push after filtering duplicates"
         )
         return True
 
-    target = _BatchTarget.from_parts(ctx.profile_id, folder_name, folder_id, action)
+    target = _BatchTarget.from_parts(ctx.profile_id, params.folder_name, params.folder_id, params.action)
     return _push_rule_batches(ctx, target, filtered_hostnames)
