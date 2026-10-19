@@ -78,7 +78,9 @@ class TestCacheOptimization(unittest.TestCase):
         self.assertNotIn(test_url, main._cache)
 
         with (
-            patch("sync.plan.sync.validate_folder_url", return_value=True) as mock_validate,
+            patch(
+                "sync.plan.sync.validate_folder_url", return_value=True
+            ) as mock_validate,
             patch("sync.plan.fetch_folder_data", return_value=test_data) as mock_fetch,
         ):
             result = sync.plan._fetch_all_folder_data([test_url])
