@@ -139,6 +139,7 @@
 
 **Merged pull requests:**
 
+- fix\(sync\): recover from intermittent 400s on Control D rule pushes [\#1343](https://github.com/abhimehro/ctrld-sync/pull/1343) ([abhimehro](https://github.com/abhimehro))
 - docs\(repo-health\): sync README dotenv pin to 1.2.4 [\#1337](https://github.com/abhimehro/ctrld-sync/pull/1337) ([cursor[bot]](https://github.com/apps/cursor))
 - chore\(deps\): bump python-dotenv from 1.2.3 to 1.2.4 [\#1327](https://github.com/abhimehro/ctrld-sync/pull/1327) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump ruff from 0.16.9 to 0.16.10 [\#1326](https://github.com/abhimehro/ctrld-sync/pull/1326) ([dependabot[bot]](https://github.com/apps/dependabot))
@@ -152,6 +153,7 @@
 - chore\(deps\): bump codescene-oss/pr-refactoring-agent from 1.1.3 to 1.1.4 [\#1300](https://github.com/abhimehro/ctrld-sync/pull/1300) ([dependabot[bot]](https://github.com/apps/dependabot))
 - salvage\(ctrld\#1269\): unique wrap/lint test remainder vs merged \#1279 \(weekend drain hop3\) [\#1287](https://github.com/abhimehro/ctrld-sync/pull/1287) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump mypy from 1.19.1 to 2.3.1 [\#1283](https://github.com/abhimehro/ctrld-sync/pull/1283) ([dependabot[bot]](https://github.com/apps/dependabot))
+- fix: validate warmed cache entries before sync [\#1281](https://github.com/abhimehro/ctrld-sync/pull/1281) ([coderabbitai[bot]](https://github.com/apps/coderabbitai))
 - fix: count only outbound blocklist requests [\#1279](https://github.com/abhimehro/ctrld-sync/pull/1279) ([coderabbitai[bot]](https://github.com/apps/coderabbitai))
 - fix: reject lookalike blocklist content types [\#1278](https://github.com/abhimehro/ctrld-sync/pull/1278) ([coderabbitai[bot]](https://github.com/apps/coderabbitai))
 - chore\(deps\): bump ruby/setup-ruby from 1.321.0 to 1.324.0 [\#1273](https://github.com/abhimehro/ctrld-sync/pull/1273) ([dependabot[bot]](https://github.com/apps/dependabot))
