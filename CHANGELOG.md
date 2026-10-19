@@ -15,6 +15,12 @@
 
 **Closed issues:**
 
+- \[repo-automation\] Weekly Retrospective - 2026-10-18 [\#1342](https://github.com/abhimehro/ctrld-sync/issues/1342)
+- Daily QA & Agentic Review — 2026-10-16 [\#1339](https://github.com/abhimehro/ctrld-sync/issues/1339)
+- Daily QA & Agentic Review — 2026-10-15 [\#1338](https://github.com/abhimehro/ctrld-sync/issues/1338)
+- Daily QA & Agentic Review — 2026-10-14 [\#1336](https://github.com/abhimehro/ctrld-sync/issues/1336)
+- Daily QA & Agentic Review — 2026-10-13 [\#1335](https://github.com/abhimehro/ctrld-sync/issues/1335)
+- Daily QA & Agentic Review — 2026-10-12 [\#1334](https://github.com/abhimehro/ctrld-sync/issues/1334)
 - Daily QA & Agentic Review — 2026-10-11 [\#1330](https://github.com/abhimehro/ctrld-sync/issues/1330)
 - Daily QA & Agentic Review — 2026-10-10 [\#1328](https://github.com/abhimehro/ctrld-sync/issues/1328)
 - Daily QA & Agentic Review — 2026-10-09 [\#1324](https://github.com/abhimehro/ctrld-sync/issues/1324)
@@ -37,6 +43,7 @@
 - Daily QA & Agentic Review — 2026-09-15 [\#1256](https://github.com/abhimehro/ctrld-sync/issues/1256)
 - Daily QA & Agentic Review — 2026-09-14 [\#1255](https://github.com/abhimehro/ctrld-sync/issues/1255)
 - Daily QA & Agentic Review — 2026-09-13 [\#1254](https://github.com/abhimehro/ctrld-sync/issues/1254)
+- \[repo-automation\] Weekly Retrospective - 2026-09-13 [\#1253](https://github.com/abhimehro/ctrld-sync/issues/1253)
 - Daily QA & Agentic Review — 2026-09-12 [\#1252](https://github.com/abhimehro/ctrld-sync/issues/1252)
 - Daily QA & Agentic Review — 2026-09-11 [\#1249](https://github.com/abhimehro/ctrld-sync/issues/1249)
 - Daily QA & Agentic Review — 2026-09-09 [\#1247](https://github.com/abhimehro/ctrld-sync/issues/1247)
@@ -95,6 +102,7 @@
 - \[repo-health\] Refactor validation.py hot paths and preserve log redaction guarantees [\#1096](https://github.com/abhimehro/ctrld-sync/issues/1096)
 - \[repo-health\] Refactor config.py validation flow without behavior changes [\#1095](https://github.com/abhimehro/ctrld-sync/issues/1095)
 - \[repo-health\] Capture CodeScene baseline and acceptance criteria [\#1094](https://github.com/abhimehro/ctrld-sync/issues/1094)
+- \[repo-health\] Resolve CodeScene code-health gates after main.py extraction [\#1093](https://github.com/abhimehro/ctrld-sync/issues/1093)
 - Daily QA & Agentic Review — 2026-07-30 [\#1084](https://github.com/abhimehro/ctrld-sync/issues/1084)
 - \[repo-health\] Continue extracting helpers out of main.py [\#1082](https://github.com/abhimehro/ctrld-sync/issues/1082)
 - Daily QA & Agentic Review — 2026-07-29 [\#1077](https://github.com/abhimehro/ctrld-sync/issues/1077)
@@ -131,6 +139,7 @@
 
 **Merged pull requests:**
 
+- docs\(repo-health\): sync README dotenv pin to 1.2.4 [\#1337](https://github.com/abhimehro/ctrld-sync/pull/1337) ([cursor[bot]](https://github.com/apps/cursor))
 - chore\(deps\): bump python-dotenv from 1.2.3 to 1.2.4 [\#1327](https://github.com/abhimehro/ctrld-sync/pull/1327) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump ruff from 0.16.9 to 0.16.10 [\#1326](https://github.com/abhimehro/ctrld-sync/pull/1326) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump mypy from 2.3.1 to 2.4.0 [\#1325](https://github.com/abhimehro/ctrld-sync/pull/1325) ([dependabot[bot]](https://github.com/apps/dependabot))
