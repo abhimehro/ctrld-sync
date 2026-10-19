@@ -139,6 +139,7 @@
 
 **Merged pull requests:**
 
+- docs\(repo-health\): sync README dotenv pin to 1.2.4 [\#1337](https://github.com/abhimehro/ctrld-sync/pull/1337) ([cursor[bot]](https://github.com/apps/cursor))
 - chore\(deps\): bump python-dotenv from 1.2.3 to 1.2.4 [\#1327](https://github.com/abhimehro/ctrld-sync/pull/1327) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump ruff from 0.16.9 to 0.16.10 [\#1326](https://github.com/abhimehro/ctrld-sync/pull/1326) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump mypy from 2.3.1 to 2.4.0 [\#1325](https://github.com/abhimehro/ctrld-sync/pull/1325) ([dependabot[bot]](https://github.com/apps/dependabot))
