@@ -6,6 +6,7 @@
 
 **Security fixes:**
 
+- \[pr-sweep\] Decide on secrets -\> random PRNG change: \#1206 [\#1291](https://github.com/abhimehro/ctrld-sync/issues/1291)
 - \[SECURITY\] Secrets & SSRF Priority Scan - Initial Assessment [\#1240](https://github.com/abhimehro/ctrld-sync/issues/1240)
 - P0: Critical SSRF Vulnerability - User-Controlled URLs with Outbound Requests [\#1166](https://github.com/abhimehro/ctrld-sync/issues/1166)
 - P1: SSRF - User-Controlled URLs with Outbound Requests [\#1024](https://github.com/abhimehro/ctrld-sync/issues/1024)
@@ -14,6 +15,17 @@
 
 **Closed issues:**
 
+- \[repo-automation\] Weekly Retrospective - 2026-10-18 [\#1342](https://github.com/abhimehro/ctrld-sync/issues/1342)
+- Daily QA & Agentic Review — 2026-10-16 [\#1339](https://github.com/abhimehro/ctrld-sync/issues/1339)
+- Daily QA & Agentic Review — 2026-10-15 [\#1338](https://github.com/abhimehro/ctrld-sync/issues/1338)
+- Daily QA & Agentic Review — 2026-10-14 [\#1336](https://github.com/abhimehro/ctrld-sync/issues/1336)
+- Daily QA & Agentic Review — 2026-10-13 [\#1335](https://github.com/abhimehro/ctrld-sync/issues/1335)
+- Daily QA & Agentic Review — 2026-10-12 [\#1334](https://github.com/abhimehro/ctrld-sync/issues/1334)
+- Daily QA & Agentic Review — 2026-10-11 [\#1330](https://github.com/abhimehro/ctrld-sync/issues/1330)
+- Daily QA & Agentic Review — 2026-10-10 [\#1328](https://github.com/abhimehro/ctrld-sync/issues/1328)
+- Daily QA & Agentic Review — 2026-10-09 [\#1324](https://github.com/abhimehro/ctrld-sync/issues/1324)
+- Daily QA & Agentic Review — 2026-10-04 [\#1311](https://github.com/abhimehro/ctrld-sync/issues/1311)
+- Daily QA & Agentic Review — 2026-10-03 [\#1308](https://github.com/abhimehro/ctrld-sync/issues/1308)
 - Daily QA & Agentic Review — 2026-10-02 [\#1304](https://github.com/abhimehro/ctrld-sync/issues/1304)
 - Daily QA & Agentic Review — 2026-10-01 [\#1299](https://github.com/abhimehro/ctrld-sync/issues/1299)
 - Daily QA & Agentic Review — 2026-09-30 [\#1298](https://github.com/abhimehro/ctrld-sync/issues/1298)
@@ -31,6 +43,7 @@
 - Daily QA & Agentic Review — 2026-09-15 [\#1256](https://github.com/abhimehro/ctrld-sync/issues/1256)
 - Daily QA & Agentic Review — 2026-09-14 [\#1255](https://github.com/abhimehro/ctrld-sync/issues/1255)
 - Daily QA & Agentic Review — 2026-09-13 [\#1254](https://github.com/abhimehro/ctrld-sync/issues/1254)
+- \[repo-automation\] Weekly Retrospective - 2026-09-13 [\#1253](https://github.com/abhimehro/ctrld-sync/issues/1253)
 - Daily QA & Agentic Review — 2026-09-12 [\#1252](https://github.com/abhimehro/ctrld-sync/issues/1252)
 - Daily QA & Agentic Review — 2026-09-11 [\#1249](https://github.com/abhimehro/ctrld-sync/issues/1249)
 - Daily QA & Agentic Review — 2026-09-09 [\#1247](https://github.com/abhimehro/ctrld-sync/issues/1247)
@@ -79,6 +92,7 @@
 - Daily QA & Agentic Review — 2026-08-02 [\#1112](https://github.com/abhimehro/ctrld-sync/issues/1112)
 - \[repo-automation\] Weekly Retrospective - 2026-08-02 [\#1110](https://github.com/abhimehro/ctrld-sync/issues/1110)
 - Daily QA & Agentic Review — 2026-08-01 [\#1106](https://github.com/abhimehro/ctrld-sync/issues/1106)
+- \[repo-health\] Phase E: Final verification — confirm CodeScene gates pass after the sync/ and display/ package splits [\#1103](https://github.com/abhimehro/ctrld-sync/issues/1103)
 - \[repo-health\] Split display.py by responsibility if CodeScene still requires it [\#1102](https://github.com/abhimehro/ctrld-sync/issues/1102)
 - \[repo-health\] Split sync.py into focused modules after function-level refactors [\#1101](https://github.com/abhimehro/ctrld-sync/issues/1101)
 - \[repo-health\] Refactor sync.py folder preparation and polling flow [\#1100](https://github.com/abhimehro/ctrld-sync/issues/1100)
@@ -88,6 +102,7 @@
 - \[repo-health\] Refactor validation.py hot paths and preserve log redaction guarantees [\#1096](https://github.com/abhimehro/ctrld-sync/issues/1096)
 - \[repo-health\] Refactor config.py validation flow without behavior changes [\#1095](https://github.com/abhimehro/ctrld-sync/issues/1095)
 - \[repo-health\] Capture CodeScene baseline and acceptance criteria [\#1094](https://github.com/abhimehro/ctrld-sync/issues/1094)
+- \[repo-health\] Resolve CodeScene code-health gates after main.py extraction [\#1093](https://github.com/abhimehro/ctrld-sync/issues/1093)
 - Daily QA & Agentic Review — 2026-07-30 [\#1084](https://github.com/abhimehro/ctrld-sync/issues/1084)
 - \[repo-health\] Continue extracting helpers out of main.py [\#1082](https://github.com/abhimehro/ctrld-sync/issues/1082)
 - Daily QA & Agentic Review — 2026-07-29 [\#1077](https://github.com/abhimehro/ctrld-sync/issues/1077)
@@ -124,6 +139,17 @@
 
 **Merged pull requests:**
 
+- docs\(repo-health\): sync README dotenv pin to 1.2.4 [\#1337](https://github.com/abhimehro/ctrld-sync/pull/1337) ([cursor[bot]](https://github.com/apps/cursor))
+- chore\(deps\): bump python-dotenv from 1.2.3 to 1.2.4 [\#1327](https://github.com/abhimehro/ctrld-sync/pull/1327) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump ruff from 0.16.9 to 0.16.10 [\#1326](https://github.com/abhimehro/ctrld-sync/pull/1326) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump mypy from 2.3.1 to 2.4.0 [\#1325](https://github.com/abhimehro/ctrld-sync/pull/1325) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump virtualenv from 21.1.0 to 21.7.13 in the uv group across 1 directory [\#1314](https://github.com/abhimehro/ctrld-sync/pull/1314) ([dependabot[bot]](https://github.com/apps/dependabot))
+- docs\(repo-health\): match README pins and bandit command [\#1310](https://github.com/abhimehro/ctrld-sync/pull/1310) ([cursor[bot]](https://github.com/apps/cursor))
+- chore\(deps\): bump ruff from 0.16.8 to 0.16.9 [\#1307](https://github.com/abhimehro/ctrld-sync/pull/1307) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump pytest-mock from 3.15.1 to 3.16.0 [\#1306](https://github.com/abhimehro/ctrld-sync/pull/1306) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Add macOS block to repo blueprint [\#1305](https://github.com/abhimehro/ctrld-sync/pull/1305) ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump ruby/setup-ruby from 1.324.0 to 1.327.0 [\#1301](https://github.com/abhimehro/ctrld-sync/pull/1301) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump codescene-oss/pr-refactoring-agent from 1.1.3 to 1.1.4 [\#1300](https://github.com/abhimehro/ctrld-sync/pull/1300) ([dependabot[bot]](https://github.com/apps/dependabot))
 - salvage\(ctrld\#1269\): unique wrap/lint test remainder vs merged \#1279 \(weekend drain hop3\) [\#1287](https://github.com/abhimehro/ctrld-sync/pull/1287) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump mypy from 1.19.1 to 2.3.1 [\#1283](https://github.com/abhimehro/ctrld-sync/pull/1283) ([dependabot[bot]](https://github.com/apps/dependabot))
 - fix: count only outbound blocklist requests [\#1279](https://github.com/abhimehro/ctrld-sync/pull/1279) ([coderabbitai[bot]](https://github.com/apps/coderabbitai))
@@ -155,6 +181,7 @@
 - chore\(deps\): bump python-dotenv from 1.2.2 to 1.2.3 [\#1210](https://github.com/abhimehro/ctrld-sync/pull/1210) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump types-pyyaml from 6.0.12.20250915 to 6.0.12.20260815 [\#1209](https://github.com/abhimehro/ctrld-sync/pull/1209) ([dependabot[bot]](https://github.com/apps/dependabot))
 - autofix\(\): PR \#1 \(cycle 1\) -- fix mypy errors in test\_plan\_json\_write.py [\#1208](https://github.com/abhimehro/ctrld-sync/pull/1208) ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: Optimize PRNG usage for non-security paths [\#1206](https://github.com/abhimehro/ctrld-sync/pull/1206) ([abhimehro](https://github.com/abhimehro))
 - chore\(repo-health\): align README setup-uv pin with CI v7 [\#1203](https://github.com/abhimehro/ctrld-sync/pull/1203) ([cursor[bot]](https://github.com/apps/cursor))
 - chore\(repo-health\): delete stale requirements\*.txt and run-tests.sh [\#1199](https://github.com/abhimehro/ctrld-sync/pull/1199) ([abhimehro](https://github.com/abhimehro))
 - fix\(ssrf\): fail-closed validation in \_gh\_get and fetch\_folder\_data [\#1198](https://github.com/abhimehro/ctrld-sync/pull/1198) ([abhimehro](https://github.com/abhimehro))
