@@ -9,16 +9,21 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       issues: write
-      models: read
+      copilot-requests: write
       contents: read
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7.0.1
 
+      - name: Install Copilot CLI
+        run: npm install -g @github/copilot
+
       - name: Run AI inference
         id: inference
         uses: actions/ai-inference@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           prompt: |
             Summarize the following GitHub issue in one paragraph:
