@@ -139,6 +139,7 @@
 
 **Merged pull requests:**
 
+- chore\(deps\): bump ruby/setup-ruby from 1.327.0 to 1.329.0 [\#1347](https://github.com/abhimehro/ctrld-sync/pull/1347) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore: recompile agentic workflows with gh-aw v0.92.0 [\#1345](https://github.com/abhimehro/ctrld-sync/pull/1345) ([abhimehro](https://github.com/abhimehro))
 - style: ruff formatting updates [\#1344](https://github.com/abhimehro/ctrld-sync/pull/1344) ([kilo-code-bot[bot]](https://github.com/apps/kilo-code-bot))
 - fix\(sync\): recover from intermittent 400s on Control D rule pushes [\#1343](https://github.com/abhimehro/ctrld-sync/pull/1343) ([abhimehro](https://github.com/abhimehro))
