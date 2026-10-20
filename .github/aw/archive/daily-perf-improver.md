@@ -29,7 +29,6 @@ safe-outputs:
     labels: [automation, performance]
 
 tools:
-  web-fetch:
   github:
     toolsets: [all]
   bash: true
@@ -118,8 +117,7 @@ To decide which phase to perform:
      gh aw disable daily-perf-improver --repo ${{ github.repository }} gh aw
      enable daily-perf-improver --repo ${{ github.repository }} gh aw run
      daily-perf-improver --repo ${{ github.repository }} --repeat
-     <number-of-repeats> gh aw logs daily-perf-improver --repo ${{
-     github.repository }}
+     <number-of-repeats> gh aw logs daily-perf-improver --repo ${{ github.repository }}
 
    **Include a "What Happens Next" section at the end of the discussion that
    explains:**
@@ -200,8 +198,7 @@ To decide which phase to perform:
 
    b. Read the plan in the discussion mentioned earlier, along with comments.
 
-   c. Check for existing performance PRs (especially yours with "${{
-   github.workflow }}" prefix). Avoid duplicate work.
+   c. Check for existing performance PRs (especially yours with "${{ github.workflow }}" prefix). Avoid duplicate work.
 
    d. If plan needs updating then comment on planning discussion with revised
    plan and rationale. Consider maintainer feedback.
