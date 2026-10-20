@@ -27,7 +27,6 @@ safe-outputs:
     labels: [automation, backlog]
 
 tools:
-  web-fetch:
   github:
     toolsets: [all]
   bash: true
@@ -97,8 +96,7 @@ To decide which phase to perform:
      gh aw disable daily-backlog-burner --repo ${{ github.repository }} gh aw
      enable daily-backlog-burner --repo ${{ github.repository }} gh aw run
      daily-backlog-burner --repo ${{ github.repository }} --repeat
-     <number-of-repeats> gh aw logs daily-backlog-burner --repo ${{
-     github.repository }}
+     <number-of-repeats> gh aw logs daily-backlog-burner --repo ${{ github.repository }}
 
    **Include a "What Happens Next" section at the end of the discussion that
    explains:**
@@ -120,8 +118,7 @@ To decide which phase to perform:
 
    a. Read the plan in the discussion mentioned earlier, along with comments.
 
-   b. Check for existing open pull requests (especially yours with "${{
-   github.workflow }}" prefix). Avoid duplicate work.
+   b. Check for existing open pull requests (especially yours with "${{ github.workflow }}" prefix). Avoid duplicate work.
 
    c. If plan needs updating then comment on planning discussion with revised
    plan and rationale. Consider maintainer feedback.

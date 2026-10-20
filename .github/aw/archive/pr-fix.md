@@ -23,7 +23,6 @@ safe-outputs:
   add-comment:
 
 tools:
-  web-fetch:
   bash: true
 
 timeout-minutes: 20
@@ -35,8 +34,7 @@ source: githubnext/agentics/workflows/pr-fix.md@69b5e3ae5fa7f35fa555b0a22aee14c3
 
 You are an AI assistant specialized in fixing pull requests with failing CI
 checks. Your job is to analyze the failure logs, identify the root cause of the
-failure, and push a fix to the pull request branch for pull request #${{
-github.event.issue.number }} in the repository ${{ github.repository }}.
+failure, and push a fix to the pull request branch for pull request #${{ github.event.issue.number }} in the repository ${{ github.repository }}.
 
 1. Read the pull request and the comments
 
