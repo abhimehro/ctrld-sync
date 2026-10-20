@@ -147,6 +147,8 @@
 - chore\(deps\): bump python-dotenv from 1.2.3 to 1.2.4 [\#1327](https://github.com/abhimehro/ctrld-sync/pull/1327) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump ruff from 0.16.9 to 0.16.10 [\#1326](https://github.com/abhimehro/ctrld-sync/pull/1326) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump mypy from 2.3.1 to 2.4.0 [\#1325](https://github.com/abhimehro/ctrld-sync/pull/1325) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump release-drafter/release-drafter from 7.7.0 to 7.9.0 [\#1316](https://github.com/abhimehro/ctrld-sync/pull/1316) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump github/codeql-action/upload-sarif from 4.38.1 to 4.38.2 [\#1315](https://github.com/abhimehro/ctrld-sync/pull/1315) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump virtualenv from 21.1.0 to 21.7.13 in the uv group across 1 directory [\#1314](https://github.com/abhimehro/ctrld-sync/pull/1314) ([dependabot[bot]](https://github.com/apps/dependabot))
 - docs\(repo-health\): match README pins and bandit command [\#1310](https://github.com/abhimehro/ctrld-sync/pull/1310) ([cursor[bot]](https://github.com/apps/cursor))
 - chore\(deps\): bump ruff from 0.16.8 to 0.16.9 [\#1307](https://github.com/abhimehro/ctrld-sync/pull/1307) ([dependabot[bot]](https://github.com/apps/dependabot))
