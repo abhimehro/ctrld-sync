@@ -36,6 +36,7 @@
 - Daily QA & Agentic Review — 2026-09-24 [\#1277](https://github.com/abhimehro/ctrld-sync/issues/1277)
 - Daily QA & Agentic Review — 2026-09-23 [\#1276](https://github.com/abhimehro/ctrld-sync/issues/1276)
 - Daily QA & Agentic Review — 2026-09-22 [\#1274](https://github.com/abhimehro/ctrld-sync/issues/1274)
+- \[repo-automation\] Weekly Retrospective - 2026-09-20 [\#1268](https://github.com/abhimehro/ctrld-sync/issues/1268)
 - Daily QA & Agentic Review — 2026-09-19 [\#1267](https://github.com/abhimehro/ctrld-sync/issues/1267)
 - Daily QA & Agentic Review — 2026-09-18 [\#1265](https://github.com/abhimehro/ctrld-sync/issues/1265)
 - Daily QA & Agentic Review — 2026-09-17 [\#1259](https://github.com/abhimehro/ctrld-sync/issues/1259)
@@ -139,6 +140,8 @@
 
 **Merged pull requests:**
 
+- chore\(deps\): bump ruff from 0.17.0 to 0.17.1 [\#1351](https://github.com/abhimehro/ctrld-sync/pull/1351) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump pytest-mock from 3.16.0 to 3.17.0 [\#1350](https://github.com/abhimehro/ctrld-sync/pull/1350) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump ruby/setup-ruby from 1.327.0 to 1.329.0 [\#1347](https://github.com/abhimehro/ctrld-sync/pull/1347) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore: recompile agentic workflows with gh-aw v0.92.0 [\#1345](https://github.com/abhimehro/ctrld-sync/pull/1345) ([abhimehro](https://github.com/abhimehro))
 - style: ruff formatting updates [\#1344](https://github.com/abhimehro/ctrld-sync/pull/1344) ([kilo-code-bot[bot]](https://github.com/apps/kilo-code-bot))
