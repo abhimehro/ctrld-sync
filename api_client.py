@@ -296,11 +296,23 @@ def _handle_rate_limit(
     e: httpx.HTTPStatusError, attempt: int, max_retries: int
 ) -> bool:
     """
-    Handle 429 Too Many Requests by waiting if Retry-After is present.
+    Handle HTTP 429 using an integer Retry-After delay in seconds.
+
+    Args:
+        attempt: Zero-based index of the failed request.
+        max_retries: Total allowed request attempts, including the first.
 
     Returns:
-        True if the request should be retried immediately (after sleeping).
-        False if no Retry-After header was found (should use default backoff).
+        True after sleeping when another attempt is allowed. False for non-429
+        responses or a missing, empty, or non-integer Retry-After value, leaving
+        fallback handling to the caller.
+
+    Raises:
+        httpx.HTTPStatusError: If Retry-After is an integer and no attempts remain;
+            the message is processed by the configured sanitizer.
+        ValueError: If the delay is negative and another attempt is allowed.
+        OverflowError: If another attempt is allowed but the delay exceeds the
+            range supported by time.sleep.
     """
     if e.response.status_code != 429:
         return False
@@ -309,23 +321,19 @@ def _handle_rate_limit(
     if not retry_after:
         return False
 
-    wait_seconds: int | None = None
-    # Optimization: Native try/except is significantly faster than contextlib.suppress
     try:
         wait_seconds = int(retry_after)
     except ValueError:
-        pass
+        return False
 
-    if wait_seconds is not None:
-        log.warning(
-            f"Rate limited (429). Server requests {wait_seconds}s wait "
-            f"(attempt {attempt + 1}/{max_retries})"
-        )
-        if attempt < max_retries - 1:
-            time.sleep(wait_seconds)
-            return True
-        _raise_sanitized_status_error(e)
-        raise e  # fallback if not HTTPStatusError
+    log.warning(
+        f"Rate limited (429). Server requests {wait_seconds}s wait "
+        f"(attempt {attempt + 1}/{max_retries})"
+    )
+    if attempt < max_retries - 1:
+        time.sleep(wait_seconds)
+        return True
+    _raise_sanitized_status_error(e)
 
     return False
 
@@ -349,11 +357,7 @@ def _check_client_error(e: httpx.HTTPStatusError) -> None:
             f"API request failed with HTTP {code}{hint_suffix}: {_sanitize_fn(e)}"
         )
         _log_debug_response_content(e)
-        raise httpx.HTTPStatusError(
-            _sanitize_fn(str(e)),
-            request=e.request,
-            response=e.response,
-        ) from None
+        _raise_sanitized_status_error(e)
 
 
 def _resolve_retry_defaults(
