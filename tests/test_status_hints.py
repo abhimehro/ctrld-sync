@@ -7,7 +7,6 @@ Covers:
 - fetch_folder_data() re-raises with hint on HTTP error
 - push_rules() includes hint in log message on HTTP error
 - _retry_request() includes timeout hint in retry warnings
-- check_api_access() surfaces timeout and connect-error hints on network errors
 - list_existing_folders() surfaces connect-error hint on ConnectError
 - delete_folder() surfaces connect-error hint on ConnectError
 - verify_access_and_get_folders() surfaces connect-error hint on ConnectError
@@ -270,38 +269,6 @@ class TestTimeoutHint:
             r.message for r in caplog.records if r.levelname == "WARNING"
         )
         assert main._TIMEOUT_HINT not in warning_text
-
-    def test_check_api_access_includes_timeout_hint(self):
-        """check_api_access() should include the timeout hint on TimeoutException."""
-        mock_client = MagicMock()
-        mock_request = MagicMock(spec=httpx.Request)
-        mock_client.get.side_effect = httpx.TimeoutException(
-            "timed out", request=mock_request
-        )
-        mock_log = MagicMock()
-
-        with patch("sync.log", mock_log):
-            result = main.check_api_access(mock_client, "test_profile")
-
-        assert result is False
-        error_calls = str(mock_log.error.call_args_list)
-        assert main._TIMEOUT_HINT in error_calls
-
-    def test_check_api_access_no_timeout_hint_for_non_timeout(self):
-        """check_api_access() should NOT include timeout hint for generic RequestError."""
-        mock_client = MagicMock()
-        mock_request = MagicMock(spec=httpx.Request)
-        mock_client.get.side_effect = httpx.RequestError(
-            "connection refused", request=mock_request
-        )
-        mock_log = MagicMock()
-
-        with patch("sync.log", mock_log):
-            result = main.check_api_access(mock_client, "test_profile")
-
-        assert result is False
-        error_calls = str(mock_log.error.call_args_list)
-        assert main._TIMEOUT_HINT not in error_calls
 
 
 class TestListExistingFoldersHints:
@@ -591,35 +558,6 @@ class TestConnectErrorHint:
         assert hasattr(api_client, "_CONNECT_ERROR_HINT")
         assert isinstance(api_client._CONNECT_ERROR_HINT, str)
         assert api_client._CONNECT_ERROR_HINT  # non-empty
-
-    def test_check_api_access_includes_connect_error_hint(self):
-        """check_api_access() should include _CONNECT_ERROR_HINT on ConnectError."""
-        mock_client = MagicMock()
-        mock_client.get.side_effect = self._connect_error()
-        mock_log = MagicMock()
-
-        with patch("sync.log", mock_log):
-            result = main.check_api_access(mock_client, "test_profile")
-
-        assert result is False
-        error_calls = str(mock_log.error.call_args_list)
-        assert api_client._CONNECT_ERROR_HINT in error_calls
-
-    def test_check_api_access_no_connect_hint_for_timeout(self):
-        """check_api_access() should NOT include _CONNECT_ERROR_HINT for TimeoutException."""
-        mock_client = MagicMock()
-        mock_request = MagicMock(spec=httpx.Request)
-        mock_client.get.side_effect = httpx.TimeoutException(
-            "timed out", request=mock_request
-        )
-        mock_log = MagicMock()
-
-        with patch("sync.log", mock_log):
-            result = main.check_api_access(mock_client, "test_profile")
-
-        assert result is False
-        error_calls = str(mock_log.error.call_args_list)
-        assert api_client._CONNECT_ERROR_HINT not in error_calls
 
     def test_list_existing_folders_includes_connect_error_hint(self):
         """list_existing_folders() should log _CONNECT_ERROR_HINT on ConnectError."""

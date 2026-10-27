@@ -6,7 +6,6 @@ import logging
 import sys
 import types
 
-from .alerts import AlertSystem
 from .colors import USE_COLORS, Box, Colors
 from .log import configure_logging  # noqa: F401
 from .log import ColoredFormatter, JsonFormatter
@@ -63,7 +62,6 @@ __all__ = [
     "Box",
     "ColoredFormatter",
     "JsonFormatter",
-    "AlertSystem",
     "pluralize",
     "countdown_timer",
     "render_progress_bar",

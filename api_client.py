@@ -325,7 +325,6 @@ def _handle_rate_limit(
             time.sleep(wait_seconds)
             return True
         _raise_sanitized_status_error(e)
-        raise e  # fallback if not HTTPStatusError
 
     return False
 
