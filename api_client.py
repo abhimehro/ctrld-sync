@@ -321,22 +321,19 @@ def _handle_rate_limit(
     if not retry_after:
         return False
 
-    wait_seconds: int | None = None
-    # Optimization: Native try/except is significantly faster than contextlib.suppress
     try:
         wait_seconds = int(retry_after)
     except ValueError:
-        pass
+        return False
 
-    if wait_seconds is not None:
-        log.warning(
-            f"Rate limited (429). Server requests {wait_seconds}s wait "
-            f"(attempt {attempt + 1}/{max_retries})"
-        )
-        if attempt < max_retries - 1:
-            time.sleep(wait_seconds)
-            return True
-        _raise_sanitized_status_error(e)
+    log.warning(
+        f"Rate limited (429). Server requests {wait_seconds}s wait "
+        f"(attempt {attempt + 1}/{max_retries})"
+    )
+    if attempt < max_retries - 1:
+        time.sleep(wait_seconds)
+        return True
+    _raise_sanitized_status_error(e)
 
     return False
 
@@ -360,11 +357,7 @@ def _check_client_error(e: httpx.HTTPStatusError) -> None:
             f"API request failed with HTTP {code}{hint_suffix}: {_sanitize_fn(e)}"
         )
         _log_debug_response_content(e)
-        raise httpx.HTTPStatusError(
-            _sanitize_fn(str(e)),
-            request=e.request,
-            response=e.response,
-        ) from None
+        _raise_sanitized_status_error(e)
 
 
 def _resolve_retry_defaults(
