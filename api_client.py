@@ -296,11 +296,23 @@ def _handle_rate_limit(
     e: httpx.HTTPStatusError, attempt: int, max_retries: int
 ) -> bool:
     """
-    Handle 429 Too Many Requests by waiting if Retry-After is present.
+    Handle HTTP 429 using an integer Retry-After delay in seconds.
+
+    Args:
+        attempt: Zero-based index of the failed request.
+        max_retries: Total allowed request attempts, including the first.
 
     Returns:
-        True if the request should be retried immediately (after sleeping).
-        False if no Retry-After header was found (should use default backoff).
+        True after sleeping when another attempt is allowed. False for non-429
+        responses or a missing, empty, or non-integer Retry-After value, leaving
+        fallback handling to the caller.
+
+    Raises:
+        httpx.HTTPStatusError: If Retry-After is an integer and no attempts remain;
+            the message is processed by the configured sanitizer.
+        ValueError: If the delay is negative and another attempt is allowed.
+        OverflowError: If another attempt is allowed but the delay exceeds the
+            range supported by time.sleep.
     """
     if e.response.status_code != 429:
         return False
