@@ -143,6 +143,7 @@
 - chore: delete dead code in core source \(nightly audit\) [\#1360](https://github.com/abhimehro/ctrld-sync/pull/1360) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump ruff from 0.17.0 to 0.17.1 [\#1351](https://github.com/abhimehro/ctrld-sync/pull/1351) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump pytest-mock from 3.16.0 to 3.17.0 [\#1350](https://github.com/abhimehro/ctrld-sync/pull/1350) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump release-drafter/release-drafter from 7.9.0 to 7.10.0 [\#1349](https://github.com/abhimehro/ctrld-sync/pull/1349) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump ruby/setup-ruby from 1.327.0 to 1.329.0 [\#1347](https://github.com/abhimehro/ctrld-sync/pull/1347) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore: recompile agentic workflows with gh-aw v0.92.0 [\#1345](https://github.com/abhimehro/ctrld-sync/pull/1345) ([abhimehro](https://github.com/abhimehro))
 - style: ruff formatting updates [\#1344](https://github.com/abhimehro/ctrld-sync/pull/1344) ([kilo-code-bot[bot]](https://github.com/apps/kilo-code-bot))
