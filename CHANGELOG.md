@@ -141,6 +141,9 @@
 **Merged pull requests:**
 
 - chore: delete dead code in core source \(nightly audit\) [\#1360](https://github.com/abhimehro/ctrld-sync/pull/1360) ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump github/codeql-action/upload-sarif from 4.38.2 to 4.39.1 [\#1359](https://github.com/abhimehro/ctrld-sync/pull/1359) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump github/gh-aw-actions/setup-cli from 0.92.0 to 0.93.2 [\#1358](https://github.com/abhimehro/ctrld-sync/pull/1358) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump ruby/setup-ruby from 1.329.0 to 1.334.0 [\#1357](https://github.com/abhimehro/ctrld-sync/pull/1357) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump ruff from 0.17.0 to 0.17.1 [\#1351](https://github.com/abhimehro/ctrld-sync/pull/1351) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump pytest-mock from 3.16.0 to 3.17.0 [\#1350](https://github.com/abhimehro/ctrld-sync/pull/1350) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump release-drafter/release-drafter from 7.9.0 to 7.10.0 [\#1349](https://github.com/abhimehro/ctrld-sync/pull/1349) ([dependabot[bot]](https://github.com/apps/dependabot))
