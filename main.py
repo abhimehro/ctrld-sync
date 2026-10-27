@@ -39,17 +39,11 @@ import cache
 import config
 import display  # noqa: F401
 import gh_client  # noqa: F401
-import models  # noqa: F401
 import sync  # noqa: F401
 import validation
 from api_client import (  # noqa: F401
-    _CONNECT_ERROR_HINT,
-    _SERVER_ERROR_HINT,
     _TIMEOUT_HINT,
-    ALLOWED_API_HOSTS,
     MAX_RETRIES,
-    MAX_RETRY_DELAY,
-    RETRY_DELAY,
     _api_delete,
     _api_get,
     _api_post,
@@ -57,11 +51,8 @@ from api_client import (  # noqa: F401
     _api_stats,
     _rate_limit_info,
     _rate_limit_lock,
-    _retry_request,
-    retry_with_jitter,
 )
 from cache import (  # noqa: F401
-    CACHE_TTL_SECONDS,
     _cache_stats,
     _disk_cache,
     get_cache_dir,
@@ -69,16 +60,11 @@ from cache import (  # noqa: F401
     save_disk_cache,
 )
 from config import (  # noqa: F401
-    _DEFAULT_CONFIG_PATHS,
     _STATUS_HINTS,
-    API_BASE,
     BATCH_KEYS,
     BATCH_SIZE,
     DEFAULT_FOLDER_URLS,
     DELETE_WORKERS,
-    FOLDER_CREATION_DELAY,
-    MAX_RESPONSE_SIZE,
-    USER_AGENT,
     _clean_env_kv,
     _is_valid_positive_int,
     _resolve_folder_urls,
@@ -90,22 +76,13 @@ from display import (  # noqa: F401
     EMPTY_INPUT_HINT,
     INVALID_INPUT_HINT,
     USE_COLORS,
-    AlertSystem,
     Box,
-    ColoredFormatter,
     Colors,
     JsonFormatter,
     _clear_current_line,
-    _display_len,
     _get_progress_bar_width,
-    _pad_string,
-    _print_bold_header,
-    _print_completion,
     _print_hint,
     countdown_timer,
-    display_api_statistics,
-    display_cache_statistics,
-    display_rate_limit_status,
     display_statistics,
     get_password,
     get_validated_input,
@@ -127,22 +104,15 @@ from gh_client import (  # noqa: F401
     warm_up_cache,
 )
 from models import (  # noqa: F401
-    FolderAction,
     FolderData,
-    FolderGroup,
     PlanEntry,
     PlanFolderEntry,
-    PlanRuleGroup,
     RuleAction,
-    RuleEntry,
-    RuleGroup,
     SyncContext,
     SyncProfileOptions,
     SyncResult,
 )
 from sync import (  # noqa: F401
-    _process_single_folder,
-    check_api_access,
     create_client,
     create_folder,
     delete_folder,
@@ -153,14 +123,7 @@ from sync import (  # noqa: F401
     verify_access_and_get_folders,
 )
 from validation import (  # noqa: F401
-    _ALLOWED_RULE_CHARS,
     DEFAULT_ALLOWED_BLOCKLIST_DOMAINS,
-    MAX_FOLDER_ID_LENGTH,
-    MAX_FOLDER_NAME_LENGTH,
-    MAX_HOSTNAME_LENGTH,
-    MAX_PROFILE_ID_LENGTH,
-    MAX_RULE_LENGTH,
-    MAX_URL_LENGTH,
     _is_safe_ip,
     extract_profile_id,
     is_valid_folder_name,

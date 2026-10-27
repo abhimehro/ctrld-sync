@@ -40,7 +40,6 @@ def reload_main_with_env(monkeypatch, no_color=None, isatty=True):
             "display.text",
             "display.output",
             "display.log",
-            "display.alerts",
             "display.prompts",
             "display.progress",
             "display.plan",

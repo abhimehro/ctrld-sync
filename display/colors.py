@@ -42,34 +42,7 @@ class Colors:
 class Box:
     """Box drawing characters for pretty tables."""
 
-    if USE_COLORS:
-        H, V, TL, TR, BL, BR, T, B, L, R, X = (
-            "─",
-            "│",
-            "┌",
-            "┐",
-            "└",
-            "┘",
-            "┬",
-            "┴",
-            "├",
-            "┤",
-            "┼",
-        )
-    else:
-        H, V, TL, TR, BL, BR, T, B, L, R, X = (
-            "-",
-            "|",
-            "+",
-            "+",
-            "+",
-            "+",
-            "+",
-            "+",
-            "+",
-            "+",
-            "+",
-        )
+    H = "─" if USE_COLORS else "-"
 
 
 __all__ = ["USE_COLORS", "Colors", "Box"]
