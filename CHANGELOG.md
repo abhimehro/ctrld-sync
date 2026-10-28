@@ -142,7 +142,10 @@
 
 **Merged pull requests:**
 
+- chore\(deps\): bump actions/setup-node from 7.0.0 to 7.1.0 [\#1364](https://github.com/abhimehro/ctrld-sync/pull/1364) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump codescene-oss/pr-refactoring-agent from 1.1.3 to 1.1.9 [\#1363](https://github.com/abhimehro/ctrld-sync/pull/1363) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump ruby/setup-ruby from 1.334.0 to 1.335.0 [\#1362](https://github.com/abhimehro/ctrld-sync/pull/1362) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump github/gh-aw-actions/setup from 0.92.0 to 0.93.3 [\#1361](https://github.com/abhimehro/ctrld-sync/pull/1361) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore: delete dead code in core source \(nightly audit\) [\#1360](https://github.com/abhimehro/ctrld-sync/pull/1360) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump github/codeql-action/upload-sarif from 4.38.2 to 4.39.1 [\#1359](https://github.com/abhimehro/ctrld-sync/pull/1359) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump github/gh-aw-actions/setup-cli from 0.92.0 to 0.93.2 [\#1358](https://github.com/abhimehro/ctrld-sync/pull/1358) ([dependabot[bot]](https://github.com/apps/dependabot))
