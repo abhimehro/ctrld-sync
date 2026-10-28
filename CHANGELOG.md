@@ -15,6 +15,7 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-10-27 [\#1365](https://github.com/abhimehro/ctrld-sync/issues/1365)
 - \[repo-automation\] Weekly Retrospective - 2026-10-18 [\#1342](https://github.com/abhimehro/ctrld-sync/issues/1342)
 - Daily QA & Agentic Review — 2026-10-16 [\#1339](https://github.com/abhimehro/ctrld-sync/issues/1339)
 - Daily QA & Agentic Review — 2026-10-15 [\#1338](https://github.com/abhimehro/ctrld-sync/issues/1338)
@@ -31,6 +32,7 @@
 - Daily QA & Agentic Review — 2026-09-30 [\#1298](https://github.com/abhimehro/ctrld-sync/issues/1298)
 - Daily QA & Agentic Review — 2026-09-29 [\#1288](https://github.com/abhimehro/ctrld-sync/issues/1288)
 - Daily QA & Agentic Review — 2026-09-27 [\#1286](https://github.com/abhimehro/ctrld-sync/issues/1286)
+- \[repo-automation\] Weekly Retrospective - 2026-09-27 [\#1285](https://github.com/abhimehro/ctrld-sync/issues/1285)
 - Daily QA & Agentic Review — 2026-09-26 [\#1284](https://github.com/abhimehro/ctrld-sync/issues/1284)
 - Daily QA & Agentic Review — 2026-09-25 [\#1282](https://github.com/abhimehro/ctrld-sync/issues/1282)
 - Daily QA & Agentic Review — 2026-09-24 [\#1277](https://github.com/abhimehro/ctrld-sync/issues/1277)
@@ -140,6 +142,7 @@
 
 **Merged pull requests:**
 
+- chore\(deps\): bump ruby/setup-ruby from 1.334.0 to 1.335.0 [\#1362](https://github.com/abhimehro/ctrld-sync/pull/1362) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore: delete dead code in core source \(nightly audit\) [\#1360](https://github.com/abhimehro/ctrld-sync/pull/1360) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump github/codeql-action/upload-sarif from 4.38.2 to 4.39.1 [\#1359](https://github.com/abhimehro/ctrld-sync/pull/1359) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump github/gh-aw-actions/setup-cli from 0.92.0 to 0.93.2 [\#1358](https://github.com/abhimehro/ctrld-sync/pull/1358) ([dependabot[bot]](https://github.com/apps/dependabot))
