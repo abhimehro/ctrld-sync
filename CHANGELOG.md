@@ -15,6 +15,7 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-10-28 [\#1369](https://github.com/abhimehro/ctrld-sync/issues/1369)
 - Daily QA & Agentic Review — 2026-10-27 [\#1365](https://github.com/abhimehro/ctrld-sync/issues/1365)
 - \[repo-automation\] Weekly Retrospective - 2026-10-18 [\#1342](https://github.com/abhimehro/ctrld-sync/issues/1342)
 - Daily QA & Agentic Review — 2026-10-16 [\#1339](https://github.com/abhimehro/ctrld-sync/issues/1339)
@@ -142,6 +143,8 @@
 
 **Merged pull requests:**
 
+- chore\(deps\): bump github/gh-aw-actions/setup-cli from 0.93.2 to 0.93.5 [\#1368](https://github.com/abhimehro/ctrld-sync/pull/1368) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump github/gh-aw-actions/setup from 0.93.3 to 0.93.5 [\#1367](https://github.com/abhimehro/ctrld-sync/pull/1367) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump actions/setup-node from 7.0.0 to 7.1.0 [\#1364](https://github.com/abhimehro/ctrld-sync/pull/1364) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump codescene-oss/pr-refactoring-agent from 1.1.3 to 1.1.9 [\#1363](https://github.com/abhimehro/ctrld-sync/pull/1363) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump ruby/setup-ruby from 1.334.0 to 1.335.0 [\#1362](https://github.com/abhimehro/ctrld-sync/pull/1362) ([dependabot[bot]](https://github.com/apps/dependabot))
