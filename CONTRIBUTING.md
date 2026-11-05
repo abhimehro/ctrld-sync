@@ -63,15 +63,12 @@ All tests use mocks — no live API credentials are required.
 
 ## Running the Linter
 
-```bash
-uv tool install ruff   # install once if ruff is not already on your PATH
-ruff check .
-```
-
-Or run through uv without a global install:
+Ruff is a dev dependency. `uv run` uses the version locked in `uv.lock`, which
+is the same command CI runs in `.github/workflows/lint.yml`. A `ruff` binary on
+`PATH` can be a different release and disagree with that job.
 
 ```bash
-uv tool run ruff check .
+uv run ruff check .
 ```
 
 ## Running Pre-commit Hooks
@@ -116,7 +113,7 @@ standards:
 
 2. **Before opening a PR:**
    - Run the full test suite: `uv run pytest tests/ test_main.py -v`
-   - Run the linter: `ruff check .`
+   - Run the linter: `uv run ruff check .`
    - Run pre-commit: `uv run pre-commit run --all-files`
 
 3. **PR description**, include:
