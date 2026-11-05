@@ -48,19 +48,11 @@ jobs:
           path: .benchmarks/
           include-hidden-files: true
 
-      # Stable cache key (no SHA). Bump the version suffix when ubuntu-latest
-      # runner noise makes the restored baseline unrealistically fast and causes
-      # false 1.5x alerts against otherwise unchanged code (see PR #1025).
-      # On cache miss, the committed cache/benchmark-data.json from checkout is used.
-      - name: Download previous benchmark data
-        uses: actions/cache@v6.1.0
-        id: benchmark-cache
-        with:
-          path: ./cache
-          key: ${{ runner.os }}-benchmark-v4
-          restore-keys: |
-            ${{ runner.os }}-benchmark-v4
-
+      # Benchmark baseline is the committed cache/benchmark-data.json.
+      # actions/cache with a stable key writes once and never refreshes on a
+      # later hit, so Linux-benchmark-v4 froze a fast 2026-09-18 sample
+      # (68ef0c4) ~2x ahead of later ubuntu-latest hosts and failed unchanged
+      # code at the 1.5x alert (run 40663938415, PR #1366).
       - name: Run structured benchmark suite
         run: |
           uv run pytest tests/test_benchmarks.py \
