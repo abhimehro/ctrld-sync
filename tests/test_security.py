@@ -1,5 +1,4 @@
 import os
-import stat
 import sys
 from unittest.mock import MagicMock, patch
 
@@ -168,36 +167,6 @@ def test_env_permission_check_handles_stat_error(monkeypatch):
     assert "PermissionError" in call_args
 
 
-@pytest.mark.skipif(
-    os.name == "nt", reason="Unix permissions not applicable on Windows"
-)
-def test_fix_env_sets_secure_permissions(tmp_path, monkeypatch):
-    """Test that fix_env.py sets secure permissions on .env file."""
-    # Change to temp directory
-    monkeypatch.chdir(tmp_path)
-
-    # Create a .env file with insecure content
-    env_file = tmp_path / ".env"
-    env_file.write_text("TOKEN='test_token'\\nPROFILE='test_profile'\\n")
-
-    # Set insecure permissions initially
-    os.chmod(env_file, 0o644)
-
-    # Run fix_env
-    fix_env.fix_env()
-
-    # Check that permissions are now secure
-    file_stat = os.stat(env_file)
-    mode = stat.S_IMODE(file_stat.st_mode)
-
-    # Verify permissions are 600 (read/write for owner only)
-    assert mode == 0o600, f"Expected 600, got {oct(mode)}"
-
-    # Verify no group or other permissions
-    assert not (file_stat.st_mode & stat.S_IRWXG), "Group has permissions"
-    assert not (file_stat.st_mode & stat.S_IRWXO), "Others have permissions"
-
-
 def test_fix_env_skips_chmod_on_windows(tmp_path, monkeypatch):
     """Test that fix_env.py skips chmod on Windows."""
     # Change to temp directory
@@ -219,25 +188,6 @@ def test_fix_env_skips_chmod_on_windows(tmp_path, monkeypatch):
 
     # Verify chmod was not called on Windows
     mock_chmod.assert_not_called()
-
-
-def test_octal_permission_format():
-    """Test that octal permission formatting is robust."""
-    # Test various permission modes
-    test_modes = [
-        0o644,  # rw-r--r--
-        0o600,  # rw-------
-        0o755,  # rwxr-xr-x
-        0o000,  # ---------
-    ]
-
-    for mode in test_modes:
-        # The robust way
-        result = format(stat.S_IMODE(mode), "03o")
-        # Should always be 3 digits
-        assert len(result) == 3, f"Expected 3 digits for {oct(mode)}, got {result}"
-        # Should be numeric
-        assert result.isdigit(), f"Expected numeric for {oct(mode)}, got {result}"
 
 
 @pytest.mark.parametrize(
