@@ -161,6 +161,7 @@
 - chore\(deps\): bump ruff from 0.17.1 to 0.17.3 [\#1380](https://github.com/abhimehro/ctrld-sync/pull/1380) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump github/gh-aw-actions/setup-cli from 0.93.2 to 0.93.5 [\#1368](https://github.com/abhimehro/ctrld-sync/pull/1368) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump github/gh-aw-actions/setup from 0.93.3 to 0.93.5 [\#1367](https://github.com/abhimehro/ctrld-sync/pull/1367) ([dependabot[bot]](https://github.com/apps/dependabot))
+- test: nightly audit — trim suite \(same product coverage, fewer tests\) [\#1366](https://github.com/abhimehro/ctrld-sync/pull/1366) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump actions/setup-node from 7.0.0 to 7.1.0 [\#1364](https://github.com/abhimehro/ctrld-sync/pull/1364) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump codescene-oss/pr-refactoring-agent from 1.1.3 to 1.1.9 [\#1363](https://github.com/abhimehro/ctrld-sync/pull/1363) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump ruby/setup-ruby from 1.334.0 to 1.335.0 [\#1362](https://github.com/abhimehro/ctrld-sync/pull/1362) ([dependabot[bot]](https://github.com/apps/dependabot))
