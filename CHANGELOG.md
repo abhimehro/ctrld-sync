@@ -7,6 +7,7 @@
 **Security fixes:**
 
 - \[pr-sweep\] Decide on secrets -\> random PRNG change: \#1206 [\#1291](https://github.com/abhimehro/ctrld-sync/issues/1291)
+- \[pr-sweep\] Review Jules workflows \(secrets, permissions, third-party actions\): \#1275 [\#1290](https://github.com/abhimehro/ctrld-sync/issues/1290)
 - \[SECURITY\] Secrets & SSRF Priority Scan - Initial Assessment [\#1240](https://github.com/abhimehro/ctrld-sync/issues/1240)
 - P0: Critical SSRF Vulnerability - User-Controlled URLs with Outbound Requests [\#1166](https://github.com/abhimehro/ctrld-sync/issues/1166)
 - P1: SSRF - User-Controlled URLs with Outbound Requests [\#1024](https://github.com/abhimehro/ctrld-sync/issues/1024)
@@ -15,6 +16,15 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-11-05 [\#1392](https://github.com/abhimehro/ctrld-sync/issues/1392)
+- Daily QA & Agentic Review — 2026-11-04 [\#1390](https://github.com/abhimehro/ctrld-sync/issues/1390)
+- Daily QA & Agentic Review — 2026-11-03 [\#1389](https://github.com/abhimehro/ctrld-sync/issues/1389)
+- Daily QA & Agentic Review — 2026-11-02 [\#1388](https://github.com/abhimehro/ctrld-sync/issues/1388)
+- Daily QA & Agentic Review — 2026-11-01 [\#1386](https://github.com/abhimehro/ctrld-sync/issues/1386)
+- Daily QA & Agentic Review — 2026-10-31 [\#1383](https://github.com/abhimehro/ctrld-sync/issues/1383)
+- Daily QA & Agentic Review — 2026-10-30 [\#1378](https://github.com/abhimehro/ctrld-sync/issues/1378)
+- Daily QA & Agentic Review — 2026-10-29 [\#1374](https://github.com/abhimehro/ctrld-sync/issues/1374)
+- Daily QA & Agentic Review — 2026-10-28 [\#1369](https://github.com/abhimehro/ctrld-sync/issues/1369)
 - Daily QA & Agentic Review — 2026-10-27 [\#1365](https://github.com/abhimehro/ctrld-sync/issues/1365)
 - \[repo-automation\] Weekly Retrospective - 2026-10-18 [\#1342](https://github.com/abhimehro/ctrld-sync/issues/1342)
 - Daily QA & Agentic Review — 2026-10-16 [\#1339](https://github.com/abhimehro/ctrld-sync/issues/1339)
@@ -26,10 +36,14 @@
 - Daily QA & Agentic Review — 2026-10-10 [\#1328](https://github.com/abhimehro/ctrld-sync/issues/1328)
 - Daily QA & Agentic Review — 2026-10-09 [\#1324](https://github.com/abhimehro/ctrld-sync/issues/1324)
 - Daily QA & Agentic Review — 2026-10-04 [\#1311](https://github.com/abhimehro/ctrld-sync/issues/1311)
+- \[repo-automation\] Weekly Retrospective - 2026-10-04 [\#1309](https://github.com/abhimehro/ctrld-sync/issues/1309)
 - Daily QA & Agentic Review — 2026-10-03 [\#1308](https://github.com/abhimehro/ctrld-sync/issues/1308)
 - Daily QA & Agentic Review — 2026-10-02 [\#1304](https://github.com/abhimehro/ctrld-sync/issues/1304)
 - Daily QA & Agentic Review — 2026-10-01 [\#1299](https://github.com/abhimehro/ctrld-sync/issues/1299)
 - Daily QA & Agentic Review — 2026-09-30 [\#1298](https://github.com/abhimehro/ctrld-sync/issues/1298)
+- \[pr-sweep\] Review github/gh-aw/actions/setup 0.89.14 -\> 0.89.17 bump: \#1271 [\#1295](https://github.com/abhimehro/ctrld-sync/issues/1295)
+- \[pr-sweep\] Review github/codeql-action/upload-sarif 4.38.0 -\> 4.38.1 bump: \#1272 [\#1294](https://github.com/abhimehro/ctrld-sync/issues/1294)
+- \[pr-sweep\] Review ruby/setup-ruby 1.321.0 -\> 1.324.0 bump: \#1273 [\#1293](https://github.com/abhimehro/ctrld-sync/issues/1293)
 - Daily QA & Agentic Review — 2026-09-29 [\#1288](https://github.com/abhimehro/ctrld-sync/issues/1288)
 - Daily QA & Agentic Review — 2026-09-27 [\#1286](https://github.com/abhimehro/ctrld-sync/issues/1286)
 - \[repo-automation\] Weekly Retrospective - 2026-09-27 [\#1285](https://github.com/abhimehro/ctrld-sync/issues/1285)
@@ -142,6 +156,11 @@
 
 **Merged pull requests:**
 
+- chore\(deps\): bump ruby/setup-ruby from 1.335.0 to 1.336.0 [\#1387](https://github.com/abhimehro/ctrld-sync/pull/1387) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump mypy from 2.4.0 to 2.4.1 [\#1382](https://github.com/abhimehro/ctrld-sync/pull/1382) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump ruff from 0.17.1 to 0.17.3 [\#1380](https://github.com/abhimehro/ctrld-sync/pull/1380) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump github/gh-aw-actions/setup-cli from 0.93.2 to 0.93.5 [\#1368](https://github.com/abhimehro/ctrld-sync/pull/1368) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump github/gh-aw-actions/setup from 0.93.3 to 0.93.5 [\#1367](https://github.com/abhimehro/ctrld-sync/pull/1367) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump actions/setup-node from 7.0.0 to 7.1.0 [\#1364](https://github.com/abhimehro/ctrld-sync/pull/1364) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump codescene-oss/pr-refactoring-agent from 1.1.3 to 1.1.9 [\#1363](https://github.com/abhimehro/ctrld-sync/pull/1363) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump ruby/setup-ruby from 1.334.0 to 1.335.0 [\#1362](https://github.com/abhimehro/ctrld-sync/pull/1362) ([dependabot[bot]](https://github.com/apps/dependabot))
