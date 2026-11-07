@@ -156,7 +156,9 @@
 
 **Merged pull requests:**
 
+- chore\(ruff\): enforce import sorting after Trunk isort removal [\#1395](https://github.com/abhimehro/ctrld-sync/pull/1395) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump ruby/setup-ruby from 1.335.0 to 1.336.0 [\#1387](https://github.com/abhimehro/ctrld-sync/pull/1387) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore: nightly audit, trim trunk config [\#1385](https://github.com/abhimehro/ctrld-sync/pull/1385) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump mypy from 2.4.0 to 2.4.1 [\#1382](https://github.com/abhimehro/ctrld-sync/pull/1382) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump ruff from 0.17.1 to 0.17.3 [\#1380](https://github.com/abhimehro/ctrld-sync/pull/1380) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore: nightly audit, single pytest config source [\#1379](https://github.com/abhimehro/ctrld-sync/pull/1379) ([abhimehro](https://github.com/abhimehro))
@@ -173,6 +175,7 @@
 - chore\(deps\): bump github/codeql-action/upload-sarif from 4.38.2 to 4.39.1 [\#1359](https://github.com/abhimehro/ctrld-sync/pull/1359) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump github/gh-aw-actions/setup-cli from 0.92.0 to 0.93.2 [\#1358](https://github.com/abhimehro/ctrld-sync/pull/1358) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump ruby/setup-ruby from 1.329.0 to 1.334.0 [\#1357](https://github.com/abhimehro/ctrld-sync/pull/1357) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump the uv group across 1 directory with 4 updates [\#1356](https://github.com/abhimehro/ctrld-sync/pull/1356) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump ruff from 0.17.0 to 0.17.1 [\#1351](https://github.com/abhimehro/ctrld-sync/pull/1351) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump pytest-mock from 3.16.0 to 3.17.0 [\#1350](https://github.com/abhimehro/ctrld-sync/pull/1350) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump release-drafter/release-drafter from 7.9.0 to 7.10.0 [\#1349](https://github.com/abhimehro/ctrld-sync/pull/1349) ([dependabot[bot]](https://github.com/apps/dependabot))
