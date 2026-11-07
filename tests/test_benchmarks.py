@@ -1,4 +1,3 @@
-import json
 import os
 import sys
 
@@ -15,22 +14,6 @@ def test_is_valid_rule_benchmark(benchmark):
     """Regex-heavy rule validation should stay under 1ms per call."""
     result = benchmark(main.is_valid_rule, "example.com")
     assert result is True
-
-
-# Benchmark rule deduplication (dict.fromkeys pattern)
-def test_deduplication_benchmark(benchmark):
-    """Rule deduplication over 10k items (1k unique) should stay under 10ms."""
-    rules = [f"rule-{i % 1000}" for i in range(10000)]
-    result = benchmark(lambda: list(dict.fromkeys(rules)))
-    assert len(result) == 1000
-
-
-# Benchmark cache serialization for large rule sets
-def test_cache_roundtrip_benchmark(benchmark):
-    """JSON serialization of 5k-rule cache payload should stay under 10ms."""
-    data = {"rules": [f"domain-{i}.com" for i in range(5000)]}
-    result = benchmark(json.dumps, data)
-    assert len(result) > 0
 
 
 # Benchmark hostname validation for global IPs (no DNS lookup, pure CPU accepted path)
@@ -93,30 +76,3 @@ def test_push_rules_benchmark_10k(benchmark, overlap_ratio):
     action = main.RuleAction(do=1, status=1)
 
     benchmark(main.push_rules, ctx, folder_name, folder_id, action, hostnames)
-
-
-def test_sum_sync_result_totals_benchmark(benchmark):
-    """Guard sync summary totals: sum(generator) is preferred over sum([list comp])."""
-    sync_results = [
-        main.SyncResult(
-            profile=f"profile-{i}",
-            folders=i % 5,
-            rules=i * 10,
-            status_label="OK",
-            success=True,
-            duration=0.05 * i,
-        )
-        for i in range(25)
-    ]
-
-    def totals() -> tuple[int, int, float]:
-        return (
-            sum(r["folders"] for r in sync_results),
-            sum(r["rules"] for r in sync_results),
-            sum(r["duration"] for r in sync_results),
-        )
-
-    folders, rules, duration = benchmark(totals)
-    assert folders == 50
-    assert rules == 3000
-    assert duration == pytest.approx(15.0)

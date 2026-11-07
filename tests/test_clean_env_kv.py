@@ -51,7 +51,6 @@ class TestCleanEnvKV(unittest.TestCase):
         self.assertEqual(main._clean_env_kv("OTHER=value", "TOKEN"), "OTHER=value")
 
     def test_clean_env_kv_no_value_after_equals(self):
-        # If no value follows the equals sign, regex (.+) fails to match
         self.assertEqual(main._clean_env_kv("TOKEN=", "TOKEN"), "TOKEN=")
         self.assertEqual(main._clean_env_kv("TOKEN= ", "TOKEN"), "TOKEN=")
 

@@ -42,8 +42,8 @@ For SSRF-only changes, the focused checks are usually sufficient before broader
 CI:
 
 ```bash
-uv run pytest tests/test_ssrf_enhanced.py -v
-uv run ruff check main.py tests/test_ssrf_enhanced.py
+uv run pytest tests/test_ssrf.py -v
+uv run ruff check main.py tests/test_ssrf.py
 uv run mypy main.py
 ```
 
