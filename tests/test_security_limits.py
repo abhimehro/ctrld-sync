@@ -2,16 +2,8 @@ import main
 
 
 def test_is_valid_folder_name_length_limit():
-    """
-    Test that folder names exceeding the maximum length are rejected.
-    Current behavior: Accepts any length.
-    Expected behavior: Should reject length > 64.
-    """
-    # Create a name with 65 characters
+    """Folder names longer than 64 characters are rejected."""
     long_name = "a" * 65
-
-    # This should return False after the fix, but currently returns True
-    # We assert False to confirm the "failure" (vulnerability presence) or "success" (fix verification)
     assert main.is_valid_folder_name(long_name) is False
 
 
@@ -22,15 +14,8 @@ def test_is_valid_folder_name_acceptable_length():
 
 
 def test_is_valid_rule_length_limit():
-    """
-    Test that rules exceeding the maximum length are rejected.
-    Current behavior: Accepts any length (matching regex).
-    Expected behavior: Should reject length > 255.
-    """
-    # Create a rule with 256 characters (valid chars)
+    """Rules longer than 255 characters are rejected."""
     long_rule = "a" * 256 + ".com"
-
-    # This should return False after the fix
     assert main.is_valid_rule(long_rule) is False
 
 
