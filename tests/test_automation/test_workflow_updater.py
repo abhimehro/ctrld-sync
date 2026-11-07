@@ -84,38 +84,6 @@ def test_ref_exists(mock_run_process):
 def test_workflow_file_plans_skips_non_existent(
     mock_ref_exists, mock_latest_tag, mock_root
 ):
-    # Setup fake workflow file
-    mock_workflows_dir = MagicMock()
-    mock_file = MagicMock()
-    mock_file.read_text.return_value = "uses: actions/checkout@v4"
-    mock_file.relative_to.return_value = ".github/workflows/test.yml"
-    mock_workflows_dir.glob.return_value = [mock_file]
-    mock_root.__truediv__.return_value = mock_workflows_dir
-
-    # The workflow_file_plans function uses an internal cache: latest_cache: dict[str, str] = {}
-    # Because of this cache, we cannot just change mock_ref_exists on a second call
-    # without running into potential issues if it caches the result or if the generator is exhausted.
-    # We should run it fresh each time.
-
-    # Sorted iterator issue? The glob uses sorted(), so if it's not a real path it might fail inside sorted
-    # Let's mock the actual path representation
-    mock_file.__lt__ = lambda self, other: True
-
-    # Let's just create a list of mock files directly
-    # Wait, the code is: sorted((ROOT / ".github" / "workflows").glob("*.y*ml"))
-
-    # Resetting the mock iterables correctly so multiple calls work
-    mock_file1 = MagicMock()
-    mock_file1.read_text.return_value = "uses: actions/checkout@v4"
-    mock_file1.relative_to.return_value = ".github/workflows/test.yml"
-    mock_file1.__lt__ = lambda self, other: True
-
-    mock_file2 = MagicMock()
-    mock_file2.read_text.return_value = "uses: actions/setup-node@v3"
-    mock_file2.relative_to.return_value = ".github/workflows/test2.yml"
-    mock_file2.__lt__ = lambda self, other: True
-
-    # To fix issues with the pathlib mock, define a mock path class.
     class MockPath:
         def __init__(self, name, text):
             self.name = name
