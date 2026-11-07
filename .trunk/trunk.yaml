@@ -6,7 +6,6 @@ cli:
 # Many linters and tools depend on runtimes - configure them here. (https://docs.trunk.io/runtimes)
 runtimes:
   enabled:
-    - go@1.21.0
     - node@22.16.0
     - python@3.14.4
 # This is the section where you manage your linters. (https://docs.trunk.io/check/configuration)
@@ -14,13 +13,14 @@ lint:
   disabled:
     - markdownlint
     - prettier
+    - black
+    - isort
   enabled:
     - mypy@2.4.0
     - grype@0.118.0
     - pinact@4.1.1
     - actionlint@1.7.12
     - bandit@1.9.4
-    - black@26.10.1
     - checkov@3.3.29
     - deno@2.9.6
     - dotenv-linter@4.0.0
@@ -35,6 +35,11 @@ lint:
     - trivy@0.74.0
     - trufflehog@3.97.4
     - yamllint@1.38.0
+  definitions:
+    - name: ruff
+      commands:
+        - name: format
+          enabled: true
 actions:
   definitions:
     - id: pr-recap-sync

@@ -1,9 +1,0 @@
-# Generic, formatter-friendly config.
-extend = "../../pyproject.toml"
-
-[lint]
-select = ["B", "D3", "D4", "E", "F"]
-extend-select = ["I"]
-
-# Never enforce `E501` (line length violations). This should be handled by formatters.
-ignore = ["E501"]
