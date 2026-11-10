@@ -213,26 +213,21 @@ def _process_folders(
     ctx: SyncContext,
     folder_data_list: list[FolderData],
 ) -> int:
-    """Process folders serially (max_workers=1) and return the success count."""
-    success_count = 0
-    # CRITICAL FIX: Switch to Serial Processing (1 worker)
-    # This prevents API rate limits and ensures stability for large folders.
-    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-        future_to_folder = {
-            executor.submit(sync._process_single_folder, ctx, folder_data): folder_data
-            for folder_data in folder_data_list
-        }
+    """Process folders one at a time and return the success count.
 
-        for future in concurrent.futures.as_completed(future_to_folder):
-            folder_data = future_to_folder[future]
-            folder_name = folder_data["group"]["group"].strip()
-            try:
-                if future.result():
-                    success_count += 1
-            except Exception as e:
-                sync.log.error(
-                    f"Failed to process folder '{sanitize_for_log(folder_name)}': {sanitize_for_log(e)}"
-                )
+    Overlapping folder writes trip Control D rate limits, so this stays serial.
+    """
+    success_count = 0
+    for folder_data in folder_data_list:
+        folder_name = folder_data["group"]["group"].strip()
+        try:
+            # Through the sync facade so tests can patch sync._process_single_folder.
+            if sync._process_single_folder(ctx, folder_data):
+                success_count += 1
+        except Exception as e:
+            sync.log.error(
+                f"Failed to process folder '{sanitize_for_log(folder_name)}': {sanitize_for_log(e)}"
+            )
 
     return success_count
 
