@@ -209,40 +209,30 @@ def _sanitize_http_status_error(e: httpx.HTTPStatusError) -> httpx.HTTPStatusErr
     )
 
 
-def _gh_get(url: str) -> dict:
-    """
-    Fetch blocklist data from URL with HTTP cache header support.
-
-    CACHING STRATEGY:
-    1. Check in-memory cache first (fastest)
-    2. Check disk cache and send conditional request (If-None-Match/If-Modified-Since)
-    3. If 304 Not Modified: reuse cached data (cache validation)
-    4. If 200 OK: download new data and update cache
-
-    SECURITY: Validates data structure regardless of cache source
-    """
-    # SECURITY: Fail-closed SSRF guard before any cache or network access.
-    _validate_url_or_raise(url)
-
-    # First check: Quick check without holding lock for long
-    if (cached := _get_memory_cached(url)) is not None:
-        return cached
-
-    # Check disk cache for TTL-based hit or conditional request headers
-    headers: dict[str, str] = {}
+def _check_disk_cache(
+    url: str,
+) -> tuple[dict | None, dict[str, str], dict[str, Any] | None]:
+    """Check disk cache for a TTL hit or prepare conditional request headers."""
     cached_entry = _disk_cache.get(url)
-    if cached_entry:
-        last_validated = cached_entry.get("last_validated", 0)
-        if time.time() - last_validated < CACHE_TTL_SECONDS:
-            # Within TTL: return cached data directly without any HTTP request
-            return _serve_disk_ttl_hit(url, cached_entry)
-        # Beyond TTL: send conditional request using cached ETag/Last-Modified
-        # Server returns 304 if content hasn't changed
-        # NOTE: Cached values may be None if the server didn't send these headers.
-        headers = _build_conditional_headers(cached_entry)
+    if not cached_entry:
+        return None, {}, None
 
-    # Fetch data (or validate cache)
-    # Explicitly let HTTPError propagate (no need to catch just to re-raise)
+    last_validated = cached_entry.get("last_validated", 0)
+    if time.time() - last_validated < CACHE_TTL_SECONDS:
+        # Within TTL: return cached data directly without any HTTP request
+        return _serve_disk_ttl_hit(url, cached_entry), {}, cached_entry
+
+    # Beyond TTL: send conditional request using cached ETag/Last-Modified
+    # Server returns 304 if content hasn't changed
+    # NOTE: Cached values may be None if the server didn't send these headers.
+    headers = _build_conditional_headers(cached_entry)
+    return None, headers, cached_entry
+
+
+def _fetch_remote_data(
+    url: str, headers: dict[str, str], cached_entry: dict[str, Any] | None
+) -> dict:
+    """Fetch remote data, stream response, and update cache with thread safety."""
     try:
         _count_blocklist_fetch()
         with _gh.stream("GET", url, headers=headers) as r:
@@ -273,6 +263,34 @@ def _gh_get(url: str) -> dict:
     # for consistency (return _cache[url] instead of data to ensure single source of truth)
     with _cache_lock:
         return _cache.setdefault(url, data)
+
+
+def _gh_get(url: str) -> dict:
+    """
+    Fetch blocklist data from URL with HTTP cache header support.
+
+    CACHING STRATEGY:
+    1. Check in-memory cache first (fastest)
+    2. Check disk cache and send conditional request (If-None-Match/If-Modified-Since)
+    3. If 304 Not Modified: reuse cached data (cache validation)
+    4. If 200 OK: download new data and update cache
+
+    SECURITY: Validates data structure regardless of cache source
+    """
+    # SECURITY: Fail-closed SSRF guard before any cache or network access.
+    _validate_url_or_raise(url)
+
+    # First check: Quick check without holding lock for long
+    if (cached := _get_memory_cached(url)) is not None:
+        return cached
+
+    # Check disk cache for TTL-based hit or conditional request headers
+    ttl_hit, headers, cached_entry = _check_disk_cache(url)
+    if ttl_hit is not None:
+        return ttl_hit
+
+    # Fetch data (or validate cache)
+    return _fetch_remote_data(url, headers, cached_entry)
 
 
 def fetch_folder_data(url: str) -> FolderData:
