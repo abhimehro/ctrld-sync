@@ -185,6 +185,25 @@ def _update_rate_limit_info(
         )
 
 
+def _process_rate_limit_headers(headers: httpx.Headers) -> None:
+    """Extract standard rate limit headers, update tracking, and warn if approaching quota."""
+    new_limit = _extract_int_header(headers, "X-RateLimit-Limit")
+    new_remaining = _extract_int_header(headers, "X-RateLimit-Remaining")
+    new_reset = _extract_int_header(headers, "X-RateLimit-Reset")
+
+    if not _has_any_rate_limit_headers(new_limit, new_remaining, new_reset):
+        return
+
+    limit_snapshot, remaining_snapshot, reset_snapshot = _update_rate_limit_info(
+        new_limit, new_remaining, new_reset
+    )
+
+    if limit_snapshot is None or remaining_snapshot is None:
+        return
+
+    _log_rate_limit_warning(limit_snapshot, remaining_snapshot, reset_snapshot)
+
+
 def _parse_rate_limit_headers(response: httpx.Response) -> None:
     """
     Parse rate limit headers from API response and update global tracking.
@@ -210,23 +229,8 @@ def _parse_rate_limit_headers(response: httpx.Response) -> None:
         return
 
     # Parse standard rate limit headers
-    # These may not exist on all responses, so we check individually
     try:
-        new_limit = _extract_int_header(headers, "X-RateLimit-Limit")
-        new_remaining = _extract_int_header(headers, "X-RateLimit-Remaining")
-        new_reset = _extract_int_header(headers, "X-RateLimit-Reset")
-
-        if not _has_any_rate_limit_headers(new_limit, new_remaining, new_reset):
-            return
-
-        limit_snapshot, remaining_snapshot, reset_snapshot = _update_rate_limit_info(
-            new_limit, new_remaining, new_reset
-        )
-
-        # Log warnings when approaching rate limits
-        if limit_snapshot is not None and remaining_snapshot is not None:
-            _log_rate_limit_warning(limit_snapshot, remaining_snapshot, reset_snapshot)
-
+        _process_rate_limit_headers(headers)
     except Exception as e:
         # Rate limit parsing failures should never crash the sync
         # Just log and continue
