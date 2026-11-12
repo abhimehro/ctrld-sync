@@ -3,22 +3,6 @@ repository:
   default_branch: main
 automation:
   human_review_label: needs-human-review
-  write_safety:
-    # Design sketch only: the current runner still relies on the explicit per-task
-    # publish/create flags below. This block documents the intended future modes.
-    active_mode: safe-writes
-    modes:
-      read-only:
-        description: "Analysis and local reports only. No issue, label, or PR creation."
-      safe-writes:
-        description: "Allows status issues, label creation, and draft PRs for allow-listed workflow or documentation changes."
-      expanded-writes:
-        description: "Allows broader non-protected-path draft PRs after all security gates pass; still no force-pushes, merges, or protected-path edits."
-  protected_paths:
-    - auth/**
-    - migrations/**
-    - database/**
-    - api/**
   reporting:
     daily_issue_prefix: "[repo-automation] Daily Status Report"
     weekly_issue_prefix: "[repo-automation] Weekly Retrospective"
