@@ -16,6 +16,9 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-11-11 [\#1410](https://github.com/abhimehro/ctrld-sync/issues/1410)
+- Daily QA & Agentic Review — 2026-11-10 [\#1402](https://github.com/abhimehro/ctrld-sync/issues/1402)
+- Daily QA & Agentic Review — 2026-11-09 [\#1400](https://github.com/abhimehro/ctrld-sync/issues/1400)
 - Daily QA & Agentic Review — 2026-11-05 [\#1392](https://github.com/abhimehro/ctrld-sync/issues/1392)
 - Daily QA & Agentic Review — 2026-11-04 [\#1390](https://github.com/abhimehro/ctrld-sync/issues/1390)
 - Daily QA & Agentic Review — 2026-11-03 [\#1389](https://github.com/abhimehro/ctrld-sync/issues/1389)
@@ -35,12 +38,20 @@
 - Daily QA & Agentic Review — 2026-10-11 [\#1330](https://github.com/abhimehro/ctrld-sync/issues/1330)
 - Daily QA & Agentic Review — 2026-10-10 [\#1328](https://github.com/abhimehro/ctrld-sync/issues/1328)
 - Daily QA & Agentic Review — 2026-10-09 [\#1324](https://github.com/abhimehro/ctrld-sync/issues/1324)
+- PR lifecycle: needs human decision [\#1323](https://github.com/abhimehro/ctrld-sync/issues/1323)
+- Blocklist fetch metric overcounts cache hits and undercounts 304 retries [\#1322](https://github.com/abhimehro/ctrld-sync/issues/1322)
+- Restore exact media-type matching in \_validate\_content\_type \(gh\_client.py\) [\#1321](https://github.com/abhimehro/ctrld-sync/issues/1321)
+- Revert unintended CI action and Trunk tool downgrades from PRNG PR \#1206 [\#1320](https://github.com/abhimehro/ctrld-sync/issues/1320)
+- Revert retry jitter benchmark to random.random\(\) to match api\_client [\#1319](https://github.com/abhimehro/ctrld-sync/issues/1319)
+- Revert unrelated dependency downgrades from PRNG optimization PR \#1206 [\#1318](https://github.com/abhimehro/ctrld-sync/issues/1318)
+- Restore is\_valid\_rule in rule filtering hot path instead of inline check [\#1317](https://github.com/abhimehro/ctrld-sync/issues/1317)
 - Daily QA & Agentic Review — 2026-10-04 [\#1311](https://github.com/abhimehro/ctrld-sync/issues/1311)
 - \[repo-automation\] Weekly Retrospective - 2026-10-04 [\#1309](https://github.com/abhimehro/ctrld-sync/issues/1309)
 - Daily QA & Agentic Review — 2026-10-03 [\#1308](https://github.com/abhimehro/ctrld-sync/issues/1308)
 - Daily QA & Agentic Review — 2026-10-02 [\#1304](https://github.com/abhimehro/ctrld-sync/issues/1304)
 - Daily QA & Agentic Review — 2026-10-01 [\#1299](https://github.com/abhimehro/ctrld-sync/issues/1299)
 - Daily QA & Agentic Review — 2026-09-30 [\#1298](https://github.com/abhimehro/ctrld-sync/issues/1298)
+- \[pr-sweep\] Review gh-aw setup-cli v0.87.10 -\> v0.89.17 \(mutable tag\) bump: \#1270 [\#1296](https://github.com/abhimehro/ctrld-sync/issues/1296)
 - \[pr-sweep\] Review github/gh-aw/actions/setup 0.89.14 -\> 0.89.17 bump: \#1271 [\#1295](https://github.com/abhimehro/ctrld-sync/issues/1295)
 - \[pr-sweep\] Review github/codeql-action/upload-sarif 4.38.0 -\> 4.38.1 bump: \#1272 [\#1294](https://github.com/abhimehro/ctrld-sync/issues/1294)
 - \[pr-sweep\] Review ruby/setup-ruby 1.321.0 -\> 1.324.0 bump: \#1273 [\#1293](https://github.com/abhimehro/ctrld-sync/issues/1293)
@@ -156,6 +167,7 @@
 
 **Merged pull requests:**
 
+- 🧹 refactor\(api\_client\): simplify rate limit header parsing logic [\#1408](https://github.com/abhimehro/ctrld-sync/pull/1408) ([abhimehro](https://github.com/abhimehro))
 - chore\(ruff\): enforce import sorting after Trunk isort removal [\#1395](https://github.com/abhimehro/ctrld-sync/pull/1395) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump ruby/setup-ruby from 1.335.0 to 1.336.0 [\#1387](https://github.com/abhimehro/ctrld-sync/pull/1387) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore: nightly audit, trim trunk config [\#1385](https://github.com/abhimehro/ctrld-sync/pull/1385) ([abhimehro](https://github.com/abhimehro))
