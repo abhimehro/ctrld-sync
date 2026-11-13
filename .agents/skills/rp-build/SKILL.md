@@ -2,7 +2,7 @@
 name: "rp-build"
 description: "Build with RepoPrompt MCP tools context builder plan → implement"
 repoprompt_managed: true
-repoprompt_skills_version: 29
+repoprompt_skills_version: 30
 repoprompt_variant: mcp
 ---
 
@@ -69,31 +69,24 @@ Before any exploration, confirm the target codebase is loaded:
 ```
 
 ---
-
 ## Phase 1: Quick Scan (LIMITED - 2-3 tool calls max)
 
-⚠️ **This phase is intentionally brief.** Do NOT do extensive exploration
-here—that's what `context_builder` is for.
+⚠️ **This phase is intentionally brief.** Do NOT do extensive exploration here—that's what `context_builder` is for.
 
 Start by getting a lay of the land with the file tree:
-
 ```json
-{ "tool": "get_file_tree", "args": { "type": "files", "mode": "auto" } }
+{"tool":"get_file_tree","args":{"type":"files","mode":"auto"}}
 ```
 
 Then use targeted searches to understand how the task maps to the codebase:
-
 ```json
 {"tool":"file_search","args":{"pattern":"<key term from task>","mode":"path"}}
 {"tool":"get_code_structure","args":{"paths":["RootName/likely/relevant/area"]}}
 ```
 
-Use what you learn to **reformulate the user's prompt** with added
-clarity—reference specific modules, patterns, or terminology from the codebase.
+Use what you learn to **reformulate the user's prompt** with added clarity—reference specific modules, patterns, or terminology from the codebase.
 
-**STOP exploring after 2-3 searches.** Your goal is orientation, not deep
-understanding. `context_builder` will do the heavy lifting.
-
+**STOP exploring after 2-3 searches.** Your goal is orientation, not deep understanding. `context_builder` will do the heavy lifting.
 ---
 
 ## Phase 2: Context Builder

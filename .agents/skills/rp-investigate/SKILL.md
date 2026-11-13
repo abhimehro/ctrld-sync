@@ -2,7 +2,7 @@
 name: "rp-investigate"
 description: "Deep investigation with RepoPrompt MCP tools: tools gather evidence, follow-up reasoning synthesizes selected context"
 repoprompt_managed: true
-repoprompt_skills_version: 29
+repoprompt_skills_version: 30
 repoprompt_variant: mcp
 ---
 
@@ -93,7 +93,6 @@ Before any investigation, confirm the target codebase is loaded:
 ```
 
 ---
-
 ### Phase 1: Initial Assessment (Agent — you)
 
 1. Read any provided files/reports (traces, logs, error reports)
@@ -105,12 +104,9 @@ Keep this short — save deep exploration for after `context_builder`.
 
 ### Phase 2: Broad Context Gathering (via `context_builder` — REQUIRED)
 
-⚠️ **Do NOT skip this step.** The context builder discovers relevant files
-across the codebase that you'd miss with manual searching. It populates the file
-selection with full files or targeted slices.
+⚠️ **Do NOT skip this step.** The context builder discovers relevant files across the codebase that you'd miss with manual searching. It populates the file selection with full files or targeted slices.
 
-Use `context_builder` with detailed instructions describing what to investigate
-and why:
+Use `context_builder` with detailed instructions describing what to investigate and why:
 
 ```
 mcp__RepoPrompt__context_builder:
@@ -133,32 +129,25 @@ mcp__RepoPrompt__context_builder:
 	response_type: question
 ```
 
-Use `response_type: question` so the chat immediately analyzes the gathered
-context and returns its initial assessment.
+Use `response_type: question` so the chat immediately analyzes the gathered context and returns its initial assessment.
 
 ### Phase 3: Agent Verification & Evidence Gathering (Agent — you)
 
-The chat's response will contain hypotheses and analytical pointers. **Your job
-is to verify them with precision:**
+The chat's response will contain hypotheses and analytical pointers. **Your job is to verify them with precision:**
 
-- **Read specific files** the chat mentioned — check exact implementations and
-  line numbers
-- **Search for patterns** the chat identified — confirm they exist where
-  expected
+- **Read specific files** the chat mentioned — check exact implementations and line numbers
+- **Search for patterns** the chat identified — confirm they exist where expected
 - **Run git blame/log** on suspicious areas — find when changes were introduced
 - **Trace data/control flow** through code paths the chat flagged
 - **Check for edge cases** the chat hypothesized about
 
-Build a concrete evidence list: file paths, line numbers, git commits, actual
-code snippets.
+Build a concrete evidence list: file paths, line numbers, git commits, actual code snippets.
 
-If a factual gap can be closed with `read_file`, `file_search`, `git`, or
-another direct tool call, do that before going back to the chat.
+If a factual gap can be closed with `read_file`, `file_search`, `git`, or another direct tool call, do that before going back to the chat.
 
 ### Phase 4: Refocused Chat Deep Dives (Iterate)
 
-Update the selection to focus the chat on what matters now, then ask targeted
-questions that require synthesis rather than direct lookup:
+Update the selection to focus the chat on what matters now, then ask targeted questions that require synthesis rather than direct lookup:
 
 ```
 // Add files the chat hasn't seen yet
@@ -185,26 +174,17 @@ mcp__RepoPrompt__`chat_send`:
 	mode: chat
 ```
 
-**Repeat Phases 3–4** as needed, but be judicious. The chat is slow and
-resource-intensive — do substantial reasoning and evidence gathering on your own
-between calls. Don't invoke it just to ask a quick question you could answer
-yourself with `read_file`, `file_search`, `git`, or other direct tool calls.
-Reserve it for moments when you need deep analytical synthesis, competing
-explanations, or cross-file reasoning across the selected context.
+**Repeat Phases 3–4** as needed, but be judicious. The chat is slow and resource-intensive — do substantial reasoning and evidence gathering on your own between calls. Don't invoke it just to ask a quick question you could answer yourself with `read_file`, `file_search`, `git`, or other direct tool calls. Reserve it for moments when you need deep analytical synthesis, competing explanations, or cross-file reasoning across the selected context.
 
 ### Phase 5: Conclusions & Report (Agent — you)
 
-You write the final report with precise references. The chat reasons about
-patterns but can't produce exact line numbers — that's your job.
+You write the final report with precise references. The chat reasons about patterns but can't produce exact line numbers — that's your job.
 
 Document:
-
-- **Root cause** — with exact file paths, line numbers, and code snippets as
-  evidence
+- **Root cause** — with exact file paths, line numbers, and code snippets as evidence
 - **Eliminated hypotheses** — and what evidence ruled them out
 - **Recommended fixes** — specific, actionable changes with file locations
 - **Preventive measures** — how to avoid this in future
-
 ---
 
 ## Role Summary

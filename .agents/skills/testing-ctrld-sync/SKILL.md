@@ -7,8 +7,9 @@ description: Test the ctrld-sync Python CLI end-to-end, including dry-run planni
 
 ## App shape
 
-- Single-file Python CLI app in `main.py`; no browser UI, database, or Docker
-  service is required.
+- Python CLI with `main.py` as the entry point; sync logic lives in packages
+  (`sync/`, `display/`, `api_client.py`, `gh_client.py`, `cache.py`, `config.py`,
+  etc.). No browser UI, database, or Docker service is required.
 - Use shell-based testing evidence. Do not record the desktop unless a future
   change adds a GUI.
 - Python >= 3.13 is required; use `uv` so the repo interpreter is selected.

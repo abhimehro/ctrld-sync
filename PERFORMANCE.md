@@ -87,7 +87,7 @@ CI runs the benchmark workflow on changes to the tests above and
 Profiling:
 
 ```bash
-uv run python -m cProfile -o profile.stats main.py
+uv run python -m cProfile -o profile.stats main.py --dry-run
 uv run python -c "import pstats; p = pstats.Stats('profile.stats'); p.sort_stats('cumulative').print_stats(20)"
 ```
 
