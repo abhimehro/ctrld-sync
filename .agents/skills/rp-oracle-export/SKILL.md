@@ -2,15 +2,30 @@
 name: "rp-oracle-export"
 description: "Export a ChatGPT-ready Question / Plan / Review prompt using RepoPrompt MCP tools"
 repoprompt_managed: true
-repoprompt_skills_version: 29
+repoprompt_skills_version: 30
 repoprompt_variant: mcp
 ---
 
 # ChatGPT Prompt Export
 
-Task: $ARGUMENTS
+Raw request: $ARGUMENTS
 
-Export a ChatGPT-ready prompt file with the right amount of context.
+Your job: select the right files and export a prompt file that another model can
+act on directly.
+
+**Before you do anything else**, extract the real task from the raw request
+above. Users often phrase this as "export a prompt for X" or "write a prompt
+about Y" — strip away any meta-framing about exporting/prompting and identify
+the underlying problem. For example:
+
+- "export a prompt to evaluate the auth refresh logic" → the task is "evaluate
+  the auth refresh logic"
+- "write a ChatGPT prompt about the token caching bug" → the task is
+  "investigate the token caching bug"
+- "review the last 3 commits" → the task is already clean
+
+Use the extracted task (not the raw request) for all downstream steps — intent
+classification, `context_builder` instructions, and the final exported prompt.
 
 ## Rules
 
@@ -73,7 +88,11 @@ Infer the prompt type from the request:
 - **Plan** for design / approach / implementation-plan / architectural audit /
   code evaluation requests — even if the user says "review" or "audit", if there
   are no diffs involved, this is a Plan
-- otherwise **Question** when that is clearly implied
+- **Question** only when the user is asking a specific, bounded question with a
+  clear answer
+- **When in doubt, default to Plan.** Generic or open-ended requests ("look into
+  X", "help me with Y", "figure out Z") produce better results with the Plan
+  preset, which gives the receiving model structured guidance.
 
 If the request is vague:
 
@@ -184,7 +203,7 @@ Otherwise use `context_builder`:
 {
   "tool": "context_builder",
   "args": {
-    "instructions": "<task>Question / plan request here</task>\n<context>Scope: <what you found>. Keep the export focused.</context>",
+    "instructions": "<task>The actual problem to solve — not about exporting or prompting</task>\n<context>Scope: <what you found>.</context>",
     "response_type": "clarify"
   }
 }
@@ -245,8 +264,8 @@ relative and repo-local under `prompt-exports/`.
 
 Preset mapping:
 
-- `Question` → `standard`
-- `Plan` → `plan`
+- `Question` → `standard` (only for specific, bounded questions)
+- `Plan` → `plan` (default for generic, open-ended, or ambiguous requests)
 - `Review` → `codeReview`
 
 ```json
@@ -281,6 +300,10 @@ Preset mapping:
   gives you enough detail for a better filename
 - Writing to an absolute path or outside the repo by default when the user did
   not ask for that
+- Passing export/prompt meta-framing to `context_builder` — instructions like
+  "export a prompt for X" or "build context for a ChatGPT prompt about Y" cause
+  the builder to write a prompt _about prompting_ instead of a prompt that
+  solves X. Always pass the extracted task directly.
 
 Report the final export path, prompt type, whether you used the fast path or
 `context_builder`, and token count if available.

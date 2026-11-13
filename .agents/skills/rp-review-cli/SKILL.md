@@ -2,7 +2,7 @@
 name: "rp-review-cli"
 description: "Code review workflow using rp-cli git tool and context_builder"
 repoprompt_managed: true
-repoprompt_skills_version: 29
+repoprompt_skills_version: 30
 repoprompt_variant: cli
 ---
 
@@ -54,20 +54,13 @@ minutes to complete. When invoking rp-cli, **set your command timeout to at
 least 2700 seconds (45 minutes)** to avoid premature termination.
 
 ---
-
 ## Protocol
 
-0. **Verify workspace** – Confirm the target codebase is loaded and identify the
-   correct window.
-1. **Survey changes** – Check git state and recent commits to understand what's
-   changed.
-2. **Determine scope** – Infer the comparison scope from the user's request.
-   Only ask for clarification if the scope is ambiguous or unspecified.
-3. **Deep review** – Run `builder` with `response_type: "review"`, explicitly
-   specifying the confirmed comparison scope.
-4. **Fill gaps** – If the review missed areas, run focused follow-up reviews
-   explicitly describing what was/wasn't covered.
-
+0. **Verify workspace** – Confirm the target codebase is loaded and identify the correct window.
+1. **Survey changes** – Check git state and recent commits to understand what's changed.
+2. **Determine scope** – Infer the comparison scope from the user's request. Only ask for clarification if the scope is ambiguous or unspecified.
+3. **Deep review** – Run `builder` with `response_type: "review"`, explicitly specifying the confirmed comparison scope.
+4. **Fill gaps** – If the review missed areas, run focused follow-up reviews explicitly describing what was/wasn't covered.
 ---
 
 ## Step 0: Workspace Verification (REQUIRED)
@@ -96,9 +89,7 @@ rp-cli -w <window_id> -e 'tree --type roots'
 - Always include `-w <window_id>` in ALL subsequent commands
 
 ---
-
 ## Step 1: Survey Changes
-
 ```bash
 rp-cli -w <window_id> -e 'git status'
 rp-cli -w <window_id> -e 'git log --count 10'
@@ -109,12 +100,9 @@ rp-cli -w <window_id> -e 'git diff --detail files'
 
 Determine the comparison scope from the user's request and git state.
 
-**If the user already specified a clear comparison target** (e.g., "review
-against main", "compare with develop", "review last 3 commits"), **skip
-confirmation and proceed** using the scope they specified.
+**If the user already specified a clear comparison target** (e.g., "review against main", "compare with develop", "review last 3 commits"), **skip confirmation and proceed** using the scope they specified.
 
 **If the scope is ambiguous or not specified**, ask the user to clarify:
-
 - **Current branch**: What branch are you on? (from git status)
 - **Comparison target**: What should changes be compared against?
   - `uncommitted` – All uncommitted changes vs HEAD (default)
@@ -124,9 +112,7 @@ confirmation and proceed** using the scope they specified.
   - `<branch_name>` – Compare against specific branch
 
 **Example prompt to user (only if scope is unclear):**
-
 > "You're on branch `feature/xyz`. What should I compare against?
->
 > - `uncommitted` (default) - review all uncommitted changes
 > - `main` - review all changes on this branch vs main
 > - Other branch name?"
@@ -135,14 +121,11 @@ confirmation and proceed** using the scope they specified.
 
 ## Step 3: Deep Review (via `builder` - REQUIRED)
 
-⚠️ **Do NOT skip this step.** You MUST call `builder` with
-`response_type: "review"` for proper code review context.
+⚠️ **Do NOT skip this step.** You MUST call `builder` with `response_type: "review"` for proper code review context.
 
-**CRITICAL:** Include the confirmed comparison scope in your instructions so the
-context builder knows exactly what to review.
+**CRITICAL:** Include the confirmed comparison scope in your instructions so the context builder knows exactly what to review.
 
 Use XML tags to structure the instructions:
-
 ```bash
 rp-cli -w <window_id> -e 'builder "<task>Review changes comparing <current_branch> against <confirmed_comparison_target>. Focus on correctness, security, API changes, error handling.</task>
 
@@ -155,22 +138,16 @@ Changed files: <list key files></context>
 
 ## Optional: Clarify Findings
 
-After receiving review findings, you can ask clarifying questions in the same
-chat:
-
+After receiving review findings, you can ask clarifying questions in the same chat:
 ```bash
 rp-cli -w <window_id> -t '<tab_id>' -e 'chat "Can you explain the security concern in more detail? What'\''s the attack vector?" --mode chat'
 ```
 
-> Pass `-w <window_id>` to target the correct window and `-t <tab_id>` to target
-> the same tab from the builder response.
+> Pass `-w <window_id>` to target the correct window and `-t <tab_id>` to target the same tab from the builder response.
 
 ## Step 4: Fill Gaps
 
-If the review omitted significant areas, run a focused follow-up. **You must
-explicitly describe what was already covered and what needs review now**
-(`builder` has no memory of previous runs):
-
+If the review omitted significant areas, run a focused follow-up. **You must explicitly describe what was already covered and what needs review now** (`builder` has no memory of previous runs):
 ```bash
 rp-cli -w <window_id> -e 'builder "<task>Review <specific area> in depth.</task>
 
@@ -179,7 +156,6 @@ Not yet reviewed: <list files/areas to review now>.</context>
 
 <discovery_agent-guidelines>Focus specifically on <directories/files not yet covered>.</discovery_agent-guidelines>" --response-type review'
 ```
-
 ---
 
 ## Anti-patterns to Avoid
