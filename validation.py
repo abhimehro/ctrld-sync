@@ -393,7 +393,7 @@ def is_valid_rule(rule: str) -> bool:
         return False
 
     # Strict whitelist to prevent injection
-    return bool(rule) and _ALLOWED_RULE_CHARS.issuperset(rule)
+    return _ALLOWED_RULE_CHARS.issuperset(rule)
 
 
 def is_valid_folder_name(name: str) -> bool:
