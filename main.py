@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import concurrent.futures  # noqa: F401
+import contextlib
 import ipaddress  # noqa: F401
 import json
 import logging
@@ -584,10 +585,8 @@ def _write_plan_json(plan_json_path: str, plan: list[PlanEntry]) -> None:
             os.fsync(plan_file.fileno())
         os.replace(temp_path, plan_path)
     except Exception:
-        try:
+        with contextlib.suppress(FileNotFoundError):
             os.unlink(temp_path)
-        except FileNotFoundError:
-            pass
         raise
 
     log.info("Plan written to %s", plan_path)
@@ -773,7 +772,6 @@ def main() -> bool:
     if not args.dry_run:
         save_disk_cache()
 
-    total = len(profile_ids or ["dry-run-placeholder"])
     profile_word = pluralize(total, "profile")
     log.info(f"Processed {total} {profile_word}: {success_count}/{total} successful")
     if success_count != total:
