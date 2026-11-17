@@ -25,7 +25,7 @@ require it.
 | Task                       | Command                                                            |
 | -------------------------- | ------------------------------------------------------------------ |
 | Install/update deps        | `uv sync --all-extras`                                             |
-| Run linter                 | `ruff check .` (install via `uv tool install ruff` if not on PATH) |
+| Run linter                 | `uv run ruff check .` (uses the ruff version locked for CI)        |
 | Run all tests              | `uv run pytest tests/ test_main.py -v`                             |
 | Run specific test file     | `uv run pytest tests/test_fix_env.py -v`                           |
 | Run app (dry-run)          | `uv run python main.py --dry-run`                                  |
