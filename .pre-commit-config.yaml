@@ -1,7 +1,8 @@
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    # Ruff version — keep aligned with pyproject.toml / uv.lock / .trunk/trunk.yaml
-    rev: v0.16.1
+    # Ruff version — keep aligned with the resolved uv.lock ruff and .trunk/trunk.yaml.
+    # pyproject.toml only sets a floor (ruff>=0.16.2).
+    rev: v0.17.3
     hooks:
       # Run the linter.
       - id: ruff
