@@ -171,6 +171,7 @@
 
 **Merged pull requests:**
 
+- chore\(qa\): simplify temp plan file cleanup and drop redundant profile count calculation [\#1435](https://github.com/abhimehro/ctrld-sync/pull/1435) ([abhimehro](https://github.com/abhimehro))
 - ⚡bolt: eliminate redundant truthiness check in is\_valid\_rule [\#1415](https://github.com/abhimehro/ctrld-sync/pull/1415) ([abhimehro](https://github.com/abhimehro))
 - 🧹 refactor\(api\_client\): simplify rate limit header parsing logic [\#1408](https://github.com/abhimehro/ctrld-sync/pull/1408) ([abhimehro](https://github.com/abhimehro))
 - chore\(ruff\): enforce import sorting after Trunk isort removal [\#1395](https://github.com/abhimehro/ctrld-sync/pull/1395) ([abhimehro](https://github.com/abhimehro))
