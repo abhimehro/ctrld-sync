@@ -2,7 +2,7 @@
 name: "rp-review"
 description: "Code review workflow using RepoPrompt MCP tools git tool and context_builder"
 repoprompt_managed: true
-repoprompt_skills_version: 29
+repoprompt_skills_version: 30
 repoprompt_variant: mcp
 ---
 
@@ -56,9 +56,7 @@ Before any git operations, confirm the target codebase is loaded:
 ```
 
 ---
-
 ## Step 1: Survey Changes
-
 ```json
 {"tool":"git","args":{"op":"status"}}
 {"tool":"git","args":{"op":"log","count":10}}
@@ -69,12 +67,9 @@ Before any git operations, confirm the target codebase is loaded:
 
 Determine the comparison scope from the user's request and git state.
 
-**If the user already specified a clear comparison target** (e.g., "review
-against main", "compare with develop", "review last 3 commits"), **skip
-confirmation and proceed** using the scope they specified.
+**If the user already specified a clear comparison target** (e.g., "review against main", "compare with develop", "review last 3 commits"), **skip confirmation and proceed** using the scope they specified.
 
 **If the scope is ambiguous or not specified**, ask the user to clarify:
-
 - **Current branch**: What branch are you on? (from git status)
 - **Comparison target**: What should changes be compared against?
   - `uncommitted` – All uncommitted changes vs HEAD (default)
@@ -84,9 +79,7 @@ confirmation and proceed** using the scope they specified.
   - `<branch_name>` – Compare against specific branch
 
 **Example prompt to user (only if scope is unclear):**
-
 > "You're on branch `feature/xyz`. What should I compare against?
->
 > - `uncommitted` (default) - review all uncommitted changes
 > - `main` - review all changes on this branch vs main
 > - Other branch name?"
@@ -95,68 +88,50 @@ confirmation and proceed** using the scope they specified.
 
 ## Step 3: Deep Review (via `context_builder` - REQUIRED)
 
-⚠️ **Do NOT skip this step.** You MUST call `context_builder` with
-`response_type: "review"` for proper code review context.
+⚠️ **Do NOT skip this step.** You MUST call `context_builder` with `response_type: "review"` for proper code review context.
 
-**CRITICAL:** Include the confirmed comparison scope in your instructions so the
-context builder knows exactly what to review.
+**CRITICAL:** Include the confirmed comparison scope in your instructions so the context builder knows exactly what to review.
 
 Use XML tags to structure the instructions:
-
 ```json
-{
-  "tool": "context_builder",
-  "args": {
-    "instructions": "<task>Review changes comparing <current_branch> against <confirmed_comparison_target>. Focus on correctness, security, API changes, error handling.</task>
+{"tool":"context_builder","args":{
+  "instructions":"<task>Review changes comparing <current_branch> against <confirmed_comparison_target>. Focus on correctness, security, API changes, error handling.</task>
 
 <context>Comparison: <confirmed_scope> (e.g., 'uncommitted', 'main', 'staged')
 Current branch: <branch_name>
 Changed files: <list key files from git diff></context>
 
 <discovery_agent-guidelines>Focus on the directories containing changes.</discovery_agent-guidelines>",
-    "response_type": "review"
-  }
-}
+  "response_type":"review"
+}}
 ```
 
 ## Optional: Clarify Findings
 
-After receiving review findings, you can ask clarifying questions in the same
-chat:
-
+After receiving review findings, you can ask clarifying questions in the same chat:
 ```json
-{
-  "tool": "chat_send",
-  "args": {
-    "chat_id": "<from context_builder>",
-    "message": "Can you explain the security concern in more detail? What's the attack vector?",
-    "mode": "chat",
-    "new_chat": false
-  }
-}
+{"tool":"chat_send","args":{
+  "chat_id":"<from context_builder>",
+  "message":"Can you explain the security concern in more detail? What's the attack vector?",
+  "mode":"chat",
+  "new_chat":false
+}}
 ```
 
 ## Step 4: Fill Gaps
 
-If the review omitted significant areas, run a focused follow-up. **You must
-explicitly describe what was already covered and what needs review now**
-(`context_builder` has no memory of previous runs):
-
+If the review omitted significant areas, run a focused follow-up. **You must explicitly describe what was already covered and what needs review now** (`context_builder` has no memory of previous runs):
 ```json
-{
-  "tool": "context_builder",
-  "args": {
-    "instructions": "<task>Review <specific area> in depth.</task>
+{"tool":"context_builder","args":{
+  "instructions":"<task>Review <specific area> in depth.</task>
 
 <context>Previous review covered: <list files/areas reviewed>.
 Not yet reviewed: <list files/areas to review now>.</context>
 
 <discovery_agent-guidelines>Focus specifically on <directories/files not yet covered>.</discovery_agent-guidelines>",
-    "response_type": "review"
-  }
-}
+  "response_type":"review"
+}}
 ```
-
 ---
 
 ## Anti-patterns to Avoid

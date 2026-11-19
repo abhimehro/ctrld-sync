@@ -14,7 +14,7 @@
 #   2. --config FILE argument
 #   3. ./config.yaml or ./config.yml (current working directory)
 #   4. ~/.ctrld-sync/config.yaml or ~/.ctrld-sync/config.yml
-#   5. Built-in defaults (the DEFAULT_FOLDER_URLS list in main.py)
+#   5. Built-in defaults (the DEFAULT_FOLDER_URLS list in config.py)
 # ─────────────────────────────────────────────────────────────────────────────
 
 # folders: list of remote JSON block-list definitions to sync.

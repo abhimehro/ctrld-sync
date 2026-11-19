@@ -2,7 +2,7 @@
 name: "rp-refactor"
 description: "Refactoring assistant using RepoPrompt MCP tools to analyze and improve code organization"
 repoprompt_managed: true
-repoprompt_skills_version: 29
+repoprompt_skills_version: 30
 repoprompt_variant: mcp
 ---
 
@@ -60,59 +60,43 @@ Before any analysis, confirm the target codebase is loaded:
 ```
 
 ---
-
 ## Step 1: Analyze for Refactoring Opportunities (via `context_builder` - REQUIRED)
 
-⚠️ **Do NOT skip this step.** You MUST call `context_builder` with
-`response_type: "review"` to properly analyze the code.
+⚠️ **Do NOT skip this step.** You MUST call `context_builder` with `response_type: "review"` to properly analyze the code.
 
 Use XML tags to structure the instructions:
-
 ```json
-{
-  "tool": "context_builder",
-  "args": {
-    "instructions": "<task>Analyze for refactoring opportunities. Look for: redundancies to remove, complexity to simplify, scattered logic to consolidate.</task>
+{"tool":"context_builder","args":{
+  "instructions":"<task>Analyze for refactoring opportunities. Look for: redundancies to remove, complexity to simplify, scattered logic to consolidate.</task>
 
 <context>Target: <files, directory, or recent changes to analyze>.
 Goal: Preserve behavior while improving code organization.</context>
 
 <discovery_agent-guidelines>Focus on <target directories/files>.</discovery_agent-guidelines>",
-    "response_type": "review"
-  }
-}
+  "response_type":"review"
+}}
 ```
 
-Review the findings. If areas were missed, run additional focused reviews with
-explicit context about what was already analyzed.
+Review the findings. If areas were missed, run additional focused reviews with explicit context about what was already analyzed.
 
 ## Optional: Clarify Analysis
 
-After receiving analysis findings, you can ask clarifying questions in the same
-chat:
-
+After receiving analysis findings, you can ask clarifying questions in the same chat:
 ```json
-{
-  "tool": "chat_send",
-  "args": {
-    "chat_id": "<from context_builder>",
-    "message": "For the duplicate logic you identified, which location should be the canonical one?",
-    "mode": "chat",
-    "new_chat": false
-  }
-}
+{"tool":"chat_send","args":{
+  "chat_id":"<from context_builder>",
+  "message":"For the duplicate logic you identified, which location should be the canonical one?",
+  "mode":"chat",
+  "new_chat":false
+}}
 ```
 
 ## Step 2: Implement the Refactorings
 
-Once you have a clear list of refactoring opportunities, use `context_builder`
-with `response_type: "plan"` to implement:
-
+Once you have a clear list of refactoring opportunities, use `context_builder` with `response_type: "plan"` to implement:
 ```json
-{
-  "tool": "context_builder",
-  "args": {
-    "instructions": "<task>Implement these refactorings:</task>
+{"tool":"context_builder","args":{
+  "instructions":"<task>Implement these refactorings:</task>
 
 <context>Refactorings to apply:
 1. <specific refactoring with file references>
@@ -121,11 +105,9 @@ with `response_type: "plan"` to implement:
 Preserve existing behavior. Make incremental changes.</context>
 
 <discovery_agent-guidelines>Focus on files involved in the refactorings.</discovery_agent-guidelines>",
-    "response_type": "plan"
-  }
-}
+  "response_type":"plan"
+}}
 ```
-
 ---
 
 ## Output Format (be concise)
