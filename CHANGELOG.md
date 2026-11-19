@@ -16,6 +16,10 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-11-15 [\#1421](https://github.com/abhimehro/ctrld-sync/issues/1421)
+- Daily QA & Agentic Review — 2026-11-14 [\#1419](https://github.com/abhimehro/ctrld-sync/issues/1419)
+- Daily QA & Agentic Review — 2026-11-13 [\#1416](https://github.com/abhimehro/ctrld-sync/issues/1416)
+- Daily QA & Agentic Review — 2026-11-12 [\#1413](https://github.com/abhimehro/ctrld-sync/issues/1413)
 - Daily QA & Agentic Review — 2026-11-11 [\#1410](https://github.com/abhimehro/ctrld-sync/issues/1410)
 - Daily QA & Agentic Review — 2026-11-10 [\#1402](https://github.com/abhimehro/ctrld-sync/issues/1402)
 - Daily QA & Agentic Review — 2026-11-09 [\#1400](https://github.com/abhimehro/ctrld-sync/issues/1400)
@@ -167,6 +171,7 @@
 
 **Merged pull requests:**
 
+- ⚡bolt: eliminate redundant truthiness check in is\_valid\_rule [\#1415](https://github.com/abhimehro/ctrld-sync/pull/1415) ([abhimehro](https://github.com/abhimehro))
 - 🧹 refactor\(api\_client\): simplify rate limit header parsing logic [\#1408](https://github.com/abhimehro/ctrld-sync/pull/1408) ([abhimehro](https://github.com/abhimehro))
 - chore\(ruff\): enforce import sorting after Trunk isort removal [\#1395](https://github.com/abhimehro/ctrld-sync/pull/1395) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump ruby/setup-ruby from 1.335.0 to 1.336.0 [\#1387](https://github.com/abhimehro/ctrld-sync/pull/1387) ([dependabot[bot]](https://github.com/apps/dependabot))
