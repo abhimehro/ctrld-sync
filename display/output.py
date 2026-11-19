@@ -11,8 +11,8 @@ log = logging.getLogger(__name__)
 
 
 def _clear_current_line() -> None:
-    """Helper to clear the current line on stderr in a TTY."""
-    if sys.stderr.isatty():
+    """Helper to clear the current line on stderr when colors and a TTY are active."""
+    if USE_COLORS and sys.stderr.isatty():
         sys.stderr.write("\r\033[K")
         sys.stderr.flush()
 
