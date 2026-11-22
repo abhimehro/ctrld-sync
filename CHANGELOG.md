@@ -40,6 +40,7 @@
 - Daily QA & Agentic Review — 2026-10-13 [\#1335](https://github.com/abhimehro/ctrld-sync/issues/1335)
 - Daily QA & Agentic Review — 2026-10-12 [\#1334](https://github.com/abhimehro/ctrld-sync/issues/1334)
 - Daily QA & Agentic Review — 2026-10-11 [\#1330](https://github.com/abhimehro/ctrld-sync/issues/1330)
+- \[repo-automation\] Weekly Retrospective - 2026-10-11 [\#1329](https://github.com/abhimehro/ctrld-sync/issues/1329)
 - Daily QA & Agentic Review — 2026-10-10 [\#1328](https://github.com/abhimehro/ctrld-sync/issues/1328)
 - Daily QA & Agentic Review — 2026-10-09 [\#1324](https://github.com/abhimehro/ctrld-sync/issues/1324)
 - PR lifecycle: needs human decision [\#1323](https://github.com/abhimehro/ctrld-sync/issues/1323)
