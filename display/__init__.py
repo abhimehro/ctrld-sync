@@ -7,8 +7,11 @@ import sys
 import types
 
 from .colors import USE_COLORS, Box, Colors
-from .log import configure_logging  # noqa: F401
-from .log import ColoredFormatter, JsonFormatter
+from .log import (
+    ColoredFormatter,
+    JsonFormatter,
+    configure_logging,  # noqa: F401
+)
 from .output import (
     _clear_current_line,
     _print_bold_header,
@@ -24,8 +27,11 @@ from .plan import (  # noqa: F401
     _resolve_folder_action,
     print_plan_details,
 )
-from .progress import _get_progress_bar_width  # noqa: F401
-from .progress import countdown_timer, render_progress_bar
+from .progress import (
+    _get_progress_bar_width,  # noqa: F401
+    countdown_timer,
+    render_progress_bar,
+)
 from .prompts import (
     EMPTY_INPUT_HINT,
     INVALID_INPUT_HINT,
@@ -38,10 +44,10 @@ from .stats import (  # noqa: F401
     display_rate_limit_status,
     display_statistics,
 )
-from .tables import _print_hint_if_no_folders  # noqa: F401
 from .tables import (
     _get_display_profile,
     _print_dashboard_url,
+    _print_hint_if_no_folders,  # noqa: F401
     _print_success_text,
     _render_ascii_table,
     _render_unicode_table,

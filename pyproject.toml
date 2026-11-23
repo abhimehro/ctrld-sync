@@ -39,6 +39,7 @@ warn_unused_ignores = true
 
 [tool.ruff.lint]
 select = ["E", "W", "F", "N", "PERF", "RET", "SIM", "UP"]
+extend-select = ["I"]
 ignore = ["E501", "SIM105", "SIM115", "SIM117"]
 
 [tool.bandit]
