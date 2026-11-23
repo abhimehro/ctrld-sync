@@ -173,9 +173,13 @@
 **Merged pull requests:**
 
 - chore\(qa\): simplify temp plan file cleanup and drop redundant profile count calculation [\#1435](https://github.com/abhimehro/ctrld-sync/pull/1435) ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump types-pyyaml from 6.0.12.20260906 to 6.0.12.20261111 [\#1418](https://github.com/abhimehro/ctrld-sync/pull/1418) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump ruff from 0.17.3 to 0.17.4 [\#1417](https://github.com/abhimehro/ctrld-sync/pull/1417) ([dependabot[bot]](https://github.com/apps/dependabot))
 - ⚡bolt: eliminate redundant truthiness check in is\_valid\_rule [\#1415](https://github.com/abhimehro/ctrld-sync/pull/1415) ([abhimehro](https://github.com/abhimehro))
 - 🧹 refactor\(api\_client\): simplify rate limit header parsing logic [\#1408](https://github.com/abhimehro/ctrld-sync/pull/1408) ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump pytest-benchmark from 5.3.0 to 5.3.1 [\#1397](https://github.com/abhimehro/ctrld-sync/pull/1397) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(ruff\): enforce import sorting after Trunk isort removal [\#1395](https://github.com/abhimehro/ctrld-sync/pull/1395) ([abhimehro](https://github.com/abhimehro))
+- docs: lint with the locked ruff via uv run [\#1391](https://github.com/abhimehro/ctrld-sync/pull/1391) ([cursor[bot]](https://github.com/apps/cursor))
 - chore\(deps\): bump ruby/setup-ruby from 1.335.0 to 1.336.0 [\#1387](https://github.com/abhimehro/ctrld-sync/pull/1387) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore: nightly audit, trim trunk config [\#1385](https://github.com/abhimehro/ctrld-sync/pull/1385) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump mypy from 2.4.0 to 2.4.1 [\#1382](https://github.com/abhimehro/ctrld-sync/pull/1382) ([dependabot[bot]](https://github.com/apps/dependabot))
