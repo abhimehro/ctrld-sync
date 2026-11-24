@@ -30,6 +30,18 @@ class _GroupLookupResult:
     folder_id: str | None = None
 
 
+def _format_error_hint(e: Exception) -> str:
+    """Format an actionable hint suffix for Control D folder HTTP errors."""
+    if isinstance(e, httpx.HTTPStatusError):
+        code = e.response.status_code
+        return f" | hint: {config._STATUS_HINTS.get(code, f'HTTP {code}')}"
+    if isinstance(e, httpx.TimeoutException):
+        return f" | hint: {_TIMEOUT_HINT}"
+    if isinstance(e, httpx.ConnectError):
+        return f" | hint: {_CONNECT_ERROR_HINT}"
+    return ""
+
+
 def list_existing_folders(client: httpx.Client, profile_id: str) -> dict[str, str]:
     """
     Retrieves all existing folders (groups) for a given profile.
@@ -39,23 +51,10 @@ def list_existing_folders(client: httpx.Client, profile_id: str) -> dict[str, st
     """
     try:
         data = sync._api_get(client, f"{config.API_BASE}/{profile_id}/groups").json()
-        folders = data.get("body", {}).get("groups", [])
-        result = {}
-        for f in folders:
-            if not f.get("group") or not f.get("PK"):
-                continue
-            pk = str(f["PK"])
-            if validate_folder_id(pk):
-                result[f["group"].strip()] = pk
-        return result
-    except (httpx.HTTPError, KeyError) as e:
-        hint = ""
-        if isinstance(e, httpx.HTTPStatusError):
-            hint = f" | hint: {config._STATUS_HINTS.get(e.response.status_code, f'HTTP {e.response.status_code}')}"
-        elif isinstance(e, httpx.TimeoutException):
-            hint = f" | hint: {_TIMEOUT_HINT}"
-        elif isinstance(e, httpx.ConnectError):
-            hint = f" | hint: {_CONNECT_ERROR_HINT}"
+        parsed = _parse_folders_response(data)
+        return parsed if parsed is not None else {}
+    except (httpx.HTTPError, KeyError, ValueError) as e:
+        hint = _format_error_hint(e)
         sync.log.error(f"Failed to list existing folders{hint}: {sanitize_for_log(e)}")
         return {}
 
@@ -132,15 +131,7 @@ def verify_access_and_get_folders(
 
         except httpx.RequestError as err:
             if attempt == api_client.MAX_RETRIES - 1:
-                hint = (
-                    f" | hint: {_TIMEOUT_HINT}"
-                    if isinstance(err, httpx.TimeoutException)
-                    else (
-                        f" | hint: {_CONNECT_ERROR_HINT}"
-                        if isinstance(err, httpx.ConnectError)
-                        else ""
-                    )
-                )
+                hint = _format_error_hint(err)
                 sync.log.error(
                     "Network error during access verification: %s%s",
                     sanitize_for_log(err),
@@ -177,13 +168,7 @@ def delete_folder(
         )
         return True
     except httpx.HTTPError as e:
-        hint = ""
-        if isinstance(e, httpx.HTTPStatusError):
-            hint = f" | hint: {config._STATUS_HINTS.get(e.response.status_code, f'HTTP {e.response.status_code}')}"
-        elif isinstance(e, httpx.TimeoutException):
-            hint = f" | hint: {_TIMEOUT_HINT}"
-        elif isinstance(e, httpx.ConnectError):
-            hint = f" | hint: {_CONNECT_ERROR_HINT}"
+        hint = _format_error_hint(e)
         sync.log.error(
             f"Failed to delete folder {sanitize_for_log(name)} (ID {sanitize_for_log(folder_id)}){hint}: {sanitize_for_log(e)}"
         )
@@ -311,9 +296,7 @@ def create_folder(ctx: SyncContext, name: str, action: RuleAction) -> str | None
         return _poll_for_folder_id(ctx, name)
 
     except (httpx.HTTPError, KeyError) as e:
-        hint = ""
-        if isinstance(e, httpx.HTTPStatusError):
-            hint = f" | hint: {config._STATUS_HINTS.get(e.response.status_code, f'HTTP {e.response.status_code}')}"
+        hint = _format_error_hint(e)
         sync.log.error(
             f"Failed to create folder {sanitize_for_log(name)}{hint}: {sanitize_for_log(e)}"
         )
