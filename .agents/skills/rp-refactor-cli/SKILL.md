@@ -2,7 +2,7 @@
 name: "rp-refactor-cli"
 description: "Refactoring assistant using rp-cli to analyze and improve code organization"
 repoprompt_managed: true
-repoprompt_skills_version: 29
+repoprompt_skills_version: 30
 repoprompt_variant: cli
 ---
 
@@ -55,12 +55,9 @@ minutes to complete. When invoking rp-cli, **set your command timeout to at
 least 2700 seconds (45 minutes)** to avoid premature termination.
 
 ---
-
 ## Goal
 
-Analyze code for redundancies and complexity, then implement improvements.
-**Preserve behavior** unless something is broken.
-
+Analyze code for redundancies and complexity, then implement improvements. **Preserve behavior** unless something is broken.
 ---
 
 ## Protocol
@@ -100,14 +97,11 @@ rp-cli -w <window_id> -e 'tree --type roots'
 - Always include `-w <window_id>` in ALL subsequent commands
 
 ---
-
 ## Step 1: Analyze for Refactoring Opportunities (via `builder` - REQUIRED)
 
-⚠️ **Do NOT skip this step.** You MUST call `builder` with
-`response_type: "review"` to properly analyze the code.
+⚠️ **Do NOT skip this step.** You MUST call `builder` with `response_type: "review"` to properly analyze the code.
 
 Use XML tags to structure the instructions:
-
 ```bash
 rp-cli -w <window_id> -e 'builder "<task>Analyze for refactoring opportunities. Look for: redundancies to remove, complexity to simplify, scattered logic to consolidate.</task>
 
@@ -117,26 +111,20 @@ Goal: Preserve behavior while improving code organization.</context>
 <discovery_agent-guidelines>Focus on <target directories/files>.</discovery_agent-guidelines>" --response-type review'
 ```
 
-Review the findings. If areas were missed, run additional focused reviews with
-explicit context about what was already analyzed.
+Review the findings. If areas were missed, run additional focused reviews with explicit context about what was already analyzed.
 
 ## Optional: Clarify Analysis
 
-After receiving analysis findings, you can ask clarifying questions in the same
-chat:
-
+After receiving analysis findings, you can ask clarifying questions in the same chat:
 ```bash
 rp-cli -w <window_id> -t '<tab_id>' -e 'chat "For the duplicate logic you identified, which location should be the canonical one?" --mode chat'
 ```
 
-> Pass `-w <window_id>` to target the correct window and `-t <tab_id>` to target
-> the same tab from the builder response.
+> Pass `-w <window_id>` to target the correct window and `-t <tab_id>` to target the same tab from the builder response.
 
 ## Step 2: Implement the Refactorings
 
-Once you have a clear list of refactoring opportunities, use `builder` with
-`response_type: "plan"` to implement:
-
+Once you have a clear list of refactoring opportunities, use `builder` with `response_type: "plan"` to implement:
 ```bash
 rp-cli -w <window_id> -e 'builder "<task>Implement these refactorings:</task>
 
@@ -148,7 +136,6 @@ Preserve existing behavior. Make incremental changes.</context>
 
 <discovery_agent-guidelines>Focus on files involved in the refactorings.</discovery_agent-guidelines>" --response-type plan'
 ```
-
 ---
 
 ## Output Format (be concise)

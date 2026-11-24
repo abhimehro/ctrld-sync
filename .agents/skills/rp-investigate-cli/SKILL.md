@@ -2,7 +2,7 @@
 name: "rp-investigate-cli"
 description: "Deep investigation with rp-cli commands: tools gather evidence, follow-up reasoning synthesizes selected context"
 repoprompt_managed: true
-repoprompt_skills_version: 29
+repoprompt_skills_version: 30
 repoprompt_variant: cli
 ---
 
@@ -54,57 +54,31 @@ minutes to complete. When invoking rp-cli, **set your command timeout to at
 least 2700 seconds (45 minutes)** to avoid premature termination.
 
 ---
-
 ## Investigation Protocol
 
 This workflow leverages three complementary capabilities:
 
-- **You (the agent)**: Can read any file with exact line numbers, run git
-  commands, search the codebase, run experiments, and produce concrete evidence.
-  You can also **mutate the file selection** to control what the chat sees. You
-  are the hands and eyes.
-- **Context Builder** (`builder`): Explores the codebase and **populates the
-  file selection** — choosing full files or slices of files relevant to the
-  task. This is its primary output: a curated selection the chat can analyze.
-- **Chat** (`chat_send`): Deep analytical reasoning over **the current file
-  selection**. It sees selected files **completely** (full content, not
-  summaries), but it **only sees what's in the selection** — nothing else. It
-  excels at synthesizing patterns, spotting architectural issues, and forming
-  hypotheses from the big picture. It is **not** a lookup tool: if a question
-  can be answered by reading files, searching, or running git/tool calls, do
-  that yourself first.
+- **You (the agent)**: Can read any file with exact line numbers, run git commands, search the codebase, run experiments, and produce concrete evidence. You can also **mutate the file selection** to control what the chat sees. You are the hands and eyes.
+- **Context Builder** (`builder`): Explores the codebase and **populates the file selection** — choosing full files or slices of files relevant to the task. This is its primary output: a curated selection the chat can analyze.
+- **Chat** (`chat_send`): Deep analytical reasoning over **the current file selection**. It sees selected files **completely** (full content, not summaries), but it **only sees what's in the selection** — nothing else. It excels at synthesizing patterns, spotting architectural issues, and forming hypotheses from the big picture. It is **not** a lookup tool: if a question can be answered by reading files, searching, or running git/tool calls, do that yourself first.
 
 ### How File Selection Drives the Workflow
 
-The **file selection** is the shared context between you, the context builder,
-and the chat:
-
+The **file selection** is the shared context between you, the context builder, and the chat:
 1. `builder` populates the selection with relevant files/slices it discovers
-2. The chat analyzes whatever is currently selected — it has no other view of
-   the codebase
-3. You can **add or remove** specific files via `manage_selection` to augment or
-   refine what the chat sees
-4. You can **add slices** of large files to supplement the selection without
-   blowing the token budget
+2. The chat analyzes whatever is currently selected — it has no other view of the codebase
+3. You can **add or remove** specific files via `manage_selection` to augment or refine what the chat sees
+4. You can **add slices** of large files to supplement the selection without blowing the token budget
 
-**Important:** The context builder operates with a large token budget and works
-hard to maximize useful context. Don't constrain it — build on its selection
-with targeted `add`/`remove` calls rather than replacing it.
+**Important:** The context builder operates with a large token budget and works hard to maximize useful context. Don't constrain it — build on its selection with targeted `add`/`remove` calls rather than replacing it.
 
 ### Core Principles
-
-1. **Don't stop until confident** — pursue every lead until you have solid
-   evidence
-2. **Play to each tool's strengths** — context builder for broad discovery, the
-   chat for deep analysis, your own tools for precise evidence gathering
-3. **You produce the evidence** — the chat analyzes and hypothesizes; you verify
-   with exact file reads, git blame, searches
-4. **Manage the selection actively** — refocus the chat on different files as
-   the investigation narrows
-5. **Use tool calls for facts, chat for synthesis** — resolve straightforward
-   lookups yourself before asking for analytical help
-6. **Document findings as you go** — create/update a report file with
-   observations
+1. **Don't stop until confident** — pursue every lead until you have solid evidence
+2. **Play to each tool's strengths** — context builder for broad discovery, the chat for deep analysis, your own tools for precise evidence gathering
+3. **You produce the evidence** — the chat analyzes and hypothesizes; you verify with exact file reads, git blame, searches
+4. **Manage the selection actively** — refocus the chat on different files as the investigation narrows
+5. **Use tool calls for facts, chat for synthesis** — resolve straightforward lookups yourself before asking for analytical help
+6. **Document findings as you go** — create/update a report file with observations
 
 ### Phase 0: Workspace Verification (REQUIRED)
 
@@ -119,18 +93,13 @@ rp-cli -w <window_id> -e 'tree --type roots'
 ```
 
 **Check the output:**
-
-- If your target root appears in a window → note the window ID and proceed to
-  Phase 1
+- If your target root appears in a window → note the window ID and proceed to Phase 1
 - If not → the codebase isn't loaded in any window
 
 **CLI Window Routing (CRITICAL):**
-
-- CLI invocations are stateless—you MUST pass `-w <window_id>` to target the
-  correct window
+- CLI invocations are stateless—you MUST pass `-w <window_id>` to target the correct window
 - Use `rp-cli -e 'windows'` to list all open windows and their workspaces
 - Always include `-w <window_id>` in ALL subsequent commands
-
 ---
 
 ### Phase 1: Initial Assessment (Agent — you)

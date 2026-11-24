@@ -2,7 +2,7 @@
 name: "rp-build-cli"
 description: "Build with rp-cli context builder plan → implement"
 repoprompt_managed: true
-repoprompt_skills_version: 29
+repoprompt_skills_version: 30
 repoprompt_variant: cli
 ---
 
@@ -55,18 +55,13 @@ minutes to complete. When invoking rp-cli, **set your command timeout to at
 least 2700 seconds (45 minutes)** to avoid premature termination.
 
 ---
-
 ## The Workflow
 
 0. **Verify workspace** – Confirm the target codebase is loaded
 1. **Quick scan** – Understand how the task relates to the codebase
-2. **Context builder** – Call `builder` with a clear prompt to get deep
-   context + an architectural plan
-3. **Only if needed, ask `chat`** – Use it when navigating the selected code is
-   difficult or the plan leaves a concrete unresolved gap
-4. **Implement directly** – Use editing tools to make changes once the plan is
-   clear
-
+2. **Context builder** – Call `builder` with a clear prompt to get deep context + an architectural plan
+3. **Only if needed, ask `chat`** – Use it when navigating the selected code is difficult or the plan leaves a concrete unresolved gap
+4. **Implement directly** – Use editing tools to make changes once the plan is clear
 ---
 
 ## CRITICAL REQUIREMENT
@@ -110,31 +105,24 @@ rp-cli -w <window_id> -e 'tree --type roots'
 - Without `-w`, commands may target the wrong workspace
 
 ---
-
 ## Phase 1: Quick Scan (LIMITED - 2-3 tool calls max)
 
-⚠️ **This phase is intentionally brief.** Do NOT do extensive exploration
-here—that's what `builder` is for.
+⚠️ **This phase is intentionally brief.** Do NOT do extensive exploration here—that's what `builder` is for.
 
 Start by getting a lay of the land with the file tree:
-
 ```bash
 rp-cli -w <window_id> -e 'tree'
 ```
 
 Then use targeted searches to understand how the task maps to the codebase:
-
 ```bash
 rp-cli -w <window_id> -e 'search "<key term from task>"'
 rp-cli -w <window_id> -e 'structure RootName/likely/relevant/area/'
 ```
 
-Use what you learn to **reformulate the user's prompt** with added
-clarity—reference specific modules, patterns, or terminology from the codebase.
+Use what you learn to **reformulate the user's prompt** with added clarity—reference specific modules, patterns, or terminology from the codebase.
 
-**STOP exploring after 2-3 searches.** Your goal is orientation, not deep
-understanding. `builder` will do the heavy lifting.
-
+**STOP exploring after 2-3 searches.** Your goal is orientation, not deep understanding. `builder` will do the heavy lifting.
 ---
 
 ## Phase 2: Context Builder
