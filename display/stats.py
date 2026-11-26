@@ -7,7 +7,7 @@ import time
 from api_client import _api_stats, _rate_limit_info, _rate_limit_lock
 from cache import _cache_stats
 
-from .colors import Colors
+from .colors import USE_COLORS, Colors
 from .output import _print_bold_header
 
 
@@ -49,6 +49,22 @@ def display_cache_statistics() -> None:
         print()
 
 
+def _format_remaining_requests(remaining: int, limit: int | None) -> str:
+    """Format remaining quota count and percentage, respecting USE_COLORS."""
+    if limit and limit > 0:
+        pct = (remaining / limit) * 100
+        text = f"{remaining:>6,} ({pct:>5.1f}%)"
+        if USE_COLORS:
+            color = (
+                Colors.FAIL
+                if pct < 20
+                else (Colors.WARNING if pct < 50 else Colors.GREEN)
+            )
+            return f"{color}{text}{Colors.ENDC}"
+        return text
+    return f"{remaining:>6,}"
+
+
 def display_rate_limit_status() -> None:
     """Display rate limit information if available."""
     with _rate_limit_lock:
@@ -61,20 +77,10 @@ def display_rate_limit_status() -> None:
             print(f"  • Requests limit:       {_rate_limit_info['limit']:>6,}")
 
         if _rate_limit_info["remaining"] is not None:
-            remaining = _rate_limit_info["remaining"]
-            limit = _rate_limit_info["limit"]
-            if limit and limit > 0:
-                pct = (remaining / limit) * 100
-                color = (
-                    Colors.FAIL
-                    if pct < 20
-                    else (Colors.WARNING if pct < 50 else Colors.GREEN)
-                )
-                print(
-                    f"  • Requests remaining:   {color}{remaining:>6,} ({pct:>5.1f}%){Colors.ENDC}"
-                )
-            else:
-                print(f"  • Requests remaining:   {remaining:>6,}")
+            formatted = _format_remaining_requests(
+                _rate_limit_info["remaining"], _rate_limit_info["limit"]
+            )
+            print(f"  • Requests remaining:   {formatted}")
 
         if _rate_limit_info["reset"] is not None:
             reset_time = time.strftime(
