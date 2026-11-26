@@ -654,6 +654,8 @@ def main() -> bool:
         log.error("TOKEN missing and --dry-run not set. Set TOKEN env for live sync.")
         exit(1)
 
+    cache_misses_before = _cache_stats["misses"]
+    cache_validations_before = _cache_stats["validations"]
     warm_up_cache(folder_urls)
 
     plan: list[PlanEntry] = []
@@ -768,8 +770,11 @@ def main() -> bool:
     # Display execution statistics and rate limit status
     display_statistics()
 
-    # Save cache to disk after successful sync (non-fatal if it fails)
-    if not args.dry_run:
+    # Save cache to disk after live sync only when entries were fetched or revalidated
+    if not args.dry_run and (
+        _cache_stats["misses"] != cache_misses_before
+        or _cache_stats["validations"] != cache_validations_before
+    ):
         save_disk_cache()
 
     profile_word = pluralize(total, "profile")
