@@ -107,6 +107,36 @@ def get_cache_dir() -> Path:
     return Path.home() / ".cache" / "ctrld-sync"
 
 
+def _sanitize_cache_entries(data: dict[Any, Any]) -> tuple[dict[str, Any], int]:
+    """Return valid ``(key -> entry)`` mappings and count of dropped entries.
+
+    Each entry must have a ``str`` key and a ``dict`` value containing at least
+    a ``'data'`` field so a partly-corrupt cache never crashes downstream.
+    """
+    sanitized: dict[str, Any] = {}
+    dropped = 0
+
+    for key, value in data.items():
+        if not isinstance(key, str):
+            dropped += 1
+            log.debug("Dropping cache entry with non-string key: %r", key)
+            continue
+
+        if not isinstance(value, dict):
+            dropped += 1
+            log.debug("Dropping cache entry %r: value is not a dict", key)
+            continue
+
+        if "data" not in value:
+            dropped += 1
+            log.debug("Dropping cache entry %r: missing required 'data' field", key)
+            continue
+
+        sanitized[key] = value
+
+    return sanitized, dropped
+
+
 def load_disk_cache() -> None:
     """Load the persistent blocklist cache from disk at startup.
 
@@ -132,29 +162,7 @@ def load_disk_cache() -> None:
             log.warning("Cache file has invalid format (root is not a dict), ignoring")
             return
 
-        # Sanitize individual entries:  key must be str, value must be a dict
-        # containing at least a 'data' field.  Drop anything malformed so that
-        # a partly-corrupt cache never causes a crash downstream.
-        sanitized_cache: dict[str, Any] = {}
-        dropped_entries = 0
-
-        for key, value in data.items():
-            if not isinstance(key, str):
-                dropped_entries += 1
-                log.debug("Dropping cache entry with non-string key: %r", key)
-                continue
-
-            if not isinstance(value, dict):
-                dropped_entries += 1
-                log.debug("Dropping cache entry %r: value is not a dict", key)
-                continue
-
-            if "data" not in value:
-                dropped_entries += 1
-                log.debug("Dropping cache entry %r: missing required 'data' field", key)
-                continue
-
-            sanitized_cache[key] = value
+        sanitized_cache, dropped_entries = _sanitize_cache_entries(data)
 
         if not sanitized_cache:
             # Nothing valid – reset to empty and return.
