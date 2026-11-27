@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = ["httpx==0.28.1", "python-dotenv==1.2.4", "pyyaml==6.0.3"]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
   "pytest>=9.1.1",
   "pytest-mock>=3.10.0",
@@ -20,6 +20,12 @@ dev = [
   "bandit>=1.9.4",
   "bandit-sarif-formatter>=1.1.1",
 ]
+
+[tool.uv]
+# Pin the default groups explicitly. uv already installs the `dev` group by
+# default, but stating it here guards the bare `uv sync` behavior against
+# future uv default changes.
+default-groups = ["dev"]
 
 [tool.coverage.run]
 source = ["."]
